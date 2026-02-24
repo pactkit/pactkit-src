@@ -4,6 +4,19 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - 2026-02-24
+
+### Added
+- **Conditional CI/CD Pipeline Generation** — `ci.provider` config (github/gitlab/none) generates workflow files; disabled by default (STORY-025)
+- **Conditional Issue Tracker Integration** — `issue_tracker.provider` config enables GitHub Issue creation in Plan and closure in Done; standalone Sprint Board preserved (STORY-026)
+- **Safe Opt-in Hook Templates** — 3 hook templates (pre-commit lint, post-test coverage, pre-push check); command-type only, report-only (exit 0), disabled by default (STORY-027)
+- **Context-Aware Rule Scoping** — `rule_scopes` config maps rule IDs to glob patterns; deployer prepends `includeFiles` frontmatter (STORY-028)
+- **Enhanced Doctor Diagnostics** — Stale graph detection (7+ days), orphaned/missing spec detection, config drift detection, severity levels (INFO/WARN/ERROR) (STORY-029)
+- **Smart Lint Integration** — `lint_blocking` and `auto_fix` config options for Done command; non-blocking warnings by default (STORY-030)
+
+### Fixed
+- **Read-only agent hooks removed** — Prompt hooks on qa-engineer, security-auditor, system-medic, code-explorer caused latency and infinite loop risk; tools/disallowedTools already enforce read-only constraint
+
 ## [1.1.4] - 2026-02-24
 
 ### Added
