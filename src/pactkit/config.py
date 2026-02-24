@@ -107,12 +107,12 @@ def get_default_config() -> dict:
 def load_config(path: Path | str | None = None) -> dict:
     """Load pactkit.yaml from *path*, merging with defaults.
 
-    If *path* is ``None``, uses ``~/.claude/pactkit.yaml``.
+    If *path* is ``None``, uses ``$CWD/.claude/pactkit.yaml`` (BUG-013).
     If the file does not exist, returns the full default config.
     Missing keys in the user file inherit from defaults.
     """
     if path is None:
-        path = Path.home() / '.claude' / 'pactkit.yaml'
+        path = Path.cwd() / '.claude' / 'pactkit.yaml'
     else:
         path = Path(path)
 
@@ -176,7 +176,13 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     for key, valid_set in _REGISTRY.items():
         user_list = user_data.get(key)
         if user_list is None:
-            # Key not in user yaml → will inherit defaults via load_config
+            # BUG-013: key missing from user yaml → backfill full default list
+            excluded_items = set(exclude.get(key, []) or [])
+            new_items = sorted(
+                item for item in valid_set if item not in excluded_items
+            )
+            user_data[key] = new_items
+            added.append(f"section: {key}")
             continue
         if not isinstance(user_list, list):
             continue

@@ -74,16 +74,21 @@ def _deploy_classic(config=None, target=None):
     # Migrate legacy scafpy remnants before anything else
     _migrate_from_scafpy(claude_root)
 
-    # Load config if not provided
+    # Load config from project-level $CWD/.claude/pactkit.yaml (BUG-013)
     if config is None:
-        yaml_path = claude_root / "pactkit.yaml"
+        project_yaml = Path.cwd() / ".claude" / "pactkit.yaml"
         # Auto-merge new components before loading (STORY-009)
-        auto_added = auto_merge_config_file(yaml_path)
+        auto_added = auto_merge_config_file(project_yaml)
         for item in auto_added:
             print(f"  -> Auto-added: {item}")
-        config = load_config(yaml_path)
+        config = load_config(project_yaml)
 
     validate_config(config)
+
+    # Warn about orphaned global config (BUG-013)
+    global_yaml = claude_root / "pactkit.yaml"
+    if global_yaml.exists() and global_yaml != Path.cwd() / ".claude" / "pactkit.yaml":
+        print(f"  ⚠️  Found orphaned {global_yaml} — config is now read from $CWD/.claude/pactkit.yaml")
 
     print("🚀 PactKit DevOps Deployment")
 
@@ -113,18 +118,15 @@ def _deploy_classic(config=None, target=None):
     # Deploy CI pipeline if configured (STORY-025)
     ci_config = config.get('ci', {})
     ci_provider = ci_config.get('provider', 'none') if isinstance(ci_config, dict) else 'none'
-    project_root = claude_root.parent
+    project_root = Path.cwd()
     _deploy_ci(ci_provider, project_root, config)
 
     # Deploy hooks if configured (STORY-027)
     hooks_config = config.get('hooks', {})
     _deploy_hooks(claude_root / 'hooks', hooks_config, stack=config.get('stack', 'auto'))
 
-    # Generate pactkit.yaml if it doesn't exist
-    _generate_config_if_missing(claude_root)
-
-    # Backfill project-level config if it exists (BUG-009)
-    _backfill_project_config(claude_root)
+    # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
+    _generate_config_if_missing()
 
     # Summary
     total_agents = len(VALID_AGENTS)
@@ -634,36 +636,13 @@ def _deploy_hooks(hooks_dir, hooks_config, stack='python'):
         print(f"  -> Hook: {filename}")
 
 
-def _generate_config_if_missing(claude_root):
-    """Generate pactkit.yaml with defaults if it doesn't exist."""
-    yaml_path = claude_root / "pactkit.yaml"
+def _generate_config_if_missing():
+    """Generate pactkit.yaml at $CWD/.claude/ with defaults if it doesn't exist (BUG-013)."""
+    yaml_path = Path.cwd() / ".claude" / "pactkit.yaml"
     if not yaml_path.exists():
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write(yaml_path, generate_default_yaml())
 
-
-def _backfill_project_config(claude_root):
-    """Backfill project-level .claude/pactkit.yaml if it exists (BUG-009).
-
-    The project-level config at $CWD/.claude/pactkit.yaml is separate from
-    the global config at ~/.claude/pactkit.yaml.  This function detects if
-    a project-level config exists and backfills missing sections (hooks, ci,
-    issue_tracker, lint_blocking, auto_fix) without creating it if absent.
-    """
-    cwd = Path.cwd()
-    project_yaml = cwd / ".claude" / "pactkit.yaml"
-
-    # Skip if same as global config (user is in $HOME)
-    global_yaml = claude_root / "pactkit.yaml"
-    if project_yaml == global_yaml:
-        return
-
-    # Only backfill if project config already exists
-    if not project_yaml.exists():
-        return
-
-    project_added = auto_merge_config_file(project_yaml)
-    for item in project_added:
-        print(f"  -> Project auto-added: {item}")
 
 
 # ---------------------------------------------------------------------------

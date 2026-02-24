@@ -24,9 +24,12 @@ if str(project_root) not in sys.path:
 # ---------------------------------------------------------------------------
 
 def _deploy_to(tmp_path, config=None):
-    """Deploy PactKit to tmp_path and return the claude root."""
+    """Deploy PactKit to tmp_path and return the claude root (BUG-013: mock CWD)."""
+    from unittest.mock import patch
+
     from pactkit.generators.deployer import deploy
-    deploy(config=config, target=str(tmp_path / '.claude'))
+    with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+        deploy(config=config, target=str(tmp_path / '.claude'))
     return tmp_path / '.claude'
 
 
@@ -69,8 +72,11 @@ class TestAC2GitHubCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         assert workflow.exists(), '.github/workflows/pactkit.yml not created'
 
@@ -79,8 +85,11 @@ class TestAC2GitHubCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         parsed = yaml.safe_load(workflow.read_text())
         assert isinstance(parsed, dict)
@@ -90,8 +99,11 @@ class TestAC2GitHubCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         content = workflow.read_text()
         assert 'pytest' in content
@@ -101,8 +113,11 @@ class TestAC2GitHubCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         content = workflow.read_text()
         # Should contain some form of lint command
@@ -120,8 +135,11 @@ class TestAC3GitLabCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'gitlab'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         ci_file = tmp_path / '.gitlab-ci.yml'
         assert ci_file.exists(), '.gitlab-ci.yml not created'
 
@@ -130,8 +148,11 @@ class TestAC3GitLabCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'gitlab'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         ci_file = tmp_path / '.gitlab-ci.yml'
         parsed = yaml.safe_load(ci_file.read_text())
         assert isinstance(parsed, dict)
@@ -141,8 +162,11 @@ class TestAC3GitLabCI:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'gitlab'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         ci_file = tmp_path / '.gitlab-ci.yml'
         content = ci_file.read_text()
         assert 'pytest' in content or 'test' in content.lower()
@@ -159,8 +183,11 @@ class TestAC4NoneProvider:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'none'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         assert not (tmp_path / '.github').exists()
 
     def test_none_provider_no_gitlab_file(self, tmp_path):
@@ -168,8 +195,11 @@ class TestAC4NoneProvider:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'none'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         assert not (tmp_path / '.gitlab-ci.yml').exists()
 
 
@@ -247,8 +277,11 @@ class TestAC7CIContentValidation:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         content = workflow.read_text()
         assert 'ubuntu-latest' in content
@@ -258,8 +291,11 @@ class TestAC7CIContentValidation:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         content = workflow.read_text()
         assert 'push' in content
@@ -270,8 +306,11 @@ class TestAC7CIContentValidation:
         from pactkit.config import get_default_config
         config = get_default_config()
         config['ci'] = {'provider': 'github'}
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(config=config, target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=config, target=str(tmp_path / '.claude'))
         workflow = tmp_path / '.github' / 'workflows' / 'pactkit.yml'
         content = workflow.read_text()
         assert 'pytest tests/' in content

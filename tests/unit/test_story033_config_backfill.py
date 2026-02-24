@@ -21,7 +21,6 @@ from pactkit.config import (  # noqa: E402
     get_default_config,
 )
 
-
 # ===========================================================================
 # AC1: Missing non-list sections are backfilled
 # ===========================================================================
@@ -206,11 +205,15 @@ class TestAC4BackfillReport:
         result = auto_merge_config_file(yaml_path)
         assert 'section: ci' in result
 
-    def test_no_report_when_section_exists(self, tmp_path):
-        """No section report when hooks already present."""
+    def test_no_report_when_all_sections_exist(self, tmp_path):
+        """No section report when all sections (including lists) already present."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text(
             'stack: python\nversion: "1.2.0"\nroot: .\n'
+            'agents:\n  - system-architect\n'
+            'commands:\n  - project-plan\n'
+            'skills:\n  - pactkit-board\n'
+            'rules:\n  - 01-core-protocol\n'
             'hooks:\n  pre_commit_lint: false\n'
             'ci:\n  provider: none\n'
             'issue_tracker:\n  provider: none\n'
@@ -222,12 +225,13 @@ class TestAC4BackfillReport:
         assert len(section_reports) == 0
 
     def test_reports_multiple_sections(self, tmp_path):
-        """All missing sections reported when all are absent."""
+        """All missing sections reported when all are absent (BUG-013: includes lists)."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
-        assert len(section_reports) == 5  # ci, issue_tracker, hooks, lint_blocking, auto_fix
+        # 4 list-type (agents, commands, skills, rules) + 5 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix)
+        assert len(section_reports) == 9
 
 
 # ===========================================================================
@@ -252,9 +256,12 @@ class TestAC5FreshInit:
         assert 'lint_blocking:' in content
 
     def test_fresh_deploy_generates_complete_config(self, tmp_path):
-        """Fresh deploy to empty dir creates pactkit.yaml with all sections."""
+        """Fresh deploy generates pactkit.yaml at $CWD/.claude/ with all sections (BUG-013)."""
+        from unittest.mock import patch
+
         from pactkit.generators.deployer import deploy
-        deploy(target=str(tmp_path / '.claude'))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(target=str(tmp_path / '.claude'))
         yaml_path = tmp_path / '.claude' / 'pactkit.yaml'
         assert yaml_path.exists()
         content = yaml_path.read_text()

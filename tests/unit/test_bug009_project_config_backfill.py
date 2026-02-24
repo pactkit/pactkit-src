@@ -101,12 +101,12 @@ class TestAC1ProjectConfigBackfilled:
 
 
 # ===========================================================================
-# AC2: Global config still backfilled (no regression)
+# AC2: Project config auto-merged (BUG-013: single source at $CWD)
 # ===========================================================================
 class TestAC2GlobalConfigStillWorks:
-    """Global config auto-merge is unchanged."""
+    """Project-level config auto-merge works (BUG-013: no global config)."""
 
-    def test_global_config_still_auto_merged(self, tmp_path):
+    def test_project_config_auto_merged(self, tmp_path):
         from pactkit.generators.deployer import deploy
 
         home = tmp_path / 'home'
@@ -114,9 +114,12 @@ class TestAC2GlobalConfigStillWorks:
 
         home_claude = home / '.claude'
         home_claude.mkdir(parents=True)
+
+        # Project config missing one command (BUG-013: config at CWD)
+        project_claude = project / '.claude'
+        project_claude.mkdir(parents=True)
         cfg = _config()
-        # Global config missing one command
-        _write_yaml(home_claude / 'pactkit.yaml', {
+        _write_yaml(project_claude / 'pactkit.yaml', {
             'agents': sorted(cfg.VALID_AGENTS),
             'commands': sorted(cfg.VALID_COMMANDS - {'project-design'}),
             'skills': sorted(cfg.VALID_SKILLS),
@@ -128,24 +131,21 @@ class TestAC2GlobalConfigStillWorks:
             'auto_fix': False,
         })
 
-        # No project config
-        project.mkdir(parents=True)
-
         with patch.object(Path, 'home', return_value=home), \
              patch('pactkit.generators.deployer.Path.cwd', return_value=project):
             deploy()
 
-        updated = yaml.safe_load((home_claude / 'pactkit.yaml').read_text())
+        updated = yaml.safe_load((project_claude / 'pactkit.yaml').read_text())
         assert 'project-design' in updated['commands']
 
 
 # ===========================================================================
-# AC3: Non-existent project config not created
+# AC3: Project config auto-generated when missing (BUG-013)
 # ===========================================================================
 class TestAC3NonExistentProjectConfigNotCreated:
-    """Project config must not be created if it doesn't exist."""
+    """BUG-013: Project config is auto-generated at $CWD/.claude/ when missing."""
 
-    def test_no_project_config_not_created(self, tmp_path):
+    def test_project_config_created_when_missing(self, tmp_path):
         from pactkit.generators.deployer import deploy
 
         home = tmp_path / 'home'
@@ -153,29 +153,18 @@ class TestAC3NonExistentProjectConfigNotCreated:
 
         home_claude = home / '.claude'
         home_claude.mkdir(parents=True)
-        cfg = _config()
-        _write_yaml(home_claude / 'pactkit.yaml', {
-            'agents': sorted(cfg.VALID_AGENTS),
-            'commands': sorted(cfg.VALID_COMMANDS),
-            'skills': sorted(cfg.VALID_SKILLS),
-            'rules': sorted(cfg.VALID_RULES),
-            'ci': {'provider': 'none'},
-            'issue_tracker': {'provider': 'none'},
-            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
-            'lint_blocking': False,
-            'auto_fix': False,
-        })
 
         project.mkdir(parents=True)
-        # No .claude/ dir in project
+        # No .claude/ dir in project — deployer should create it
 
         with patch.object(Path, 'home', return_value=home), \
              patch('pactkit.generators.deployer.Path.cwd', return_value=project):
             deploy()
 
-        assert not (project / '.claude' / 'pactkit.yaml').exists()
+        # BUG-013: config is now auto-generated at $CWD/.claude/
+        assert (project / '.claude' / 'pactkit.yaml').exists()
 
-    def test_project_claude_dir_exists_but_no_yaml(self, tmp_path):
+    def test_project_claude_dir_exists_generates_yaml(self, tmp_path):
         from pactkit.generators.deployer import deploy
 
         home = tmp_path / 'home'
@@ -183,27 +172,16 @@ class TestAC3NonExistentProjectConfigNotCreated:
 
         home_claude = home / '.claude'
         home_claude.mkdir(parents=True)
-        cfg = _config()
-        _write_yaml(home_claude / 'pactkit.yaml', {
-            'agents': sorted(cfg.VALID_AGENTS),
-            'commands': sorted(cfg.VALID_COMMANDS),
-            'skills': sorted(cfg.VALID_SKILLS),
-            'rules': sorted(cfg.VALID_RULES),
-            'ci': {'provider': 'none'},
-            'issue_tracker': {'provider': 'none'},
-            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
-            'lint_blocking': False,
-            'auto_fix': False,
-        })
 
         (project / '.claude').mkdir(parents=True)
-        # .claude/ dir exists but no pactkit.yaml
+        # .claude/ dir exists but no pactkit.yaml — should be generated
 
         with patch.object(Path, 'home', return_value=home), \
              patch('pactkit.generators.deployer.Path.cwd', return_value=project):
             deploy()
 
-        assert not (project / '.claude' / 'pactkit.yaml').exists()
+        # BUG-013: config is now auto-generated at $CWD/.claude/
+        assert (project / '.claude' / 'pactkit.yaml').exists()
 
 
 # ===========================================================================

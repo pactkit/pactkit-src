@@ -13,12 +13,13 @@ from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT, RULES_FILES
 # ---------------------------------------------------------------------------
 
 def _run_deploy(tmp_path, config=None):
-    """Run deploy() with ~/.claude redirected to tmp_path/.claude."""
+    """Run deploy() with ~/.claude and $CWD redirected to tmp_path (BUG-013)."""
     claude_root = tmp_path / ".claude"
     for d in [claude_root, claude_root / "agents", claude_root / "commands", claude_root / "skills"]:
         d.mkdir(parents=True, exist_ok=True)
 
-    with patch.object(Path, 'home', return_value=tmp_path):
+    with patch.object(Path, 'home', return_value=tmp_path), \
+         patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
         deploy(config=config)
 
     return claude_root
@@ -249,13 +250,15 @@ class TestDeploymentSummary:
 class TestCustomTarget:
     def test_deploy_with_target(self, tmp_path):
         target = tmp_path / "custom-target"
-        deploy(config=get_default_config(), target=str(target))
+        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+            deploy(config=get_default_config(), target=str(target))
 
         assert (target / "agents").is_dir()
         assert (target / "commands").is_dir()
         assert (target / "skills").is_dir()
         assert (target / "CLAUDE.md").is_file()
-        assert (target / "pactkit.yaml").is_file()
+        # Config is generated at $CWD/.claude/, not at target (BUG-013)
+        assert (tmp_path / ".claude" / "pactkit.yaml").is_file()
 
     def test_target_agents_deployed(self, tmp_path):
         target = tmp_path / "custom-target"

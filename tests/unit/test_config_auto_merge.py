@@ -244,7 +244,8 @@ class TestBackwardCompatibility:
         added = cfg.auto_merge_config_file(yaml_path)
         assert added == []
 
-    def test_yaml_with_only_scalar_keys_no_list_merge(self, tmp_path):
+    def test_yaml_with_only_scalar_keys_backfills_lists(self, tmp_path):
+        """BUG-013: missing list keys are backfilled with full defaults."""
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
         _write_yaml(yaml_path, {
@@ -257,7 +258,11 @@ class TestBackwardCompatibility:
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
-        assert added == []
+        section_reports = [r for r in added if r.startswith('section:')]
+        assert 'section: agents' in section_reports
+        assert 'section: commands' in section_reports
+        assert 'section: skills' in section_reports
+        assert 'section: rules' in section_reports
 
     def test_full_list_nothing_added(self, tmp_path):
         """If user already has all VALID items and sections, nothing is added."""
@@ -363,7 +368,8 @@ class TestDeployerIntegration:
             'rules': sorted(cfg.VALID_RULES),
         })
 
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             deploy()
 
         output = capsys.readouterr().out
@@ -389,7 +395,8 @@ class TestDeployerIntegration:
             'auto_fix': False,
         })
 
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             deploy()
 
         output = capsys.readouterr().out

@@ -399,3 +399,12 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+
+### [BUG-013] Deployer reads config from wrong path — use project-level config only
+> Spec: docs/specs/BUG-013.md
+
+- [x] Change _deploy_classic to read config from CWD/.claude/pactkit.yaml
+- [x] Change _generate_config_if_missing to write full config at CWD/.claude/
+- [x] Remove _backfill_project_config (single config source)
+- [x] Change load_config default path to CWD/.claude/pactkit.yaml
+- [x] Add orphan warning for ~/.claude/pactkit.yaml
