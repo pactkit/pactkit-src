@@ -386,3 +386,16 @@
 - [x] Update agents.py: replace 4 stale /project-* protocol headers with skill-aware phrasing
 - [x] Update workflows.py: replace 3 stale Usage lines in skill prompt templates
 - [x] Verify zero stale references via grep audit
+
+### [BUG-012] Call graph noise filter — remove builtins and local method calls from visualize --mode call
+> Spec: docs/specs/BUG-012.md
+
+- [x] Add BUILTIN_CALLEES filter set to _extract_calls
+- [x] Filter non-self attribute calls (local variable methods) from call edges
+- [x] In _build_call_graph, only emit edges where at least one endpoint is in func_registry
+- [x] Verify --entry BFS tracing still works correctly
+- [x] Verify call_graph.mmd line count drops significantly
+
+## 🔄 In Progress
+
+## ✅ Done
