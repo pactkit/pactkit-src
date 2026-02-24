@@ -154,66 +154,30 @@ class TestAC3InvalidModelWarning:
 
 
 # ===========================================================================
-# AC4: Read-Only Agent Hooks (PreToolUse blocking Write|Edit)
+# AC4: Read-Only Agent Enforcement (via tools/disallowedTools, not hooks)
 # ===========================================================================
 
-READ_ONLY_AGENTS = ['qa-engineer', 'security-auditor', 'code-explorer', 'system-medic']
+class TestAC4ReadOnlyAgentEnforcement:
 
-
-class TestAC4ReadOnlyAgentHooks:
-
-    def test_hooks_in_agent_data(self):
-        """Read-only agents have hooks defined in AGENTS_EXPERT."""
+    def test_readonly_agents_no_hooks(self):
+        """Read-only agents rely on tools/disallowedTools, not prompt hooks."""
         from pactkit.prompts import AGENTS_EXPERT
-        for name in READ_ONLY_AGENTS:
+        readonly = ['qa-engineer', 'security-auditor', 'code-explorer', 'system-medic']
+        for name in readonly:
             cfg = AGENTS_EXPERT[name]
-            assert 'hooks' in cfg, f'{name} missing hooks field'
-            hooks = cfg['hooks']
-            assert 'PreToolUse' in hooks, f'{name} missing PreToolUse hook'
-
-    def test_hooks_in_deployed_frontmatter(self, tmp_path):
-        """Deployed read-only agents have hooks in frontmatter YAML."""
-        agents_dir = _deploy_to(tmp_path)
-        for name in READ_ONLY_AGENTS:
-            fm = _read_agent_fm(agents_dir, name)
-            assert 'hooks' in fm, f'{name}.md missing hooks in frontmatter'
-            hooks = fm['hooks']
-            assert 'PreToolUse' in hooks, (
-                f'{name}.md missing PreToolUse in hooks'
+            assert 'hooks' not in cfg, (
+                f'{name} should not have hooks (use tools/disallowedTools instead)'
             )
 
-    def test_hooks_block_write_edit(self, tmp_path):
-        """PreToolUse hooks matcher covers Write and Edit tools."""
-        agents_dir = _deploy_to(tmp_path)
-        for name in READ_ONLY_AGENTS:
-            fm = _read_agent_fm(agents_dir, name)
-            pre_tool_use = fm['hooks']['PreToolUse']
-            # Should be a list with at least one matcher group
-            assert isinstance(pre_tool_use, list), (
-                f'{name} PreToolUse should be a list'
-            )
-            # Find a matcher that covers Write|Edit
-            matchers = [g.get('matcher', '') for g in pre_tool_use]
-            combined = '|'.join(matchers)
-            assert 'Write' in combined or 'Edit' in combined, (
-                f'{name} hooks should block Write|Edit, got matchers: {matchers}'
-            )
-
-    def test_non_readonly_agents_no_hooks(self):
-        """Non-read-only agents should not have blocking hooks."""
+    def test_readonly_agents_lack_write_tools(self):
+        """Read-only agents do not have Write or Edit in their tools list."""
         from pactkit.prompts import AGENTS_EXPERT
-        non_readonly = ['senior-developer', 'repo-maintainer', 'product-designer']
-        for name in non_readonly:
+        readonly = ['qa-engineer', 'security-auditor', 'code-explorer', 'system-medic']
+        for name in readonly:
             cfg = AGENTS_EXPERT[name]
-            # These agents should not have PreToolUse Write/Edit blocking hooks
-            if 'hooks' in cfg:
-                hooks = cfg['hooks']
-                if 'PreToolUse' in hooks:
-                    for group in hooks['PreToolUse']:
-                        matcher = group.get('matcher', '')
-                        assert 'Write' not in matcher and 'Edit' not in matcher, (
-                            f'{name} should not block Write/Edit'
-                        )
+            tools = cfg.get('tools', '')
+            assert 'Write' not in tools, f'{name} should not have Write tool'
+            assert 'Edit' not in tools, f'{name} should not have Edit tool'
 
 
 # ===========================================================================
@@ -320,20 +284,7 @@ class TestAC7BackwardCompatibility:
 # AC8: Hooks YAML Validity
 # ===========================================================================
 
-class TestAC8HooksYamlValidity:
-
-    def test_hooks_frontmatter_is_valid_yaml(self, tmp_path):
-        """Deployed agent files with hooks have valid parseable YAML frontmatter."""
-        agents_dir = _deploy_to(tmp_path)
-        for name in READ_ONLY_AGENTS:
-            path = agents_dir / f'{name}.md'
-            text = path.read_text()
-            match = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
-            assert match, f'{name}.md missing frontmatter'
-            # Must not raise
-            parsed = yaml.safe_load(match.group(1))
-            assert isinstance(parsed, dict), f'{name}.md frontmatter not a dict'
-            assert 'hooks' in parsed, f'{name}.md frontmatter missing hooks'
+class TestAC8YamlValidity:
 
     def test_all_agents_valid_yaml_frontmatter(self, tmp_path):
         """All deployed agent files have valid YAML frontmatter (no broken nesting)."""
