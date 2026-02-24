@@ -103,11 +103,22 @@ def _deploy_classic(config=None, target=None):
 
     n_skills = _deploy_skills(skills_dir, enabled_skills)
     _cleanup_legacy(skills_dir)
-    n_rules = _deploy_rules(claude_root, enabled_rules)
+    rule_scopes = config.get('rule_scopes', {})
+    n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes)
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get('agent_models', {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, agent_models=agent_models)
     n_commands = _deploy_commands(commands_dir, enabled_commands)
+
+    # Deploy CI pipeline if configured (STORY-025)
+    ci_config = config.get('ci', {})
+    ci_provider = ci_config.get('provider', 'none') if isinstance(ci_config, dict) else 'none'
+    project_root = claude_root.parent
+    _deploy_ci(ci_provider, project_root, config)
+
+    # Deploy hooks if configured (STORY-027)
+    hooks_config = config.get('hooks', {})
+    _deploy_hooks(claude_root / 'hooks', hooks_config)
 
     # Generate pactkit.yaml if it doesn't exist
     _generate_config_if_missing(claude_root)
@@ -274,8 +285,14 @@ def _migrate_from_scafpy(claude_root):
             old_yaml.unlink()
 
 
-def _deploy_rules(claude_root, enabled_rules):
-    """Deploy rule modules filtered by config."""
+def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
+    """Deploy rule modules filtered by config.
+
+    Args:
+        rule_scopes: Optional dict of rule_id -> glob pattern for includeFiles.
+    """
+    if rule_scopes is None:
+        rule_scopes = {}
     rules_dir = claude_root / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
 
@@ -298,7 +315,19 @@ def _deploy_rules(claude_root, enabled_rules):
         if key is None:
             continue
         filename = prompts.RULES_FILES[key]
-        atomic_write(rules_dir / filename, prompts.RULES_MODULES[key])
+        content = prompts.RULES_MODULES[key]
+
+        # Add includeFiles frontmatter if scope is defined (STORY-028)
+        scope = rule_scopes.get(rule_id)
+        if scope:
+            if isinstance(scope, list):
+                include_lines = '\n'.join(f'  - "{p}"' for p in scope)
+                frontmatter = f"---\nincludeFiles:\n{include_lines}\n---\n\n"
+            else:
+                frontmatter = f'---\nincludeFiles: ["{scope}"]\n---\n\n'
+            content = frontmatter + content
+
+        atomic_write(rules_dir / filename, content)
         deployed += 1
 
     return deployed
@@ -421,6 +450,181 @@ def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILL
         deployed += 1
 
     return deployed
+
+
+# ---------------------------------------------------------------------------
+# CI/CD pipeline generation (STORY-025)
+# ---------------------------------------------------------------------------
+
+_GITHUB_WORKFLOW_TEMPLATE = """\
+name: PactKit CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e .
+          pip install pytest ruff
+
+      - name: Lint
+        run: {lint_command}
+
+      - name: Test
+        run: pytest tests/ -v
+"""
+
+_GITLAB_CI_TEMPLATE = """\
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  image: python:3.11
+  script:
+    - pip install ruff
+    - {lint_command}
+
+test:
+  stage: test
+  image: python:3.11
+  script:
+    - pip install -e ".[dev]" || pip install -e .
+    - pip install pytest
+    - pytest tests/ -v
+"""
+
+
+def _deploy_ci(provider, project_root, config):
+    """Deploy CI pipeline config based on provider setting.
+
+    Args:
+        provider: CI provider name ('github', 'gitlab', 'none').
+        project_root: Project root directory (parent of .claude/).
+        config: Full pactkit config dict.
+    """
+    if provider == 'none' or provider not in ('github', 'gitlab'):
+        return
+
+    # Detect lint command from LANG_PROFILES
+    from pactkit.prompts.workflows import LANG_PROFILES
+    stack = config.get('stack', 'auto')
+    if stack == 'auto':
+        stack = 'python'  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
+    lint_command = profile.get('lint_command', 'ruff check src/ tests/')
+
+    if provider == 'github':
+        workflows_dir = project_root / '.github' / 'workflows'
+        workflows_dir.mkdir(parents=True, exist_ok=True)
+        content = _GITHUB_WORKFLOW_TEMPLATE.format(lint_command=lint_command)
+        atomic_write(workflows_dir / 'pactkit.yml', content)
+        print(f"  -> CI: .github/workflows/pactkit.yml")
+    elif provider == 'gitlab':
+        content = _GITLAB_CI_TEMPLATE.format(lint_command=lint_command)
+        atomic_write(project_root / '.gitlab-ci.yml', content)
+        print(f"  -> CI: .gitlab-ci.yml")
+
+
+# ---------------------------------------------------------------------------
+# Hook deployment (STORY-027)
+# ---------------------------------------------------------------------------
+
+_HOOK_PRE_COMMIT_LINT = """\
+#!/bin/sh
+# PactKit pre-commit lint hook (report-only, non-blocking)
+# Runs linter and reports findings. Does NOT block the commit.
+
+echo "[PactKit] Running pre-commit lint check..."
+{lint_command} 2>&1 || true
+echo "[PactKit] Lint check complete (report-only, commit proceeds)."
+exit 0
+"""
+
+_HOOK_POST_TEST_COVERAGE = """\
+#!/bin/sh
+# PactKit post-test coverage hook (report-only)
+# Prints coverage summary if available. Does NOT block anything.
+
+echo "[PactKit] Checking test coverage..."
+if command -v coverage >/dev/null 2>&1; then
+    coverage report --show-missing 2>&1 || true
+elif command -v pytest >/dev/null 2>&1; then
+    echo "[PactKit] Run 'pytest --cov' for coverage data."
+fi
+echo "[PactKit] Coverage check complete."
+exit 0
+"""
+
+_HOOK_PRE_PUSH_CHECK = """\
+#!/bin/sh
+# PactKit pre-push check hook (report-only, non-blocking)
+# Warns about uncommitted changes and branch status.
+
+echo "[PactKit] Running pre-push checks..."
+if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    echo "[PactKit] WARNING: You have uncommitted changes."
+fi
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+    echo "[PactKit] WARNING: Pushing directly to $BRANCH branch."
+fi
+echo "[PactKit] Pre-push check complete (report-only, push proceeds)."
+exit 0
+"""
+
+_HOOK_TEMPLATES = {
+    'pre_commit_lint': ('pre-commit-lint', _HOOK_PRE_COMMIT_LINT),
+    'post_test_coverage': ('post-test-coverage', _HOOK_POST_TEST_COVERAGE),
+    'pre_push_check': ('pre-push-check', _HOOK_PRE_PUSH_CHECK),
+}
+
+
+def _deploy_hooks(hooks_dir, hooks_config):
+    """Deploy enabled hook scripts.
+
+    Args:
+        hooks_dir: Target directory for hook scripts (.claude/hooks/).
+        hooks_config: Dict of hook_name -> bool from pactkit.yaml.
+    """
+    if not isinstance(hooks_config, dict):
+        return
+
+    enabled = [name for name, val in hooks_config.items() if val]
+    if not enabled:
+        return
+
+    hooks_dir.mkdir(parents=True, exist_ok=True)
+
+    # Detect lint command for pre_commit_lint template
+    from pactkit.prompts.workflows import LANG_PROFILES
+    lint_command = LANG_PROFILES.get('python', {}).get('lint_command', 'echo "No linter configured"')
+
+    for hook_name in enabled:
+        if hook_name not in _HOOK_TEMPLATES:
+            continue
+        filename, template = _HOOK_TEMPLATES[hook_name]
+        content = template.format(lint_command=lint_command)
+        script_path = hooks_dir / filename
+        atomic_write(script_path, content)
+        script_path.chmod(0o755)
+        print(f"  -> Hook: {filename}")
 
 
 def _generate_config_if_missing(claude_root):

@@ -252,3 +252,57 @@
 - [x] R4: Expanded Persistent Memory
 - [x] R5: Permission Mode Enforcement
 - [x] R6: Deployer YAML Serialization
+
+### [STORY-025] Conditional CI/CD Pipeline Generation
+
+- [x] Add `ci` configuration section to pactkit.yaml with provider field (default: none)
+- [x] Implement GitHub Actions workflow generation when provider is github
+- [x] Implement GitLab CI configuration generation when provider is gitlab
+- [x] Add CI workflow templates with pytest and linting commands
+- [x] Ensure backward compatibility for projects without ci section
+- [x] Add config validation for invalid CI providers
+
+### [STORY-026] Conditional Issue Tracker Integration
+
+- [x] Add `issue_tracker` configuration section to pactkit.yaml (default: none)
+- [x] Integrate GitHub Issue creation in /project-plan command
+- [x] Integrate GitHub Issue closure in /project-done command
+- [x] Add Sprint Board linking to external issue URLs
+- [x] Implement graceful fallback when GitHub CLI unavailable
+- [x] Ensure standalone Sprint Board operation preservation
+
+### [STORY-027] Safe Opt-in Hook Templates
+
+- [x] Add `hooks` configuration section with boolean template flags
+- [x] Create safe pre-commit lint hook template (command-type, exit 0)
+- [x] Create post-test coverage hook template (report-only)
+- [x] Create pre-push check hook template (warning-only)
+- [x] Deploy enabled hook scripts to .claude/hooks/ directory
+- [x] Integrate with git hooks while preserving existing hooks
+
+### [STORY-028] Context-Aware Rule Scoping
+
+- [x] Add optional `scope` field to rule configuration with glob patterns
+- [x] Generate Claude Code includeFiles frontmatter for scoped rules
+- [x] Implement glob pattern validation with warning for invalid patterns
+- [x] Support multiple scope patterns per rule as YAML list
+- [x] Maintain backward compatibility for rules without scope
+- [x] Test rule scoping with common patterns (auth, api, frontend modules)
+
+### [STORY-029] Enhanced Doctor Diagnostics
+
+- [x] Implement stale architecture graph detection (7+ days old)
+- [x] Add orphaned spec detection (specs without Sprint Board entries)
+- [x] Add missing spec detection (Sprint Board stories without specs)
+- [x] Implement configuration drift detection (pactkit.yaml vs deployed files)
+- [x] Generate structured health report with severity levels (INFO/WARN/ERROR)
+- [x] Group findings by category with actionable remediation suggestions
+
+### [STORY-030] Smart Lint Integration in Done Command
+
+- [x] Read lint_command from LANG_PROFILES for detected stack
+- [x] Add `lint_blocking` configuration option (default: false)
+- [x] Add `auto_fix` configuration option (default: false)
+- [x] Implement non-blocking lint warnings as default behavior
+- [x] Support blocking lint mode when configured
+- [x] Implement auto-fix with verification re-run capability

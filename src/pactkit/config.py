@@ -57,6 +57,12 @@ VALID_STACKS = frozenset({'auto', 'python', 'node', 'go', 'java'})
 
 VALID_MODELS = frozenset({'haiku', 'sonnet', 'opus', 'inherit'})
 
+VALID_CI_PROVIDERS = frozenset({'github', 'gitlab', 'none'})
+
+VALID_ISSUE_PROVIDERS = frozenset({'github', 'none'})
+
+VALID_HOOK_TEMPLATES = frozenset({'pre_commit_lint', 'post_test_coverage', 'pre_push_check'})
+
 # Commands deprecated in v1.2.0 — converted to skills (STORY-011)
 DEPRECATED_COMMANDS = frozenset({
     'project-trace',
@@ -82,6 +88,15 @@ def get_default_config() -> dict:
         'commands': sorted(VALID_COMMANDS),
         'skills': sorted(VALID_SKILLS),
         'rules': sorted(VALID_RULES),
+        'ci': {'provider': 'none'},
+        'issue_tracker': {'provider': 'none'},
+        'hooks': {
+            'pre_commit_lint': False,
+            'post_test_coverage': False,
+            'pre_push_check': False,
+        },
+        'lint_blocking': False,
+        'auto_fix': False,
     }
 
 
@@ -275,6 +290,47 @@ def validate_config(config: dict) -> None:
                     f"Valid: {', '.join(sorted(VALID_MODELS))}"
                 )
 
+    # Validate ci section (STORY-025)
+    ci = config.get('ci', {})
+    if isinstance(ci, dict):
+        provider = ci.get('provider', 'none')
+        if provider not in VALID_CI_PROVIDERS:
+            warnings.warn(
+                f"Invalid CI provider '{provider}'. "
+                f"Valid: {', '.join(sorted(VALID_CI_PROVIDERS))}"
+            )
+
+    # Validate issue_tracker section (STORY-026)
+    issue_tracker = config.get('issue_tracker', {})
+    if isinstance(issue_tracker, dict):
+        provider = issue_tracker.get('provider', 'none')
+        if provider not in VALID_ISSUE_PROVIDERS:
+            warnings.warn(
+                f"Invalid issue tracker provider '{provider}'. "
+                f"Valid: {', '.join(sorted(VALID_ISSUE_PROVIDERS))}"
+            )
+
+    # Validate hooks section (STORY-027)
+    hooks = config.get('hooks', {})
+    if isinstance(hooks, dict):
+        for hook_name in hooks:
+            if hook_name not in VALID_HOOK_TEMPLATES:
+                warnings.warn(
+                    f"Unknown hook template '{hook_name}'. "
+                    f"Valid: {', '.join(sorted(VALID_HOOK_TEMPLATES))}"
+                )
+
+    # Validate rule_scopes section (STORY-028)
+    rule_scopes = config.get('rule_scopes', {})
+    if isinstance(rule_scopes, dict):
+        for rule_id, pattern in rule_scopes.items():
+            if rule_id not in VALID_RULES:
+                warnings.warn(f"Unknown rule in rule_scopes: {rule_id}")
+            if isinstance(pattern, str) and '[' in pattern and ']' not in pattern:
+                warnings.warn(
+                    f"Invalid glob pattern for rule '{rule_id}': {pattern}"
+                )
+
 
 # ---------------------------------------------------------------------------
 # YAML generation
@@ -312,6 +368,24 @@ def generate_default_yaml() -> str:
     lines.append('rules:')
     for r in cfg['rules']:
         lines.append(f'  - {r}')
+
+    lines.extend(['', '# CI/CD — set provider to github or gitlab to generate pipeline config'])
+    lines.append('ci:')
+    lines.append(f'  provider: {cfg.get("ci", {}).get("provider", "none")}')
+
+    lines.extend(['', '# Issue Tracker — set provider to github to link stories to issues'])
+    lines.append('issue_tracker:')
+    lines.append(f'  provider: {cfg.get("issue_tracker", {}).get("provider", "none")}')
+
+    hooks = cfg.get('hooks', {})
+    lines.extend(['', '# Hooks — safe, report-only hook templates (command-type only)'])
+    lines.append('hooks:')
+    for hook_name in sorted(hooks.keys()):
+        lines.append(f'  {hook_name}: {"true" if hooks[hook_name] else "false"}')
+
+    lines.extend(['', '# Lint — configure lint behavior in /project-done'])
+    lines.append(f'lint_blocking: {"true" if cfg.get("lint_blocking") else "false"}')
+    lines.append(f'auto_fix: {"true" if cfg.get("auto_fix") else "false"}')
 
     lines.append('')  # trailing newline
     return '\n'.join(lines)
