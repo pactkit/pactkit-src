@@ -2,6 +2,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -23,6 +24,10 @@ class TestVersionConsistency:
         assert m, "__version__ not found in __init__.py"
         assert m.group(1) == TARGET_VERSION
 
+    @pytest.mark.skipif(
+        not (Path(__file__).resolve().parent.parent.parent / ".claude" / "pactkit.yaml").exists(),
+        reason=".claude/pactkit.yaml not present (not tracked in git)",
+    )
     def test_pactkit_yaml_version(self):
         text = (ROOT / ".claude" / "pactkit.yaml").read_text()
         data = yaml.safe_load(text)
