@@ -118,7 +118,7 @@ def _deploy_classic(config=None, target=None):
 
     # Deploy hooks if configured (STORY-027)
     hooks_config = config.get('hooks', {})
-    _deploy_hooks(claude_root / 'hooks', hooks_config)
+    _deploy_hooks(claude_root / 'hooks', hooks_config, stack=config.get('stack', 'auto'))
 
     # Generate pactkit.yaml if it doesn't exist
     _generate_config_if_missing(claude_root)
@@ -599,12 +599,13 @@ _HOOK_TEMPLATES = {
 }
 
 
-def _deploy_hooks(hooks_dir, hooks_config):
+def _deploy_hooks(hooks_dir, hooks_config, stack='python'):
     """Deploy enabled hook scripts.
 
     Args:
         hooks_dir: Target directory for hook scripts (.claude/hooks/).
         hooks_config: Dict of hook_name -> bool from pactkit.yaml.
+        stack: Project stack for resolving lint command (default: 'python').
     """
     if not isinstance(hooks_config, dict):
         return
@@ -615,9 +616,12 @@ def _deploy_hooks(hooks_dir, hooks_config):
 
     hooks_dir.mkdir(parents=True, exist_ok=True)
 
-    # Detect lint command for pre_commit_lint template
+    # Detect lint command from LANG_PROFILES using the project's stack (BUG-010)
     from pactkit.prompts.workflows import LANG_PROFILES
-    lint_command = LANG_PROFILES.get('python', {}).get('lint_command', 'echo "No linter configured"')
+    if stack == 'auto':
+        stack = 'python'  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
+    lint_command = profile.get('lint_command', 'echo "No linter configured"')
 
     for hook_name in enabled:
         if hook_name not in _HOOK_TEMPLATES:

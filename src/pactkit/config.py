@@ -283,6 +283,30 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
     lines.append(f'auto_fix: {"true" if data.get("auto_fix") else "false"}')
     lines.append('')
 
+    # Write agent_models section if present (BUG-010)
+    agent_models = data.get('agent_models', {})
+    if agent_models and isinstance(agent_models, dict):
+        lines.append('# Agent Models — override default model per agent (inherit = use account default)')
+        lines.append('agent_models:')
+        for agent_name in sorted(agent_models.keys()):
+            lines.append(f'  {agent_name}: {agent_models[agent_name]}')
+        lines.append('')
+
+    # Write rule_scopes section if present (BUG-010)
+    rule_scopes = data.get('rule_scopes', {})
+    if rule_scopes and isinstance(rule_scopes, dict):
+        lines.append('# Rule Scopes — map rule IDs to glob patterns for context-aware scoping')
+        lines.append('rule_scopes:')
+        for rule_id in sorted(rule_scopes.keys()):
+            pattern = rule_scopes[rule_id]
+            if isinstance(pattern, list):
+                lines.append(f'  {rule_id}:')
+                for p in pattern:
+                    lines.append(f'    - "{p}"')
+            else:
+                lines.append(f'  {rule_id}: "{pattern}"')
+        lines.append('')
+
     path.write_text('\n'.join(lines), encoding='utf-8')
 
 

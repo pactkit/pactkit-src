@@ -371,3 +371,11 @@
 - [x] Add pactkit.yaml configuration reference to README
 - [x] Update Skills section with all 9 skills
 - [x] Complete CHANGELOG v1.2.0 entries
+
+### [BUG-010] _rewrite_yaml drops agent_models and rule_scopes sections
+> Spec: docs/specs/BUG-010.md
+
+- [x] Add agent_models serialization to _rewrite_yaml
+- [x] Add rule_scopes serialization to _rewrite_yaml
+- [x] Fix _deploy_hooks to use stack-aware lint command
+- [x] Add round-trip fidelity tests
