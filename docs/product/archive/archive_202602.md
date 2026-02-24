@@ -234,3 +234,11 @@
 - [x] Add decision tree to bailout prompt
 - [x] Add ImportError project-path check
 - [x] Write tests for decision tree prompt text
+
+### [STORY-023] Test Quality Gate in QA Check
+> Spec: docs/specs/STORY-023.md
+
+- [x] Add Test Quality Gate phase to project-check
+- [x] Add anti-pattern detection checklist
+- [x] Add Test Quality row to verdict report
+- [x] Write tests for quality gate prompt text
