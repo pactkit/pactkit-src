@@ -93,8 +93,8 @@ class TestDeployedPlanCommand:
 
     def test_deployed_plan_contains_greenfield(self, tmp_path):
         """Deployed project-plan.md contains greenfield heuristic."""
-        from pactkit.generators.deployer import deploy
         from pactkit.config import get_default_config
+        from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
         plan_file = tmp_path / '.claude' / 'commands' / 'project-plan.md'

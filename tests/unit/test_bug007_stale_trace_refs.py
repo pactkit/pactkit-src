@@ -44,8 +44,8 @@ class TestAC1NoStaleReferences:
 
     def test_deployed_files_no_trace_command(self, tmp_path):
         """Full deployment has zero /project-trace references."""
-        from pactkit.generators.deployer import deploy
         from pactkit.config import get_default_config
+        from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
         count = 0

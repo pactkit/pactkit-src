@@ -11,8 +11,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from pactkit.skills.visualize import _scan_files
-
+from pactkit.skills.visualize import _scan_files  # noqa: E402
 
 # ===========================================================================
 # AC1: Marketplace-deployed dirs excluded

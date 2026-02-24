@@ -85,8 +85,8 @@ class TestDeployedInitCommand:
 
     def test_deployed_init_contains_git_guard(self, tmp_path):
         """Deployed project-init.md contains git guard section."""
-        from pactkit.generators.deployer import deploy
         from pactkit.config import get_default_config
+        from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
         init_file = tmp_path / '.claude' / 'commands' / 'project-init.md'
