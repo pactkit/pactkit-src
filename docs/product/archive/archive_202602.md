@@ -202,3 +202,28 @@
 - [x] Add rules.md invariants refresh to Done Phase 3
 - [x] Add snapshot verification gate to Done Phase 3.8
 - [x] Update stale data in system_design.mmd and rules.md
+
+### [STORY-019] Bailout Protocol for TDD Environment Failures
+> Spec: docs/specs/STORY-019.md
+
+- [x] Add env-failure bailout to Act TDD loop
+- [x] Add loop iteration cap (max 5)
+- [x] Add ConnectionError/service-down STOP
+- [x] Write tests for bailout prompt text
+
+### [STORY-020] Visualize Horizon Limit
+> Spec: docs/specs/STORY-020.md
+
+- [x] Add --depth parameter to visualize.py
+- [x] Add --max-nodes cap with truncation note
+- [x] Update Plan/Act prompts with focus heuristic
+- [x] Write tests for depth and max-nodes
+
+### [STORY-021] Spec Amendment Protocol (RFC Mechanism)
+> Spec: docs/specs/STORY-021.md
+
+- [x] Add RFC clause to project-act Phase 0
+- [x] Update Hierarchy of Truth rule with exception clause
+- [x] Write tests for RFC prompt text
+
+## 🔄 In Progress

@@ -36,6 +36,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
 1.  **Visual Scan**: Run `visualize` to see the module dependency graph.
     - **Mode Selection**: Use `--mode class` for structure analysis, `--mode call` for logic modification, default for overview.
+    - **Large Codebase Heuristic**: If the project has more than 50 source files, use `--focus <module> --depth 2` instead of a full graph to avoid context window pollution.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
     - If modifying existing logic, trace the current implementation:
       Use `Grep` to locate entry points, then `visualize --mode call --entry <func>` to map call chains.
@@ -78,20 +79,26 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
 1.  **Read Law**: Read the Spec (`docs/specs/`) carefully.
-2.  **Locate Target**: Which file/function needs surgery?
-3.  **Detect Stack & Select References**: Identify the project type from source files:
+2.  **RFC Gate (Feasibility Check)**: If you identify a requirement in the Spec that is technically infeasible, contradictory, or would require violating a security/architectural constraint, invoke the **RFC Protocol**:
+    - **STOP** implementation immediately. Do NOT write any code.
+    - **Report** to the user: (a) quote the exact problematic requirement from the Spec, (b) explain why it is infeasible (technical reasoning), (c) suggest an alternative approach.
+    - You MUST NOT modify the Spec unilaterally — only the user (or Architect via a new `/project-plan` cycle) may amend Tier 1.
+    - Wait for user guidance before proceeding.
+3.  **Locate Target**: Which file/function needs surgery?
+4.  **Detect Stack & Select References**: Identify the project type from source files:
     - `.py` files → Python stack → Consult `DEV_REF_BACKEND` + `TEST_REF_PYTHON`
     - `.ts`/`.tsx`/`.vue`/`.svelte` files → Frontend stack → Consult `DEV_REF_FRONTEND` + `TEST_REF_NODE`
     - `.go` files → Go stack → Consult `DEV_REF_BACKEND` + `TEST_REF_GO`
     - `.java` files → Java stack → Consult `DEV_REF_BACKEND` + `TEST_REF_JAVA`
     - Mixed (frontend + backend) → Consult both `DEV_REF_FRONTEND` and `DEV_REF_BACKEND`
     - Use the Stack Reference guidelines throughout implementation and testing phases.
-4.  **Memory MCP (Conditional)**: IF `mcp__memory__search_nodes` tool is available, load prior context:
+5.  **Memory MCP (Conditional)**: IF `mcp__memory__search_nodes` tool is available, load prior context:
     - Use `mcp__memory__search_nodes` with the STORY_ID to retrieve any stored architectural decisions or design rationale from the Plan phase
     - Use `mcp__memory__search_nodes` with relevant module/feature keywords to find related past decisions from other stories
 
 ## 🎬 Phase 1: Precision Targeting
 1.  **Visual Scan**: Run `visualize --focus <module>` to see neighbors.
+    - For projects with 50+ source files, add `--depth 2` to limit the graph to 2 levels of dependencies.
 2.  **Call Chain**: Run `visualize --mode call --entry <function>` to trace call dependencies.
 3.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site.
@@ -109,6 +116,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2 (the new test file for this Story). Loop until GREEN.
     - This loop is safe because you wrote these tests and understand their intent.
     - Do NOT include pre-existing tests in this loop.
+    - **Iteration Cap**: Maximum **5 iterations**. If the loop does not reach GREEN after 5 iterations, **STOP** and report: "TDD loop exceeded 5 iterations. Likely cause: [error summary]. Please review."
+    - **Environment Failure Bailout**: If a test fails with an environment-class error — `ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `FileNotFoundError` (for config/env files), `PermissionError`, or timeout from an external service — **do NOT modify business source code**. Instead:
+      1. Attempt to resolve the dependency first (e.g., `pip install <package>`, update `requirements.txt`, check `.env` file).
+      2. If the dependency cannot be resolved after one attempt, **STOP** and report to the user: "Test requires external service or missing dependency. Please ensure [service/package] is available."
+    - **Normal TDD failures** (`AssertionError`, `TypeError`, `ValueError`, etc.) proceed normally — modify your source code and iterate.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
     - **Map to related tests**: For each changed file, find its corresponding test file using the `test_map_pattern` in `LANG_PROFILES`.
