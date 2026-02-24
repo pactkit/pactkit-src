@@ -141,3 +141,24 @@
 - [x] Remove `--mode` argument and common_user branch from `cli.py`
 - [x] Write unit tests for config module
 - [x] Verify all existing tests still pass (747 passed, 0 failed)
+
+### [BUG-005] board.py archive vs classify inconsistent for taskless stories
+> Spec: docs/specs/BUG-005.md
+
+- [x] Write failing test
+- [x] Fix archive_stories guard
+- [x] Regression check
+
+### [BUG-004] deployer.py dead set() call in _deploy_rules
+> Spec: docs/specs/BUG-004.md
+
+- [x] Write failing test
+- [x] Remove dead code
+- [x] Regression check
+
+### [BUG-003] visualize.py ast.Import only captures last alias
+> Spec: docs/specs/BUG-003.md
+
+- [x] Write failing test
+- [x] Fix _build_file_graph import loop
+- [x] Regression check

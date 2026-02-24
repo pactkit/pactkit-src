@@ -276,10 +276,8 @@ def _deploy_rules(claude_root, enabled_rules):
     rules_dir = claude_root / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
 
-    set(enabled_rules)
-
-    # Build reverse map: rule identifier -> (key, filename)
-    # e.g. '01-core-protocol' -> ('core', '01-core-protocol.md')
+    # Build reverse map: rule identifier -> config key
+    # e.g. '01-core-protocol' -> 'core'
     rule_id_to_key = {}
     for key, filename in prompts.RULES_FILES.items():
         rule_id = filename.removesuffix('.md')
