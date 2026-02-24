@@ -20,6 +20,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Strategy**:
     - If **New Feature**: Focus on `system_design.mmd` (Architecture).
     - If **Modification**: Focus on pactkit-trace skill (Logic Flow).
+3.  **Greenfield Detection**: Check if the request is a greenfield product ideation:
+    - **Signals**: Keywords like "from scratch", "new app", "startup", "MVP", "product idea", "创业", "从零开始"; multi-story scope ("multiple features", "full system", "complete app"); empty sprint board; no existing source code files.
+    - **If greenfield signals are detected**: Suggest to the user: "This looks like a greenfield product design. Consider using `/project-design` instead, which generates a full PRD and decomposes into multiple stories."
+    - Ask the user to confirm the redirect. Do NOT auto-redirect.
+    - **If user declines**: Proceed with `/project-plan` normally.
+    - **If existing project** (stories on board, source files present): Skip this check — greenfield detection does not apply to established projects.
 
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 > **INSTRUCTION**: Check if the project has been initialized before proceeding.
@@ -469,6 +475,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 1.  **Environment Check**: Is this a fresh folder or legacy project?
 2.  **Compliance**: Does the user need `pactkit.yaml`?
 3.  **Strategy**: If legacy, I must prioritize `visualize` to capture Reality.
+
+## 🛡️ Phase 0.5: Git Repository Guard
+> **INSTRUCTION**: Check if the directory is inside a git repository before creating files.
+1.  **Check**: Run `git rev-parse --is-inside-work-tree` (suppress stderr).
+2.  **If NOT a git repo** (command fails):
+    - Ask the user: "No git repository detected. Initialize one with `git init`?"
+    - **If user confirms**: Run `git init` in the current directory.
+    - **If user declines**: Print warning: "⚠️ Git operations (commit, branch) will not work without a repository." Continue with the rest of init.
+3.  **If already a git repo**: Skip silently to Phase 1.
 
 ## 🎬 Phase 1: Environment & Config
 1.  **Action**: Check/Create `./.claude/pactkit.yaml` in **Current Directory**.

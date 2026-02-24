@@ -306,3 +306,30 @@
 - [x] Implement non-blocking lint warnings as default behavior
 - [x] Support blocking lint mode when configured
 - [x] Implement auto-fix with verification re-run capability
+
+### [STORY-032] Greenfield redirect heuristic in /project-plan
+> Spec: docs/specs/STORY-032.md
+
+- [x] Add greenfield detection to Plan Phase 0
+- [x] Write tests for greenfield heuristic keywords
+
+### [STORY-031] Auto git-init in /project-init for non-dev users
+> Spec: docs/specs/STORY-031.md
+
+- [x] Add git repo guard to project-init Phase 0.5
+- [x] Write tests for git-init detection logic
+
+### [BUG-007] Stale /project-trace references in deployed agent and skill files
+> Spec: docs/specs/BUG-007.md
+
+- [x] Fix code-explorer agent prompt stale references
+- [x] Fix system-architect agent prompt stale reference
+- [x] Fix SKILL_VISUALIZE_MD stale reference
+- [x] Write tests verifying no /project-trace in deployed files
+
+### [BUG-006] visualize _scan_files exclude list incomplete for marketplace deployment
+> Spec: docs/specs/BUG-006.md
+
+- [x] Add skills/commands/rules/agents to _scan_files excludes
+- [x] Extract excludes to SCAN_EXCLUDES constant
+- [x] Write tests for marketplace exclude behavior

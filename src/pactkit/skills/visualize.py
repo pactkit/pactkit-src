@@ -23,8 +23,15 @@ def init_architecture():
     return '✅ Init: Structure Complete'
 
 # --- SCAN HELPERS (shared across modes) ---
+SCAN_EXCLUDES = {
+    'venv', '_venv', '.venv', '.env', 'env', '__pycache__', '.git', '.claude',
+    'tests', 'docs', 'node_modules', 'site-packages', 'dist', 'build',
+    'skills', 'commands', 'rules', 'agents',  # PactKit marketplace dirs (BUG-006)
+}
+
+
 def _scan_files(root):
-    excludes = {'venv', '_venv', '.venv', '.env', 'env', '__pycache__', '.git', '.claude', 'tests', 'docs', 'node_modules', 'site-packages', 'dist', 'build'}
+    excludes = SCAN_EXCLUDES
     all_files = []
     module_index = {}
     file_to_node = {}

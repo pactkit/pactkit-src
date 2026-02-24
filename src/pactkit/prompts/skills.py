@@ -71,7 +71,7 @@ python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py list_rules
 - `/project-plan`: Run `visualize` to understand current project state before making design decisions
 - `/project-act`: Run `visualize --focus <module>` to understand dependencies of the modification target
 - `/project-doctor`: Run `visualize` to check whether architecture graphs can be generated correctly
-- `/project-trace`: Run `visualize --mode call --entry <func>` to trace call chains
+- `pactkit-trace` skill: Run `visualize --mode call --entry <func>` to trace call chains
 """
 
 SKILL_BOARD_MD = """---

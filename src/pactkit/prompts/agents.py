@@ -23,7 +23,7 @@ Analyze requirements, maintain the Intent Graph, and produce Specs. You are the 
 
 ## Protocol (/project-plan)
 1. **Visual Scan**: Run `visualize` to understand current state (`--mode class` / `--mode call`)
-2. **Logic Trace**: Before modifying existing logic, run `/project-trace` first
+2. **Logic Trace**: Before modifying existing logic, use the `pactkit-trace` skill
 3. **Design**: Update `system_design.mmd`
 4. **Spec**: Use `create_spec` to generate Spec, fill in Requirements + Acceptance Criteria + Release field (from `pactkit.yaml` version)
 5. **Board**: Use `add_story` to create Story
@@ -266,13 +266,13 @@ Trace execution paths and map architecture relationships — do not run code, un
 - Archaeologist Report — containing Patterns, Debt, Key Files
 - Trace results can be referenced by `/project-plan` and `/project-act`
 
-## Protocol (/project-trace)
+## Protocol (pactkit-trace skill)
 1. **Discovery**: Use `Grep` to locate entry points (API route, CLI arg, Event handler)
 2. **Call Graph**: Run `visualize --mode call --entry <func>` to obtain call chains
 3. **Deep Trace**: Trace file by file along the call chain, recording data transformations
 4. **Synthesis**: Output Mermaid Sequence Diagram + analysis report
 
-**CRITICAL**: Read `commands/project-trace.md` for full playbook details.
+**CRITICAL**: Use the `pactkit-trace` embedded skill for full tracing protocol.
 """
     },
     "product-designer": {
