@@ -45,15 +45,16 @@ class TestReadmeAccuracy:
 # ===========================================================================
 
 class TestVersionConsistency:
-    """pyproject.toml and __init__.py must both say 1.1.0."""
+    """pyproject.toml and __init__.py must agree on version."""
 
-    def test_init_version(self):
+    def test_init_version_matches_pyproject(self):
+        import re
+
         from pactkit import __version__
-        assert __version__ == '1.1.3'
-
-    def test_pyproject_version(self):
         content = (_root() / 'pyproject.toml').read_text()
-        assert 'version = "1.1.3"' in content
+        m = re.search(r'^version\s*=\s*"(.+?)"', content, re.MULTILINE)
+        assert m, "version not found in pyproject.toml"
+        assert __version__ == m.group(1)
 
     def test_config_default_version_unchanged(self):
         """config.py default version is user yaml schema, NOT package version."""

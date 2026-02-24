@@ -1,4 +1,4 @@
-"""STORY-014: Release v1.1.3 — version consistency and CHANGELOG completeness."""
+"""STORY-014: Release — version consistency and CHANGELOG completeness."""
 import re
 from pathlib import Path
 
@@ -6,32 +6,39 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-TARGET_VERSION = "1.1.3"
+
+
+def _get_canonical_version():
+    """Read the canonical version from pyproject.toml (single source of truth)."""
+    text = (ROOT / "pyproject.toml").read_text()
+    m = re.search(r'^version\s*=\s*"(.+?)"', text, re.MULTILINE)
+    assert m, "version not found in pyproject.toml"
+    return m.group(1)
 
 
 class TestVersionConsistency:
-    """All version sources must agree on the target version."""
+    """All version sources must agree with pyproject.toml."""
 
-    def test_pyproject_version(self):
-        text = (ROOT / "pyproject.toml").read_text()
-        m = re.search(r'^version\s*=\s*"(.+?)"', text, re.MULTILINE)
-        assert m, "version not found in pyproject.toml"
-        assert m.group(1) == TARGET_VERSION
+    def test_pyproject_version_exists(self):
+        version = _get_canonical_version()
+        assert re.match(r'^\d+\.\d+\.\d+', version), f"Invalid version format: {version}"
 
-    def test_init_version(self):
+    def test_init_version_matches_pyproject(self):
+        expected = _get_canonical_version()
         text = (ROOT / "src" / "pactkit" / "__init__.py").read_text()
         m = re.search(r'__version__\s*=\s*"(.+?)"', text)
         assert m, "__version__ not found in __init__.py"
-        assert m.group(1) == TARGET_VERSION
+        assert m.group(1) == expected
 
     @pytest.mark.skipif(
         not (Path(__file__).resolve().parent.parent.parent / ".claude" / "pactkit.yaml").exists(),
         reason=".claude/pactkit.yaml not present (not tracked in git)",
     )
-    def test_pactkit_yaml_version(self):
+    def test_pactkit_yaml_version_matches_pyproject(self):
+        expected = _get_canonical_version()
         text = (ROOT / ".claude" / "pactkit.yaml").read_text()
         data = yaml.safe_load(text)
-        assert str(data.get("version")) == TARGET_VERSION
+        assert str(data.get("version")) == expected
 
 
 class TestChangelogCompleteness:

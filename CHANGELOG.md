@@ -4,6 +4,18 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.4] - 2026-02-24
+
+### Added
+- **CI lint gate** — Done and Act commands now run `lint_command` from `LANG_PROFILES` before commit, catching lint errors that CI would reject (STORY-015)
+- **Language matching rule** — Core protocol now respects user's language in all PDCA output; project CLAUDE.md cleaned up to be instruction-focused (STORY-016)
+- **Project CLAUDE.md generation** — `project-init` now scaffolds a project-level `.claude/CLAUDE.md` with architecture section, dev commands, and context.md reference (STORY-017)
+- **Architecture docs staleness prevention** — Done command now verifies `system_design.mmd` component counts, refreshes `rules.md` test count, and checks release snapshots exist (STORY-018)
+
+### Fixed
+- **project-init stack detection** — Remove non-standard `language` field from pactkit.yaml schema; constrain `stack` to valid values (`python|node|go|java`)
+- **Version tests use dynamic assertions** — Release tests now read canonical version from `pyproject.toml` instead of hardcoding, preventing CI failures on every version bump
+
 ## [1.1.3] - 2026-02-24
 
 ### Fixed
