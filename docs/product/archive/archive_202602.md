@@ -194,3 +194,11 @@
 - [x] 编写测试验证 prompt 内容
 
 ## ✅ Done
+
+### [STORY-018] Architecture docs staleness prevention
+> Spec: docs/specs/STORY-018.md
+
+- [x] Add system_design.mmd validation to Done Phase 2
+- [x] Add rules.md invariants refresh to Done Phase 3
+- [x] Add snapshot verification gate to Done Phase 3.8
+- [x] Update stale data in system_design.mmd and rules.md
