@@ -363,3 +363,11 @@
 - [x] Add project-level config backfill to _deploy_classic
 - [x] Write TDD tests for dual-config backfill
 - [x] Verify existing global config behavior unchanged
+
+### [STORY-035] Update README and docs directory documentation
+> Spec: docs/specs/STORY-035.md
+
+- [x] Update README with docs/ directory structure section
+- [x] Add pactkit.yaml configuration reference to README
+- [x] Update Skills section with all 9 skills
+- [x] Complete CHANGELOG v1.2.0 entries

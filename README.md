@@ -114,11 +114,19 @@ PactKit deploys 9 specialized agents, each with constrained tools and focused re
 
 ## Skills
 
-Three atomic skills are deployed as standalone scripts:
+PactKit deploys 9 skills (3 scripted + 6 prompt-only), auto-invoked by commands:
 
-- **pactkit-visualize** — Code dependency graph (Mermaid): file-level, class-level, call-level
-- **pactkit-board** — Sprint board operations: add story, update task, archive
-- **pactkit-scaffold** — File scaffolding: create spec, test files, git branches, skills
+| Skill | Type | Purpose |
+|-------|------|---------|
+| **pactkit-visualize** | Scripted | Code dependency graph (Mermaid): file-level, class-level, call-level |
+| **pactkit-board** | Scripted | Sprint board operations: add story, update task, archive |
+| **pactkit-scaffold** | Scripted | File scaffolding: create spec, test files, git branches, skills |
+| **pactkit-trace** | Prompt-only | Deep code tracing and execution flow analysis |
+| **pactkit-draw** | Prompt-only | Generate Draw.io XML architecture diagrams |
+| **pactkit-status** | Prompt-only | Cold-start project overview (sprint + git + health) |
+| **pactkit-doctor** | Prompt-only | Configuration drift detection and health report |
+| **pactkit-review** | Prompt-only | PR code review with SOLID/Security/Quality checklists |
+| **pactkit-release** | Prompt-only | Version bump, architecture snapshot, git tag |
 
 ## Safe Regression
 
@@ -138,6 +146,31 @@ Tier 3: Implementation               — The Mutable Reality
 
 When conflicts arise: Spec wins. Always.
 
+## Project Structure (PDCA-managed)
+
+PactKit's PDCA lifecycle manages a `docs/` directory with the following structure:
+
+```
+docs/
+├── product/
+│   ├── sprint_board.md          ← Current iteration board (Backlog/In Progress/Done)
+│   ├── context.md               ← Auto-generated session context for cross-session awareness
+│   ├── archive/                 ← Archived completed stories (by month)
+│   └── prd.md                   ← Product Requirements Document (greenfield projects)
+├── specs/                       ← The Law — requirement specifications (STORY-*, BUG-*, HOTFIX-*)
+├── test_cases/                  ← Gherkin acceptance scenarios mapped from specs
+└── architecture/
+    ├── graphs/                  ← Architecture graph files (Mermaid .mmd)
+    │   ├── code_graph.mmd       ← File-level dependency graph (auto-generated)
+    │   ├── class_graph.mmd      ← Class diagram with inheritance
+    │   ├── call_graph.mmd       ← Function-level call graph
+    │   └── system_design.mmd    ← High-level design (manually maintained)
+    ├── governance/
+    │   ├── rules.md             ← Architecture decisions (ADRs) and invariants
+    │   └── lessons.md           ← Lessons learned per story (auto-appended by Done)
+    └── snapshots/               ← Versioned architecture graph snapshots
+```
+
 ## Configuration
 
 PactKit deploys to `~/.claude/`:
@@ -153,6 +186,27 @@ PactKit deploys to `~/.claude/`:
     ├── pactkit-board/
     └── pactkit-scaffold/
 ```
+
+### pactkit.yaml Configuration Reference
+
+The `pactkit.yaml` file controls which components are deployed and how they behave. All fields below are configurable:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `stack` | string | auto-detected | Project stack (`python`, `node`, `go`, `java`) |
+| `version` | string | current | PactKit version that generated the config |
+| `root` | string | `~/.claude` | Deployment root directory |
+| `agents` | list | all 9 | Agent definitions to deploy |
+| `commands` | list | all 8 | Command playbooks to deploy |
+| `skills` | list | all 9 | Skills to deploy |
+| `rules` | list | all 6 | Constitution rule modules to deploy |
+| `exclude` | list | `[]` | Components to exclude from deployment |
+| `ci` | object | `provider: none` | CI/CD pipeline generation; `ci.provider` supports `github`, `gitlab`, `none` |
+| `issue_tracker` | object | `provider: none` | External issue tracker; `issue_tracker.provider` supports `github`, `none` |
+| `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push); command-type only, report-only |
+| `lint_blocking` | bool | `false` | Whether lint failures block commits in Done command |
+| `auto_fix` | bool | `false` | Whether to auto-fix lint errors before checking |
+| `rule_scopes` | object | `{}` | Map rule IDs to glob patterns for context-aware scoping |
 
 ## MCP Integration
 
