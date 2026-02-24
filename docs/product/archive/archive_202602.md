@@ -356,3 +356,10 @@
 - [x] Add config completeness check to Plan Phase 0.5
 - [x] Write TDD tests for Plan prompt template
 - [x] Verify deployed Plan command includes refresh step
+
+### [BUG-009] pactkit update does not backfill project-level config
+> Spec: docs/specs/BUG-009.md
+
+- [x] Add project-level config backfill to _deploy_classic
+- [x] Write TDD tests for dual-config backfill
+- [x] Verify existing global config behavior unchanged

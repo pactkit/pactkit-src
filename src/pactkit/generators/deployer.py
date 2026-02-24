@@ -123,6 +123,9 @@ def _deploy_classic(config=None, target=None):
     # Generate pactkit.yaml if it doesn't exist
     _generate_config_if_missing(claude_root)
 
+    # Backfill project-level config if it exists (BUG-009)
+    _backfill_project_config(claude_root)
+
     # Summary
     total_agents = len(VALID_AGENTS)
     total_commands = len(VALID_COMMANDS)
@@ -632,6 +635,31 @@ def _generate_config_if_missing(claude_root):
     yaml_path = claude_root / "pactkit.yaml"
     if not yaml_path.exists():
         atomic_write(yaml_path, generate_default_yaml())
+
+
+def _backfill_project_config(claude_root):
+    """Backfill project-level .claude/pactkit.yaml if it exists (BUG-009).
+
+    The project-level config at $CWD/.claude/pactkit.yaml is separate from
+    the global config at ~/.claude/pactkit.yaml.  This function detects if
+    a project-level config exists and backfills missing sections (hooks, ci,
+    issue_tracker, lint_blocking, auto_fix) without creating it if absent.
+    """
+    cwd = Path.cwd()
+    project_yaml = cwd / ".claude" / "pactkit.yaml"
+
+    # Skip if same as global config (user is in $HOME)
+    global_yaml = claude_root / "pactkit.yaml"
+    if project_yaml == global_yaml:
+        return
+
+    # Only backfill if project config already exists
+    if not project_yaml.exists():
+        return
+
+    project_added = auto_merge_config_file(project_yaml)
+    for item in project_added:
+        print(f"  -> Project auto-added: {item}")
 
 
 # ---------------------------------------------------------------------------
