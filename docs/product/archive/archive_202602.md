@@ -227,3 +227,10 @@
 - [x] Write tests for RFC prompt text
 
 ## 🔄 In Progress
+
+### [STORY-022] Bailout Decision Tree (Project Module vs Third-Party)
+> Spec: docs/specs/STORY-022.md
+
+- [x] Add decision tree to bailout prompt
+- [x] Add ImportError project-path check
+- [x] Write tests for decision tree prompt text

@@ -117,9 +117,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - This loop is safe because you wrote these tests and understand their intent.
     - Do NOT include pre-existing tests in this loop.
     - **Iteration Cap**: Maximum **5 iterations**. If the loop does not reach GREEN after 5 iterations, **STOP** and report: "TDD loop exceeded 5 iterations. Likely cause: [error summary]. Please review."
-    - **Environment Failure Bailout**: If a test fails with an environment-class error — `ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `FileNotFoundError` (for config/env files), `PermissionError`, or timeout from an external service — **do NOT modify business source code**. Instead:
-      1. Attempt to resolve the dependency first (e.g., `pip install <package>`, update `requirements.txt`, check `.env` file).
-      2. If the dependency cannot be resolved after one attempt, **STOP** and report to the user: "Test requires external service or missing dependency. Please ensure [service/package] is available."
+    - **Environment Failure Bailout**: If a test fails with an environment-class error — `ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `FileNotFoundError` (for config/env files), `PermissionError`, or timeout from an external service — apply the following **decision tree** before stopping:
+      1. **Project-internal check**: Is the missing module/name under the project root directory (i.e., part of your codebase, not a third-party package)? Check if the module path maps to a file you are building in this Story.
+         - **If YES (project-internal)**: This is NOT an environment error — it is incomplete implementation. Return to Phase 3 Step 1 and create or update the missing module. Do not trigger the bailout.
+         - **If NO (third-party or external)**: Proceed to step 2.
+      2. Attempt to resolve the third-party dependency (e.g., `pip install <package>`, update `requirements.txt`, check `.env` file).
+      3. If the dependency cannot be resolved after one attempt, **STOP** and report to the user: "Test requires external service or missing dependency. Please ensure [service/package] is available."
     - **Normal TDD failures** (`AssertionError`, `TypeError`, `ValueError`, etc.) proceed normally — modify your source code and iterate.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
