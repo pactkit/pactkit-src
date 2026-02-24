@@ -8,7 +8,6 @@ AC5: Invalid provider emits warning, treated as none
 AC6: Missing ci section backward compatible
 AC7: CI file content validation (pytest, lint, triggers)
 """
-import re
 import sys
 import warnings
 from pathlib import Path

@@ -535,11 +535,11 @@ def _deploy_ci(provider, project_root, config):
         workflows_dir.mkdir(parents=True, exist_ok=True)
         content = _GITHUB_WORKFLOW_TEMPLATE.format(lint_command=lint_command)
         atomic_write(workflows_dir / 'pactkit.yml', content)
-        print(f"  -> CI: .github/workflows/pactkit.yml")
+        print("  -> CI: .github/workflows/pactkit.yml")
     elif provider == 'gitlab':
         content = _GITLAB_CI_TEMPLATE.format(lint_command=lint_command)
         atomic_write(project_root / '.gitlab-ci.yml', content)
-        print(f"  -> CI: .gitlab-ci.yml")
+        print("  -> CI: .gitlab-ci.yml")
 
 
 # ---------------------------------------------------------------------------
