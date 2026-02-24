@@ -100,7 +100,7 @@ Verify consistency between Specs, Test Cases, and implementation code. You own t
 2. **Review**: Security, quality, logic, Spec alignment
 3. **Report**: Structured report + APPROVE / REQUEST_CHANGES
 
-**CRITICAL**: Read `commands/project-check.md` or `commands/project-review.md`.
+**CRITICAL**: Read `commands/project-check.md` or use the `pactkit-review` skill.
 """
     },
     "repo-maintainer": {
@@ -137,7 +137,7 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
 2. **Snapshot**: Save architecture snapshot to `docs/architecture/snapshots/`
 3. **Tag**: git tag + commit
 
-**CRITICAL**: Read `commands/project-done.md` or `commands/project-release.md`.
+**CRITICAL**: Read `commands/project-done.md` or use the `pactkit-release` skill.
 """
     },
     "system-medic": {
@@ -170,7 +170,7 @@ Health check report, format:
 3. **Data**: Verify that Specs and Board Stories correspond
 4. **Tests**: Check whether the project's test suite can run (see `LANG_PROFILES`)
 
-**CRITICAL**: Always read `commands/project-doctor.md` for full playbook details.
+**CRITICAL**: Always use the `pactkit-doctor` skill for full diagnostic protocol.
 """
     },
     "security-auditor": {
@@ -242,7 +242,7 @@ Generate system architecture diagrams using Draw.io XML. Supports three diagram 
 4. **Generate**: Write to `.drawio` file
 5. **Preview (Conditional)**: IF Draw.io MCP tools are available, call `open_drawio_xml` with the generated XML to open it in the Draw.io editor for instant visual verification
 
-**CRITICAL**: Always read `commands/project-draw.md` for full playbook and style dictionary.
+**CRITICAL**: Always use the `pactkit-draw` skill for full playbook and style dictionary.
 """
     },
     "code-explorer": {

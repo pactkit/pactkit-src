@@ -333,3 +333,11 @@
 - [x] Add skills/commands/rules/agents to _scan_files excludes
 - [x] Extract excludes to SCAN_EXCLUDES constant
 - [x] Write tests for marketplace exclude behavior
+
+### [BUG-008] Stale demoted-command references in agent and skill prompts
+> Spec: docs/specs/BUG-008.md
+
+- [x] Fix 4 stale command refs in agents.py
+- [x] Fix 3 stale command refs in skills.py
+- [x] Write TDD tests for all 7 references
+- [x] Verify deployed artifacts contain correct refs
