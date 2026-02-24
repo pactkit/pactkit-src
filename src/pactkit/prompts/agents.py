@@ -3,6 +3,8 @@ AGENTS_EXPERT = {
         "desc": "High-level design and Intent Graph management.",
         "tools": "Read, Write, Edit, Bash, Glob",
         "skills": "[pactkit-visualize, pactkit-scaffold, pactkit-trace, pactkit-draw]",
+        "permissionMode": "plan",
+        "memory": "project",
         "prompt": """You are the **System Architect**.
 
 ## Goal
@@ -69,6 +71,20 @@ Implement code per Spec, strictly following TDD. You are the owner of the Act ph
         "tools": "Read, Bash, Grep",
         "skills": "[pactkit-review]",
         "permissionMode": "plan",
+        "memory": "project",
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [
+                        {
+                            "type": "prompt",
+                            "prompt": "This agent is read-only (QA Engineer). Deny this Write/Edit tool call.",
+                        }
+                    ],
+                }
+            ]
+        },
         "prompt": """You are the **QA Engineer**.
 
 ## Goal
@@ -141,6 +157,19 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
         "desc": "Diagnostic expert.",
         "tools": "Read, Bash, Glob",
         "skills": "[pactkit-visualize, pactkit-status, pactkit-doctor]",
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [
+                        {
+                            "type": "prompt",
+                            "prompt": "This agent is read-only (System Medic). Deny this Write/Edit tool call.",
+                        }
+                    ],
+                }
+            ]
+        },
         "prompt": """You are the **System Medic**.
 
 ## Goal
@@ -174,6 +203,20 @@ Health check report, format:
         "desc": "Security specialist (OWASP).",
         "tools": "Read, Bash, Grep",
         "disallowedTools": "[Write, Edit]",
+        "permissionMode": "plan",
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [
+                        {
+                            "type": "prompt",
+                            "prompt": "This agent is read-only (Security Auditor). Deny this Write/Edit tool call.",
+                        }
+                    ],
+                }
+            ]
+        },
         "prompt": """You are the **Security Auditor**.
 
 ## Goal
@@ -246,6 +289,19 @@ Generate system architecture diagrams using Draw.io XML. Supports three diagram 
         "tools": "Read, Bash, Grep, Glob, Find",
         "maxTurns": 50,
         "memory": "user",
+        "hooks": {
+            "PreToolUse": [
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [
+                        {
+                            "type": "prompt",
+                            "prompt": "This agent is read-only (Code Explorer). Deny this Write/Edit tool call.",
+                        }
+                    ],
+                }
+            ]
+        },
         "prompt": """You are the **Code Explorer** (aka System Archaeologist).
 **Motto**: "Read little, understand much."
 

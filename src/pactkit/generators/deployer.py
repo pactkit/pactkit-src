@@ -2,6 +2,8 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 # 确保能 import pactkit.prompts
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent
@@ -103,7 +105,8 @@ def _deploy_classic(config=None, target=None):
     _cleanup_legacy(skills_dir)
     n_rules = _deploy_rules(claude_root, enabled_rules)
     _deploy_claude_md(claude_root, enabled_rules)
-    n_agents = _deploy_agents(agents_dir, enabled_agents)
+    agent_models = config.get('agent_models', {})
+    n_agents = _deploy_agents(agents_dir, enabled_agents, agent_models=agent_models)
     n_commands = _deploy_commands(commands_dir, enabled_commands)
 
     # Generate pactkit.yaml if it doesn't exist
@@ -321,13 +324,17 @@ def _deploy_claude_md(claude_root, enabled_rules):
     atomic_write(claude_root / "CLAUDE.md", "\n".join(lines))
 
 
-def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX):
+def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX,
+                    agent_models=None):
     """Deploy agent definitions filtered by config.
 
     Args:
         skills_prefix: Path prefix for skill script references.
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
+        agent_models: Optional dict of agent_name -> model overrides from pactkit.yaml.
     """
+    if agent_models is None:
+        agent_models = {}
     enabled_set = set(enabled_agents)
 
     # Clean up managed agent files not in enabled set
@@ -337,23 +344,39 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
             if f.name in managed_agent_files and f.stem not in enabled_set:
                 f.unlink()
 
-    # Deploy enabled agents
-    OPTIONAL_FIELDS = ['permissionMode', 'disallowedTools', 'maxTurns', 'memory', 'skills']
+    # Fields serialized as simple key: value (no nesting)
+    SIMPLE_OPTIONAL_FIELDS = ['permissionMode', 'disallowedTools', 'maxTurns', 'memory', 'skills']
+    # Fields that require YAML serialization (nested structures)
+    NESTED_FIELDS = ['hooks']
+
     deployed = 0
     for name, cfg in prompts.AGENTS_EXPERT.items():
         if name not in enabled_set:
             continue
         agent_path = agents_dir / f"{name}.md"
+
+        # Resolve model: agent_models override > AGENTS_EXPERT default > 'inherit'
+        model = agent_models.get(name, cfg.get('model', 'inherit'))
+
         content = [
             "---",
             f"name: {name}",
             f"description: {cfg['desc']}",
             f"tools: {cfg['tools']}",
-            f"model: {cfg.get('model', 'sonnet')}",
+            f"model: {model}",
         ]
-        for field in OPTIONAL_FIELDS:
+        for field in SIMPLE_OPTIONAL_FIELDS:
             if field in cfg:
                 content.append(f"{field}: {cfg[field]}")
+        # Serialize nested fields using PyYAML for correct indentation
+        for field in NESTED_FIELDS:
+            if field in cfg:
+                nested_yaml = yaml.dump(
+                    {field: cfg[field]},
+                    default_flow_style=False,
+                    allow_unicode=True,
+                ).rstrip()
+                content.append(nested_yaml)
         content.extend([
             "---",
             "",

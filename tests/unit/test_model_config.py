@@ -26,8 +26,8 @@ def _parse_frontmatter(text):
 class TestModelFromConfig:
     """R1: deployer reads model from AGENTS_EXPERT cfg."""
 
-    def test_default_model_is_sonnet(self, tmp_path):
-        """Agent without explicit model gets 'sonnet'."""
+    def test_default_model_is_inherit(self, tmp_path):
+        """Agent without explicit model gets 'inherit' (STORY-024 R1)."""
         with patch.object(Path, 'home', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
@@ -38,7 +38,7 @@ class TestModelFromConfig:
             if 'model' not in cfg:
                 content = (tmp_path / f'.claude/agents/{name}.md').read_text()
                 fm = _parse_frontmatter(content)
-                assert fm['model'] == 'sonnet', f'{name} should default to sonnet'
+                assert fm['model'] == 'inherit', f'{name} should default to inherit'
                 return
         pytest.skip('All agents have explicit model config')
 

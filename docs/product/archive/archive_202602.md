@@ -242,3 +242,13 @@
 - [x] Add anti-pattern detection checklist
 - [x] Add Test Quality row to verdict report
 - [x] Write tests for quality gate prompt text
+
+### [STORY-024] Native Agent Enhancement — Smart Model, Hooks, and Memory
+> Spec: docs/specs/STORY-024.md
+
+- [x] R1: Smart Model Default (inherit)
+- [x] R2: User-Configurable Model Overrides in pactkit.yaml
+- [x] R3: Agent-Scoped Hooks for Constraint Enforcement
+- [x] R4: Expanded Persistent Memory
+- [x] R5: Permission Mode Enforcement
+- [x] R6: Deployer YAML Serialization

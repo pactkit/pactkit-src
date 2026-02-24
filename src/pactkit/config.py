@@ -55,6 +55,8 @@ VALID_RULES = frozenset({
 
 VALID_STACKS = frozenset({'auto', 'python', 'node', 'go', 'java'})
 
+VALID_MODELS = frozenset({'haiku', 'sonnet', 'opus', 'inherit'})
+
 # Commands deprecated in v1.2.0 — converted to skills (STORY-011)
 DEPRECATED_COMMANDS = frozenset({
     'project-trace',
@@ -260,6 +262,18 @@ def validate_config(config: dict) -> None:
                 )
             elif name not in valid_set:
                 warnings.warn(f"Unknown {key.rstrip('s')}: {name}")
+
+    # Validate agent_models (STORY-024)
+    agent_models = config.get('agent_models', {})
+    if isinstance(agent_models, dict):
+        for agent_name, model_val in agent_models.items():
+            if agent_name not in VALID_AGENTS:
+                warnings.warn(f"Unknown agent in agent_models: {agent_name}")
+            if model_val not in VALID_MODELS:
+                warnings.warn(
+                    f"Invalid model '{model_val}' for agent '{agent_name}'. "
+                    f"Valid: {', '.join(sorted(VALID_MODELS))}"
+                )
 
 
 # ---------------------------------------------------------------------------
