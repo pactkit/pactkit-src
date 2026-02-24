@@ -37,7 +37,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - Print: "⚠️ Project not initialized. Running `/project-init` first..."
     - Execute the full `/project-init` flow to scaffold the missing structure.
     - After `/project-init` completes, resume this Plan command from Phase 1.
-3.  **If ALL markers exist**: Skip silently to Phase 1.
+3.  **If ALL markers exist**: Proceed to Step 4.
+4.  **Config Completeness Check**: Verify `pactkit.yaml` has all expected sections (hooks, ci, issue_tracker, lint_blocking, auto_fix).
+    - If any sections are missing, the config is stale. Run `pactkit update` to backfill missing sections.
+    - Report what was added (e.g., "Config refreshed: added hooks, ci sections").
+    - If the config is already complete and up to date, skip silently to Phase 1.
 
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
 1.  **Visual Scan**: Run `visualize` to see the module dependency graph.

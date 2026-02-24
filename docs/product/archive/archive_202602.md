@@ -349,3 +349,10 @@
 - [x] Extend _rewrite_yaml to write all config sections
 - [x] Write TDD tests for backfill behavior
 - [x] Verify pactkit update backfills old config files
+
+### [STORY-034] Auto-refresh pactkit.yaml in Plan Init Guard
+> Spec: docs/specs/STORY-034.md
+
+- [x] Add config completeness check to Plan Phase 0.5
+- [x] Write TDD tests for Plan prompt template
+- [x] Verify deployed Plan command includes refresh step
