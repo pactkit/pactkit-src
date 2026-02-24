@@ -413,14 +413,16 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 
 ## 🎬 Phase 1: Environment & Config
 1.  **Action**: Check/Create `./.claude/pactkit.yaml` in **Current Directory**.
-    - *Content*: `stack: <detected>`, `version: 0.0.1`, `root: .`, `language: <detected>`.
-2.  **Language Detection** (for `language` field in `pactkit.yaml`):
-    - If `pyproject.toml` or `requirements.txt` or `setup.py` exists → `language: python`
-    - If `package.json` exists → `language: node`
-    - If `go.mod` exists → `language: go`
-    - If `pom.xml` or `build.gradle` exists → `language: java`
+    - *Content*: `stack: <detected>`, `version: 0.0.1`, `root: .`
+    - **Do NOT add any fields not listed above** (e.g., no `language` field).
+2.  **Stack Detection** (for `stack` field in `pactkit.yaml`):
+    - Valid values: `python`, `node`, `go`, `java` (use the language name only, NOT the build system)
+    - If `pyproject.toml` or `requirements.txt` or `setup.py` exists → `stack: python`
+    - If `package.json` exists → `stack: node`
+    - If `go.mod` exists → `stack: go`
+    - If `pom.xml` or `build.gradle` exists → `stack: java`
     - If none match → ask the user to specify
-    - The detected language determines which `LANG_PROFILES` entry to use for test runner, cleanup, etc.
+    - The detected stack determines which `LANG_PROFILES` entry to use for test runner, cleanup, etc.
 3.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
     - *Purpose*: Project-level instructions for Claude Code (separate from global `~/.claude/CLAUDE.md`).
     - *Content template*:
