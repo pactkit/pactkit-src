@@ -142,14 +142,19 @@ def load_config(path: Path | str | None = None) -> dict:
 # ---------------------------------------------------------------------------
 
 def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
-    """Auto-merge new components into an existing pactkit.yaml.
+    """Auto-merge new components and backfill missing sections in pactkit.yaml.
 
     For each list-type key (agents, commands, skills, rules), appends items
     from the VALID_* registry that are missing from the user's list and not
     present in the ``exclude`` section.
 
+    For non-list config sections (ci, issue_tracker, hooks, lint_blocking,
+    auto_fix), backfills missing sections with defaults from
+    ``get_default_config()``.  Existing user values are never overwritten.
+
     Modifies the YAML file in-place.  Returns a list of ``"key: item"``
-    strings describing what was added (empty list when nothing changed).
+    or ``"section: key"`` strings describing what was added (empty list
+    when nothing changed).
     """
     path = Path(path)
     if not path.exists():
@@ -167,6 +172,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
 
     added: list[str] = []
 
+    # --- List-type keys: merge new items ---
     for key, valid_set in _REGISTRY.items():
         user_list = user_data.get(key)
         if user_list is None:
@@ -186,6 +192,14 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
             user_data[key] = user_list + new_items
             for item in new_items:
                 added.append(f"{key}: {item}")
+
+    # --- Non-list sections: backfill missing with defaults (STORY-033) ---
+    defaults = get_default_config()
+    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix')
+    for key in _BACKFILL_KEYS:
+        if key not in user_data:
+            user_data[key] = defaults[key]
+            added.append(f"section: {key}")
 
     if added:
         _rewrite_yaml(path, user_data)
@@ -237,6 +251,37 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
                 for item in items:
                     lines.append(f'    - {item}')
         lines.append('')
+
+    # Write CI/CD section
+    ci = data.get('ci', {})
+    if isinstance(ci, dict):
+        lines.append('# CI/CD — set provider to github or gitlab to generate pipeline config')
+        lines.append('ci:')
+        lines.append(f'  provider: {ci.get("provider", "none")}')
+        lines.append('')
+
+    # Write issue tracker section
+    issue_tracker = data.get('issue_tracker', {})
+    if isinstance(issue_tracker, dict):
+        lines.append('# Issue Tracker — set provider to github to link stories to issues')
+        lines.append('issue_tracker:')
+        lines.append(f'  provider: {issue_tracker.get("provider", "none")}')
+        lines.append('')
+
+    # Write hooks section
+    hooks = data.get('hooks', {})
+    if isinstance(hooks, dict):
+        lines.append('# Hooks — safe, report-only hook templates (command-type only)')
+        lines.append('hooks:')
+        for hook_name in sorted(hooks.keys()):
+            lines.append(f'  {hook_name}: {"true" if hooks[hook_name] else "false"}')
+        lines.append('')
+
+    # Write lint/auto_fix settings
+    lines.append('# Lint — configure lint behavior in /project-done')
+    lines.append(f'lint_blocking: {"true" if data.get("lint_blocking") else "false"}')
+    lines.append(f'auto_fix: {"true" if data.get("auto_fix") else "false"}')
+    lines.append('')
 
     path.write_text('\n'.join(lines), encoding='utf-8')
 

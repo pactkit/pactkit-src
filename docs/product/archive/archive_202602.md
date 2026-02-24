@@ -341,3 +341,11 @@
 - [x] Fix 3 stale command refs in skills.py
 - [x] Write TDD tests for all 7 references
 - [x] Verify deployed artifacts contain correct refs
+
+### [STORY-033] Config auto-backfill for missing sections on update
+> Spec: docs/specs/STORY-033.md
+
+- [x] Extend auto_merge_config_file to backfill missing non-list sections
+- [x] Extend _rewrite_yaml to write all config sections
+- [x] Write TDD tests for backfill behavior
+- [x] Verify pactkit update backfills old config files

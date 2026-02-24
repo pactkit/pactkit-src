@@ -244,16 +244,23 @@ class TestBackwardCompatibility:
         added = cfg.auto_merge_config_file(yaml_path)
         assert added == []
 
-    def test_yaml_with_only_scalar_keys_no_merge(self, tmp_path):
+    def test_yaml_with_only_scalar_keys_no_list_merge(self, tmp_path):
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
-        _write_yaml(yaml_path, {'version': '1.0.0', 'stack': 'python'})
+        _write_yaml(yaml_path, {
+            'version': '1.0.0', 'stack': 'python',
+            'ci': {'provider': 'none'},
+            'issue_tracker': {'provider': 'none'},
+            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
+            'lint_blocking': False,
+            'auto_fix': False,
+        })
 
         added = cfg.auto_merge_config_file(yaml_path)
         assert added == []
 
     def test_full_list_nothing_added(self, tmp_path):
-        """If user already has all VALID items, nothing is added."""
+        """If user already has all VALID items and sections, nothing is added."""
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
         _write_yaml(yaml_path, {
@@ -261,6 +268,11 @@ class TestBackwardCompatibility:
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),
             'rules': sorted(cfg.VALID_RULES),
+            'ci': {'provider': 'none'},
+            'issue_tracker': {'provider': 'none'},
+            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
+            'lint_blocking': False,
+            'auto_fix': False,
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
@@ -370,6 +382,11 @@ class TestDeployerIntegration:
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),
             'rules': sorted(cfg.VALID_RULES),
+            'ci': {'provider': 'none'},
+            'issue_tracker': {'provider': 'none'},
+            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
+            'lint_blocking': False,
+            'auto_fix': False,
         })
 
         with patch.object(Path, 'home', return_value=tmp_path):
