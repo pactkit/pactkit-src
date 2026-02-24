@@ -9,7 +9,7 @@ description: "Deep code tracing and execution flow analysis"
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
 
-# Skill: Trace (v16.2 Code Explorer)
+# Skill: Trace (v1.2.0 Code Explorer)
 - **Usage**: Invoked as `pactkit-trace` skill
 - **Agent**: Code Explorer
 
@@ -172,7 +172,7 @@ description: "Generate Draw.io XML architecture diagrams (supporting multiple di
 allowed-tools: [Read, Write]
 ---
 
-# Skill: Draw (v22.0 Enterprise)
+# Skill: Draw (v1.2.0 Enterprise)
 - **Usage**: Invoked as `pactkit-draw` skill
 - **Agent**: Visual Architect
 
@@ -280,7 +280,7 @@ description: "Automated PDCA Sprint orchestration via Subagent Team (Slim Team)"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Sprint (v22.0 Slim Team)
+# Command: Sprint (v1.2.0 Slim Team)
 - **Usage**: `/project-sprint "$ARGUMENTS"`
 - **Agent**: Team Lead (current session)
 
@@ -422,7 +422,7 @@ description: "PR Code Review: structured review with SOLID, security, quality ch
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
 
-# Skill: Review (v22.0 Deep Code Review)
+# Skill: Review (v1.2.0 Deep Code Review)
 - **Usage**: Invoked as `pactkit-review` skill
 - **Agent**: QA Engineer
 
@@ -589,7 +589,7 @@ description: "Hotfix fast track: lightweight fix path that bypasses PDCA"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Hotfix (v22.0 Traceable Fast Track)
+# Command: Hotfix (v1.2.0 Traceable Fast Track)
 - **Usage**: `/project-hotfix "$ARGUMENTS"`
 - **Agent**: Senior Developer
 
@@ -655,7 +655,7 @@ description: "Product design for greenfield projects: PRD generation, story deco
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Design (v22.0 Product Designer)
+# Command: Design (v1.2.0 Product Designer)
 - **Usage**: `/project-design "$ARGUMENTS"`
 - **Agent**: Product Designer
 

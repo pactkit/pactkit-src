@@ -2,7 +2,7 @@
 
 - **Priority**: 5 (Impact 5 / Effort 3)
 - **Agent**: System Architect → Senior Developer
-- **Release**: TBD
+- **Release**: 1.1.0
 - **Depends on**: None
 
 ## Background

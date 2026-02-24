@@ -57,7 +57,7 @@ def _scan_files(root):
         except: pass
     return all_files, module_index, file_to_node
 
-# --- MODE: FILE (original, v19.7) ---
+# --- MODE: FILE (v1.2.0) ---
 def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0):
     nodes = []
     edges = []
@@ -348,7 +348,7 @@ def _resolve_callee(callee, all_func_names):
         if fn.endswith(f'.{callee}') or fn == callee: return fn
     return None
 
-# --- MAIN VISUALIZE (v20.0 Multi-Mode) ---
+# --- MAIN VISUALIZE (v1.2.0 Multi-Mode) ---
 def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0):
     root = Path(target).resolve()
     all_files, module_index, file_to_node = _scan_files(root)

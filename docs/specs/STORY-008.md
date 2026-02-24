@@ -2,7 +2,7 @@
 
 - **Priority**: 3 (Impact 4 / Effort 2)
 - **Agent**: System Architect
-- **Release**: TBD
+- **Release**: 1.1.0
 - **Depends on**: STORY-006
 
 ## Background

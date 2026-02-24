@@ -3,7 +3,7 @@
 - **Author**: System Architect
 - **Status**: Draft
 - **Priority**: 5 (Impact 5 / Effort 3)
-- **Release**: TBD
+- **Release**: 1.0.0
 - **Depends**: STORY-001
 
 ## Background

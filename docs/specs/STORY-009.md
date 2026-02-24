@@ -2,7 +2,7 @@
 
 - **Priority**: 5 (Impact 5 / Effort 2)
 - **Agent**: Senior Developer
-- **Release**: TBD
+- **Release**: 1.1.0
 - **Depends on**: STORY-001 (config schema)
 
 ## Background

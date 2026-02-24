@@ -25,6 +25,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - **Visualize excludes deployed directories** — `visualize` now excludes PactKit-deployed directories (skills/commands/rules/agents) from graph generation to avoid pollution in marketplace mode (BUG-006)
 - **Stale command references in prompt templates** — Comprehensive scan fixed 6 demoted command references (trace/draw/status/doctor/review/release) across agents.py and skills.py (BUG-007, BUG-008)
 - **Project-level config backfill** — `pactkit update` now backfills both global (`~/.claude/pactkit.yaml`) and project-level (`$CWD/.claude/pactkit.yaml`) configs; previously only global config was updated (BUG-009)
+- **Config serialization data loss** — `_rewrite_yaml`, `generate_default_yaml`, and `_BACKFILL_KEYS` now stay in sync; `agent_models` and `rule_scopes` were validated but never serialized, causing silent data loss on update (BUG-010)
+- **Stale command references in agent protocols** — Final sweep fixed 7 remaining demoted command references in agent protocol headers and skill Usage lines (BUG-011)
+- **Call graph noise filter** — `_extract_calls` skips builtins and non-self attribute calls; `_build_call_graph` only emits edges where callees resolve to `func_registry` (BUG-012)
+- **Single-source config consolidation** — Config now reads exclusively from `$CWD/.claude/pactkit.yaml`; removed dual-config architecture and `_backfill_project_config()` (BUG-013)
 
 ## [1.1.4] - 2026-02-24
 

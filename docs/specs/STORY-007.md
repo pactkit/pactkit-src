@@ -2,7 +2,7 @@
 
 - **Priority**: 4 (Impact 4 / Effort 2)
 - **Agent**: System Architect → Senior Developer
-- **Release**: TBD
+- **Release**: 1.1.0
 - **Depends on**: STORY-006 (context.md format)
 
 ## Background

@@ -408,3 +408,13 @@
 - [x] Remove _backfill_project_config (single config source)
 - [x] Change load_config default path to CWD/.claude/pactkit.yaml
 - [x] Add orphan warning for ~/.claude/pactkit.yaml
+
+### [BUG-014] Stale version numbers in Spec Release fields, prompt templates, and CHANGELOG [#2](https://github.com/pactkit/pactkit/issues/2)
+> Spec: docs/specs/BUG-014.md
+
+- [x] Update 6 specs from Release 1.1.5 to 1.2.0
+- [x] Update 4 specs from Release 1.2.1 to 1.2.0
+- [x] Backfill 13 specs from Release TBD to correct version
+- [x] Unify 14 prompt template version labels to v1.2.0
+- [x] Add BUG-010~013 to CHANGELOG [1.2.0] Fixed section
+- [x] Verify zero TBD specs and no stale prompt versions remain

@@ -4,7 +4,7 @@
 |-----------|-------|
 | Status    | Open |
 | Author    | System Architect |
-| Release   | 1.1.5 |
+| Release   | 1.2.0 |
 
 ## Context
 
