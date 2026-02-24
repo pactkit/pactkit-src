@@ -9,8 +9,8 @@ description: "Deep code tracing and execution flow analysis"
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
 
-# Command: Trace (v16.2 Code Explorer)
-- **Usage**: `/project-trace "$ARGUMENTS"`
+# Skill: Trace (v16.2 Code Explorer)
+- **Usage**: Invoked as `pactkit-trace` skill
 - **Agent**: Code Explorer
 
 ## 🕵️‍♂️ Phase 0: The Thinking Process (Mandatory)
@@ -172,8 +172,8 @@ description: "Generate Draw.io XML architecture diagrams (supporting multiple di
 allowed-tools: [Read, Write]
 ---
 
-# Command: Draw (v22.0 Enterprise)
-- **Usage**: `/project-draw "$ARGUMENTS"`
+# Skill: Draw (v22.0 Enterprise)
+- **Usage**: Invoked as `pactkit-draw` skill
 - **Agent**: Visual Architect
 
 ## Phase 0: The Thinking Process (Mandatory)
@@ -422,8 +422,8 @@ description: "PR Code Review: structured review with SOLID, security, quality ch
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
 
-# Command: Review (v22.0 Deep Code Review)
-- **Usage**: `/project-review "$ARGUMENTS"`
+# Skill: Review (v22.0 Deep Code Review)
+- **Usage**: Invoked as `pactkit-review` skill
 - **Agent**: QA Engineer
 
 > **PRINCIPLE**: Review is a read-only operation; do not modify any code files.

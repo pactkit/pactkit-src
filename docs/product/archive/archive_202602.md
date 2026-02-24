@@ -379,3 +379,10 @@
 - [x] Add rule_scopes serialization to _rewrite_yaml
 - [x] Fix _deploy_hooks to use stack-aware lint command
 - [x] Add round-trip fidelity tests
+
+### [BUG-011] Fix stale command references in agent and skill prompt templates
+> Spec: docs/specs/BUG-011.md
+
+- [x] Update agents.py: replace 4 stale /project-* protocol headers with skill-aware phrasing
+- [x] Update workflows.py: replace 3 stale Usage lines in skill prompt templates
+- [x] Verify zero stale references via grep audit

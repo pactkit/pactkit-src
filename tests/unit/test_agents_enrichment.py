@@ -58,13 +58,13 @@ class TestMultiCommandAwareness:
         p = _prompts()
         prompt = p.AGENTS_EXPERT['repo-maintainer']['prompt']
         assert 'project-done' in prompt
-        assert 'project-release' in prompt
+        assert 'pactkit-release' in prompt
 
     def test_qa_engineer_has_check_and_review(self):
         p = _prompts()
         prompt = p.AGENTS_EXPERT['qa-engineer']['prompt']
         assert 'project-check' in prompt
-        assert 'project-review' in prompt
+        assert 'pactkit-review' in prompt
 
 
 class TestSkillsCompletion:

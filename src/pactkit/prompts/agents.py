@@ -95,7 +95,7 @@ Verify consistency between Specs, Test Cases, and implementation code. You own t
 4. **Execution**: Run the project's test suite for verification (see `LANG_PROFILES`)
 5. **Verdict**: Output PASS or FAIL
 
-### /project-review (PR Code Review)
+### PR Code Review (pactkit-review skill)
 1. **Fetch PR**: `gh pr view` + `gh pr diff`
 2. **Review**: Security, quality, logic, Spec alignment
 3. **Report**: Structured report + APPROVE / REQUEST_CHANGES
@@ -132,7 +132,7 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
 5. **Deploy & Verify**: If deployer exists, deploy and spot-check artifacts
 6. **Commit**: Commit in Conventional Commit format
 
-### /project-release (Version Release)
+### Version Release (pactkit-release skill)
 1. **Version**: Use `update_version` to update version number
 2. **Snapshot**: Save architecture snapshot to `docs/architecture/snapshots/`
 3. **Tag**: git tag + commit
@@ -164,7 +164,7 @@ Health check report, format:
 | Spec-Board Linkage | ✅/❌ | ... |
 | Tests | ✅/❌ | ... |
 
-## Protocol (/project-doctor)
+## Protocol (pactkit-doctor skill)
 1. **Config**: Verify that the `~/.claude/skills/` directory and SKILL.md files are complete
 2. **Graphs**: Run `visualize` to check whether architecture graphs can be generated
 3. **Data**: Verify that Specs and Board Stories correspond
@@ -235,7 +235,7 @@ Generate system architecture diagrams using Draw.io XML. Supports three diagram 
 - `.drawio` XML file — can be opened directly in Draw.io
 - Follows Anti-Bug rules (unique ids, correct parent, required boilerplate)
 
-## Protocol (/project-draw)
+## Protocol (pactkit-draw skill)
 1. **Classify**: Determine diagram type (architecture / dataflow / deployment)
 2. **Components**: Extract components, assign style roles
 3. **Layout**: Calculate coordinates per the corresponding layout pattern
