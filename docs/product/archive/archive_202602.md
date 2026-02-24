@@ -179,3 +179,10 @@
 - [x] Add lint_command to LANG_PROFILES
 - [x] Add Step 2.7 CI Lint Gate to Done command
 - [x] Add lint gate to Act command Phase 3
+
+### [STORY-016] CLAUDE.md hygiene: language matching rule and project context cleanup
+> Spec: docs/specs/STORY-016.md
+
+- [x] Add language-matching rule to core protocol
+- [x] Update project .claude/CLAUDE.md to remove stale data
+- [x] Verify deployed rules contain language rule

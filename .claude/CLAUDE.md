@@ -1,32 +1,10 @@
 # PactKit — Project Context
 
-## What is PactKit?
-
 PactKit is a spec-driven agentic DevOps toolkit for AI coding assistants. It compiles development workflows, role definitions, and behavioral rules into executable "constitutions" and "playbooks" for Claude Code.
 
-- **Name origin**: Pact (契约) + Kit — "Code by Contract"
-- **Domain**: pactkit.dev
-- **GitHub Org**: https://github.com/pactkit
 - **PyPI**: https://pypi.org/project/pactkit/
-- **License**: MIT
-
-## Project Status
-
-909+ tests passing. Published on PyPI and GitHub.
-
-### Distribution Modes
-
-| Mode | Command | Output |
-|------|---------|--------|
-| Classic (pip) | `pactkit init` | Deploys to `~/.claude/` with `pactkit.yaml` filtering |
-| Plugin | `pactkit init --format plugin` | Self-contained `.claude-plugin/` directory |
-| Marketplace | `pactkit init --format marketplace` | Plugin + `marketplace.json` for GitHub repo |
-
-Marketplace repo: https://github.com/pactkit/claude-code-plugin
-
-### Cross-Session Memory
-
-PactKit generates `docs/product/context.md` (via Done/Plan/Init commands) which CLAUDE.md auto-loads via `@./docs/product/context.md`. This gives new sessions automatic awareness of sprint status, recent completions, and recommended next actions.
+- **GitHub**: https://github.com/pactkit/pactkit
+- **Plugin repo**: https://github.com/pactkit/claude-code-plugin
 
 ## Architecture
 
@@ -68,3 +46,5 @@ pactkit version
 pactkit init -t /tmp/preview
 pactkit init --format plugin -t /tmp/plugin-preview
 ```
+
+@./docs/product/context.md
