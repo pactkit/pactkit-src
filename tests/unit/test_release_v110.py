@@ -49,11 +49,11 @@ class TestVersionConsistency:
 
     def test_init_version(self):
         from pactkit import __version__
-        assert __version__ == '1.1.2'
+        assert __version__ == '1.1.3'
 
     def test_pyproject_version(self):
         content = (_root() / 'pyproject.toml').read_text()
-        assert 'version = "1.1.2"' in content
+        assert 'version = "1.1.3"' in content
 
     def test_config_default_version_unchanged(self):
         """config.py default version is user yaml schema, NOT package version."""

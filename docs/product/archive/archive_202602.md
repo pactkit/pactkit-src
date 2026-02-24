@@ -162,3 +162,12 @@
 - [x] Write failing test
 - [x] Fix _build_file_graph import loop
 - [x] Regression check
+
+### [STORY-014] Release v1.1.3: sync CHANGELOG, plugin, and PyPI
+> Spec: docs/specs/STORY-014.md
+
+- [x] Update CHANGELOG.md
+- [x] Bump version to 1.1.3
+- [x] Commit and tag v1.1.3
+- [x] Sync plugin repo
+- [x] Publish to PyPI

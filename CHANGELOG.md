@@ -4,6 +4,26 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.1.3] - 2026-02-24
+
+### Fixed
+- **Multi-import graph edges** — `_build_file_graph` now processes all aliases in `import a, b, c` statements and deduplicates edges (BUG-003)
+- **Dead code in deployer** — Remove unused `set(enabled_rules)` no-op in `_deploy_rules` (BUG-004)
+- **Archive guard for taskless stories** — `archive_stories` now requires at least one `[x]` task before archiving, aligning with `_classify_story` logic (BUG-005)
+
+## [1.1.2] - 2026-02-14
+
+### Fixed
+- **Scripted skill paths** — Use absolute paths in SKILL.md prompts for scripted skills; the LLM runs bash from project cwd, not the skill base directory (BUG-001)
+- **Plugin mode paths** — Deploy-time path rewriting for plugin/marketplace modes; templates stay canonical, deployer rewrites `~/.claude/skills` to `${CLAUDE_PLUGIN_ROOT}/skills` at write time (BUG-002)
+
+### Added
+- **Draw.io MCP Integration** — `pactkit-draw` instant preview via `@drawio/mcp` when MCP server is available (STORY-013)
+
+### Changed
+- **Commands → Skills migration** — Demoted 6 commands (trace, draw, status, doctor, review, release) to prompt-only skills; reduces command count from 14 to 8 (STORY-011)
+- Lint fixes for CI compliance
+
 ## [1.1.1] - 2026-02-13
 
 ### Fixed
