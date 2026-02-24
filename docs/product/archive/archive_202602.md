@@ -171,3 +171,11 @@
 - [x] Commit and tag v1.1.3
 - [x] Sync plugin repo
 - [x] Publish to PyPI
+
+### [STORY-015] Add conditional CI lint gate to Done command
+> Spec: docs/specs/STORY-015.md
+
+- [x] Fix unused imports in test files
+- [x] Add lint_command to LANG_PROFILES
+- [x] Add Step 2.7 CI Lint Gate to Done command
+- [x] Add lint gate to Act command Phase 3

@@ -19,3 +19,4 @@
 | 2026-02 | Dead code from refactors (`set(x)` as standalone expression) passes all tests because it's a no-op — use AST-based source inspection tests to catch dead code that linters miss in generated/deployed scripts | BUG-004 |
 | 2026-02 | When two functions classify the same data (board stories), they must use the same logic — `archive_stories` used absence-of-todo as "done" while `_classify_story` required presence-of-done; align both to require `- [x]` for archival | BUG-005 |
 | 2026-02 | Release hygiene requires syncing 5 artifacts (CHANGELOG, pyproject.toml, __init__.py, plugin repo, PyPI) — missing any one creates version drift; a release Story with explicit per-artifact tasks prevents omissions | STORY-014 |
+| 2026-02 | Local PDCA must mirror CI checks — if CI runs lint, the Done command must too; adding `lint_command` to `LANG_PROFILES` and a conditional CI Lint Gate step closes the gap between local green and CI green | STORY-015 |

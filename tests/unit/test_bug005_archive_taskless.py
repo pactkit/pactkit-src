@@ -3,8 +3,6 @@
 archive_stories() must NOT archive stories that have zero tasks.
 Only stories with all tasks checked `[x]` should be archived.
 """
-from pathlib import Path
-
 from pactkit.skills.board import archive_stories
 
 

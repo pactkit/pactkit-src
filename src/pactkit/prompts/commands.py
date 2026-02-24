@@ -120,6 +120,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       - **STOP** and report to the user: which test failed, what it appears to test, and which of your changes likely caused the failure.
       - Suggest options: (a) you revert your change that caused the regression, or (b) the user reviews and provides guidance.
       - You MUST NOT assume you understand the design intent behind pre-existing tests — the project may have adopted PDCA mid-way and there is no Spec for older features.
+4.  **Lint Check (Conditional)**: IF a CI config exists (`.github/workflows/*.yml` or similar) or `lint_command` is set in `LANG_PROFILES`:
+    - Run the `lint_command` for the detected stack (e.g., `ruff check src/ tests/` for Python).
+    - If lint fails, fix the lint errors in your own new/modified files only, then re-run.
+    - Do NOT modify pre-existing files to fix lint unless the lint error is in a file you changed in this Story.
 
 ## 🎬 Phase 4: Sync & Document
 1.  **Hygiene**: Delete temp files.
@@ -307,12 +311,22 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 - **< 50%**: BLOCK — require user confirmation: "Changed file `{file}` has only {N}% coverage. Proceed anyway?"
 - Include coverage data in the output so the user can evaluate test quality.
 
+### Step 2.7: CI Lint Gate (Conditional)
+> **Purpose**: Catch lint errors that CI will reject, before committing.
+
+1. **Detect CI config**: Check if `.github/workflows/*.yml`, `.gitlab-ci.yml`, or a lint-related config (e.g., `[tool.ruff]` in `pyproject.toml`, `.eslintrc*`, `.golangci.yml`) exists.
+2. **If CI config exists**: Run the `lint_command` from `LANG_PROFILES` for the detected stack.
+   - Example (Python): `ruff check src/ tests/`
+   - Example (Node): `npx eslint .`
+3. **Gate**: If lint fails, **STOP immediately**. Report the lint errors and do NOT proceed to commit.
+4. **Skip**: If no CI config and no lint tool detected, skip silently: "No CI lint config detected — skipping lint gate."
+
 ### Step 3: Gate
 - If any test fails, **STOP immediately**. Do NOT proceed to commit.
 - **Do NOT attempt to fix** pre-existing test failures or modify code you do not understand.
 - The agent MUST NOT assume it understands pre-existing test intent — the project may have adopted PDCA mid-way and there is no Spec for older features.
 - Report the failure to the user with: which test failed, what it appears to test, and which change likely caused it.
-- Only continue if ALL tests are GREEN.
+- Only continue if ALL tests and lint checks are GREEN.
 
 ## 🎬 Phase 3: Hygiene Check & Fix
 1.  **Verify**: Are tasks for this Story marked `[x]`?

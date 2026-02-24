@@ -69,6 +69,7 @@ LANG_PROFILES = {
         'package_file': 'pyproject.toml',
         'e2e_test_pattern': 'test_{ID}.py',
         'test_map_pattern': 'tests/unit/test_{module}.py',
+        'lint_command': 'ruff check src/ tests/',
     },
     'node': {
         'test_runner': 'npx jest',
@@ -78,6 +79,7 @@ LANG_PROFILES = {
         'package_file': 'package.json',
         'e2e_test_pattern': '{ID}.test.ts',
         'test_map_pattern': '__tests__/{module}.test.ts',
+        'lint_command': 'npx eslint .',
     },
     'go': {
         'test_runner': 'go test ./...',
@@ -87,6 +89,7 @@ LANG_PROFILES = {
         'package_file': 'go.mod',
         'e2e_test_pattern': '{ID}_test.go',
         'test_map_pattern': '{package}/{module}_test.go',
+        'lint_command': 'golangci-lint run',
     },
     'java': {
         'test_runner': 'mvn test',
@@ -96,6 +99,7 @@ LANG_PROFILES = {
         'package_file': 'pom.xml',
         'e2e_test_pattern': '{ID}Test.java',
         'test_map_pattern': 'src/test/java/{package}/{module}Test.java',
+        'lint_command': 'mvn checkstyle:check',
     },
 }
 

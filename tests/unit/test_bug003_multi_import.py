@@ -4,7 +4,6 @@ When a file has `import a, b, c`, the file-level dependency graph should
 create edges for ALL imported modules, not just the last one.
 """
 import textwrap
-from pathlib import Path
 
 from pactkit.skills.visualize import _build_file_graph, _scan_files
 
