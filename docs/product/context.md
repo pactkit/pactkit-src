@@ -1,15 +1,16 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-02-24 by /project-done
+> Last updated: 2026-02-24 by /pactkit-release v1.3.0
 
 ## Sprint Status
 - **In Progress**: 0 stories
 - **Backlog**: 0 stories
 - **Done**: 49 items archived (STORY-001~035, BUG-001~014)
+- **Current Version**: 1.3.0
 
 ## Recent Completions
-- BUG-014: Version hygiene — unified stale spec Release fields, prompt template versions, and CHANGELOG entries to v1.2.0
+- v1.3.0 release — version bump, architecture snapshot, CHANGELOG, PyPI, plugin repo sync
+- BUG-014: Version hygiene — unified stale spec Release fields, prompt template versions, and CHANGELOG entries
 - BUG-013: Single-source config consolidation — config reads exclusively from $CWD/.claude/pactkit.yaml
-- BUG-012: Call graph noise filter — skip builtins and non-self attribute calls in visualize --mode call
 
 ## Active Branches
 None

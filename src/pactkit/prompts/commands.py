@@ -10,7 +10,7 @@ description: "Analyze requirements, create Spec and Story"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Plan (v1.2.0 Integrated Trace)
+# Command: Plan (v1.3.0 Integrated Trace)
 - **Usage**: `/project-plan "$ARGUMENTS"`
 - **Agent**: System Architect
 
@@ -89,7 +89,7 @@ description: "Implement code per Spec, strict TDD"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Act (v1.2.0 Stack-Aware)
+# Command: Act (v1.3.0 Stack-Aware)
 - **Usage**: `/project-act $ARGUMENTS`
 - **Agent**: Senior Developer
 
@@ -171,7 +171,7 @@ description: "QA verification: security scan, code quality scan, Spec alignment"
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
 
-# Command: Check (v1.2.0 Deep QA)
+# Command: Check (v1.3.0 Deep QA)
 - **Usage**: `/project-check $ARGUMENTS`
 - **Agent**: QA Engineer
 
@@ -306,7 +306,7 @@ description: "Code cleanup, Board update, Git commit"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
 ---
 
-# Command: Done (v1.2.0 Smart Gatekeeper)
+# Command: Done (v1.3.0 Smart Gatekeeper)
 - **Usage**: `/project-done`
 - **Agent**: Repo Maintainer
 
@@ -470,7 +470,7 @@ description: "Initialize project scaffolding and governance structure"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
 ---
 
-# Command: Init (v1.2.0 Rich)
+# Command: Init (v1.3.0 Rich)
 - **Usage**: `/project-init`
 - **Agent**: System Architect
 

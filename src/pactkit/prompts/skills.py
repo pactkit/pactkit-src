@@ -213,7 +213,7 @@ python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_skill skill
 """
 
 # ==============================================================================
-# PROMPT-ONLY SKILL TEMPLATES (v1.2.0 — STORY-011)
+# PROMPT-ONLY SKILL TEMPLATES (v1.3.0 — STORY-011)
 # These skills have no executable script; they provide instruction context
 # that is embedded into PDCA commands.
 # ==============================================================================

@@ -2,7 +2,7 @@
 
 - **Status**: Backlog
 - **Priority**: 5.0 (Impact 5 / Effort 1)
-- **Release**: 1.2.0
+- **Release**: 1.1.2
 - **Author**: System Architect
 - **Created**: 2026-02-13
 

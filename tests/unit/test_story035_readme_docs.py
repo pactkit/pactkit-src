@@ -89,10 +89,10 @@ class TestAC2ConfigReference:
 
 
 # ===========================================================================
-# AC3: CHANGELOG complete for v1.2.0
+# AC3: CHANGELOG complete for v1.3.0
 # ===========================================================================
 class TestAC3ChangelogComplete:
-    """CHANGELOG must have entries for all v1.2.0 stories and bugs."""
+    """CHANGELOG must have entries for all v1.3.0 stories and bugs."""
 
     def test_changelog_has_story_031(self):
         assert "STORY-031" in _changelog()

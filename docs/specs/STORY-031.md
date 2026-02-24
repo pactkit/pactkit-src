@@ -1,5 +1,5 @@
 # Spec STORY-031: Auto git-init in /project-init for non-dev users
-- **Release**: 1.2.0
+- **Release**: 1.3.0
 
 ## Context
 When non-developer users (e.g., office automation UC3) run `/project-init` in a fresh directory, the project has no git repository. Later, `/project-done` attempts `git commit` which fails. The Init command should detect the absence of a git repo and offer to initialize one.

@@ -6,7 +6,7 @@
 | Title       | Draw.io MCP Integration |
 | Status      | Backlog |
 | Priority    | Medium |
-| Release     | 1.2.0 |
+| Release     | 1.1.2 |
 | Author      | System Architect |
 
 ## Background

@@ -4,7 +4,7 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [1.2.0] - 2026-02-24
+## [1.3.0] - 2026-02-24
 
 ### Added
 - **Conditional CI/CD Pipeline Generation** — `ci.provider` config (github/gitlab/none) generates workflow files; disabled by default (STORY-025)
@@ -13,22 +13,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - **Context-Aware Rule Scoping** — `rule_scopes` config maps rule IDs to glob patterns; deployer prepends `includeFiles` frontmatter (STORY-028)
 - **Enhanced Doctor Diagnostics** — Stale graph detection (7+ days), orphaned/missing spec detection, config drift detection, severity levels (INFO/WARN/ERROR) (STORY-029)
 - **Smart Lint Integration** — `lint_blocking` and `auto_fix` config options for Done command; non-blocking warnings by default (STORY-030)
-
-- **Use-case validation for marketplace deployment** — Validated 4 deployment personas (solo dev, team lead, open-source maintainer, enterprise) to verify correct behavior across classic/plugin/marketplace formats (STORY-031)
-- **Marketplace integration testing** — End-to-end deployment verification for marketplace format with correct path rewriting and skill/command co-location (STORY-032)
-- **Config auto-backfill for missing sections** — `auto_merge_config_file` now handles both list-type keys (agents/commands/skills/rules) AND non-list sections (hooks/ci/lint_blocking/issue_tracker); `_rewrite_yaml` writes all sections (STORY-033)
-- **Auto-refresh pactkit.yaml in Plan Init Guard** — Plan Phase 0.5 now checks config completeness and runs `pactkit update` to backfill missing sections before proceeding (STORY-034)
-- **README and docs directory documentation** — Complete project structure section, pactkit.yaml configuration reference, all 9 skills listed, CHANGELOG updated (STORY-035)
+- **TDD Bailout Decision Tree** — Distinguish project-internal modules from third-party packages in autonomous Sprint mode (STORY-022)
+- **Test Quality Gate** — QA check detects tautological and over-mocked tests that pass but verify nothing (STORY-023)
+- **Native Agent Enhancement** — Smart model defaults (`inherit`), opt-in hooks, Memory MCP integration in agent frontmatter (STORY-024)
+- **Use-case validation for marketplace deployment** — Validated 4 deployment personas (solo dev, team lead, open-source maintainer, enterprise) (STORY-031)
+- **Marketplace integration testing** — End-to-end deployment verification for marketplace format with correct path rewriting (STORY-032)
+- **Config auto-backfill for missing sections** — `auto_merge_config_file` handles both list-type and non-list sections; `_rewrite_yaml` writes all sections (STORY-033)
+- **Auto-refresh pactkit.yaml in Plan Init Guard** — Plan Phase 0.5 checks config completeness and runs `pactkit update` before proceeding (STORY-034)
+- **README and docs directory documentation** — Complete project structure section, pactkit.yaml configuration reference, all 9 skills listed (STORY-035)
 
 ### Fixed
 - **Read-only agent hooks removed** — Prompt hooks on qa-engineer, security-auditor, system-medic, code-explorer caused latency and infinite loop risk; tools/disallowedTools already enforce read-only constraint
-- **Visualize excludes deployed directories** — `visualize` now excludes PactKit-deployed directories (skills/commands/rules/agents) from graph generation to avoid pollution in marketplace mode (BUG-006)
-- **Stale command references in prompt templates** — Comprehensive scan fixed 6 demoted command references (trace/draw/status/doctor/review/release) across agents.py and skills.py (BUG-007, BUG-008)
-- **Project-level config backfill** — `pactkit update` now backfills both global (`~/.claude/pactkit.yaml`) and project-level (`$CWD/.claude/pactkit.yaml`) configs; previously only global config was updated (BUG-009)
-- **Config serialization data loss** — `_rewrite_yaml`, `generate_default_yaml`, and `_BACKFILL_KEYS` now stay in sync; `agent_models` and `rule_scopes` were validated but never serialized, causing silent data loss on update (BUG-010)
+- **Visualize excludes deployed directories** — `visualize` now excludes PactKit-deployed directories from graph generation to avoid pollution in marketplace mode (BUG-006)
+- **Stale command references in prompt templates** — Comprehensive scan fixed 6 demoted command references across agents.py and skills.py (BUG-007, BUG-008)
+- **Project-level config backfill** — `pactkit update` now backfills both global and project-level configs (BUG-009)
+- **Config serialization data loss** — `_rewrite_yaml`, `generate_default_yaml`, and `_BACKFILL_KEYS` now stay in sync; `agent_models` and `rule_scopes` were validated but never serialized (BUG-010)
 - **Stale command references in agent protocols** — Final sweep fixed 7 remaining demoted command references in agent protocol headers and skill Usage lines (BUG-011)
 - **Call graph noise filter** — `_extract_calls` skips builtins and non-self attribute calls; `_build_call_graph` only emits edges where callees resolve to `func_registry` (BUG-012)
-- **Single-source config consolidation** — Config now reads exclusively from `$CWD/.claude/pactkit.yaml`; removed dual-config architecture and `_backfill_project_config()` (BUG-013)
+- **Single-source config consolidation** — Config now reads exclusively from `$CWD/.claude/pactkit.yaml`; removed dual-config architecture (BUG-013)
+- **Version hygiene** — Unified 28 stale spec Release fields, 14 prompt template version labels, and 4 missing CHANGELOG entries; eliminated phantom versions 1.1.5 and 1.2.1 that were never released (BUG-014)
 
 ## [1.1.4] - 2026-02-24
 

@@ -1,5 +1,5 @@
 # Spec STORY-032: Greenfield redirect heuristic in /project-plan
-- **Release**: 1.2.0
+- **Release**: 1.3.0
 
 ## Context
 When a user sends a product ideation request to `/project-plan` (e.g., "I want to build a pet social app"), the Plan command treats it as an architectural expansion and attempts to create a single Spec. However, product ideation requests are better served by `/project-design`, which generates a full PRD, decomposes into multiple stories, and sets up the board.
