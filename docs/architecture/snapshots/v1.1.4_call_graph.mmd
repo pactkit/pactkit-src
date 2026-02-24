@@ -1,0 +1,752 @@
+graph TD
+    Path["Path"]
+    Path_cwd["Path.cwd"]
+    Path_home["Path.home"]
+    ValueError["ValueError"]
+    _BRANCH_PREFIX_MAP_get["_BRANCH_PREFIX_MAP.get"]
+    _REGISTRY_items["_REGISTRY.items"]
+    _SKILL_NAME_RE_match["_SKILL_NAME_RE.match"]
+    _build_call_graph["_build_call_graph"]
+    _build_class_graph["_build_class_graph"]
+    _build_file_graph["_build_file_graph"]
+    _classify_story["_classify_story"]
+    _cleanup_legacy["_cleanup_legacy"]
+    _deploy_agents["_deploy_agents"]
+    _deploy_classic["_deploy_classic"]
+    _deploy_claude_md["_deploy_claude_md"]
+    _deploy_claude_md_inline["_deploy_claude_md_inline"]
+    _deploy_commands["_deploy_commands"]
+    _deploy_marketplace["_deploy_marketplace"]
+    _deploy_marketplace_json["_deploy_marketplace_json"]
+    _deploy_plugin["_deploy_plugin"]
+    _deploy_plugin_json["_deploy_plugin_json"]
+    _deploy_rules["_deploy_rules"]
+    _deploy_skills["_deploy_skills"]
+    _extract_calls["_extract_calls"]
+    _generate_config_if_missing["_generate_config_if_missing"]
+    _migrate_from_scafpy["_migrate_from_scafpy"]
+    _parse_story_blocks["_parse_story_blocks"]
+    _resolve_callee["_resolve_callee"]
+    _rewrite_skills_prefix["_rewrite_skills_prefix"]
+    _rewrite_yaml["_rewrite_yaml"]
+    _scan_files["_scan_files"]
+    active_parts_append["active_parts.append"]
+    add_story["add_story"]
+    added_append["added.append"]
+    agents_dir_exists["agents_dir.exists"]
+    agents_dir_glob["agents_dir.glob"]
+    all_files_append["all_files.append"]
+    any["any"]
+    archive_dir_mkdir["archive_dir.mkdir"]
+    archive_stories["archive_stories"]
+    archived_parts_append["archived_parts.append"]
+    argparse_ArgumentParser["argparse.ArgumentParser"]
+    ast_iter_child_nodes["ast.iter_child_nodes"]
+    ast_parse["ast.parse"]
+    ast_walk["ast.walk"]
+    atomic_write["atomic_write"]
+    auto_merge_config_file["auto_merge_config_file"]
+    backlog_items_append["backlog_items.append"]
+    bases_append["bases.append"]
+    blocks_append["blocks.append"]
+    board_path_exists["board_path.exists"]
+    board_path_read_text["board_path.read_text"]
+    board_path_with_suffix["board_path.with_suffix"]
+    call_edges_get["call_edges.get"]
+    call_edges_items["call_edges.items"]
+    call_edges_values["call_edges.values"]
+    callees_append["callees.append"]
+    cfg_get["cfg.get"]
+    chr["chr"]
+    classes_append["classes.append"]
+    clean_find["clean.find"]
+    clean_id_split["clean_id.split"]
+    commands_dir_exists["commands_dir.exists"]
+    commands_dir_glob["commands_dir.glob"]
+    config_get["config.get"]
+    content_append["content.append"]
+    content_extend["content.extend"]
+    content_find["content.find"]
+    content_index["content.index"]
+    content_replace["content.replace"]
+    create_e2e["create_e2e"]
+    create_prd["create_prd"]
+    create_skill["create_skill"]
+    create_spec["create_spec"]
+    create_test_file["create_test_file"]
+    d_mkdir["d.mkdir"]
+    data_get["data.get"]
+    deploy["deploy"]
+    desc_replace["desc.replace"]
+    dest_write_text["dest.write_text"]
+    dict["dict"]
+    done_items_append["done_items.append"]
+    edges_append["edges.append"]
+    enumerate["enumerate"]
+    exclude_get["exclude.get"]
+    f_relative_to["f.relative_to"]
+    f_unlink["f.unlink"]
+    f_write["f.write"]
+    file_to_node_get["file_to_node.get"]
+    file_to_node_items["file_to_node.items"]
+    filename_removesuffix["filename.removesuffix"]
+    final_lines_append["final_lines.append"]
+    final_lines_extend["final_lines.extend"]
+    fix_board["fix_board"]
+    fn_endswith["fn.endswith"]
+    func_registry_get["func_registry.get"]
+    func_registry_keys["func_registry.keys"]
+    generate_default_yaml["generate_default_yaml"]
+    get_default_config["get_default_config"]
+    git_start["git_start"]
+    hld_exists["hld.exists"]
+    hld_write_text["hld.write_text"]
+    imported_module_split["imported_module.split"]
+    imported_modules_append["imported_modules.append"]
+    in_progress_items_append["in_progress_items.append"]
+    init_architecture["init_architecture"]
+    init_parser_add_argument["init_parser.add_argument"]
+    isinstance["isinstance"]
+    json_dumps["json.dumps"]
+    key_rstrip["key.rstrip"]
+    legacy_exists["legacy.exists"]
+    legacy_unlink["legacy.unlink"]
+    len["len"]
+    lines_append["lines.append"]
+    lines_extend["lines.extend"]
+    lines_sort["lines.sort"]
+    list["list"]
+    list_rules["list_rules"]
+    list_stories["list_stories"]
+    lld_exists["lld.exists"]
+    lld_write_text["lld.write_text"]
+    load_config["load_config"]
+    load_script["load_script"]
+    m_end["m.end"]
+    m_group["m.group"]
+    m_start["m.start"]
+    main["main"]
+    marketplace_root_mkdir["marketplace_root.mkdir"]
+    methods_append["methods.append"]
+    min["min"]
+    module_index_get["module_index.get"]
+    name_lower["name.lower"]
+    name_removeprefix["name.removeprefix"]
+    name_replace["name.replace"]
+    new_yaml_exists["new_yaml.exists"]
+    nl["nl"]
+    nodes_append["nodes.append"]
+    old_dir_is_dir["old_dir.is_dir"]
+    old_yaml_is_file["old_yaml.is_file"]
+    old_yaml_rename["old_yaml.rename"]
+    old_yaml_unlink["old_yaml.unlink"]
+    open["open"]
+    os_replace["os.replace"]
+    p_exists["p.exists"]
+    p_read_text["p.read_text"]
+    p_relative_to["p.relative_to"]
+    p_with_suffix["p.with_suffix"]
+    p_write_text["p.write_text"]
+    parser_add_subparsers["parser.add_subparsers"]
+    parser_parse_args["parser.parse_args"]
+    parser_print_help["parser.print_help"]
+    part_strip["part.strip"]
+    path_exists["path.exists"]
+    path_read_text["path.read_text"]
+    path_with_suffix["path.with_suffix"]
+    path_write_text["path.write_text"]
+    print["print"]
+    queue_append["queue.append"]
+    queue_pop["queue.pop"]
+    range["range"]
+    re_escape["re.escape"]
+    re_findall["re.findall"]
+    re_finditer["re.finditer"]
+    re_search["re.search"]
+    re_split["re.split"]
+    re_sub["re.sub"]
+    reachable_edges_append["reachable_edges.append"]
+    rel_edges_append["rel_edges.append"]
+    rel_path_with_suffix["rel_path.with_suffix"]
+    relevant_add["relevant.add"]
+    relevant_edges_append["relevant_edges.append"]
+    relevant_ids_add["relevant_ids.add"]
+    result_rstrip["result.rstrip"]
+    reversed["reversed"]
+    root_exists["root.exists"]
+    root_rglob["root.rglob"]
+    rule_id_to_filename_get["rule_id_to_filename.get"]
+    rule_id_to_key_get["rule_id_to_key.get"]
+    rule_id_to_key_keys["rule_id_to_key.keys"]
+    rules_dir_glob["rules_dir.glob"]
+    rules_dir_mkdir["rules_dir.mkdir"]
+    s_replace["s.replace"]
+    safe["safe"]
+    scripts_dir_mkdir["scripts_dir.mkdir"]
+    section_comments_get["section_comments.get"]
+    seen_classes_add["seen_classes.add"]
+    seen_edges_add["seen_edges.add"]
+    set["set"]
+    shutil_copy2["shutil.copy2"]
+    shutil_rmtree["shutil.rmtree"]
+    skill_dir_mkdir["skill_dir.mkdir"]
+    snap_dir_mkdir["snap_dir.mkdir"]
+    snapshot_graph["snapshot_graph"]
+    sorted["sorted"]
+    src_exists["src.exists"]
+    story_id_replace["story_id.replace"]
+    story_match_end["story_match.end"]
+    story_match_group["story_match.group"]
+    story_match_start["story_match.start"]
+    str["str"]
+    subparsers_add_parser["subparsers.add_parser"]
+    subprocess_run["subprocess.run"]
+    t_strip["t.strip"]
+    t_write_text["t.write_text"]
+    target_ids_add["target_ids.add"]
+    tasks_split["tasks.split"]
+    tmp_write_text["tmp.write_text"]
+    type["type"]
+    update_parser_add_argument["update_parser.add_argument"]
+    update_task["update_task"]
+    update_version["update_version"]
+    upgrade_parser_add_argument["upgrade_parser.add_argument"]
+    user_data_get["user_data.get"]
+    user_data_items["user_data.items"]
+    validate_config["validate_config"]
+    visited_add["visited.add"]
+    visualize["visualize"]
+    warnings_warn["warnings.warn"]
+    yaml_safe_load["yaml.safe_load"]
+    yaml_path_exists["yaml_path.exists"]
+    yaml_path_read_text["yaml_path.read_text"]
+    yaml_path_write_text["yaml_path.write_text"]
+    get_default_config --> sorted
+    get_default_config --> sorted
+    get_default_config --> sorted
+    get_default_config --> sorted
+    load_config --> get_default_config
+    load_config --> path_read_text
+    load_config --> yaml_safe_load
+    load_config --> dict
+    load_config --> user_data_items
+    load_config --> Path
+    load_config --> path_exists
+    load_config --> isinstance
+    load_config --> Path_home
+    auto_merge_config_file --> Path
+    auto_merge_config_file --> path_read_text
+    auto_merge_config_file --> yaml_safe_load
+    auto_merge_config_file --> user_data_get
+    auto_merge_config_file --> _REGISTRY_items
+    auto_merge_config_file --> path_exists
+    auto_merge_config_file --> isinstance
+    auto_merge_config_file --> isinstance
+    auto_merge_config_file --> user_data_get
+    auto_merge_config_file --> set
+    auto_merge_config_file --> set
+    auto_merge_config_file --> sorted
+    auto_merge_config_file --> _rewrite_yaml
+    auto_merge_config_file --> isinstance
+    auto_merge_config_file --> exclude_get
+    auto_merge_config_file --> added_append
+    _rewrite_yaml --> data_get
+    _rewrite_yaml --> path_write_text
+    _rewrite_yaml --> data_get
+    _rewrite_yaml --> section_comments_get
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> isinstance
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> exclude_get
+    _rewrite_yaml --> data_get
+    _rewrite_yaml --> data_get
+    _rewrite_yaml --> data_get
+    _rewrite_yaml --> lines_append
+    _rewrite_yaml --> lines_append
+    validate_config --> config_get
+    validate_config --> _REGISTRY_items
+    validate_config --> warnings_warn
+    validate_config --> config_get
+    validate_config --> isinstance
+    validate_config --> warnings_warn
+    validate_config --> isinstance
+    validate_config --> warnings_warn
+    validate_config --> warnings_warn
+    validate_config --> sorted
+    validate_config --> warnings_warn
+    validate_config --> type
+    validate_config --> name_removeprefix
+    validate_config --> key_rstrip
+    generate_default_yaml --> get_default_config
+    generate_default_yaml --> lines_extend
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_extend
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_extend
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_append
+    generate_default_yaml --> lines_append
+    main --> argparse_ArgumentParser
+    main --> parser_add_subparsers
+    main --> subparsers_add_parser
+    main --> init_parser_add_argument
+    main --> init_parser_add_argument
+    main --> subparsers_add_parser
+    main --> update_parser_add_argument
+    main --> update_parser_add_argument
+    main --> subparsers_add_parser
+    main --> upgrade_parser_add_argument
+    main --> upgrade_parser_add_argument
+    main --> subparsers_add_parser
+    main --> parser_parse_args
+    main --> deploy
+    main --> print
+    main --> parser_print_help
+    atomic_write --> path_with_suffix
+    atomic_write --> tmp_write_text
+    atomic_write --> os_replace
+    atomic_write --> print
+    nl --> chr
+    add_story --> p_read_text
+    add_story --> content_find
+    add_story --> p_with_suffix
+    add_story --> tmp_write_text
+    add_story --> os_replace
+    add_story --> Path_cwd
+    add_story --> p_exists
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> tasks_split
+    add_story --> t_strip
+    add_story --> nl
+    add_story --> t_strip
+    _parse_story_blocks --> list
+    _parse_story_blocks --> enumerate
+    _parse_story_blocks --> re_finditer
+    _parse_story_blocks --> m_start
+    _parse_story_blocks --> m_start
+    _parse_story_blocks --> len
+    _parse_story_blocks --> min
+    _parse_story_blocks --> blocks_append
+    _parse_story_blocks --> re_finditer
+    _parse_story_blocks --> len
+    _parse_story_blocks --> len
+    _parse_story_blocks --> m_group
+    _classify_story --> len
+    _classify_story --> len
+    _classify_story --> re_findall
+    _classify_story --> re_findall
+    fix_board --> p_read_text
+    fix_board --> content_find
+    fix_board --> content_find
+    fix_board --> content_find
+    fix_board --> _parse_story_blocks
+    fix_board --> reversed
+    fix_board --> re_sub
+    fix_board --> clean_find
+    fix_board --> clean_find
+    fix_board --> clean_find
+    fix_board --> re_sub
+    fix_board --> p_with_suffix
+    fix_board --> tmp_write_text
+    fix_board --> os_replace
+    fix_board --> len
+    fix_board --> Path_cwd
+    fix_board --> p_exists
+    fix_board --> clean_find
+    fix_board --> _classify_story
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> backlog_items_append
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> in_progress_items_append
+    fix_board --> done_items_append
+    fix_board --> result_rstrip
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> result_rstrip
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> result_rstrip
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> len
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    update_task --> p_read_text
+    update_task --> re_search
+    update_task --> story_match_group
+    update_task --> re_search
+    update_task --> re_search
+    update_task --> Path_cwd
+    update_task --> p_exists
+    update_task --> re_sub
+    update_task --> p_with_suffix
+    update_task --> tmp_write_text
+    update_task --> os_replace
+    update_task --> fix_board
+    update_task --> re_escape
+    update_task --> re_escape
+    update_task --> re_escape
+    update_task --> story_match_end
+    update_task --> story_match_start
+    update_version --> yaml_path_read_text
+    update_version --> re_sub
+    update_version --> yaml_path_write_text
+    update_version --> yaml_path_exists
+    update_version --> Path_cwd
+    snapshot_graph --> snap_dir_mkdir
+    snapshot_graph --> Path_cwd
+    snapshot_graph --> Path_cwd
+    snapshot_graph --> src_exists
+    snapshot_graph --> shutil_copy2
+    list_stories --> p_read_text
+    list_stories --> list
+    list_stories --> enumerate
+    list_stories --> lines_sort
+    list_stories --> Path_cwd
+    list_stories --> p_exists
+    list_stories --> re_finditer
+    list_stories --> m_end
+    list_stories --> len
+    list_stories --> lines_append
+    list_stories --> m_group
+    list_stories --> m_group
+    list_stories --> len
+    list_stories --> re_findall
+    list_stories --> len
+    list_stories --> nl
+    list_stories --> len
+    list_stories --> re_findall
+    archive_stories --> board_path_read_text
+    archive_stories --> re_split
+    archive_stories --> archive_dir_mkdir
+    archive_stories --> re_sub
+    archive_stories --> board_path_with_suffix
+    archive_stories --> tmp_write_text
+    archive_stories --> os_replace
+    archive_stories --> Path_cwd
+    archive_stories --> Path_cwd
+    archive_stories --> board_path_exists
+    archive_stories --> open
+    archive_stories --> active_parts_append
+    archive_stories --> archived_parts_append
+    archive_stories --> f_write
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> len
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> part_strip
+    load_script --> content_find
+    load_script --> content_index
+    init_architecture --> Path_cwd
+    init_architecture --> hld_exists
+    init_architecture --> hld_write_text
+    init_architecture --> lld_exists
+    init_architecture --> lld_write_text
+    init_architecture --> nl
+    init_architecture --> nl
+    _scan_files --> root_rglob
+    _scan_files --> any
+    _scan_files --> all_files_append
+    _scan_files --> p_relative_to
+    _scan_files --> str
+    _scan_files --> len
+    _scan_files --> rel_path_with_suffix
+    _scan_files --> str
+    _scan_files --> len
+    _scan_files --> str
+    _scan_files --> p_relative_to
+    _build_file_graph --> set
+    _build_file_graph --> str
+    _build_file_graph --> nodes_append
+    _build_file_graph --> nodes_append
+    _build_file_graph --> set
+    _build_file_graph --> file_to_node_items
+    _build_file_graph --> set
+    _build_file_graph --> final_lines_extend
+    _build_file_graph --> final_lines_extend
+    _build_file_graph --> f_relative_to
+    _build_file_graph --> ast_parse
+    _build_file_graph --> ast_walk
+    _build_file_graph --> any
+    _build_file_graph --> final_lines_append
+    _build_file_graph --> p_read_text
+    _build_file_graph --> isinstance
+    _build_file_graph --> str
+    _build_file_graph --> target_ids_add
+    _build_file_graph --> relevant_edges_append
+    _build_file_graph --> relevant_ids_add
+    _build_file_graph --> relevant_ids_add
+    _build_file_graph --> final_lines_append
+    _build_file_graph --> nl
+    _build_file_graph --> isinstance
+    _build_file_graph --> module_index_get
+    _build_file_graph --> f_relative_to
+    _build_file_graph --> imported_modules_append
+    _build_file_graph --> imported_module_split
+    _build_file_graph --> range
+    _build_file_graph --> file_to_node_get
+    _build_file_graph --> len
+    _build_file_graph --> imported_modules_append
+    _build_file_graph --> len
+    _build_file_graph --> seen_edges_add
+    _build_file_graph --> edges_append
+    _build_class_graph --> set
+    _build_class_graph --> seen_classes_add
+    _build_class_graph --> lines_append
+    _build_class_graph --> lines_append
+    _build_class_graph --> ast_parse
+    _build_class_graph --> str
+    _build_class_graph --> ast_walk
+    _build_class_graph --> lines_append
+    _build_class_graph --> lines_append
+    _build_class_graph --> p_read_text
+    _build_class_graph --> p_relative_to
+    _build_class_graph --> isinstance
+    _build_class_graph --> nl
+    _build_class_graph --> classes_append
+    _build_class_graph --> isinstance
+    _build_class_graph --> isinstance
+    _build_class_graph --> bases_append
+    _build_class_graph --> isinstance
+    _build_class_graph --> methods_append
+    _build_class_graph --> bases_append
+    _build_call_graph --> set
+    _build_call_graph --> func_registry_keys
+    _build_call_graph --> set
+    _build_call_graph --> set
+    _build_call_graph --> call_edges_items
+    _build_call_graph --> sorted
+    _build_call_graph --> ast_parse
+    _build_call_graph --> ast_iter_child_nodes
+    _build_call_graph --> queue_pop
+    _build_call_graph --> visited_add
+    _build_call_graph --> call_edges_get
+    _build_call_graph --> s_replace
+    _build_call_graph --> lines_append
+    _build_call_graph --> lines_append
+    _build_call_graph --> s_replace
+    _build_call_graph --> set
+    _build_call_graph --> call_edges_values
+    _build_call_graph --> lines_append
+    _build_call_graph --> lines_append
+    _build_call_graph --> call_edges_items
+    _build_call_graph --> p_read_text
+    _build_call_graph --> isinstance
+    _build_call_graph --> fn_endswith
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> relevant_add
+    _build_call_graph --> relevant_add
+    _build_call_graph --> rel_edges_append
+    _build_call_graph --> func_registry_keys
+    _build_call_graph --> nl
+    _build_call_graph --> _extract_calls
+    _build_call_graph --> isinstance
+    _build_call_graph --> reachable_edges_append
+    _build_call_graph --> reachable_edges_append
+    _build_call_graph --> visited_add
+    _build_call_graph --> func_registry_get
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> relevant_add
+    _build_call_graph --> lines_append
+    _build_call_graph --> nl
+    _build_call_graph --> queue_append
+    _build_call_graph --> safe
+    _build_call_graph --> safe
+    _build_call_graph --> safe
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> safe
+    _build_call_graph --> safe
+    _build_call_graph --> safe
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> isinstance
+    _build_call_graph --> _extract_calls
+    _build_call_graph --> safe
+    _build_call_graph --> safe
+    _extract_calls --> ast_walk
+    _extract_calls --> isinstance
+    _extract_calls --> isinstance
+    _extract_calls --> callees_append
+    _extract_calls --> isinstance
+    _extract_calls --> isinstance
+    _extract_calls --> callees_append
+    _extract_calls --> callees_append
+    _resolve_callee --> fn_endswith
+    visualize --> _scan_files
+    visualize --> dest_write_text
+    visualize --> _build_class_graph
+    visualize --> Path
+    visualize --> _build_call_graph
+    visualize --> _build_file_graph
+    git_start --> _BRANCH_PREFIX_MAP_get
+    git_start --> subprocess_run
+    git_start --> clean_id_split
+    git_start --> story_id_replace
+    create_test_file --> t_write_text
+    create_test_file --> Path_cwd
+    create_test_file --> Path_cwd
+    create_test_file --> nl
+    create_e2e --> re_sub
+    create_e2e --> p_write_text
+    create_e2e --> name_lower
+    create_e2e --> Path_cwd
+    create_e2e --> nl
+    create_spec --> p_write_text
+    create_spec --> Path_cwd
+    create_spec --> nl
+    create_skill --> root_exists
+    create_skill --> name_replace
+    create_skill --> _SKILL_NAME_RE_match
+    create_skill --> Path
+    create_skill --> name_replace
+    create_skill --> nl
+    create_skill --> nl
+    create_skill --> Path_home
+    create_skill --> desc_replace
+    create_skill --> chr
+    create_skill --> chr
+    create_skill --> chr
+    create_prd --> p_write_text
+    create_prd --> nl
+    create_prd --> Path_cwd
+    _rewrite_skills_prefix --> content_replace
+    deploy --> ValueError
+    deploy --> _deploy_plugin
+    deploy --> _deploy_marketplace
+    deploy --> _deploy_classic
+    _deploy_classic --> _migrate_from_scafpy
+    _deploy_classic --> validate_config
+    _deploy_classic --> print
+    _deploy_classic --> config_get
+    _deploy_classic --> config_get
+    _deploy_classic --> config_get
+    _deploy_classic --> config_get
+    _deploy_classic --> _deploy_skills
+    _deploy_classic --> _cleanup_legacy
+    _deploy_classic --> _deploy_rules
+    _deploy_classic --> _deploy_claude_md
+    _deploy_classic --> _deploy_agents
+    _deploy_classic --> _deploy_commands
+    _deploy_classic --> _generate_config_if_missing
+    _deploy_classic --> len
+    _deploy_classic --> len
+    _deploy_classic --> len
+    _deploy_classic --> len
+    _deploy_classic --> print
+    _deploy_classic --> Path
+    _deploy_classic --> auto_merge_config_file
+    _deploy_classic --> load_config
+    _deploy_classic --> d_mkdir
+    _deploy_classic --> Path_home
+    _deploy_classic --> print
+    _deploy_plugin --> print
+    _deploy_plugin --> sorted
+    _deploy_plugin --> sorted
+    _deploy_plugin --> sorted
+    _deploy_plugin --> _deploy_skills
+    _deploy_plugin --> _deploy_claude_md_inline
+    _deploy_plugin --> _deploy_agents
+    _deploy_plugin --> _deploy_commands
+    _deploy_plugin --> _deploy_plugin_json
+    _deploy_plugin --> print
+    _deploy_plugin --> Path
+    _deploy_plugin --> Path
+    _deploy_plugin --> d_mkdir
+    _deploy_marketplace --> marketplace_root_mkdir
+    _deploy_marketplace --> print
+    _deploy_marketplace --> _deploy_plugin
+    _deploy_marketplace --> _deploy_marketplace_json
+    _deploy_marketplace --> print
+    _deploy_marketplace --> Path
+    _deploy_marketplace --> Path
+    _deploy_marketplace --> str
+    _deploy_skills --> set
+    _deploy_skills --> scripts_dir_mkdir
+    _deploy_skills --> _rewrite_skills_prefix
+    _deploy_skills --> atomic_write
+    _deploy_skills --> atomic_write
+    _deploy_skills --> skill_dir_mkdir
+    _deploy_skills --> _rewrite_skills_prefix
+    _deploy_skills --> atomic_write
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
+    _cleanup_legacy --> legacy_exists
+    _cleanup_legacy --> legacy_unlink
+    _migrate_from_scafpy --> old_yaml_is_file
+    _migrate_from_scafpy --> old_dir_is_dir
+    _migrate_from_scafpy --> shutil_rmtree
+    _migrate_from_scafpy --> new_yaml_exists
+    _migrate_from_scafpy --> old_yaml_rename
+    _migrate_from_scafpy --> old_yaml_unlink
+    _deploy_rules --> rules_dir_mkdir
+    _deploy_rules --> rules_dir_glob
+    _deploy_rules --> filename_removesuffix
+    _deploy_rules --> any
+    _deploy_rules --> rule_id_to_key_get
+    _deploy_rules --> atomic_write
+    _deploy_rules --> f_unlink
+    _deploy_claude_md --> sorted
+    _deploy_claude_md --> lines_append
+    _deploy_claude_md --> lines_append
+    _deploy_claude_md --> lines_append
+    _deploy_claude_md --> atomic_write
+    _deploy_claude_md --> filename_removesuffix
+    _deploy_claude_md --> rule_id_to_filename_get
+    _deploy_claude_md --> lines_append
+    _deploy_agents --> set
+    _deploy_agents --> agents_dir_exists
+    _deploy_agents --> agents_dir_glob
+    _deploy_agents --> content_extend
+    _deploy_agents --> _rewrite_skills_prefix
+    _deploy_agents --> atomic_write
+    _deploy_agents --> f_unlink
+    _deploy_agents --> content_append
+    _deploy_agents --> cfg_get
+    _deploy_commands --> set
+    _deploy_commands --> commands_dir_exists
+    _deploy_commands --> commands_dir_glob
+    _deploy_commands --> filename_removesuffix
+    _deploy_commands --> _rewrite_skills_prefix
+    _deploy_commands --> atomic_write
+    _deploy_commands --> f_unlink
+    _generate_config_if_missing --> yaml_path_exists
+    _generate_config_if_missing --> atomic_write
+    _generate_config_if_missing --> generate_default_yaml
+    _deploy_plugin_json --> atomic_write
+    _deploy_plugin_json --> json_dumps
+    _deploy_claude_md_inline --> sorted
+    _deploy_claude_md_inline --> lines_append
+    _deploy_claude_md_inline --> lines_append
+    _deploy_claude_md_inline --> _rewrite_skills_prefix
+    _deploy_claude_md_inline --> atomic_write
+    _deploy_claude_md_inline --> filename_removesuffix
+    _deploy_claude_md_inline --> rule_id_to_key_keys
+    _deploy_claude_md_inline --> lines_append
+    _deploy_claude_md_inline --> lines_append
+    _deploy_marketplace_json --> atomic_write
+    _deploy_marketplace_json --> json_dumps
