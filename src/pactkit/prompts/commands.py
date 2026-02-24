@@ -421,6 +421,27 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - If `pom.xml` or `build.gradle` exists → `language: java`
     - If none match → ask the user to specify
     - The detected language determines which `LANG_PROFILES` entry to use for test runner, cleanup, etc.
+3.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
+    - *Purpose*: Project-level instructions for Claude Code (separate from global `~/.claude/CLAUDE.md`).
+    - *Content template*:
+      ```markdown
+      # {Project Name} — Project Context
+
+      ## Dev Commands
+
+      ```
+      # Run tests
+      {test_runner from LANG_PROFILES}
+
+      # Lint
+      {lint_command from LANG_PROFILES}
+      ```
+
+      @./docs/product/context.md
+      ```
+    - Use the directory name as the project name.
+    - Fill `test_runner` and `lint_command` from `LANG_PROFILES` based on the detected language.
+    - The `@./docs/product/context.md` reference enables cross-session context loading.
 
 ## 🎬 Phase 2: Architecture Governance
 1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch`.

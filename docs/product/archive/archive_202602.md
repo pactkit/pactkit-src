@@ -186,3 +186,11 @@
 - [x] Add language-matching rule to core protocol
 - [x] Update project .claude/CLAUDE.md to remove stale data
 - [x] Verify deployed rules contain language rule
+
+### [STORY-017] project-init 自动生成项目级 CLAUDE.md
+> Spec: docs/specs/STORY-017.md
+
+- [x] 在 project-init.md prompt 中 Phase 1 添加生成项目级 CLAUDE.md 的步骤
+- [x] 编写测试验证 prompt 内容
+
+## ✅ Done

@@ -21,3 +21,4 @@
 | 2026-02 | Release hygiene requires syncing 5 artifacts (CHANGELOG, pyproject.toml, __init__.py, plugin repo, PyPI) — missing any one creates version drift; a release Story with explicit per-artifact tasks prevents omissions | STORY-014 |
 | 2026-02 | Local PDCA must mirror CI checks — if CI runs lint, the Done command must too; adding `lint_command` to `LANG_PROFILES` and a conditional CI Lint Gate step closes the gap between local green and CI green | STORY-015 |
 | 2026-02 | Constitution rules are the cheapest way to change agent behavior — adding a 3-line language-matching rule to core protocol makes all PDCA output respect user's language; project CLAUDE.md should be instruction-focused, not documentation | STORY-016 |
+| 2026-02 | Project-level CLAUDE.md should be scaffolded by init — prompt-only changes to command templates are the cheapest way to add new init artifacts without touching runtime code | STORY-017 |
