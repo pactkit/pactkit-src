@@ -143,8 +143,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
     - **Map to related tests**: For each changed file, find its corresponding test file using the `test_map_pattern` in `LANG_PROFILES`.
-    - **Run regression**: Execute the mapped test files plus the full test suite if unsure about change scope.
-    - **Fallback**: If no test mapping can be determined or you are unsure about dependency impact, fall back to the full test suite.
+    - **Scope decision**: Check if any changed file is imported by 3+ other modules in `code_graph.mmd`. If yes, run the **full test suite**. If no (low fan-in, isolated change), run only the **mapped test files**.
+    - **Fallback**: If no test mapping can be determined, or `code_graph.mmd` does not exist, fall back to the full test suite.
     - **CRITICAL — Pre-existing test failure protocol**:
       - If a pre-existing test (one you did NOT create in Phase 2) fails, **DO NOT modify** the failing test or the code it tests.
       - **DO NOT loop** — this is a one-shot check, not an iterative loop.
@@ -161,6 +161,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Update Reality**:
     - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
     - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
+    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
 3.  **Update Board (CRITICAL)**:
     - Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
     - Use `update_task` or manual edit.
@@ -326,6 +327,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 2.  **Update Reality**:
     - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
     - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
+    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
 3.  **HLD Consistency Check**: Read `docs/architecture/graphs/system_design.mmd` and verify component counts match reality:
     - Compare any numeric labels in subgraphs (e.g., "8 commands", "9 skills") against the actual component counts from `config.py` VALID_* registries or the project source.
     - If a mismatch is found, **warn** the user: "⚠️ system_design.mmd is stale: says {old} but actual is {new}. Update the HLD."
@@ -339,18 +341,27 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - Run `git diff --name-only HEAD~1` (or vs. branch base) to list all changed files.
 - Check if `docs/architecture/graphs/code_graph.mmd` exists.
 
+### Step 1.5: Fast-Suite Shortcut
+> If the last test run completed in **< 30 seconds** (check pytest output or prior run time), skip the decision tree and always run **full regression** — the suite is fast enough that optimizing for incremental provides no benefit. Proceed directly to Step 3.
+
 ### Step 2: Decision Tree (Safe-by-Default)
 > **DEFAULT**: Run **full regression** (`pytest tests/`). This is the safe default.
 
 Run **incremental tests** only if ALL of the following conditions are true:
-- `code_graph.mmd` exists AND was updated in the current session (not stale)
+- `code_graph.mmd` exists AND appears in `git diff HEAD~1 --name-only` or `git status --short` (i.e., the graph was recently updated, not stale)
 - Changed source files ≤ 3 (small, isolated change set)
-- ALL changed source files have direct test mappings via `test_map_pattern` in `LANG_PROFILES`
+- At least ONE changed source file has a direct test mapping via `test_map_pattern` in `LANG_PROFILES`, OR total test count < 500 (fast enough for full suite as fallback)
 - NO changed file is imported by 3+ other modules in `code_graph.mmd`
 - NO test infrastructure files were changed (`conftest.py`, `pytest.ini`, `pyproject.toml [tool.pytest]`)
 - NO version change in `pactkit.yaml` (version bump implies broader impact)
 
 **Fallback**: If `code_graph.mmd` does not exist (e.g., non-PDCA project or not yet generated), always run full regression.
+
+### Step 2.3: Decision Logging (MANDATORY)
+After evaluating the decision tree, output the decision and the reason:
+- If full: `"Regression: FULL — {reason}"` (e.g., "Regression: FULL — config.py imported by 5 modules")
+- If incremental: `"Regression: INCREMENTAL — {N} mapped test files, {conditions summary}"`
+- This log helps the user understand why full regression was chosen and builds trust in the decision tree.
 
 ### Step 2.5: Coverage Verification (Conditional)
 IF `pytest-cov` is available, run tests with coverage on changed source files:

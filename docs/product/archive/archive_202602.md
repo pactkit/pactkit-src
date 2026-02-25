@@ -443,3 +443,20 @@
 
 - [x] Remove redundant pactkit.yml workflow
 - [x] Verify ci.yml still passes
+
+### [STORY-037] Fix regression decision tree — replace unverifiable conditions
+> Spec: docs/specs/STORY-037.md
+
+- [x] Replace Condition 1 (session freshness) with git-diff-based check
+- [x] Replace Condition 3 (test_map_pattern) with fallback-tolerant check
+- [x] Add decision logging to regression output
+- [x] Fix Act regression "if unsure" clause with explicit criteria
+
+### [STORY-038] Add call_graph.mmd to standard PDCA update cycle
+> Spec: docs/specs/STORY-038.md
+
+- [x] Add `visualize --mode call` to Act Phase 4 "Update Reality"
+- [x] Add `visualize --mode call` to Done Phase 2 "Update Reality"
+- [x] Fix focus_graph.mmd collision with mode-specific filenames
+
+## 🔄 In Progress
