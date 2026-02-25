@@ -483,5 +483,10 @@ Version release management — update versions, snapshot architecture, create Gi
 - Run `archive` via pactkit-board skill.
 - Commit: `git commit -am "chore(release): $VERSION"`.
 - Tag: `git tag $VERSION`.
+
+### 4. GitHub Release
+- Extract the `[$VERSION]` section from `CHANGELOG.md` as release notes.
+- Create a GitHub Release: `gh release create $VERSION --title "$VERSION" --notes "$NOTES"`.
+- Verify: `gh release view $VERSION` confirms the release exists and is marked Latest.
 """
 
