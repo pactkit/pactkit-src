@@ -501,18 +501,20 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 3.  **If already a git repo**: Skip silently to Phase 1.
 
 ## 🎬 Phase 1: Environment & Config
-1.  **Action**: Check/Create `./.claude/pactkit.yaml` in **Current Directory**.
-    - *Content*: `stack: <detected>`, `version: 0.0.1`, `root: .`
-    - **Do NOT add any fields not listed above** (e.g., no `language` field).
-2.  **Stack Detection** (for `stack` field in `pactkit.yaml`):
-    - Valid values: `python`, `node`, `go`, `java` (use the language name only, NOT the build system)
+1.  **Check CLI Availability**: Run `pactkit version` to check if CLI is available.
+    - **If available**: Proceed to Step 2.
+    - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `.claude/pactkit.yaml` with `stack: <detected>`, `version: 0.0.1`, `root: .` and skip to Step 4.
+2.  **Generate Config**: Check if `./.claude/pactkit.yaml` exists.
+    - **If missing**: Run `pactkit init` to generate complete configuration.
+    - **If exists**: Run `pactkit update` to backfill any missing sections (preserves user customizations).
+3.  **Stack Detection** (auto-detected by `pactkit init`, or manual fallback):
+    - Valid values: `python`, `node`, `go`, `java`
     - If `pyproject.toml` or `requirements.txt` or `setup.py` exists → `stack: python`
     - If `package.json` exists → `stack: node`
     - If `go.mod` exists → `stack: go`
     - If `pom.xml` or `build.gradle` exists → `stack: java`
     - If none match → ask the user to specify
-    - The detected stack determines which `LANG_PROFILES` entry to use for test runner, cleanup, etc.
-3.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
+4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
     - *Purpose*: Project-level instructions for Claude Code (separate from global `~/.claude/CLAUDE.md`).
     - *Content template*:
       ```markdown
