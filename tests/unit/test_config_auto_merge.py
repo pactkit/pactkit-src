@@ -278,6 +278,7 @@ class TestBackwardCompatibility:
             'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
             'lint_blocking': False,
             'auto_fix': False,
+            'venv': {'auto_detect': True},
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
@@ -393,6 +394,7 @@ class TestDeployerIntegration:
             'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
             'lint_blocking': False,
             'auto_fix': False,
+            'venv': {'auto_detect': True},
         })
 
         with patch.object(Path, 'home', return_value=tmp_path), \

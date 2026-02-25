@@ -97,7 +97,44 @@ def get_default_config() -> dict:
         },
         'lint_blocking': False,
         'auto_fix': False,
+        'venv': {
+            'auto_detect': True,
+        },
     }
+
+
+# ---------------------------------------------------------------------------
+# Virtual environment detection (STORY-039)
+# ---------------------------------------------------------------------------
+
+# Common venv directory names in priority order
+VENV_CANDIDATES = ('.venv', 'venv', 'env')
+
+
+def detect_venv(project_root: Path) -> str | None:
+    """Detect virtual environment directory in project root.
+
+    Checks common venv directory names in order: .venv, venv, env.
+    Returns the first directory that contains bin/python3 (Unix)
+    or Scripts/python.exe (Windows).
+
+    Args:
+        project_root: Project root directory to search.
+
+    Returns:
+        Relative path to venv directory (e.g., '.venv'), or None if not found.
+    """
+    for candidate in VENV_CANDIDATES:
+        venv_path = project_root / candidate
+        # Check Unix-style venv
+        if (venv_path / 'bin' / 'python3').exists():
+            return candidate
+        if (venv_path / 'bin' / 'python').exists():
+            return candidate
+        # Check Windows-style venv
+        if (venv_path / 'Scripts' / 'python.exe').exists():
+            return candidate
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -199,9 +236,9 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
             for item in new_items:
                 added.append(f"{key}: {item}")
 
-    # --- Non-list sections: backfill missing with defaults (STORY-033) ---
+    # --- Non-list sections: backfill missing with defaults (STORY-033, STORY-039) ---
     defaults = get_default_config()
-    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix')
+    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv')
     for key in _BACKFILL_KEYS:
         if key not in user_data:
             user_data[key] = defaults[key]
@@ -288,6 +325,17 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
     lines.append(f'lint_blocking: {"true" if data.get("lint_blocking") else "false"}')
     lines.append(f'auto_fix: {"true" if data.get("auto_fix") else "false"}')
     lines.append('')
+
+    # Write venv section (STORY-039)
+    venv = data.get('venv', {})
+    if isinstance(venv, dict):
+        lines.append('# Virtual Environment — configure venv detection and paths')
+        lines.append('venv:')
+        auto_detect = venv.get('auto_detect', True)
+        lines.append(f'  auto_detect: {"true" if auto_detect else "false"}')
+        if 'path' in venv:
+            lines.append(f'  path: {venv["path"]}')
+        lines.append('')
 
     # Write agent_models section if present (BUG-010)
     agent_models = data.get('agent_models', {})
@@ -406,6 +454,13 @@ def validate_config(config: dict) -> None:
                     f"Invalid glob pattern for rule '{rule_id}': {pattern}"
                 )
 
+    # Validate venv section (STORY-039)
+    venv = config.get('venv', {})
+    if isinstance(venv, dict):
+        venv_path = venv.get('path')
+        if venv_path is not None and not isinstance(venv_path, str):
+            warnings.warn(f"venv.path should be a string, got {type(venv_path).__name__}")
+
 
 # ---------------------------------------------------------------------------
 # YAML generation
@@ -461,6 +516,13 @@ def generate_default_yaml() -> str:
     lines.extend(['', '# Lint — configure lint behavior in /project-done'])
     lines.append(f'lint_blocking: {"true" if cfg.get("lint_blocking") else "false"}')
     lines.append(f'auto_fix: {"true" if cfg.get("auto_fix") else "false"}')
+
+    # Write venv section (STORY-039)
+    venv = cfg.get('venv', {})
+    lines.extend(['', '# Virtual Environment — configure venv detection and paths'])
+    lines.append('venv:')
+    lines.append(f'  auto_detect: {"true" if venv.get("auto_detect", True) else "false"}')
+    # Don't include path in default — let auto_detect find it
 
     lines.append('')  # trailing newline
     return '\n'.join(lines)

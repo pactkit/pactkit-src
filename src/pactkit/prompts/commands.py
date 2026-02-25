@@ -516,15 +516,25 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - If none match → ask the user to specify
 4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
     - *Purpose*: Project-level instructions for Claude Code (separate from global `~/.claude/CLAUDE.md`).
+    - *Venv Detection*: Check if a virtual environment exists (`.venv/`, `venv/`, or `env/` with `bin/python3`).
     - *Content template*:
       ```markdown
       # {Project Name} — Project Context
+
+      {IF venv detected}
+      ## Virtual Environment
+      Always use the project's virtual environment:
+      - **Activate**: `source {venv_path}/bin/activate`
+      - **Python**: `{venv_path}/bin/python3`
+      - **Pytest**: `{venv_path}/bin/pytest`
+      - **Pip**: `{venv_path}/bin/pip`
+      {END IF}
 
       ## Dev Commands
 
       ```
       # Run tests
-      {test_runner from LANG_PROFILES}
+      {IF venv detected}{venv_path}/bin/{ELSE}{END IF}{test_runner from LANG_PROFILES}
 
       # Lint
       {lint_command from LANG_PROFILES}
@@ -534,6 +544,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
       ```
     - Use the directory name as the project name.
     - Fill `test_runner` and `lint_command` from `LANG_PROFILES` based on the detected language.
+    - If venv detected, prefix test commands with venv bin path (e.g., `.venv/bin/pytest`).
     - The `@./docs/product/context.md` reference enables cross-session context loading.
 
 ## 🎬 Phase 2: Architecture Governance

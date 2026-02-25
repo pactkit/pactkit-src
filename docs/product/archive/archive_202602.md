@@ -467,3 +467,12 @@
 - [x] Add CLI availability check with fallback
 - [x] Update Phase 1 Step 2 to use `pactkit update` for existing config
 - [x] Add test case for playbook behavior
+
+### [STORY-039] Virtual Environment Configuration Support
+> Spec: docs/specs/STORY-039.md
+
+- [x] Config schema extension
+- [x] Auto-detection logic
+- [x] Prompt template updates
+- [x] LANG_PROFILES enhancement
+- [x] Tests
