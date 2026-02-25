@@ -4,6 +4,12 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.1] - 2026-02-25
+
+### Fixed
+- **Dynamic version in CLAUDE.md** — CLAUDE_MD_TEMPLATE now uses `__version__` instead of hardcoded "v23.0"; Docker validation confirms correct version display (BUG-018)
+- **project-init CLI invocation** — `/project-init` now invokes `pactkit init` CLI for complete config generation instead of partial inline logic (BUG-017)
+
 ## [1.3.0] - 2026-02-24
 
 ### Added
