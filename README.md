@@ -139,7 +139,7 @@ PactKit's safe regression system prevents agents from blindly modifying pre-exis
 ## Hierarchy of Truth
 
 ```
-Tier 1: Specs (docs/specs/*.md)     — The Law
+Tier 1: Specs & Test Cases           — The Law
 Tier 2: Tests                        — The Verification
 Tier 3: Implementation               — The Mutable Reality
 ```
@@ -195,17 +195,18 @@ The `pactkit.yaml` file controls which components are deployed and how they beha
 |-------|------|---------|-------------|
 | `stack` | string | auto-detected | Project stack (`python`, `node`, `go`, `java`) |
 | `version` | string | current | PactKit version that generated the config |
-| `root` | string | `~/.claude` | Deployment root directory |
+| `root` | string | `.` | Project root directory (deployment target resolves to `~/.claude` by default) |
 | `agents` | list | all 9 | Agent definitions to deploy |
 | `commands` | list | all 8 | Command playbooks to deploy |
 | `skills` | list | all 9 | Skills to deploy |
 | `rules` | list | all 6 | Constitution rule modules to deploy |
-| `exclude` | list | `[]` | Components to exclude from deployment |
+| `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`, `exclude.commands: [cmd-name]`) |
 | `ci` | object | `provider: none` | CI/CD pipeline generation; `ci.provider` supports `github`, `gitlab`, `none` |
 | `issue_tracker` | object | `provider: none` | External issue tracker; `issue_tracker.provider` supports `github`, `none` |
 | `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push); command-type only, report-only |
 | `lint_blocking` | bool | `false` | Whether lint failures block commits in Done command |
 | `auto_fix` | bool | `false` | Whether to auto-fix lint errors before checking |
+| `agent_models` | object | `{}` | Per-agent model overrides (values: `haiku`, `sonnet`, `opus`, `inherit`) |
 | `rule_scopes` | object | `{}` | Map rule IDs to glob patterns for context-aware scoping |
 
 ## MCP Integration

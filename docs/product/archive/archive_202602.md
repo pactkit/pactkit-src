@@ -418,3 +418,28 @@
 - [x] Unify 14 prompt template version labels to v1.2.0
 - [x] Add BUG-010~013 to CHANGELOG [1.2.0] Fixed section
 - [x] Verify zero TBD specs and no stale prompt versions remain
+
+### [STORY-036] Sync pactkit.dev documentation with current README and codebase
+> Spec: docs/specs/STORY-036.md | PR: https://github.com/pactkit/pactkit.dev/pull/1
+
+- [x] Fix pactkit.yaml path on installation.mdx (GAP-01)
+- [x] Fix Core Protocol description on configuration.mdx (GAP-02)
+- [x] Fix root default and exclude type on configuration.mdx (GAP-03/04)
+- [x] Complete MCP tool lists on mcp-integration.mdx (GAP-16~19)
+- [x] Document agent_models config field (GAP-05)
+- [x] Fix README: root default, exclude type, Tier 1 Test Cases (GAP-03/04/23)
+
+## ✅ Done
+
+### [BUG-016] GitHub Releases missing for v1.2.0 and v1.3.0
+> Spec: docs/specs/BUG-016.md
+
+- [x] Create GitHub Release for v1.2.0
+- [x] Create GitHub Release for v1.3.0 (Latest)
+- [x] Add gh release create step to pactkit-release skill
+
+### [BUG-015] PactKit CI workflow fails due to missing pactkit init step
+> Spec: docs/specs/BUG-015.md
+
+- [x] Remove redundant pactkit.yml workflow
+- [x] Verify ci.yml still passes
