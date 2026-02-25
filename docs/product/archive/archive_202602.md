@@ -485,3 +485,11 @@
 - [x] Verify existing Done workflow unchanged
 
 ## ✅ Done
+
+### [BUG-019] STORY-039 venv implementation incomplete — detect_venv never called [#21](https://github.com/pactkit/pactkit/issues/21)
+> Spec: docs/specs/BUG-019.md
+
+- [x] Call detect_venv in deployer.py
+- [x] Add venv section to project CLAUDE.md generation
+- [x] Add warning for missing explicit venv.path
+- [x] Write TDD tests for venv deployment

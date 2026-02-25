@@ -17,6 +17,7 @@ from pactkit.config import (
     VALID_RULES,
     VALID_SKILLS,
     auto_merge_config_file,
+    detect_venv,
     generate_default_yaml,
     load_config,
     validate_config,
@@ -127,6 +128,9 @@ def _deploy_classic(config=None, target=None):
 
     # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
     _generate_config_if_missing()
+
+    # Generate project-level CLAUDE.md with venv section if missing (BUG-019)
+    _generate_project_claude_md_if_missing(config)
 
     # Summary
     total_agents = len(VALID_AGENTS)
@@ -644,6 +648,82 @@ def _generate_config_if_missing():
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write(yaml_path, generate_default_yaml())
 
+
+def _generate_project_claude_md_if_missing(config):
+    """Generate project-level .claude/CLAUDE.md with venv section if missing (BUG-019).
+
+    Does NOT overwrite existing CLAUDE.md files.
+    """
+    import warnings
+
+    project_root = Path.cwd()
+    claude_md_path = project_root / ".claude" / "CLAUDE.md"
+
+    # Do not overwrite existing file
+    if claude_md_path.exists():
+        return
+
+    # Resolve venv path
+    venv_config = config.get('venv', {})
+    venv_path = None
+
+    # Priority: explicit path > auto-detect
+    explicit_path = venv_config.get('path')
+    if explicit_path:
+        # Check if explicit path exists
+        explicit_full = project_root / explicit_path
+        if (explicit_full / 'bin' / 'python3').exists() or \
+           (explicit_full / 'bin' / 'python').exists() or \
+           (explicit_full / 'Scripts' / 'python.exe').exists():
+            venv_path = explicit_path
+        else:
+            warnings.warn(f"venv.path={explicit_path} not found, using system python")
+    elif venv_config.get('auto_detect', True):
+        # Auto-detect
+        detected = detect_venv(project_root)
+        if detected:
+            venv_path = detected
+
+    # Generate content
+    project_name = project_root.name
+    lines = [f"# {project_name} — Project Context", ""]
+
+    if venv_path:
+        lines.extend([
+            "## Virtual Environment",
+            "Always use the project's virtual environment:",
+            f"- **Activate**: `source {venv_path}/bin/activate`",
+            f"- **Python**: `{venv_path}/bin/python3`",
+            f"- **Pytest**: `{venv_path}/bin/pytest`",
+            f"- **Pip**: `{venv_path}/bin/pip`",
+            "",
+        ])
+
+    lines.extend([
+        "## Dev Commands",
+        "",
+        "```bash",
+        "# Run tests",
+    ])
+
+    if venv_path:
+        lines.append(f"{venv_path}/bin/pytest tests/ -v")
+    else:
+        lines.append("pytest tests/ -v")
+
+    lines.extend([
+        "",
+        "# Lint",
+        "ruff check src/ tests/",
+        "```",
+        "",
+        "@./docs/product/context.md",
+        "",
+    ])
+
+    # Write file
+    claude_md_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write(claude_md_path, "\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
