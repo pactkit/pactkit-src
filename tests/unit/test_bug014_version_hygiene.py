@@ -203,9 +203,10 @@ class TestAC6PromptVersions:
         assert old == [], f"Old versions in workflows.py: {old}"
 
     def test_rules_py_constitution_version(self):
-        text = (PROMPTS_DIR / "rules.py").read_text()
-        m = re.search(r'PactKit Global Constitution \((v[\d.]+)', text)
-        assert m, "Constitution version not found"
+        # Check runtime value (f-string uses __version__)
+        from pactkit.prompts.rules import CLAUDE_MD_TEMPLATE
+        m = re.search(r'PactKit Global Constitution \((v[\d.]+)', CLAUDE_MD_TEMPLATE)
+        assert m, "Constitution version not found in CLAUDE_MD_TEMPLATE"
         assert m.group(1) == CURRENT_V_PREFIX, f"Got {m.group(1)}"
 
     def test_visualize_py_section_versions(self):

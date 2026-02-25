@@ -1,3 +1,5 @@
+from pactkit import __version__
+
 RULES_MODULES = {
     'core': """# Core Protocol
 
@@ -215,7 +217,7 @@ RULES_FILES = {
 # Managed file prefixes (deployer will clean these, leave user files intact)
 RULES_MANAGED_PREFIXES = ['01-', '02-', '03-', '04-', '05-', '06-']
 
-CLAUDE_MD_TEMPLATE = """# PactKit Global Constitution (Modular)
+CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 
 @~/.claude/rules/01-core-protocol.md
 @~/.claude/rules/02-hierarchy-of-truth.md
