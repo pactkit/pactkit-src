@@ -346,7 +346,7 @@ def _deploy_claude_md(claude_root, enabled_rules):
         rule_id = filename.removesuffix('.md')
         rule_id_to_filename[rule_id] = filename
 
-    lines = ["# PactKit Global Constitution (v23.0 Modular)", ""]
+    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
     for rule_id in sorted(enabled_rules):
         filename = rule_id_to_filename.get(rule_id)
         if filename:
@@ -681,7 +681,7 @@ def _deploy_claude_md_inline(plugin_root, skills_prefix=CLASSIC_SKILLS_PREFIX):
         rule_id = filename.removesuffix('.md')
         rule_id_to_key[rule_id] = key
 
-    lines = ["# PactKit Global Constitution (v23.0 Modular)", ""]
+    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
 
     # Inline all rule modules in sorted order
     for rule_id in sorted(rule_id_to_key.keys()):
