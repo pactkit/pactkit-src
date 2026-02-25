@@ -1,9 +1,9 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-02-24 by /pactkit-release v1.3.0
+> Last updated: 2026-02-25 by /project-plan
 
 ## Sprint Status
+- **Backlog**: 2 stories (BUG-015, BUG-016)
 - **In Progress**: 0 stories
-- **Backlog**: 0 stories
 - **Done**: 49 items archived (STORY-001~035, BUG-001~014)
 - **Current Version**: 1.3.0
 
@@ -11,6 +11,10 @@
 - v1.3.0 release — version bump, architecture snapshot, CHANGELOG, PyPI, plugin repo sync
 - BUG-014: Version hygiene — unified stale spec Release fields, prompt template versions, and CHANGELOG entries
 - BUG-013: Single-source config consolidation — config reads exclusively from $CWD/.claude/pactkit.yaml
+
+## Current Backlog
+- **BUG-015**: PactKit CI workflow fails due to missing `pactkit init` step — redundant `pactkit.yml` workflow causes 11 test failures on every push
+- **BUG-016**: GitHub Releases missing for v1.2.0 and v1.3.0 — tags exist but no GitHub Release page entries; `pactkit-release` skill lacks `gh release create` step
 
 ## Active Branches
 None
@@ -25,4 +29,4 @@ None
 | 2026-02 | Internal prompt iteration versions (v16.2~v23.0) diverged silently from package versions — version hygiene requires a single grep audit across all prompts/ and skills/ at each release; cross-referencing CHANGELOG with spec Release fields catches phantom versions that were never actually released | BUG-014 |
 
 ## Next Recommended Action
-Sprint board is empty. Use `/project-design` for a new product feature or `/project-plan` to plan the next improvement.
+Two CI/release bugs in backlog. Use `/project-act` to implement fixes, or `/project-hotfix` for quick resolution.
