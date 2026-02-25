@@ -113,7 +113,7 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
         for line in nodes:
             if any(rid in line for rid in relevant_ids): final_lines.append(line)
         final_lines.extend(relevant_edges)
-        dest = root / 'docs/architecture/graphs/focus_graph.mmd'
+        dest = root / 'docs/architecture/graphs/focus_file_graph.mmd'
     else:
         # Apply depth limiting via BFS if depth > 0
         if depth > 0:
@@ -217,7 +217,7 @@ def _build_class_graph(root, all_files, focus):
             lines.append(f'    {b} <|-- {cname}')
 
     dest = root / 'docs/architecture/graphs/class_graph.mmd'
-    if focus: dest = root / 'docs/architecture/graphs/focus_graph.mmd'
+    if focus: dest = root / 'docs/architecture/graphs/focus_class_graph.mmd'
     return dest, nl().join(lines)
 
 # --- MODE: CALL (function-level call graph) ---
@@ -305,7 +305,7 @@ def _build_call_graph(root, all_files, focus, entry):
         for src, dst in rel_edges: lines.append(f'    {safe(src)} --> {safe(dst)}')
 
     dest = root / 'docs/architecture/graphs/call_graph.mmd'
-    if focus: dest = root / 'docs/architecture/graphs/focus_graph.mmd'
+    if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
     return dest, nl().join(lines)
 
 _BUILTIN_CALLEES = {

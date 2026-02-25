@@ -1,28 +1,29 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-02-25 by /project-done
+> Last updated: 2026-02-25T18:00:00+08:00 by /project-done
 
 ## Sprint Status
 - **Backlog**: 0 stories
 - **In Progress**: 0 stories
-- **Done**: 52 items archived (STORY-001~036, BUG-001~016)
+- **Done**: 54 items archived (STORY-001~038, BUG-001~016)
 - **Current Version**: 1.3.0
+- **Branch**: develop
 
 ## Recent Completions
-- STORY-036: Sync pactkit.dev documentation with current README and codebase (23 content gaps fixed)
-- BUG-015: Removed redundant pactkit.yml CI workflow (11 test failures resolved)
-- BUG-016: Added GitHub Release pages for v1.2.0 and v1.3.0
+- STORY-038: Add call_graph.mmd to standard PDCA update cycle and fix focus_graph.mmd collision
+- STORY-037: Fix regression decision tree — replace unverifiable conditions with git-diff and fallback-tolerant checks
+- STORY-036: Sync pactkit.dev documentation with current README and codebase
 
 ## Active Branches
-None
+- `develop` (current)
 
 ## Key Decisions
 | Date | Lesson | Context |
 |------|--------|---------|
+| 2026-02 | Regression decision trees with unverifiable conditions become dead code — replace with git-diff checks and fallback thresholds | STORY-037 |
+| 2026-02 | Shared output filenames across graph modes cause silent overwrites — use mode-specific names and ensure all three graph types are in Update Reality | STORY-038 |
 | 2026-02 | Documentation drift accumulates silently across config changes — multi-repo docs require a sync checklist on every breaking change | STORY-036 |
-| 2026-02 | All new features must be conditional/opt-in by default — CI/CD, issue tracking, hooks, and lint blocking are all disabled by default and only activate when explicitly configured | STORY-025~030 |
-| 2026-02 | Internal prompt iteration versions (v16.2~v23.0) diverged silently from package versions — version hygiene requires a single grep audit across all prompts/ and skills/ at each release | BUG-014 |
-| 2026-02 | Single-source config requires three coordinated changes: read from CWD not HOME, generate at CWD not HOME, auto_merge must backfill entirely missing list keys | BUG-013 |
-| 2026-02 | AST-based call graphs must filter noise at two levels: _extract_calls should skip builtins and non-self attribute calls, and _build_call_graph should only emit edges where callees resolve to func_registry | BUG-012 |
+| 2026-02 | All new features must be conditional/opt-in by default | STORY-025~030 |
+| 2026-02 | Internal prompt iteration versions diverged silently from package versions — version hygiene requires a single grep audit at each release | BUG-014 |
 
 ## Next Recommended Action
-Sprint board is clean. Use `/project-design` for new product features or `/project-plan` for enhancements.
+Sprint board is empty. Use `/project-plan` to analyze new requirements or `/project-design` for greenfield product design.
