@@ -486,6 +486,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]" || pip install -e .
           pip install pytest ruff
+          pactkit init
 
       - name: Lint
         run: {lint_command}
