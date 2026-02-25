@@ -133,11 +133,11 @@ class TestAC5DetectVenvCalledInDeployer:
         assert callable(detect_venv)
 
 
-class TestNoOverwriteExistingClaudeMd:
-    """Project CLAUDE.md should not be overwritten if it exists."""
+class TestBackupExistingClaudeMd:
+    """Project CLAUDE.md is backed up before regeneration (BUG-020)."""
 
     def test_existing_claude_md_not_overwritten(self, tmp_path):
-        """Existing CLAUDE.md is not modified."""
+        """Existing CLAUDE.md is backed up and regenerated with venv section."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
@@ -159,5 +159,12 @@ class TestNoOverwriteExistingClaudeMd:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # Content should be unchanged
-        assert claude_md.read_text() == original_content
+        # Original content should be in backup (BUG-020)
+        backup_file = claude_dir / "CLAUDE.md.bak"
+        assert backup_file.exists()
+        assert backup_file.read_text() == original_content
+
+        # New CLAUDE.md should have venv section
+        new_content = claude_md.read_text()
+        assert "## Virtual Environment" in new_content
+        assert ".venv/bin/python3" in new_content

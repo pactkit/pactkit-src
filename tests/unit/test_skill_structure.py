@@ -14,7 +14,8 @@ class TestSkillDirectoryStructure:
 
     def test_deployer_creates_skill_directories(self, tmp_path):
         """deployer 生成 3 个 Skill 目录，每个含 SKILL.md + scripts/"""
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -28,7 +29,8 @@ class TestSkillDirectoryStructure:
             assert (skill_dir / 'scripts').is_dir(), f'{skill_name}/scripts/ 目录不存在'
 
     def test_visualize_skill_has_script(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -37,7 +39,8 @@ class TestSkillDirectoryStructure:
         assert len(py_files) >= 1, 'pactkit-visualize/scripts/ 中没有 Python 脚本'
 
     def test_board_skill_has_script(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -46,7 +49,8 @@ class TestSkillDirectoryStructure:
         assert len(py_files) >= 1, 'pactkit-board/scripts/ 中没有 Python 脚本'
 
     def test_scaffold_skill_has_script(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -71,7 +75,8 @@ class TestSkillFrontmatter:
         return fm
 
     def test_visualize_skill_frontmatter(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -82,7 +87,8 @@ class TestSkillFrontmatter:
         assert len(fm['description']) > 0
 
     def test_board_skill_frontmatter(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -93,7 +99,8 @@ class TestSkillFrontmatter:
         assert len(fm['description']) > 0
 
     def test_scaffold_skill_frontmatter(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -166,7 +173,8 @@ class TestLegacyCleanup:
         old_file.parent.mkdir(parents=True, exist_ok=True)
         old_file.write_text('# old tools')
 
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -178,7 +186,8 @@ class TestLegacyCleanup:
         old_file.parent.mkdir(parents=True, exist_ok=True)
         old_file.write_text('# old tools')
 
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 

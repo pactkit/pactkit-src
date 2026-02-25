@@ -493,3 +493,12 @@
 - [x] Add venv section to project CLAUDE.md generation
 - [x] Add warning for missing explicit venv.path
 - [x] Write TDD tests for venv deployment
+
+### [BUG-020] Project CLAUDE.md generation skips venv when file exists — should backup and regenerate [#22](https://github.com/pactkit/pactkit/issues/22)
+> Spec: docs/specs/BUG-020.md
+
+- [x] Modify _generate_project_claude_md to backup existing file
+- [x] Add user notification for backup
+- [x] Write TDD tests for backup behavior
+
+## 🔄 In Progress

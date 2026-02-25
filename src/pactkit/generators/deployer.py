@@ -130,7 +130,9 @@ def _deploy_classic(config=None, target=None):
     _generate_config_if_missing()
 
     # Generate project-level CLAUDE.md with venv section if missing (BUG-019)
-    _generate_project_claude_md_if_missing(config)
+    # Skip when target is specified (preview mode) to avoid modifying real project
+    if target is None:
+        _generate_project_claude_md_if_missing(config)
 
     # Summary
     total_agents = len(VALID_AGENTS)
@@ -650,18 +652,26 @@ def _generate_config_if_missing():
 
 
 def _generate_project_claude_md_if_missing(config):
-    """Generate project-level .claude/CLAUDE.md with venv section if missing (BUG-019).
+    """Generate project-level .claude/CLAUDE.md with venv section (BUG-019, BUG-020).
 
-    Does NOT overwrite existing CLAUDE.md files.
+    If CLAUDE.md exists, backs it up to CLAUDE.md.bak before regenerating.
     """
+    import shutil
     import warnings
 
     project_root = Path.cwd()
+
+    # Skip if cwd equals home (avoids overwriting global CLAUDE.md in test scenarios)
+    if project_root.resolve() == Path.home().resolve():
+        return
+
     claude_md_path = project_root / ".claude" / "CLAUDE.md"
 
-    # Do not overwrite existing file
+    # Backup existing file before regeneration (BUG-020)
     if claude_md_path.exists():
-        return
+        backup_path = claude_md_path.with_suffix('.md.bak')
+        shutil.copy(claude_md_path, backup_path)
+        print("  -> Backed up CLAUDE.md to CLAUDE.md.bak")
 
     # Resolve venv path
     venv_config = config.get('venv', {})

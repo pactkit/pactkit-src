@@ -22,7 +22,8 @@ def _parse_agent_frontmatter(text):
 
 def _deploy_and_read_agent(tmp_path, agent_name):
     """Deploy and return the content of a specific agent file"""
-    with patch.object(Path, 'home', return_value=tmp_path):
+    with patch.object(Path, 'home', return_value=tmp_path), \
+         patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
         from pactkit.generators.deployer import deploy
         deploy(mode='expert')
     agent_path = tmp_path / '.claude' / 'agents' / f'{agent_name}.md'
@@ -113,7 +114,8 @@ class TestAllAgentsBasicFields:
     """Scenario 6: 所有 Agent frontmatter 结构合规"""
 
     def test_all_agents_have_basic_fields(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 

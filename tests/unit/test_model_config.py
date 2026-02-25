@@ -28,7 +28,8 @@ class TestModelFromConfig:
 
     def test_default_model_is_inherit(self, tmp_path):
         """Agent without explicit model gets 'inherit' (STORY-024 R1)."""
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
@@ -50,7 +51,8 @@ class TestModelFromConfig:
         original = p.AGENTS_EXPERT[first_name].get('model')
         p.AGENTS_EXPERT[first_name]['model'] = 'opus'
         try:
-            with patch.object(Path, 'home', return_value=tmp_path):
+            with patch.object(Path, 'home', return_value=tmp_path), \
+                 patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
                 from pactkit.generators.deployer import deploy
                 deploy(mode='expert')
 

@@ -103,7 +103,8 @@ class TestDeployedCommandFiles:
     """验证 deployer 生成的文件包含 frontmatter"""
 
     def test_deployed_check_has_frontmatter(self, tmp_path):
-        with patch.object(Path, 'home', return_value=tmp_path):
+        with patch.object(Path, 'home', return_value=tmp_path), \
+             patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 

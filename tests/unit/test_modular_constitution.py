@@ -8,7 +8,8 @@ if str(project_root) not in sys.path:
 
 
 def _deploy(tmp_path):
-    with patch.object(Path, 'home', return_value=tmp_path):
+    with patch.object(Path, 'home', return_value=tmp_path), \
+         patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
         from pactkit.generators.deployer import deploy
         deploy(mode='expert')
 

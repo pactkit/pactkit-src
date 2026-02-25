@@ -48,14 +48,14 @@ def fake_claude(tmp_path):
 
 
 def _run_deploy(tmp_path):
-    """Run deploy() with ~/.claude redirected to tmp_path/.claude."""
+    """Run deploy() with ~/.claude and cwd redirected to tmp_path/.claude."""
     claude_root = tmp_path / ".claude"
     for d in [claude_root, claude_root / "agents", claude_root / "commands", claude_root / "skills"]:
         d.mkdir(parents=True, exist_ok=True)
 
-    # Monkey-patch Path.home to redirect
-    original_home = Path.home
-    with patch.object(Path, 'home', return_value=tmp_path):
+    # Monkey-patch Path.home and Path.cwd to redirect
+    with patch.object(Path, 'home', return_value=tmp_path), \
+         patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
         deploy()
 
     return claude_root
