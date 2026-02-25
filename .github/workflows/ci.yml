@@ -26,7 +26,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install pytest ruff==0.15.1
-          pactkit init
 
       - name: Lint with ruff
         run: ruff check src/ tests/

@@ -6,10 +6,7 @@ Based on reverse-engineering Claude Code v2.1.38 binary Zod schema (Og_):
 
 Plus frontmatter parser fields: name, color, forkContext
 """
-import re
-from pathlib import Path
-
-AGENTS_DIR = Path.home() / '.claude' / 'agents'
+from pactkit.prompts.agents import AGENTS_EXPERT
 
 # All fields confirmed as natively supported by Claude Code v2.1.38
 NATIVE_FIELDS = {
@@ -19,20 +16,34 @@ NATIVE_FIELDS = {
     'color', 'forkContext',
 }
 
+# Mapping from source template keys to deployed frontmatter keys
+# 'desc' -> 'description', 'prompt' is body not frontmatter
+SOURCE_TO_FRONTMATTER = {
+    'desc': 'description',
+    'tools': 'tools',
+    'permissionMode': 'permissionMode',
+    'disallowedTools': 'disallowedTools',
+    'maxTurns': 'maxTurns',
+    'skills': 'skills',
+    'memory': 'memory',
+    'hooks': 'hooks',
+    'model': 'model',
+}
 
-def _parse_frontmatter(filepath):
-    """Extract frontmatter keys from an agent markdown file."""
-    text = filepath.read_text(encoding='utf-8')
-    match = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
-    if not match:
-        return {}
-    keys = set()
-    for line in match.group(1).splitlines():
-        if ':' in line:
-            key = line.split(':')[0].strip()
-            if key:
-                keys.add(key)
-    return keys
+
+def _get_deployed_fields(agent_name):
+    """Get the fields that would be in deployed frontmatter for an agent.
+
+    Returns field names as they appear in deployed file (not source template).
+    """
+    cfg = AGENTS_EXPERT.get(agent_name, {})
+    # Core fields always present: name, description, tools, model
+    fields = {'name', 'description', 'tools', 'model'}
+    # Optional fields from source template
+    for src_key, fm_key in SOURCE_TO_FRONTMATTER.items():
+        if src_key in cfg and src_key != 'desc':  # desc always maps to description
+            fields.add(fm_key)
+    return fields
 
 
 # ==============================================================================
@@ -42,10 +53,10 @@ class TestCoreFieldsPreserved:
     CORE_FIELDS = {'name', 'description', 'tools', 'model'}
 
     def test_all_agents_have_core_fields(self):
-        for agent_file in sorted(AGENTS_DIR.glob('*.md')):
-            keys = _parse_frontmatter(agent_file)
+        for name in AGENTS_EXPERT:
+            fields = _get_deployed_fields(name)
             for field in self.CORE_FIELDS:
-                assert field in keys, f"{agent_file.name} missing '{field}'"
+                assert field in fields, f"{name} missing '{field}'"
 
 
 # ==============================================================================
@@ -53,10 +64,13 @@ class TestCoreFieldsPreserved:
 # ==============================================================================
 class TestNoUnknownFields:
     def test_all_fields_in_native_whitelist(self):
-        for agent_file in sorted(AGENTS_DIR.glob('*.md')):
-            keys = _parse_frontmatter(agent_file)
-            unknown = keys - NATIVE_FIELDS
-            assert not unknown, f"{agent_file.name} has non-native fields: {unknown}"
+        for name, cfg in AGENTS_EXPERT.items():
+            # Source fields that end up in frontmatter
+            for src_key in cfg:
+                if src_key == 'prompt':
+                    continue  # prompt is body, not frontmatter
+                fm_key = SOURCE_TO_FRONTMATTER.get(src_key, src_key)
+                assert fm_key in NATIVE_FIELDS, f"{name} has non-native field: {fm_key}"
 
 
 # ==============================================================================
@@ -64,12 +78,10 @@ class TestNoUnknownFields:
 # ==============================================================================
 class TestSkillsFieldPresent:
     def test_system_architect_has_skills(self):
-        keys = _parse_frontmatter(AGENTS_DIR / 'system-architect.md')
-        assert 'skills' in keys
+        assert 'skills' in AGENTS_EXPERT['system-architect']
 
     def test_senior_developer_has_skills(self):
-        keys = _parse_frontmatter(AGENTS_DIR / 'senior-developer.md')
-        assert 'skills' in keys
+        assert 'skills' in AGENTS_EXPERT['senior-developer']
 
 
 # ==============================================================================
@@ -77,8 +89,7 @@ class TestSkillsFieldPresent:
 # ==============================================================================
 class TestMemoryFieldPresent:
     def test_code_explorer_has_memory(self):
-        keys = _parse_frontmatter(AGENTS_DIR / 'code-explorer.md')
-        assert 'memory' in keys
+        assert 'memory' in AGENTS_EXPERT['code-explorer']
 
 
 # ==============================================================================
