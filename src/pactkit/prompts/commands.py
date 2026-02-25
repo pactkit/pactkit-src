@@ -417,6 +417,24 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 2.  **Action**: If yes, run `python3 ~/.claude/skills/pactkit-board/scripts/board.py archive`.
 3.  **Result**: Completed stories are moved to `docs/product/archive/archive_YYYYMM.md`.
 
+## 🎬 Phase 3.5.5: Issue Tracker Verification (Backfill Safety Net)
+> **Purpose**: Verify GitHub Issue exists for the Story; create backfill if Plan phase was skipped.
+1.  **Check Config**: Read `pactkit.yaml` for `issue_tracker.provider`.
+2.  **If `provider: none` or section missing**: Skip silently, proceed to Phase 3.6.
+3.  **If `provider: github`**:
+    a. **CLI Check**: Run `gh --version`. If unavailable, print warning "Issue tracker verification skipped: gh CLI unavailable" and proceed to Phase 3.6.
+    b. **Search**: Run `gh issue list --search "{STORY_ID}" --state all --json number,title,url` to find existing issue.
+    c. **If issue found**:
+       - Check if Sprint Board entry has issue link (e.g., `[#N](url)`)
+       - If no link: update Sprint Board entry to include `[#{number}]({url})`
+       - Proceed to Phase 3.6 for closure
+    d. **If issue NOT found (Backfill)**:
+       - Create issue: `gh issue create --title "{STORY_ID}: {Story Title}" --body "Spec: docs/specs/{STORY_ID}.md\n\n**Status**: Backfilled during Done phase"`
+       - Parse the returned issue URL
+       - Update Sprint Board entry to include `[#{number}]({url})`
+       - Proceed to Phase 3.6 for closure
+    e. **If any gh command fails**: Print warning with error message, continue to Phase 3.6.
+
 ## 🎬 Phase 3.6: Issue Tracker Closure (Conditional)
 > **Purpose**: Close linked external issues when the Story is done.
 1.  **Check Config**: Read `pactkit.yaml` for `issue_tracker.provider`.

@@ -476,3 +476,12 @@
 - [x] Prompt template updates
 - [x] LANG_PROFILES enhancement
 - [x] Tests
+
+### [BUG-018] Issue Tracker verification missing in Done command — no backfill for skipped Plan step [#20](https://github.com/pactkit/pactkit/issues/20)
+> Spec: docs/specs/BUG-018.md
+
+- [x] Add Phase 3.5.5 verification step to project-done prompt
+- [x] Write TDD tests for prompt template
+- [x] Verify existing Done workflow unchanged
+
+## ✅ Done
