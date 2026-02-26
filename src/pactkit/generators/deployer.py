@@ -652,12 +652,15 @@ def _generate_config_if_missing():
 
 
 def _generate_project_claude_md_if_missing(config):
-    """Generate project-level .claude/CLAUDE.md with venv section (BUG-019, BUG-020).
+    """Generate project-level .claude/CLAUDE.md with venv section (BUG-019).
 
-    If CLAUDE.md exists, backs it up to CLAUDE.md.bak before regenerating.
+    BUG-021: If CLAUDE.md already exists, skip generation entirely (respect Playbook).
+    Uses LANG_PROFILES for stack-aware lint and test commands.
+    Uses platform-aware venv paths (Unix vs Windows).
     """
-    import shutil
     import warnings
+
+    from pactkit.prompts.workflows import LANG_PROFILES
 
     project_root = Path.cwd()
 
@@ -667,47 +670,67 @@ def _generate_project_claude_md_if_missing(config):
 
     claude_md_path = project_root / ".claude" / "CLAUDE.md"
 
-    # Backup existing file before regeneration (BUG-020)
+    # BUG-021 R1: Skip if file already exists (respect Playbook overwrite policy)
     if claude_md_path.exists():
-        backup_path = claude_md_path.with_suffix('.md.bak')
-        shutil.copy(claude_md_path, backup_path)
-        print("  -> Backed up CLAUDE.md to CLAUDE.md.bak")
+        return
 
-    # Resolve venv path
+    # Resolve stack and get profile from LANG_PROFILES (BUG-021 R3, R4)
+    stack = config.get('stack', 'auto')
+    if stack == 'auto':
+        stack = 'python'  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
+    lint_command = profile.get('lint_command', 'ruff check src/ tests/')
+    test_runner = profile.get('test_runner', 'pytest')
+
+    # Resolve venv path and layout (BUG-021 R2)
     venv_config = config.get('venv', {})
-    venv_path = None
+    venv_info = None  # (path, layout) or None
 
     # Priority: explicit path > auto-detect
     explicit_path = venv_config.get('path')
     if explicit_path:
-        # Check if explicit path exists
+        # Check if explicit path exists and determine layout
         explicit_full = project_root / explicit_path
         if (explicit_full / 'bin' / 'python3').exists() or \
-           (explicit_full / 'bin' / 'python').exists() or \
-           (explicit_full / 'Scripts' / 'python.exe').exists():
-            venv_path = explicit_path
+           (explicit_full / 'bin' / 'python').exists():
+            venv_info = (explicit_path, 'unix')
+        elif (explicit_full / 'Scripts' / 'python.exe').exists():
+            venv_info = (explicit_path, 'windows')
         else:
             warnings.warn(f"venv.path={explicit_path} not found, using system python")
     elif venv_config.get('auto_detect', True):
-        # Auto-detect
+        # Auto-detect (detect_venv now returns tuple or None)
         detected = detect_venv(project_root)
         if detected:
-            venv_path = detected
+            venv_info = detected
 
     # Generate content
     project_name = project_root.name
     lines = [f"# {project_name} — Project Context", ""]
 
-    if venv_path:
-        lines.extend([
-            "## Virtual Environment",
-            "Always use the project's virtual environment:",
-            f"- **Activate**: `source {venv_path}/bin/activate`",
-            f"- **Python**: `{venv_path}/bin/python3`",
-            f"- **Pytest**: `{venv_path}/bin/pytest`",
-            f"- **Pip**: `{venv_path}/bin/pip`",
-            "",
-        ])
+    # BUG-021 R2: Platform-aware venv commands
+    if venv_info:
+        venv_path, layout = venv_info
+        if layout == 'unix':
+            lines.extend([
+                "## Virtual Environment",
+                "Always use the project's virtual environment:",
+                f"- **Activate**: `source {venv_path}/bin/activate`",
+                f"- **Python**: `{venv_path}/bin/python3`",
+                f"- **Pytest**: `{venv_path}/bin/pytest`",
+                f"- **Pip**: `{venv_path}/bin/pip`",
+                "",
+            ])
+        else:  # windows
+            lines.extend([
+                "## Virtual Environment",
+                "Always use the project's virtual environment:",
+                f"- **Activate**: `{venv_path}/Scripts/activate`",
+                f"- **Python**: `{venv_path}/Scripts/python.exe`",
+                f"- **Pytest**: `{venv_path}/Scripts/pytest.exe`",
+                f"- **Pip**: `{venv_path}/Scripts/pip.exe`",
+                "",
+            ])
 
     lines.extend([
         "## Dev Commands",
@@ -716,15 +739,34 @@ def _generate_project_claude_md_if_missing(config):
         "# Run tests",
     ])
 
-    if venv_path:
-        lines.append(f"{venv_path}/bin/pytest tests/ -v")
+    # BUG-021 R4: Stack-aware test runner with optional venv prefix
+    if venv_info:
+        venv_path, layout = venv_info
+        if stack == 'python':
+            # Python with venv: prefix the test runner
+            if layout == 'unix':
+                lines.append(f"{venv_path}/bin/{test_runner} tests/ -v")
+            else:
+                lines.append(f"{venv_path}/Scripts/{test_runner}.exe tests/ -v")
+        else:
+            # Non-Python stacks (node, go, java) don't use venv prefix
+            if stack in ('go',):
+                lines.append(test_runner)  # 'go test ./...'
+            else:
+                lines.append(f"{test_runner}")
     else:
-        lines.append("pytest tests/ -v")
+        # No venv: use bare test runner
+        if stack in ('go',):
+            lines.append(test_runner)  # 'go test ./...'
+        elif stack == 'python':
+            lines.append(f"{test_runner} tests/ -v")
+        else:
+            lines.append(test_runner)
 
     lines.extend([
         "",
         "# Lint",
-        "ruff check src/ tests/",
+        lint_command,  # BUG-021 R3: Stack-aware lint command from LANG_PROFILES
         "```",
         "",
         "@./docs/product/context.md",

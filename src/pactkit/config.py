@@ -111,7 +111,7 @@ def get_default_config() -> dict:
 VENV_CANDIDATES = ('.venv', 'venv', 'env')
 
 
-def detect_venv(project_root: Path) -> str | None:
+def detect_venv(project_root: Path) -> tuple[str, str] | None:
     """Detect virtual environment directory in project root.
 
     Checks common venv directory names in order: .venv, venv, env.
@@ -122,18 +122,21 @@ def detect_venv(project_root: Path) -> str | None:
         project_root: Project root directory to search.
 
     Returns:
-        Relative path to venv directory (e.g., '.venv'), or None if not found.
+        Tuple of (venv_directory_name, layout) where layout is 'unix' or 'windows',
+        or None if no venv found.
+
+        BUG-021: Now returns layout information for platform-aware command generation.
     """
     for candidate in VENV_CANDIDATES:
         venv_path = project_root / candidate
-        # Check Unix-style venv
+        # Check Unix-style venv (bin/python3 or bin/python)
         if (venv_path / 'bin' / 'python3').exists():
-            return candidate
+            return (candidate, 'unix')
         if (venv_path / 'bin' / 'python').exists():
-            return candidate
-        # Check Windows-style venv
+            return (candidate, 'unix')
+        # Check Windows-style venv (Scripts/python.exe)
         if (venv_path / 'Scripts' / 'python.exe').exists():
-            return candidate
+            return (candidate, 'windows')
     return None
 
 
@@ -147,6 +150,9 @@ def load_config(path: Path | str | None = None) -> dict:
     If *path* is ``None``, uses ``$CWD/.claude/pactkit.yaml`` (BUG-013).
     If the file does not exist, returns the full default config.
     Missing keys in the user file inherit from defaults.
+
+    BUG-022: For nested dict sections (venv, ci, hooks, issue_tracker),
+    performs deep merge to preserve default sub-keys when user specifies partial config.
     """
     if path is None:
         path = Path.cwd() / '.claude' / 'pactkit.yaml'
@@ -165,11 +171,20 @@ def load_config(path: Path | str | None = None) -> dict:
     if not isinstance(user_data, dict):
         return default
 
+    # Keys that require deep merge (nested dict sections)
+    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker'}
+
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
     for key, value in user_data.items():
         if key in merged:
-            merged[key] = value
+            # BUG-022: Deep merge for nested dict sections
+            if key in DEEP_MERGE_KEYS and isinstance(merged[key], dict) and isinstance(value, dict):
+                # Preserve default sub-keys, override with user values
+                merged[key] = {**merged[key], **value}
+            else:
+                # Shallow override for non-dict keys (strings, lists, booleans)
+                merged[key] = value
 
     return merged
 
@@ -251,7 +266,19 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
 
 
 def _rewrite_yaml(path: Path, data: dict) -> None:
-    """Rewrite pactkit.yaml preserving the standard section layout."""
+    """Rewrite pactkit.yaml preserving the standard section layout.
+
+    BUG-023: Preserves unknown user-defined keys in a separate section.
+    """
+    # Known keys that PactKit manages
+    KNOWN_KEYS = {
+        'version', 'stack', 'root',
+        'agents', 'commands', 'skills', 'rules',
+        'exclude', 'ci', 'issue_tracker', 'hooks',
+        'lint_blocking', 'auto_fix', 'venv',
+        'agent_models', 'rule_scopes',
+    }
+
     lines = [
         '# PactKit Configuration',
         '# Edit this file to customize which components are deployed.',
@@ -359,6 +386,17 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
                     lines.append(f'    - "{p}"')
             else:
                 lines.append(f'  {rule_id}: "{pattern}"')
+        lines.append('')
+
+    # BUG-023: Preserve unknown user-defined keys
+    unknown_keys = {k: v for k, v in data.items() if k not in KNOWN_KEYS}
+    if unknown_keys:
+        lines.append('# Custom — user-defined keys (preserved by PactKit)')
+        for key in sorted(unknown_keys.keys()):
+            value = unknown_keys[key]
+            # Serialize using PyYAML for nested structures
+            serialized = yaml.dump({key: value}, default_flow_style=False, allow_unicode=True)
+            lines.append(serialized.rstrip())
         lines.append('')
 
     path.write_text('\n'.join(lines), encoding='utf-8')

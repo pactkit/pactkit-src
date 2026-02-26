@@ -502,3 +502,24 @@
 - [x] Write TDD tests for backup behavior
 
 ## 🔄 In Progress
+
+### [BUG-021] CLAUDE.md generation: LANG_PROFILES, platform-aware paths, Playbook alignment
+> Spec: docs/specs/BUG-021.md
+
+- [x] R1: Skip when exists
+- [x] R2: Platform-aware venv
+- [x] R3: Stack-aware lint
+- [x] R4: Stack-aware test runner
+
+### [BUG-022] load_config deep merge for nested dict sections
+> Spec: docs/specs/BUG-022.md
+
+- [x] R1: Deep merge venv/ci/hooks/issue_tracker
+- [x] R2: Non-dict keys unchanged
+
+### [BUG-023] _rewrite_yaml preserves unknown user-defined keys
+> Spec: docs/specs/BUG-023.md
+
+- [x] R1: Preserve unknown keys
+- [x] R2: Round-trip safety
+- [x] R3: Custom section marker

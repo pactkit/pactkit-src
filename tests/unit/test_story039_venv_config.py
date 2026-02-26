@@ -52,10 +52,13 @@ class TestAC1ConfigSchemaValidation:
 
 
 class TestAC2AutoDetection:
-    """AC2: Auto-detection should find .venv when present."""
+    """AC2: Auto-detection should find .venv when present.
+
+    Note: BUG-021 changed detect_venv to return (name, layout) tuple.
+    """
 
     def test_detect_venv_finds_dotenv(self):
-        """detect_venv should find .venv directory."""
+        """detect_venv should find .venv directory and return layout."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             venv_dir = project_root / ".venv" / "bin"
@@ -63,10 +66,11 @@ class TestAC2AutoDetection:
             (venv_dir / "python3").touch()
 
             result = detect_venv(project_root)
-            assert result == ".venv"
+            # BUG-021: Now returns tuple (name, layout)
+            assert result == (".venv", "unix")
 
     def test_detect_venv_finds_venv(self):
-        """detect_venv should find venv directory."""
+        """detect_venv should find venv directory and return layout."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             venv_dir = project_root / "venv" / "bin"
@@ -74,7 +78,8 @@ class TestAC2AutoDetection:
             (venv_dir / "python3").touch()
 
             result = detect_venv(project_root)
-            assert result == "venv"
+            # BUG-021: Now returns tuple (name, layout)
+            assert result == ("venv", "unix")
 
     def test_detect_venv_priority_order(self):
         """detect_venv should prefer .venv over venv."""
@@ -87,7 +92,8 @@ class TestAC2AutoDetection:
                 (venv_dir / "python3").touch()
 
             result = detect_venv(project_root)
-            assert result == ".venv"  # .venv takes priority
+            # BUG-021: Now returns tuple (name, layout)
+            assert result == (".venv", "unix")  # .venv takes priority
 
 
 class TestAC4FallbackWhenNotFound:

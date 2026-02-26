@@ -1,9 +1,13 @@
 """Tests for BUG-020: CLAUDE.md backup and regenerate strategy.
 
-AC1: Existing file backed up
-AC2: Fresh project unchanged
-AC3: Backup overwrites previous backup
-AC4: Notification printed
+NOTE: BUG-021 superseded the backup-and-regenerate behavior.
+Per BUG-021 R1, if CLAUDE.md exists, the function MUST skip (not overwrite).
+These tests are updated to reflect the new Playbook-aligned behavior.
+
+AC1: Existing file NOT modified (per BUG-021)
+AC2: Fresh project generates file
+AC3: N/A (backup behavior removed)
+AC4: N/A (no notification for skipped files)
 """
 import sys
 from pathlib import Path
@@ -15,10 +19,10 @@ if str(project_root) not in sys.path:
 
 
 class TestAC1ExistingFileBackedUp:
-    """AC1: Existing CLAUDE.md is backed up before regeneration."""
+    """AC1: Existing CLAUDE.md is NOT modified (BUG-021 supersedes BUG-020)."""
 
     def test_backup_created_when_file_exists(self, tmp_path):
-        """Backup file created when CLAUDE.md exists."""
+        """BUG-021: Existing file is skipped, no backup created."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
@@ -40,13 +44,14 @@ class TestAC1ExistingFileBackedUp:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # Verify backup was created
+        # BUG-021: File should NOT be modified
+        assert claude_md.read_text() == original_content
+        # BUG-021: No backup should be created
         backup_file = claude_dir / "CLAUDE.md.bak"
-        assert backup_file.exists(), "Backup file should be created"
-        assert backup_file.read_text() == original_content
+        assert not backup_file.exists(), "No backup when skipping existing file"
 
     def test_new_claude_md_has_venv_section(self, tmp_path):
-        """After backup, new CLAUDE.md contains venv section."""
+        """BUG-021: Existing file is preserved, not overwritten."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
@@ -54,7 +59,8 @@ class TestAC1ExistingFileBackedUp:
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         claude_md = claude_dir / "CLAUDE.md"
-        claude_md.write_text("# Old content")
+        original_content = "# Old content"
+        claude_md.write_text(original_content)
 
         # Create venv
         venv_dir = tmp_path / ".venv" / "bin"
@@ -67,10 +73,8 @@ class TestAC1ExistingFileBackedUp:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # Verify new file has venv section
-        new_content = claude_md.read_text()
-        assert "## Virtual Environment" in new_content
-        assert ".venv/bin/python3" in new_content
+        # BUG-021: File content should be unchanged
+        assert claude_md.read_text() == original_content
 
 
 class TestAC2FreshProjectUnchanged:
@@ -105,10 +109,10 @@ class TestAC2FreshProjectUnchanged:
 
 
 class TestAC3BackupOverwritesPrevious:
-    """AC3: Backup overwrites previous backup."""
+    """AC3: N/A - Backup behavior removed by BUG-021."""
 
     def test_previous_backup_overwritten(self, tmp_path):
-        """Previous .bak file is overwritten."""
+        """BUG-021: No backup when existing file is skipped."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
@@ -120,31 +124,34 @@ class TestAC3BackupOverwritesPrevious:
         current_content = "# Current content"
         claude_md.write_text(current_content)
 
-        # Create old backup
+        # Create old backup (should remain untouched)
         backup_file = claude_dir / "CLAUDE.md.bak"
-        backup_file.write_text("# Old backup - should be replaced")
+        old_backup_content = "# Old backup - should remain"
+        backup_file.write_text(old_backup_content)
 
         config = get_default_config()
 
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # Verify backup contains current content, not old backup
-        assert backup_file.read_text() == current_content
+        # BUG-021: File skipped, backup not touched
+        assert claude_md.read_text() == current_content
+        assert backup_file.read_text() == old_backup_content
 
 
 class TestAC4NotificationPrinted:
-    """AC4: Notification printed when backup is created."""
+    """AC4: N/A - No notification when file is skipped (BUG-021)."""
 
     def test_backup_notification_printed(self, tmp_path, capsys):
-        """Backup notification appears in output."""
+        """BUG-021: No notification when existing file is skipped."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         claude_md = claude_dir / "CLAUDE.md"
-        claude_md.write_text("# Existing content")
+        original_content = "# Existing content"
+        claude_md.write_text(original_content)
 
         config = get_default_config()
 
@@ -152,7 +159,10 @@ class TestAC4NotificationPrinted:
             _generate_project_claude_md_if_missing(config)
 
         captured = capsys.readouterr()
-        assert "Backed up CLAUDE.md" in captured.out or "CLAUDE.md.bak" in captured.out
+        # BUG-021: No backup notification when file is skipped
+        assert "Backed up CLAUDE.md" not in captured.out
+        # File should be unchanged
+        assert claude_md.read_text() == original_content
 
     def test_no_notification_when_no_backup_needed(self, tmp_path, capsys):
         """No backup notification when file doesn't exist."""

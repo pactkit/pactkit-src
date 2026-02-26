@@ -134,10 +134,10 @@ class TestAC5DetectVenvCalledInDeployer:
 
 
 class TestBackupExistingClaudeMd:
-    """Project CLAUDE.md is backed up before regeneration (BUG-020)."""
+    """BUG-021 supersedes BUG-020: Existing file is skipped, not backed up."""
 
     def test_existing_claude_md_not_overwritten(self, tmp_path):
-        """Existing CLAUDE.md is backed up and regenerated with venv section."""
+        """BUG-021: Existing CLAUDE.md is preserved (not backed up and regenerated)."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
@@ -159,12 +159,9 @@ class TestBackupExistingClaudeMd:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # Original content should be in backup (BUG-020)
-        backup_file = claude_dir / "CLAUDE.md.bak"
-        assert backup_file.exists()
-        assert backup_file.read_text() == original_content
+        # BUG-021: File should be unchanged (skipped)
+        assert claude_md.read_text() == original_content
 
-        # New CLAUDE.md should have venv section
-        new_content = claude_md.read_text()
-        assert "## Virtual Environment" in new_content
-        assert ".venv/bin/python3" in new_content
+        # BUG-021: No backup should be created when skipping
+        backup_file = claude_dir / "CLAUDE.md.bak"
+        assert not backup_file.exists()
