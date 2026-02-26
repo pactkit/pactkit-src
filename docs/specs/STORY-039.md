@@ -5,7 +5,7 @@
 | ID | STORY-039 |
 | Title | Virtual Environment Configuration Support |
 | Status | Draft |
-| Release | 1.3.2 |
+| Release | 1.3.1 |
 
 ## Context
 

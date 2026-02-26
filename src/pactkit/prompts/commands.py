@@ -63,7 +63,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **MUST**: Fill in the `## Requirements` section using RFC 2119 keywords (MUST/SHOULD/MAY).
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
-    - **MUST**: Fill in the `Release` metadata field with the current version from `pactkit.yaml` (or leave `TBD` if unknown).
+    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `.claude/pactkit.yaml` (or `pyproject.toml`). Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
 2.  **Board**: Add Story using `add_story`.
 3.  **Memory MCP (Conditional)**: IF `mcp__memory__create_entities` tool is available, store the design context:
     - Use `mcp__memory__create_entities` with: `name: "{STORY_ID}"`, `entityType: "story"`, `observations: [key architectural decisions, target files, design rationale]`

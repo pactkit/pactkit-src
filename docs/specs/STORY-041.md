@@ -5,7 +5,7 @@
 | ID        | STORY-041 |
 | Status    | Done |
 | Priority  | High |
-| Release   | 1.4.0 |
+| Release   | 1.3.1 |
 | Author    | System Architect |
 
 ## Background

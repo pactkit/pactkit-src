@@ -2,7 +2,7 @@
 
 - **Status**: Draft
 - **Priority**: High
-- **Release**: 1.4.0
+- **Release**: 1.3.1
 - **Author**: System Architect
 - **Created**: 2026-02-26
 
