@@ -129,10 +129,10 @@ def _deploy_classic(config=None, target=None):
     # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
     _generate_config_if_missing()
 
-    # Generate project-level CLAUDE.md with venv section if missing (BUG-019)
+    # Generate project-level CLAUDE.md (always regenerate) and CLAUDE.local.md (if missing) (STORY-040)
     # Skip when target is specified (preview mode) to avoid modifying real project
     if target is None:
-        _generate_project_claude_md_if_missing(config)
+        _generate_project_claude_md(config)
 
     # Summary
     total_agents = len(VALID_AGENTS)
@@ -651,10 +651,39 @@ def _generate_config_if_missing():
         atomic_write(yaml_path, generate_default_yaml())
 
 
-def _generate_project_claude_md_if_missing(config):
-    """Generate project-level .claude/CLAUDE.md with venv section (BUG-019).
+def _generate_claude_local_md_if_missing(claude_dir):
+    """Create CLAUDE.local.md with template if it doesn't exist (STORY-040 R3).
 
-    BUG-021: If CLAUDE.md already exists, skip generation entirely (respect Playbook).
+    This file is user-owned and never modified by PactKit after initial creation.
+    """
+    local_md_path = claude_dir / "CLAUDE.local.md"
+    if local_md_path.exists():
+        return
+
+    template = """# Project Local Instructions
+# Add your custom Claude Code instructions below.
+# PactKit will never overwrite this file.
+"""
+    atomic_write(local_md_path, template)
+
+
+def _is_user_modified_claude_md(content, project_name):
+    """Detect if CLAUDE.md was user-modified vs unmodified PactKit template (STORY-040 R4).
+
+    Simple heuristic: if file doesn't start with # {project_name}, treat as user-modified.
+    """
+    expected_start = f"# {project_name}"
+    first_line = content.split('\n')[0] if content else ''
+    return not first_line.startswith(expected_start)
+
+
+def _generate_project_claude_md(config):
+    """Generate project-level .claude/CLAUDE.md (always regenerate) and CLAUDE.local.md (if missing).
+
+    STORY-040: Dual-file layered architecture:
+    - CLAUDE.md: PactKit-managed, regenerated on every deploy
+    - CLAUDE.local.md: User-owned, created once and never modified
+
     Uses LANG_PROFILES for stack-aware lint and test commands.
     Uses platform-aware venv paths (Unix vs Windows).
     """
@@ -664,15 +693,26 @@ def _generate_project_claude_md_if_missing(config):
 
     project_root = Path.cwd()
 
-    # Skip if cwd equals home (avoids overwriting global CLAUDE.md in test scenarios)
+    # R6: Skip if cwd equals home (avoids overwriting global CLAUDE.md in test scenarios)
     if project_root.resolve() == Path.home().resolve():
         return
 
-    claude_md_path = project_root / ".claude" / "CLAUDE.md"
+    claude_dir = project_root / ".claude"
+    claude_md_path = claude_dir / "CLAUDE.md"
+    claude_local_path = claude_dir / "CLAUDE.local.md"
+    project_name = project_root.name
 
-    # BUG-021 R1: Skip if file already exists (respect Playbook overwrite policy)
-    if claude_md_path.exists():
-        return
+    # STORY-040 R4: Migration heuristic
+    # If CLAUDE.md exists but CLAUDE.local.md doesn't, check for user modifications
+    if claude_md_path.exists() and not claude_local_path.exists():
+        existing_content = claude_md_path.read_text()
+        if _is_user_modified_claude_md(existing_content, project_name):
+            # Migrate user content to CLAUDE.local.md
+            atomic_write(claude_local_path, existing_content)
+
+    # STORY-040 R3: Create CLAUDE.local.md if missing (after migration check)
+    claude_dir.mkdir(parents=True, exist_ok=True)
+    _generate_claude_local_md_if_missing(claude_dir)
 
     # Resolve stack and get profile from LANG_PROFILES (BUG-021 R3, R4)
     stack = config.get('stack', 'auto')
@@ -704,8 +744,7 @@ def _generate_project_claude_md_if_missing(config):
         if detected:
             venv_info = detected
 
-    # Generate content
-    project_name = project_root.name
+    # Generate CLAUDE.md content (framework content)
     lines = [f"# {project_name} — Project Context", ""]
 
     # BUG-021 R2: Platform-aware venv commands
@@ -770,12 +809,17 @@ def _generate_project_claude_md_if_missing(config):
         "```",
         "",
         "@./docs/product/context.md",
+        "@./.claude/CLAUDE.local.md",  # STORY-040 R2: Import user content
         "",
     ])
 
-    # Write file
-    claude_md_path.parent.mkdir(parents=True, exist_ok=True)
+    # R1: Always write CLAUDE.md (no skip-if-exists guard)
+    claude_dir.mkdir(parents=True, exist_ok=True)
     atomic_write(claude_md_path, "\n".join(lines))
+
+
+# Backward compatibility alias for existing tests
+_generate_project_claude_md_if_missing = _generate_project_claude_md
 
 
 # ---------------------------------------------------------------------------

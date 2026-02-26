@@ -19,15 +19,15 @@ def _deployer():
 
 
 # ===========================================================================
-# R1: Respect Playbook Overwrite Policy (AC1-AC2)
+# R1: Always Regenerate CLAUDE.md (STORY-040 supersedes BUG-021)
 # ===========================================================================
 
-class TestR1SkipWhenExists:
-    """AC1: If .claude/CLAUDE.md exists, do NOT modify or backup."""
+class TestR1AlwaysRegenerate:
+    """STORY-040: CLAUDE.md is always regenerated, user content migrated to CLAUDE.local.md."""
 
-    def test_existing_file_not_modified(self, tmp_path):
-        """Given .claude/CLAUDE.md exists, it should NOT be overwritten."""
-        # Setup: create project with existing CLAUDE.md
+    def test_existing_file_regenerated_with_migration(self, tmp_path):
+        """Given .claude/CLAUDE.md exists (user-modified), it is regenerated and content migrated."""
+        # Setup: create project with existing user-modified CLAUDE.md
         project_root = tmp_path / 'myproject'
         project_root.mkdir()
         claude_dir = project_root / '.claude'
@@ -44,11 +44,15 @@ class TestR1SkipWhenExists:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=project_root):
             _deployer()._generate_project_claude_md_if_missing(config)
 
-        # Assert: file unchanged
-        assert claude_md_path.read_text() == original_content
+        # STORY-040: CLAUDE.md is regenerated (framework content)
+        new_content = claude_md_path.read_text()
+        assert '# myproject' in new_content
+        # User content migrated to CLAUDE.local.md
+        local_content = (claude_dir / 'CLAUDE.local.md').read_text()
+        assert "User's custom CLAUDE.md" in local_content
 
     def test_no_backup_created_when_exists(self, tmp_path):
-        """When file exists, no .bak file should be created."""
+        """When file exists, no .bak file should be created (migration goes to CLAUDE.local.md)."""
         project_root = tmp_path / 'myproject'
         project_root.mkdir()
         claude_dir = project_root / '.claude'
@@ -62,7 +66,7 @@ class TestR1SkipWhenExists:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=project_root):
             _deployer()._generate_project_claude_md_if_missing(config)
 
-        # Assert: no backup file created
+        # Assert: no .bak backup file created (STORY-040 uses CLAUDE.local.md instead)
         backup_path = claude_dir / 'CLAUDE.md.bak'
         assert not backup_path.exists()
 

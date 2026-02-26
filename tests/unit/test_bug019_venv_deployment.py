@@ -134,14 +134,14 @@ class TestAC5DetectVenvCalledInDeployer:
 
 
 class TestBackupExistingClaudeMd:
-    """BUG-021 supersedes BUG-020: Existing file is skipped, not backed up."""
+    """STORY-040 supersedes BUG-021: Existing file regenerated, user content migrated."""
 
     def test_existing_claude_md_not_overwritten(self, tmp_path):
-        """BUG-021: Existing CLAUDE.md is preserved (not backed up and regenerated)."""
+        """STORY-040: Existing user-modified CLAUDE.md is regenerated, content migrated."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import _generate_project_claude_md_if_missing
 
-        # Create existing CLAUDE.md
+        # Create existing user-modified CLAUDE.md
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         claude_md = claude_dir / "CLAUDE.md"
@@ -159,9 +159,15 @@ class TestBackupExistingClaudeMd:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
             _generate_project_claude_md_if_missing(config)
 
-        # BUG-021: File should be unchanged (skipped)
-        assert claude_md.read_text() == original_content
+        # STORY-040: CLAUDE.md is regenerated with framework content
+        new_content = claude_md.read_text()
+        assert 'Virtual Environment' in new_content
 
-        # BUG-021: No backup should be created when skipping
+        # STORY-040: User content migrated to CLAUDE.local.md
+        local_md = claude_dir / "CLAUDE.local.md"
+        assert local_md.exists()
+        assert "My Custom Project" in local_md.read_text()
+
+        # No .bak backup (migration goes to CLAUDE.local.md)
         backup_file = claude_dir / "CLAUDE.md.bak"
         assert not backup_file.exists()
