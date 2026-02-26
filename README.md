@@ -1,11 +1,15 @@
-# PactKit
+<p align="center">
+  <img src="docs/assets/logo.png" alt="PactKit" width="480" />
+</p>
 
-[![PyPI version](https://img.shields.io/pypi/v/pactkit)](https://pypi.org/project/pactkit/)
-[![Python](https://img.shields.io/pypi/pyversions/pactkit)](https://pypi.org/project/pactkit/)
-[![CI](https://github.com/pactkit/pactkit/actions/workflows/ci.yml/badge.svg)](https://github.com/pactkit/pactkit/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://pypi.org/project/pactkit/"><img src="https://img.shields.io/pypi/v/pactkit" alt="PyPI version" /></a>
+  <a href="https://pypi.org/project/pactkit/"><img src="https://img.shields.io/pypi/pyversions/pactkit" alt="Python" /></a>
+  <a href="https://github.com/pactkit/pactkit/actions/workflows/ci.yml"><img src="https://github.com/pactkit/pactkit/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+</p>
 
-**Ship features with AI agents that follow specs, not vibes.**
+<p align="center"><strong>Ship features with AI agents that follow specs, not vibes.</strong></p>
 
 > PactKit gives Claude Code a structured operating system — 9 specialized agents, 9 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
 
