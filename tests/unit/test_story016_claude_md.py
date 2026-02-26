@@ -61,13 +61,21 @@ class TestProjectClaudeMdContent:
     """
 
     def test_has_architecture_in_local(self):
-        """Architecture section should be in CLAUDE.local.md (user content)."""
+        """Architecture section should be in CLAUDE.local.md (user content).
+
+        STORY-040: CLAUDE.local.md is now auto-created as a minimal template.
+        Architecture is only present if the user has added it, or if migrated
+        from a pre-040 user-modified CLAUDE.md.
+        """
         local_path = ROOT / '.claude' / 'CLAUDE.local.md'
         if local_path.exists():
             content = local_path.read_text()
-            assert 'src/pactkit/' in content or 'Architecture' in content
+            # Either has architecture (user added or migrated), or is minimal template
+            is_user_content = 'src/pactkit/' in content or 'Architecture' in content
+            is_minimal_template = 'Project Local Instructions' in content
+            assert is_user_content or is_minimal_template
         else:
-            # Fresh install: architecture not yet added by user
+            # Fresh install before first deploy
             pass
 
     def test_has_dev_commands(self):
