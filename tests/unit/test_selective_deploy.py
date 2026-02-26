@@ -228,7 +228,7 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert '9/9 Agents' in output
-        assert '8/8 Commands' in output
+        assert '9/9 Commands' in output
         assert '9/9 Skills' in output
         assert '6/6 Rules' in output
 
@@ -240,7 +240,7 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
         assert '2/9 Agents' in output
-        assert '3/8 Commands' in output
+        assert '3/9 Commands' in output
 
 
 # ===========================================================================

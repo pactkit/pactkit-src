@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""Spec Linter — Non-AI structural validation gate for PactKit specs.
+
+Usage (standalone):
+    python3 src/pactkit/skills/spec_linter.py docs/specs/STORY-042.md
+    python3 src/pactkit/skills/spec_linter.py --all
+    python3 src/pactkit/skills/spec_linter.py --all --specs-dir path/to/specs
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Data types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class LintIssue:
+    rule_id: str
+    message: str
+    line: int | None = None
+
+
+@dataclass
+class LintResult:
+    errors: list[LintIssue] = field(default_factory=list)
+    warnings: list[LintIssue] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return len(self.errors) == 0
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+_RFC2119 = re.compile(r'\b(MUST|SHOULD|MAY|SHALL|REQUIRED|RECOMMENDED|OPTIONAL)\b')
+_METADATA_ROW = re.compile(r'^\|\s*(\w[\w\s]*\w|\w)\s*\|\s*(.+?)\s*\|', re.MULTILINE)
+_METADATA_HEADER = re.compile(r'^\|\s*Field\s*\|\s*Value\s*\|', re.MULTILINE | re.IGNORECASE)
+_REQ_SUBSECTION = re.compile(r'^###\s+R\d+[:\s]', re.MULTILINE)
+_AC_SUBSECTION = re.compile(r'^###\s+(AC\d+|Scenario\s+\d+)[:\s]', re.MULTILINE | re.IGNORECASE)
+
+
+_FENCED_BLOCK = re.compile(r'^```[^\n]*\n.*?^```', re.MULTILINE | re.DOTALL)
+
+
+def _strip_code_blocks(text: str) -> str:
+    """Replace fenced code block content with blank lines (preserving line count)."""
+    def _blank(m: re.Match) -> str:
+        return '\n' * m.group(0).count('\n')
+    return _FENCED_BLOCK.sub(_blank, text)
+
+
+def _find_section(text: str, heading: str) -> tuple[int, int] | None:
+    """Return (start_idx, end_idx) of a ## heading block, or None if absent.
+
+    ``text`` should already have code blocks stripped via ``_strip_code_blocks``
+    so that headings inside examples don't confuse parsing.
+    """
+    pattern = re.compile(rf'^##\s+{re.escape(heading)}\s*$', re.MULTILINE | re.IGNORECASE)
+    m = pattern.search(text)
+    if not m:
+        return None
+    start = m.start()
+    next_h2 = re.search(r'^##\s+', text[m.end():], re.MULTILINE)
+    end = m.end() + next_h2.start() if next_h2 else len(text)
+    return start, end
+
+
+def _section_text(text: str, heading: str) -> str | None:
+    """Return the body text of a ## heading block, or None if absent.
+
+    ``text`` should already have code blocks stripped.
+    """
+    bounds = _find_section(text, heading)
+    if bounds is None:
+        return None
+    return text[bounds[0]:bounds[1]]
+
+
+def _line_number(text: str, idx: int) -> int:
+    return text[:idx].count('\n') + 1
+
+
+# ---------------------------------------------------------------------------
+# Validation rules
+# ---------------------------------------------------------------------------
+
+def _check_metadata(text: str, result: LintResult) -> dict[str, str]:
+    """E001, E002, E008 — metadata table structure and required fields."""
+    fields: dict[str, str] = {}
+
+    # E001: metadata table must exist (Field | Value header)
+    if not _METADATA_HEADER.search(text):
+        result.errors.append(LintIssue("E001", "Missing metadata table (| Field | Value | header not found)"))
+        return fields
+
+    # Parse all metadata rows
+    for m in _METADATA_ROW.finditer(text):
+        key = m.group(1).strip()
+        val = m.group(2).strip()
+        if key.lower() not in ("field", "-"):
+            fields[key] = val
+
+    # E002: required fields must be present and non-empty
+    required = ["ID", "Status", "Priority", "Release"]
+    for req in required:
+        if req not in fields or not fields[req]:
+            result.errors.append(LintIssue("E002", f"Missing or empty required metadata field: {req}"))
+
+    # E008: Release must not be TBD
+    if fields.get("Release", "").upper() == "TBD":
+        result.errors.append(LintIssue("E008", "Release field is 'TBD' — must be a concrete version before Act"))
+
+    return fields
+
+
+def _check_requirements_section(text: str, result: LintResult) -> None:
+    """E003, E004, W003 — Requirements section."""
+    body = _section_text(text, "Requirements")
+
+    # E003: section must exist
+    if body is None:
+        result.errors.append(LintIssue("E003", "Missing '## Requirements' section"))
+        return
+
+    # E004: must contain at least one ### R{N}: subsection
+    if not _REQ_SUBSECTION.search(body):
+        result.errors.append(LintIssue("E004", "Requirements section has no '### R{N}:' subsections"))
+
+    # W003: requirements should use RFC 2119 keywords
+    if not _RFC2119.search(body):
+        result.warnings.append(LintIssue("W003", "No RFC 2119 keywords (MUST/SHOULD/MAY) found in Requirements"))
+
+
+def _check_acceptance_criteria(text: str, result: LintResult) -> None:
+    """E005, E006, E007 — Acceptance Criteria section."""
+    body = _section_text(text, "Acceptance Criteria")
+
+    # E005: section must exist
+    if body is None:
+        result.errors.append(LintIssue("E005", "Missing '## Acceptance Criteria' section"))
+        return
+
+    # E006: must contain at least one ### AC{N}: or ### Scenario {N}: subsection
+    if not _AC_SUBSECTION.search(body):
+        result.errors.append(LintIssue("E006", "Acceptance Criteria has no '### AC{N}:' or '### Scenario {N}:' subsections"))
+        return
+
+    # E007: the AC section must contain Given, When, Then keywords
+    body_lower = body.lower()
+    missing = [kw for kw in ("given", "when", "then") if kw not in body_lower]
+    if missing:
+        result.errors.append(LintIssue(
+            "E007",
+            f"Acceptance Criteria missing keyword(s): {', '.join(missing).upper()}"
+        ))
+
+
+def _check_optional_sections(text: str, result: LintResult) -> None:
+    """W001, W002, W004 — recommended sections."""
+    if _section_text(text, "Background") is None:
+        result.warnings.append(LintIssue("W001", "Missing '## Background' section (recommended)"))
+
+    if _section_text(text, "Target Call Chain") is None:
+        result.warnings.append(LintIssue("W002", "Missing '## Target Call Chain' section (recommended)"))
+
+    has_out_of_scope = (
+        _section_text(text, "Out of Scope") is not None
+        or _section_text(text, "Non-Goals") is not None
+    )
+    if not has_out_of_scope:
+        result.warnings.append(LintIssue("W004", "Missing '## Out of Scope' or '## Non-Goals' section (recommended)"))
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def validate_spec(spec_path: str) -> LintResult:
+    """Validate a spec file and return a LintResult.
+
+    Parameters
+    ----------
+    spec_path:
+        Path to the spec Markdown file.
+
+    Returns
+    -------
+    LintResult
+        ``.passed`` is ``True`` iff there are zero ERROR-level issues.
+    """
+    raw = Path(spec_path).read_text(encoding="utf-8")
+    # Strip fenced code blocks once so all checks operate on the same clean text.
+    # This prevents headings inside code examples from confusing section detection.
+    text = _strip_code_blocks(raw)
+    result = LintResult()
+    _check_metadata(text, result)
+    _check_requirements_section(text, result)
+    _check_acceptance_criteria(text, result)
+    _check_optional_sections(text, result)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def _format_result(path: str, result: LintResult) -> str:
+    lines = [path]
+    for e in result.errors:
+        loc = f" (line {e.line})" if e.line else ""
+        lines.append(f"  [ERROR] {e.rule_id}: {e.message}{loc}")
+    for w in result.warnings:
+        loc = f" (line {w.line})" if w.line else ""
+        lines.append(f"  [WARN]  {w.rule_id}: {w.message}{loc}")
+    status = "PASS" if result.passed else f"FAIL ({len(result.errors)} error(s), {len(result.warnings)} warning(s))"
+    lines.append(f"  Result: {status}")
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="PactKit Spec Linter — structural validation for spec files"
+    )
+    parser.add_argument("spec", nargs="?", help="Path to spec file to validate")
+    parser.add_argument("--all", action="store_true", help="Validate all specs in specs dir")
+    parser.add_argument(
+        "--specs-dir",
+        default="docs/specs",
+        help="Directory containing spec files (default: docs/specs)",
+    )
+    args = parser.parse_args(argv)
+
+    if args.all:
+        specs_dir = Path(args.specs_dir)
+        if not specs_dir.exists():
+            print(f"Error: specs directory '{specs_dir}' not found", file=sys.stderr)
+            return 1
+        spec_files = sorted(specs_dir.glob("*.md"))
+        if not spec_files:
+            print(f"No .md files found in '{specs_dir}'")
+            return 0
+        any_failure = False
+        for spec_file in spec_files:
+            result = validate_spec(str(spec_file))
+            print(_format_result(str(spec_file), result))
+            if not result.passed:
+                any_failure = True
+        return 1 if any_failure else 0
+
+    if not args.spec:
+        parser.print_help()
+        return 1
+
+    result = validate_spec(args.spec)
+    print(_format_result(args.spec, result))
+    return 0 if result.passed else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

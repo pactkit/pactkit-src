@@ -158,6 +158,6 @@ class TestBackwardCompatibility:
             assert cmd in p.COMMANDS_CONTENT, f"Missing {cmd}"
 
     def test_total_command_count(self):
-        """8 commands total after PDCA Slim."""
+        """9 commands total after adding project-clarify."""
         cfg = _config()
-        assert len(cfg.VALID_COMMANDS) == 8
+        assert len(cfg.VALID_COMMANDS) == 9

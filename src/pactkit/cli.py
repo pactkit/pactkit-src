@@ -33,6 +33,32 @@ def main():
         default="classic",
         help="Output format: classic (default), plugin, or marketplace",
     )
+    init_parser.add_argument(
+        "--agent",
+        type=str,
+        choices=["claude", "cursor", "copilot", "generic", "all"],
+        default="claude",
+        help="Target agent format: claude (default), cursor, copilot, generic, or all",
+    )
+    # STORY-047: Enterprise flags
+    init_parser.add_argument(
+        "--no-git",
+        action="store_true",
+        default=False,
+        help="Disable all git operations (enterprise: air-gapped environments)",
+    )
+    init_parser.add_argument(
+        "--no-external",
+        action="store_true",
+        default=False,
+        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
+    )
+    init_parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        default=False,
+        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
+    )
 
     # pactkit update (alias for init)
     update_parser = subparsers.add_parser("update", help="Re-deploy PactKit configuration")
@@ -48,6 +74,32 @@ def main():
         choices=["classic", "plugin", "marketplace"],
         default="classic",
         help="Output format: classic (default), plugin, or marketplace",
+    )
+    update_parser.add_argument(
+        "--agent",
+        type=str,
+        choices=["claude", "cursor", "copilot", "generic", "all"],
+        default="claude",
+        help="Target agent format: claude (default), cursor, copilot, generic, or all",
+    )
+    # STORY-047: Enterprise flags
+    update_parser.add_argument(
+        "--no-git",
+        action="store_true",
+        default=False,
+        help="Disable all git operations (enterprise: air-gapped environments)",
+    )
+    update_parser.add_argument(
+        "--no-external",
+        action="store_true",
+        default=False,
+        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
+    )
+    update_parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        default=False,
+        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
     )
 
     # pactkit upgrade (alias for init, migrates legacy scafpy files)

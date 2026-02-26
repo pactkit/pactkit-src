@@ -46,7 +46,7 @@ class TestCommandReduction:
 
     def test_valid_commands_count(self):
         cfg = _config()
-        assert len(cfg.VALID_COMMANDS) == 8
+        assert len(cfg.VALID_COMMANDS) == 9
 
     def test_kept_commands_present(self):
         cfg = _config()
@@ -59,9 +59,9 @@ class TestCommandReduction:
             assert cmd not in cfg.VALID_COMMANDS, f"Should be removed: {cmd}"
 
     def test_commands_content_count(self):
-        """COMMANDS_CONTENT should have 8 entries."""
+        """COMMANDS_CONTENT should have 9 entries."""
         p = _prompts()
-        assert len(p.COMMANDS_CONTENT) == 8
+        assert len(p.COMMANDS_CONTENT) == 9
 
     def test_removed_commands_not_in_content(self):
         p = _prompts()
@@ -138,10 +138,10 @@ class TestSkillPromotion:
         default = cfg.get_default_config()
         assert len(default['skills']) == 9
 
-    def test_default_config_has_8_commands(self):
+    def test_default_config_has_9_commands(self):
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['commands']) == 8
+        assert len(default['commands']) == 9
 
 
 # ===========================================================================

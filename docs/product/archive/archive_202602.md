@@ -547,3 +547,46 @@
 - [x] R2: Normalize ID extraction
 - [x] R3: add_story canonical format preserved
 - [x] R4: Existing board cleanup (archive stuck entries)
+
+### STORY-042: Spec Linter — Non-AI Structural Validation Gate
+- [x] R1: Spec Linter script (`spec_linter.py`)
+- [x] R2: Act Phase 0.5 集成
+- [x] R3: Plan Phase 自检闭环
+- [x] R4: CLI 独立调用
+- [x] R5: Hotfix 豁免
+
+### STORY-043: Active Clarify — Pre-Plan Requirement Disambiguation
+- [x] R1: Ambiguity Detection
+- [x] R2: Structured Question Generation
+- [x] R3: User Interaction Flow
+- [x] R4: Plan Playbook 集成 (Phase 0.7)
+- [x] R5: Standalone `/project-clarify` command
+- [x] R6: Greenfield 场景强化
+
+### STORY-044: Pre-Act Consistency Check — Left-Shift Quality Gate
+- [x] R1: Spec ↔ Board Task 对齐检查
+- [x] R2: Spec AC ↔ Test Case 覆盖检查
+- [x] R3: Act Phase 0.6 集成
+- [x] R4: 输出格式
+- [x] R5: Standalone `pactkit-analyze` skill
+
+### STORY-045: Auto-PR Enhancement — Structured PR Body Generation
+- [x] R1: PR 自动触发判定
+- [x] R2: PR Title 生成
+- [x] R3: PR Body 结构化生成
+- [x] R4: 用户确认
+- [x] R5: Push 保障
+- [x] R6: Done Playbook 集成
+
+### STORY-046: Multi-Agent Compatibility Layer
+- [x] R1: Agent Adapter Architecture
+- [x] R2: CLI `--agent` Flag
+- [x] R3: Format Transformer
+- [x] R4: pactkit.yaml agents 配置
+- [x] R5: 核心 Playbook 不变
+
+### STORY-047: Enterprise Configuration Flags
+- [x] R1: pactkit.yaml enterprise section
+- [x] R2: CLI Flag Override
+- [x] R3: Command Playbook 条件逻辑
+- [x] R4: 优雅降级

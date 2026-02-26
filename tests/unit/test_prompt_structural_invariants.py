@@ -116,8 +116,8 @@ class TestPromptModuleCounts:
         assert len(prompts.RULES_MODULES) == 6
 
     def test_command_count(self):
-        """Should have 8 command playbooks."""
-        assert len(prompts.COMMANDS_CONTENT) == 8
+        """Should have 9 command playbooks."""
+        assert len(prompts.COMMANDS_CONTENT) == 9
 
     def test_agent_count(self):
         """Should have 9 agent definitions."""

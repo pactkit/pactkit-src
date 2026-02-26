@@ -106,6 +106,10 @@ Format: `type(scope): description`
 - **Role**: System Architect
 - **Playbook**: `commands/project-plan.md`
 
+### Clarify (`/project-clarify`)
+- **Role**: System Architect
+- **Playbook**: `commands/project-clarify.md`
+
 ### Act (`/project-act`)
 - **Role**: Senior Developer
 - **Playbook**: `commands/project-act.md`

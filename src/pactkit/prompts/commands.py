@@ -43,6 +43,34 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - Report what was added (e.g., "Config refreshed: added hooks, ci sections").
     - If the config is already complete and up to date, skip silently to Phase 1.
 
+## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
+> **PURPOSE**: Surface and resolve requirement ambiguity before the Spec is written. Better to clarify now than rewrite a Spec.
+1.  **Detect Ambiguity**: Analyze the user's input (`$ARGUMENTS`) against these signals:
+    - No quantitative metrics ("高并发" without QPS, "fast" without benchmark)
+    - No boundary conditions ("user management" without specifying which operations)
+    - No technical constraints (no auth method, no framework specified)
+    - Single sentence input (< 15 words) — likely under-specified
+    - Vague quantifiers ("some", "many", "a few", "大量", "一些", "简单")
+    - No target user specified
+2.  **Trigger Logic**:
+    - ≥ 2 High signals (no metrics, no boundaries) → **Auto-trigger** Clarify
+    - 1 High + ≥ 2 Medium signals → **Auto-trigger** Clarify
+    - ≥ 2 Medium signals → **Suggest** Clarify (ask user: "Input seems underspecified. Clarify? yes/skip")
+    - Otherwise → **Silent skip**
+3.  **Greenfield Force-Trigger**: If Phase 0 detected a Greenfield project and the user chose to continue with `/project-plan` (not `/project-design`), **always trigger** Clarify regardless of score.
+4.  **If triggered**: Generate 3–6 structured questions covering:
+    - **Scope**: "What specific operations are included? Please list them."
+    - **Users**: "Who is the target user? Are there multiple roles?"
+    - **Constraints**: "Any technical constraints? (required framework, compatibility requirements)"
+    - **Scale**: "Expected data volume / concurrency / user count?"
+    - **Edge Cases**: "What should happen when [failure scenario]?"
+    - **Non-Goals**: "What is explicitly NOT in scope?"
+    - Ask questions in the user's language (Language Matching rule).
+5.  **User Response**:
+    - User answers all/some → merge into `enriched_input`; proceed to Phase 1 with `enriched_input`
+    - User inputs "skip" or declines → proceed with original input (Clarify MUST NOT block Plan)
+6.  **Output**: The enriched_input (original + answers) is used as context for Phase 1 onwards.
+
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
 1.  **Visual Scan**: Run `visualize` to see the module dependency graph.
     - **Mode Selection**: Use `--mode class` for structure analysis, `--mode call` for logic modification, default for overview.
@@ -64,6 +92,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
     - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `.claude/pactkit.yaml` (or `pyproject.toml`). Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
+    - **Spec Lint Self-Check**: After writing the Spec, run `python3 src/pactkit/skills/spec_linter.py docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
 2.  **Board**: Add Story using `add_story`.
 3.  **Memory MCP (Conditional)**: IF `mcp__memory__create_entities` tool is available, store the design context:
     - Use `mcp__memory__create_entities` with: `name: "{STORY_ID}"`, `entityType: "story"`, `observations: [key architectural decisions, target files, design rationale]`
@@ -111,6 +140,43 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Memory MCP (Conditional)**: IF `mcp__memory__search_nodes` tool is available, load prior context:
     - Use `mcp__memory__search_nodes` with the STORY_ID to retrieve any stored architectural decisions or design rationale from the Plan phase
     - Use `mcp__memory__search_nodes` with relevant module/feature keywords to find related past decisions from other stories
+
+## 🛡️ Phase 0.5: Spec Lint Gate (Mandatory)
+> **PURPOSE**: Non-AI structural validation — ensures "Spec is Law" has physical enforcement before any code is written.
+1.  **Run Linter**: Execute the Spec Linter on the current Story's spec:
+    ```bash
+    python3 src/pactkit/skills/spec_linter.py docs/specs/{STORY_ID}.md
+    ```
+    Replace `{STORY_ID}` with the actual Story ID from `$ARGUMENTS` (e.g., `STORY-042`).
+2.  **If ERRORs found**: **STOP**. Output all ERROR and WARN items. Instruct the user:
+    > "Spec Lint failed. Fix the issues above in `docs/specs/{STORY_ID}.md`, then re-run `/project-act`."
+    Do NOT proceed to Phase 1.
+3.  **If WARNs only**: Output the WARN list, then **continue** to Phase 1.
+4.  **If all pass**: Continue silently to Phase 1.
+
+## 📊 Phase 0.6: Consistency Check (Advisory)
+> **PURPOSE**: Left-shift quality — catch Spec ↔ Board ↔ Test Case misalignment at the cheapest point (pure text, before any code).
+> **NON-BLOCKING**: All findings are WARN or INFO. This phase NEVER stops Act.
+1.  **Spec ↔ Board Alignment**:
+    - Parse all `### R{N}:` subsections from `docs/specs/{STORY_ID}.md` → list of requirements
+    - Parse the Story's task list from `docs/product/sprint_board.md` (the `- [ ]` items under this Story)
+    - Cross-reference: for each requirement, find a matching task (exact `R{N}` ID OR ≥50% keyword overlap)
+    - Output alignment matrix:
+      ```
+      | Spec Requirement | Board Task | Status |
+      | R1: xxx          | Task: xxx  | ✅ Aligned |
+      | R2: xxx          | —          | ⚠️ Missing Task |
+      | —                | Task: yyy  | ⚠️ No matching Requirement |
+      ```
+2.  **Spec AC ↔ Test Case Coverage**:
+    - Parse all `### AC{N}:` subsections from the Spec
+    - Check if `docs/test_cases/{STORY_ID}_case.md` exists
+    - If exists: cross-reference AC items with Scenario entries; report uncovered ACs
+    - If not exists: output `ℹ️ Test Case not yet created (normal — generated during Check phase)`
+3.  **Summary**:
+    - Output counts: `Alignment: {N}/{total} requirements matched | Coverage: {N}/{total} ACs covered`
+    - If WARNs found: "Consider updating the Board tasks to match Spec requirements before proceeding."
+4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
 1.  **Visual Scan**: Run `visualize --focus <module>` to see neighbors.
@@ -460,8 +526,49 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 4.  **If no version change**: Skip to Phase 4.
 
 ## 🎬 Phase 4: Git Commit
+0.  **Enterprise Check**: If `enterprise.no_git: true` in `pactkit.yaml`, skip ALL git operations in this phase. Print: "ℹ️ Git operations disabled (enterprise.no_git)". Skip to the Session Context Update phase.
 1.  **Format**: `feat(scope): <title from spec>`
 2.  **Execute**: Run the git commit command.
+
+## 🎬 Phase 4.2: Auto-PR Generation (Conditional)
+> **Skip conditions**: working on `main`/`master` branch, OR an open PR already exists for this branch.
+1.  **Trigger Check**:
+    - Run `git branch --show-current` to get current branch name
+    - If branch is `main` or `master`: print "Skipping PR: working on main branch" → skip to Phase 4.5
+    - Run `gh pr list --head <branch> --state open --json number` to check for existing PR
+    - If PR exists: print "PR already open: <URL>" → skip to Phase 4.5
+    - If `gh` CLI unavailable: print "⚠️ gh CLI not available — skipping auto-PR" → skip to Phase 4.5
+2.  **Push Assurance**: If remote tracking branch does not exist, run `git push -u origin <branch>`. If push fails, STOP and report.
+3.  **Generate PR Title**: Format `{type}({scope}): {spec_title}`
+    - `type`: `feat` for STORY, `fix` for BUG/HOTFIX
+    - `scope`: infer from primary modified directory
+    - `spec_title`: extract from `# {ID}: {Title}` heading in Spec (strip the ID prefix)
+    - Max 70 characters
+4.  **Generate PR Body**: Extract from Spec and test results:
+    ```markdown
+    ## Summary
+    {1-3 sentences from Spec ## Background}
+
+    ## Changes
+    {R1, R2, ... from Spec ## Requirements, one bullet each with MUST/SHOULD/MAY}
+
+    ## Acceptance Criteria
+    {AC1, AC2, ... as checklist items — mark [x] if a test for it passed}
+
+    ## Test Results
+    - Unit: {N} passed, {N} failed
+    - E2E: {N} passed, {N} failed
+
+    ## Spec
+    - [{STORY_ID}](docs/specs/{STORY_ID}.md)
+
+    🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    ```
+5.  **User Confirmation**: Show the PR title + body preview. Ask: "Create this PR? (yes/no/edit)"
+    - `yes` → execute `gh pr create --title "..." --body "..."`
+    - `no` → skip, proceed to Phase 4.5
+    - `edit` → accept user feedback, regenerate, ask again
+6.  **Output**: Print PR URL on success.
 
 ## 🎬 Phase 4.5: Session Context Update
 > **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.
@@ -492,6 +599,36 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
     {If In Progress stories exist: `/project-act STORY-XXX` | If only Backlog: `/project-plan` | If board empty: `/project-design`}
     ```
 5.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
+""",
+
+    "project-clarify.md": """---
+description: "Standalone requirement clarification before planning"
+allowed-tools: [Read, Bash, Glob, Grep]
+---
+
+# Command: Clarify (v1.0.0)
+- **Usage**: `/project-clarify "$ARGUMENTS"`
+- **Agent**: System Architect
+
+> **PURPOSE**: Standalone requirement clarification. Run before `/project-plan` to surface ambiguities and produce a clarified brief.
+
+## Phase 1: Ambiguity Analysis
+1.  Analyze `$ARGUMENTS` against the AMBIGUITY_SIGNALS checklist (same as Plan Phase 0.7).
+2.  Generate 3–6 structured questions (Scope, Users, Constraints, Scale, Edge Cases, Non-Goals).
+3.  Ask questions in the user's language.
+
+## Phase 2: Clarified Brief Output
+1.  After user responses, produce a **Clarified Brief**:
+    ```markdown
+    ## Clarified Brief: {feature name}
+    - **Scope**: {confirmed operations}
+    - **Users**: {confirmed target users / roles}
+    - **Constraints**: {technical constraints}
+    - **Scale**: {performance expectations}
+    - **Edge Cases**: {failure scenarios and expected behavior}
+    - **Non-Goals**: {explicitly excluded}
+    ```
+2.  Output: "Ready for Plan. Run: `/project-plan \\"{clarified brief summary}\\"`"
 """,
 
     "project-init.md": """---

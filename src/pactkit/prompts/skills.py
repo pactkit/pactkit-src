@@ -456,6 +456,26 @@ Structured PR code review with severity-ranked findings.
 > **CONSTRAINT**: This skill is read-only. Do not modify code files.
 """
 
+SKILL_ANALYZE_MD = """---
+description: "Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases"
+---
+# Skill: pactkit-analyze
+
+Run a consistency check between Spec, Sprint Board, and Test Cases for a given Story.
+
+## Usage
+```
+/pactkit-analyze STORY-XXX
+```
+
+## What It Checks
+1. **Spec ↔ Board**: Every Requirement (`R{N}`) has a matching Board Task, and every Task traces to a Requirement.
+2. **Spec AC ↔ Test Case**: Every Acceptance Criteria item has a corresponding Scenario in the Test Case file.
+
+## Output
+Prints an alignment matrix and coverage report. Non-blocking — advisory only.
+"""
+
 SKILL_RELEASE_MD = """---
 name: pactkit-release
 description: "Version release: snapshot, archive, and Git tag"

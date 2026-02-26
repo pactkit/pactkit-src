@@ -1,5 +1,6 @@
 """PactKit configuration — load, validate, and generate pactkit.yaml."""
 import warnings
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
 
@@ -30,6 +31,7 @@ VALID_COMMANDS = frozenset({
     'project-sprint',
     'project-hotfix',
     'project-design',
+    'project-clarify',
 })
 
 VALID_SKILLS = frozenset({
@@ -72,6 +74,34 @@ DEPRECATED_COMMANDS = frozenset({
     'project-review',
     'project-release',
 })
+
+
+# ---------------------------------------------------------------------------
+# Enterprise configuration dataclasses (STORY-047)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class EnterpriseConfig:
+    """Enterprise environment configuration flags.
+
+    Supports air-gapped, TLS-inspected, CI/CD, and permission-restricted
+    environments.  All flags default to False (standard behavior).
+    """
+    no_git: bool = False           # disable all git operations
+    no_external: bool = False      # disable external network (MCP, gh CLI, pip install)
+    non_interactive: bool = False  # non-interactive mode (CI/CD, auto-accept defaults)
+    debug: bool = False            # verbose logging
+
+
+@dataclass
+class PactKitConfig:
+    """Structured representation of pactkit.yaml configuration.
+
+    Wraps the enterprise section as a typed EnterpriseConfig object.
+    The raw dict form is still used throughout the codebase; this class
+    is the typed interface for enterprise flag access.
+    """
+    enterprise: EnterpriseConfig = field(default_factory=EnterpriseConfig)
 
 
 # ---------------------------------------------------------------------------
@@ -185,6 +215,9 @@ def load_config(path: Path | str | None = None) -> dict:
             else:
                 # Shallow override for non-dict keys (strings, lists, booleans)
                 merged[key] = value
+        else:
+            # Pass through unknown/extension keys (e.g. multi_agent, enterprise)
+            merged[key] = value
 
     return merged
 
@@ -498,6 +531,9 @@ def validate_config(config: dict) -> None:
         venv_path = venv.get('path')
         if venv_path is not None and not isinstance(venv_path, str):
             warnings.warn(f"venv.path should be a string, got {type(venv_path).__name__}")
+
+    # enterprise section (STORY-047) — accepted without warnings
+    # multi_agent field (STORY-046) — accepted without warnings
 
 
 # ---------------------------------------------------------------------------
