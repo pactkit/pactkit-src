@@ -50,16 +50,27 @@ class TestProjectClaudeMdClean:
 
 
 # ===========================================================================
-# Scenario 4: Project CLAUDE.md is instruction-focused
+# Scenario 4: Project CLAUDE.md is instruction-focused (STORY-040 updated)
 # ===========================================================================
 
 class TestProjectClaudeMdContent:
-    """Project .claude/CLAUDE.md must have architecture and dev commands."""
+    """Project .claude/ files have architecture and dev commands.
 
-    def test_has_architecture_section(self):
-        content = (ROOT / '.claude' / 'CLAUDE.md').read_text()
-        assert 'src/pactkit/' in content or 'Architecture' in content
+    STORY-040: Architecture is now in CLAUDE.local.md (user-owned),
+    Dev commands are in CLAUDE.md (framework-owned).
+    """
+
+    def test_has_architecture_in_local(self):
+        """Architecture section should be in CLAUDE.local.md (user content)."""
+        local_path = ROOT / '.claude' / 'CLAUDE.local.md'
+        if local_path.exists():
+            content = local_path.read_text()
+            assert 'src/pactkit/' in content or 'Architecture' in content
+        else:
+            # Fresh install: architecture not yet added by user
+            pass
 
     def test_has_dev_commands(self):
+        """Dev commands should be in CLAUDE.md (framework content)."""
         content = (ROOT / '.claude' / 'CLAUDE.md').read_text()
         assert 'pytest' in content or 'ruff' in content

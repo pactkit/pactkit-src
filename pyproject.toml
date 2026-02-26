@@ -59,6 +59,10 @@ packages = ["src/pactkit"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "e2e: End-to-end CLI tests (subprocess-based)",
+    "integration: Integration tests that call deploy() with filesystem I/O",
+]
 
 [tool.ruff]
 target-version = "py310"

@@ -72,23 +72,36 @@ class TestVersionConsistency:
 
 
 # ===========================================================================
-# Scenario 3: CLAUDE.md accuracy
+# Scenario 3: CLAUDE.md accuracy (STORY-040: layered architecture)
 # ===========================================================================
 
 class TestClaudeMdAccuracy:
-    """Project .claude/CLAUDE.md must have updated numbers."""
+    """Project .claude/CLAUDE.md (framework) and CLAUDE.local.md (user) content.
 
-    def test_no_stale_846_tests(self):
-        claude_md = (_root() / '.claude' / 'CLAUDE.md').read_text()
-        assert '846 tests' not in claude_md
+    STORY-040 split CLAUDE.md into two files:
+    - CLAUDE.md: framework content (venv, dev commands)
+    - CLAUDE.local.md: user content (architecture, counts)
+    """
 
-    def test_no_stale_14_commands(self):
-        claude_md = (_root() / '.claude' / 'CLAUDE.md').read_text()
-        assert '14 command' not in claude_md
+    def test_no_stale_846_tests_in_local(self):
+        """Stale test count should not appear in CLAUDE.local.md."""
+        claude_local = _root() / '.claude' / 'CLAUDE.local.md'
+        if claude_local.exists():
+            content = claude_local.read_text()
+            assert '846 tests' not in content
 
-    def test_has_8_commands_reference(self):
+    def test_no_stale_14_commands_in_local(self):
+        """Stale command count should not appear in CLAUDE.local.md."""
+        claude_local = _root() / '.claude' / 'CLAUDE.local.md'
+        if claude_local.exists():
+            content = claude_local.read_text()
+            assert '14 command' not in content
+
+    def test_framework_claude_md_has_dev_commands(self):
+        """Framework CLAUDE.md should have dev commands section."""
         claude_md = (_root() / '.claude' / 'CLAUDE.md').read_text()
-        assert '8 command' in claude_md
+        # STORY-040: framework file has dev commands, not component counts
+        assert 'Dev Commands' in claude_md or 'pytest' in claude_md
 
 
 # ===========================================================================

@@ -2,6 +2,14 @@
 
 ## 📋 Backlog
 
+### STORY-041: Test Pyramid Restructuring — E2E Layer & Unit Test Rationalization (https://github.com/pactkit/pactkit/issues/27)
+- [x] R1: CLI E2E test suite (subprocess-based, 8+ scenarios)
+- [x] R2: E2E directory restructure (remove api/browser, create cli/)
+- [ ] R3: Integration test separation (deploy-calling tests → tests/integration/)
+- [ ] R4: Prompt string test consolidation (~770 → ~100 structural checks)
+- [ ] R5: Shared test fixtures (conftest.py)
+- [ ] R6: CI tiered test execution config
+
 ## ✅ Done
 
 ### STORY-040: Project CLAUDE.md Layered Architecture — Separate Framework and User Content (https://github.com/pactkit/pactkit/issues/26)
