@@ -232,6 +232,7 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
         {'name': 'pactkit-doctor', 'skill_md': prompts.SKILL_DOCTOR_MD},
         {'name': 'pactkit-review', 'skill_md': prompts.SKILL_REVIEW_MD},
         {'name': 'pactkit-release', 'skill_md': prompts.SKILL_RELEASE_MD},
+        {'name': 'pactkit-analyze', 'skill_md': prompts.SKILL_ANALYZE_MD},
     ]
 
     enabled_set = set(enabled_skills)

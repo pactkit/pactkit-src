@@ -24,6 +24,7 @@ from .rules import (
 from .skills import (
     BOARD_SOURCE,
     SCAFFOLD_SOURCE,
+    SKILL_ANALYZE_MD,
     SKILL_BOARD_MD,
     SKILL_DOCTOR_MD,
     SKILL_DRAW_MD,

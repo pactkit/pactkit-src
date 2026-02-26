@@ -44,6 +44,7 @@ VALID_SKILLS = frozenset({
     'pactkit-doctor',
     'pactkit-review',
     'pactkit-release',
+    'pactkit-analyze',
 })
 
 VALID_RULES = frozenset({

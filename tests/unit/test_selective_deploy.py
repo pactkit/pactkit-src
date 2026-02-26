@@ -229,7 +229,7 @@ class TestDeploymentSummary:
         output = capsys.readouterr().out
         assert '9/9 Agents' in output
         assert '9/9 Commands' in output
-        assert '9/9 Skills' in output
+        assert '10/10 Skills' in output
         assert '6/6 Rules' in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):

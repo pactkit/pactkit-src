@@ -7,7 +7,7 @@
 
 **Ship features with AI agents that follow specs, not vibes.**
 
-> PactKit gives Claude Code a structured operating system — 9 specialized agents, 8 commands, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
+> PactKit gives Claude Code a structured operating system — 9 specialized agents, 9 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
 
 ### What it looks like
 
@@ -40,11 +40,14 @@ Requires Python 3.10+ and [Claude Code](https://docs.anthropic.com/en/docs/claud
 ## Quick Start
 
 ```bash
-# Deploy full toolkit (8 commands + 9 agents + 9 skills)
+# Deploy full toolkit (9 commands + 9 agents + 10 skills)
 pactkit init
 
 # Update to latest playbooks (preserves your config)
 pactkit update
+
+# Deploy to multiple AI agents (Claude Code + Cursor + Copilot)
+pactkit init --agent all
 
 # Check installed version
 pactkit version
@@ -53,16 +56,19 @@ pactkit version
 Then in any project with Claude Code:
 
 ```bash
+# Clarify — Surface ambiguities before planning
+/project-clarify "Add user authentication"
+
 # Plan — Analyze requirements, create Spec
 /project-plan "Add user authentication"
 
-# Act — Implement with strict TDD
+# Act — Spec lint + consistency check + TDD implementation
 /project-act STORY-001
 
 # Check — Security scan + quality audit (P0-P3 severity)
 /project-check
 
-# Done — Safe regression gate + conventional commit
+# Done — Regression gate + auto-PR + conventional commit
 /project-done
 ```
 
@@ -76,10 +82,11 @@ Or run the full cycle in one command:
 
 | Phase | Command | Agent | What Happens |
 |-------|---------|-------|-------------|
-| **Plan** | `/project-plan` | System Architect | Codebase scan → Spec generation → Board entry |
-| **Act** | `/project-act` | Senior Developer | Visual scan → TDD loop → Regression check |
+| **Clarify** | `/project-clarify` | System Architect | Ambiguity detection → Structured questions → Clarified brief |
+| **Plan** | `/project-plan` | System Architect | Clarify gate → Codebase scan → Spec generation → Board entry |
+| **Act** | `/project-act` | Senior Developer | Spec lint → Consistency check → TDD loop → Regression check |
 | **Check** | `/project-check` | QA + Security | 6-phase deep audit (Security/Quality/Spec alignment) |
-| **Done** | `/project-done` | Repo Maintainer | Safe regression gate → Archive → Conventional commit |
+| **Done** | `/project-done` | Repo Maintainer | Regression gate → Auto-PR → Archive → Conventional commit |
 | **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration |
 | **Hotfix** | `/project-hotfix` | Senior Developer | Fast-track fix bypassing PDCA (with traceability) |
 | **Init** | `/project-init` | System Architect | Bootstrap project structure and governance |
@@ -91,6 +98,7 @@ Or run the full cycle in one command:
 |-------|-------------|---------|
 | Trace | Plan, Act | Call graph tracing → Sequence diagram |
 | Draw | Plan, Design | Generate Draw.io XML architecture diagrams |
+| Analyze | Act (Phase 0.6) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 | Status | Init | Cold-start project overview → Sprint + Git + Health report |
 | Doctor | Init | Configuration drift detection → Health report |
 | Review | Check | PR review with SOLID/Security/Quality checklists |
@@ -114,7 +122,7 @@ PactKit deploys 9 specialized agents, each with constrained tools and focused re
 
 ## Skills
 
-PactKit deploys 9 skills (3 scripted + 6 prompt-only), auto-invoked by commands:
+PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands:
 
 | Skill | Type | Purpose |
 |-------|------|---------|
@@ -123,6 +131,7 @@ PactKit deploys 9 skills (3 scripted + 6 prompt-only), auto-invoked by commands:
 | **pactkit-scaffold** | Scripted | File scaffolding: create spec, test files, git branches, skills |
 | **pactkit-trace** | Prompt-only | Deep code tracing and execution flow analysis |
 | **pactkit-draw** | Prompt-only | Generate Draw.io XML architecture diagrams |
+| **pactkit-analyze** | Prompt-only | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 | **pactkit-status** | Prompt-only | Cold-start project overview (sprint + git + health) |
 | **pactkit-doctor** | Prompt-only | Configuration drift detection and health report |
 | **pactkit-review** | Prompt-only | PR code review with SOLID/Security/Quality checklists |
@@ -179,9 +188,9 @@ PactKit deploys to `~/.claude/`:
 ~/.claude/
 ├── CLAUDE.md                 ← Modular constitution (entry point)
 ├── rules/                    ← 6 rule modules
-├── commands/                 ← 8 command playbooks
+├── commands/                 ← 9 command playbooks
 ├── agents/                   ← 9 agent definitions
-└── skills/                   ← 9 skill packages (3 scripted + 6 prompt-only)
+└── skills/                   ← 10 skill packages (3 scripted + 7 prompt-only)
     ├── pactkit-visualize/
     ├── pactkit-board/
     └── pactkit-scaffold/
@@ -197,8 +206,8 @@ The `pactkit.yaml` file controls which components are deployed and how they beha
 | `version` | string | current | PactKit version that generated the config |
 | `root` | string | `.` | Project root directory (deployment target resolves to `~/.claude` by default) |
 | `agents` | list | all 9 | Agent definitions to deploy |
-| `commands` | list | all 8 | Command playbooks to deploy |
-| `skills` | list | all 9 | Skills to deploy |
+| `commands` | list | all 9 | Command playbooks to deploy |
+| `skills` | list | all 10 | Skills to deploy |
 | `rules` | list | all 6 | Constitution rule modules to deploy |
 | `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`, `exclude.commands: [cmd-name]`) |
 | `ci` | object | `provider: none` | CI/CD pipeline generation; `ci.provider` supports `github`, `gitlab`, `none` |
@@ -208,6 +217,7 @@ The `pactkit.yaml` file controls which components are deployed and how they beha
 | `auto_fix` | bool | `false` | Whether to auto-fix lint errors before checking |
 | `agent_models` | object | `{}` | Per-agent model overrides (values: `haiku`, `sonnet`, `opus`, `inherit`) |
 | `rule_scopes` | object | `{}` | Map rule IDs to glob patterns for context-aware scoping |
+| `enterprise` | object | all `false` | Enterprise flags: `no_git`, `no_external`, `non_interactive`, `debug` |
 
 ## MCP Integration
 

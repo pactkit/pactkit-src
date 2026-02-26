@@ -15,15 +15,15 @@ def _root():
 # ===========================================================================
 
 class TestReadmeAccuracy:
-    """README must reflect 8 commands and 9 skills."""
+    """README must reflect 9 commands and 10 skills."""
 
     def test_command_count_in_tagline(self):
         readme = (_root() / 'README.md').read_text()
-        assert '8 commands' in readme
+        assert '9 commands' in readme
 
     def test_command_count_in_quickstart(self):
         readme = (_root() / 'README.md').read_text()
-        assert '8 commands' in readme
+        assert '9 commands' in readme
 
     def test_no_stale_14_commands(self):
         readme = (_root() / 'README.md').read_text()
@@ -35,9 +35,9 @@ class TestReadmeAccuracy:
         readme = (_root() / 'README.md').read_text()
         assert 'pactkit-status' in readme or 'Status' in readme
 
-    def test_8_command_playbooks_in_config(self):
+    def test_9_command_playbooks_in_config(self):
         readme = (_root() / 'README.md').read_text()
-        assert '8 command playbooks' in readme or '8 command' in readme
+        assert '9 command playbooks' in readme or '9 command' in readme
 
 
 # ===========================================================================

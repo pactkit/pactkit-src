@@ -39,7 +39,7 @@ class TestGetDefaultConfig:
 
     def test_default_skills_count(self):
         cfg = _config().get_default_config()
-        assert len(cfg['skills']) == 9
+        assert len(cfg['skills']) == 10
 
     def test_default_rules_count(self):
         cfg = _config().get_default_config()

@@ -124,7 +124,7 @@ class TestPromptModuleCounts:
         assert len(prompts.AGENTS_EXPERT) == 9
 
     def test_skill_count(self):
-        """Should have 9 skill definitions."""
+        """Should have 10 skill definitions."""
         # Count skill constants
         skill_attrs = [a for a in dir(prompts) if a.startswith('SKILL_') and a.endswith('_MD')]
-        assert len(skill_attrs) == 9
+        assert len(skill_attrs) == 10

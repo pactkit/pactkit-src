@@ -96,7 +96,7 @@ Format: `type(scope): description`
 
     'routing': """# Command Reference (Routing Table)
 
-## Commands (8 user-facing entry points)
+## Commands (9 user-facing entry points)
 
 ### Init (`/project-init`)
 - **Role**: System Architect
@@ -148,6 +148,7 @@ Format: `type(scope): description`
 | `pactkit-doctor` | Init auto-check | Diagnose project health |
 | `pactkit-review` | Check Phase 4 (PR variant) | PR Code Review |
 | `pactkit-release` | Done Phase 3.8 (version release) | Version release: snapshot, archive, Tag |
+| `pactkit-analyze` | Act Phase 0.6 | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 """,
 
     'mcp': """# MCP Integration (Conditional)

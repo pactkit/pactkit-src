@@ -96,7 +96,7 @@ class TestSkillPromotion:
 
     def test_valid_skills_count(self):
         cfg = _config()
-        assert len(cfg.VALID_SKILLS) == 9
+        assert len(cfg.VALID_SKILLS) == 10
 
     def test_new_skills_present(self):
         cfg = _config()
@@ -133,10 +133,10 @@ class TestSkillPromotion:
             assert content.strip().startswith('---'), \
                 f"{var_name} should have YAML frontmatter"
 
-    def test_default_config_has_9_skills(self):
+    def test_default_config_has_10_skills(self):
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['skills']) == 9
+        assert len(default['skills']) == 10
 
     def test_default_config_has_9_commands(self):
         cfg = _config()
@@ -260,13 +260,13 @@ class TestAgentSkillReferences:
 # ===========================================================================
 
 class TestDeployerSkillCount:
-    """Deployer must deploy 9 skills."""
+    """Deployer must deploy 10 skills."""
 
     def test_deploy_all_skills(self, tmp_path):
         from pactkit.generators.deployer import _deploy_skills
         all_skills = sorted(_config().VALID_SKILLS)
         count = _deploy_skills(tmp_path, all_skills)
-        assert count == 9
+        assert count == 10
 
     def test_prompt_only_skills_have_skill_md(self, tmp_path):
         """New prompt-only skills should have SKILL.md but not necessarily a script."""

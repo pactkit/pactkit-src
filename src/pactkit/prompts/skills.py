@@ -457,6 +457,7 @@ Structured PR code review with severity-ranked findings.
 """
 
 SKILL_ANALYZE_MD = """---
+name: pactkit-analyze
 description: "Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases"
 ---
 # Skill: pactkit-analyze
