@@ -4,6 +4,19 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.0] - 2026-02-26
+
+### Added
+- **Spec Linter (Non-AI Structural Gate)** — `spec_linter.py` enforces 8 ERROR rules (metadata completeness, AC structure, Given/When/Then, no TBD release) and 4 WARN rules before any Act phase; Plan phase runs self-check after Spec generation; `pactkit spec-lint --all` for batch validation (STORY-042)
+- **Active Clarify Gate** — Plan Phase 0.7 auto-detects ambiguous requirements using AMBIGUITY_SIGNALS checklist and generates structured questions (Scope/Users/Constraints/Scale/Edge Cases/Non-Goals); Greenfield projects force-trigger clarification; new `/project-clarify` standalone command (STORY-043)
+- **Pre-Act Consistency Check** — Act Phase 0.6 advisory check cross-references Spec requirements with Board tasks and AC items with Test Case coverage; non-blocking with alignment matrix output; `pactkit-analyze` skill added (STORY-044)
+- **Auto-PR Enhancement** — Done Phase 4.2 generates structured PR body from Spec/Board/test results with Summary, Changes, Acceptance Criteria checklist, and Test Results sections; user confirmation gate; gh CLI fallback (STORY-045)
+- **Multi-Agent Compatibility Layer** — `generators/adapter.py` transforms Claude Code playbooks to Cursor (.mdc), GitHub Copilot (single file), and generic (.ai/) formats; `pactkit init/update --agent {claude,cursor,copilot,generic,all}` deploys to agent-specific directories (STORY-046)
+- **Enterprise Configuration Flags** — `EnterpriseConfig` dataclass in `pactkit.yaml` supports `no_git`, `no_external`, `non_interactive`, `debug` fields; CLI flags `--no-git`, `--no-external`, `--non-interactive` override yaml config for air-gapped/CI environments (STORY-047)
+
+### Fixed
+- **Spec Linter code-block false positive** — Section parser now strips fenced code blocks before heading detection; `## Section` inside ``` examples no longer shadows real sections
+
 ## [1.3.1] - 2026-02-25
 
 ### Fixed
