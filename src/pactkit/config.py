@@ -143,6 +143,7 @@ def get_default_config() -> dict:
         },
         'check': {
             'security_checklist': True,
+            'security_scope_override': 'none',
         },
         'done': {
             'lesson_quality_threshold': 15,
@@ -440,13 +441,15 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
         lines.append('')
 
-    # Write check section (STORY-055)
+    # Write check section (STORY-055, STORY-056)
     check = data.get('check', {})
     if isinstance(check, dict):
         lines.append('# Check — configure QA verification behavior')
         lines.append('check:')
         sc = check.get('security_checklist', True)
         lines.append(f'  security_checklist: {"true" if sc else "false"}')
+        sso = check.get('security_scope_override', 'none')
+        lines.append(f'  security_scope_override: {sso}')
         lines.append('')
 
     # Write done section (STORY-055)
@@ -618,7 +621,7 @@ def validate_config(config: dict) -> None:
                 f"got {max_impact!r}"
             )
 
-    # Validate check section (STORY-055)
+    # Validate check section (STORY-055, STORY-056)
     check = config.get('check', {})
     if isinstance(check, dict):
         sc = check.get('security_checklist', True)
@@ -626,6 +629,12 @@ def validate_config(config: dict) -> None:
             warnings.warn(
                 f"check.security_checklist should be a boolean (true/false), "
                 f"got {type(sc).__name__}"
+            )
+        sso = check.get('security_scope_override', 'none')
+        if sso not in ('none', 'full'):
+            warnings.warn(
+                f"check.security_scope_override should be 'none' or 'full', "
+                f"got {sso!r}"
             )
 
     # Validate done section (STORY-055)
@@ -717,12 +726,14 @@ def generate_default_yaml() -> str:
     lines.append(f'  strategy: {regression.get("strategy", "impact")}')
     lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
 
-    # Write check section (STORY-055)
+    # Write check section (STORY-055, STORY-056)
     check = cfg.get('check', {})
     lines.extend(['', '# Check — configure QA verification behavior'])
     lines.append('check:')
     sc = check.get('security_checklist', True)
     lines.append(f'  security_checklist: {"true" if sc else "false"}')
+    sso = check.get('security_scope_override', 'none')
+    lines.append(f'  security_scope_override: {sso}')
 
     # Write done section (STORY-055)
     done_cfg = cfg.get('done', {})

@@ -684,3 +684,13 @@
   - [x] Update _rewrite_yaml to use __version__
   - [x] Add unit tests
   - [x] Add E2E tests
+
+### STORY-056: Security Check Scope Filtering [#42](https://github.com/pactkit/pactkit/issues/42)
+- **Priority**: P1
+- **Spec**: [docs/specs/STORY-056.md](../specs/STORY-056.md)
+- **Tasks**:
+  - [x] Add Security Scope generation to Plan Phase 3
+  - [x] Add Scope parsing to Check Phase 0
+  - [x] Modify Check Phase 1 to skip non-applicable checks
+  - [x] Add config option `check.security_scope_override`
+  - [x] Add unit tests
