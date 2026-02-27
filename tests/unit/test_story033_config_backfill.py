@@ -220,6 +220,7 @@ class TestAC4BackfillReport:
             'lint_blocking: false\n'
             'auto_fix: false\n'
             'venv:\n  auto_detect: true\n'
+            'release:\n  github_release: false\n'
         )
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
@@ -231,8 +232,8 @@ class TestAC4BackfillReport:
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
-        # 4 list-type (agents, commands, skills, rules) + 6 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix, venv)
-        assert len(section_reports) == 10
+        # 4 list-type (agents, commands, skills, rules) + 7 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix, venv, release)
+        assert len(section_reports) == 11
 
 
 # ===========================================================================

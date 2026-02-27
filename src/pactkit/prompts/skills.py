@@ -511,7 +511,10 @@ Version release management — update versions, snapshot architecture, create Gi
 - Commit: `git commit -am "chore(release): $VERSION"`.
 - Tag: `git tag $VERSION`.
 
-### 4. GitHub Release
+### 4. GitHub Release (Conditional)
+- **Check config**: Read `pactkit.yaml` for `release.github_release`.
+  - If `release.github_release: true`: proceed with GitHub Release creation.
+  - If `release.github_release: false` or section missing: log "GitHub Release: SKIP — not configured" and stop.
 - Extract the `[$VERSION]` section from `CHANGELOG.md` as release notes.
 - Create a GitHub Release: `gh release create $VERSION --title "$VERSION" --notes "$NOTES"`.
 - Verify: `gh release view $VERSION` confirms the release exists and is marked Latest.

@@ -132,6 +132,9 @@ def get_default_config() -> dict:
         'venv': {
             'auto_detect': True,
         },
+        'release': {
+            'github_release': False,
+        },
     }
 
 
@@ -204,7 +207,7 @@ def load_config(path: Path | str | None = None) -> dict:
         return default
 
     # Keys that require deep merge (nested dict sections)
-    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker'}
+    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker', 'release'}
 
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
@@ -288,7 +291,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
 
     # --- Non-list sections: backfill missing with defaults (STORY-033, STORY-039) ---
     defaults = get_default_config()
-    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv')
+    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv', 'release')
     for key in _BACKFILL_KEYS:
         if key not in user_data:
             user_data[key] = defaults[key]
@@ -310,7 +313,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         'version', 'stack', 'root',
         'agents', 'commands', 'skills', 'rules',
         'exclude', 'ci', 'issue_tracker', 'hooks',
-        'lint_blocking', 'auto_fix', 'venv',
+        'lint_blocking', 'auto_fix', 'venv', 'release',
         'agent_models', 'rule_scopes',
     }
 
@@ -397,6 +400,14 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append(f'  auto_detect: {"true" if auto_detect else "false"}')
         if 'path' in venv:
             lines.append(f'  path: {venv["path"]}')
+        lines.append('')
+
+    # Write release section (STORY-052)
+    release = data.get('release', {})
+    if isinstance(release, dict):
+        lines.append('# Release — configure release automation behavior')
+        lines.append('release:')
+        lines.append(f'  github_release: {"true" if release.get("github_release") else "false"}')
         lines.append('')
 
     # Write agent_models section if present (BUG-010)
@@ -534,6 +545,16 @@ def validate_config(config: dict) -> None:
         if venv_path is not None and not isinstance(venv_path, str):
             warnings.warn(f"venv.path should be a string, got {type(venv_path).__name__}")
 
+    # Validate release section (STORY-052)
+    release = config.get('release', {})
+    if isinstance(release, dict):
+        github_release = release.get('github_release', False)
+        if not isinstance(github_release, bool):
+            warnings.warn(
+                f"release.github_release should be a boolean (true/false), "
+                f"got {type(github_release).__name__}"
+            )
+
     # enterprise section (STORY-047) — accepted without warnings
     # multi_agent field (STORY-046) — accepted without warnings
 
@@ -599,6 +620,12 @@ def generate_default_yaml() -> str:
     lines.append('venv:')
     lines.append(f'  auto_detect: {"true" if venv.get("auto_detect", True) else "false"}')
     # Don't include path in default — let auto_detect find it
+
+    # Write release section (STORY-052)
+    release = cfg.get('release', {})
+    lines.extend(['', '# Release — configure release automation behavior'])
+    lines.append('release:')
+    lines.append(f'  github_release: {"true" if release.get("github_release") else "false"}')
 
     lines.append('')  # trailing newline
     return '\n'.join(lines)

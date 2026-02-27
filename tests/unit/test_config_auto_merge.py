@@ -279,6 +279,7 @@ class TestBackwardCompatibility:
             'lint_blocking': False,
             'auto_fix': False,
             'venv': {'auto_detect': True},
+            'release': {'github_release': False},
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
@@ -395,6 +396,7 @@ class TestDeployerIntegration:
             'lint_blocking': False,
             'auto_fix': False,
             'venv': {'auto_detect': True},
+            'release': {'github_release': False},
         })
 
         with patch.object(Path, 'home', return_value=tmp_path), \

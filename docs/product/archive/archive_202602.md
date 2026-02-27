@@ -634,3 +634,11 @@
 - [x] R1: Command 委托给 Skill
 - [x] R2: Skill 增加版本自动检测
 - [x] R3: 功能对齐（含 GitHub Release）
+
+### [STORY-052] Conditional GitHub Release in pactkit-release [#37](https://github.com/pactkit/pactkit/issues/37)
+> Spec: docs/specs/STORY-052.md
+
+- [x] R1: Add release config section to pactkit.yaml
+- [x] R2: Conditional GitHub Release in skill Step 4
+- [x] R3: Config backfill for release section
+- [x] R4: Validation for new section
