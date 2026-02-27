@@ -89,7 +89,7 @@ Or run the full cycle in one command:
 | **Clarify** | `/project-clarify` | System Architect | Ambiguity detection → Structured questions → Clarified brief |
 | **Plan** | `/project-plan` | System Architect | Clarify gate → Codebase scan → Spec generation → Board entry |
 | **Act** | `/project-act` | Senior Developer | Spec lint → Consistency check → TDD loop → Regression check |
-| **Check** | `/project-check` | QA + Security | 6-phase deep audit (Security/Quality/Spec alignment) |
+| **Check** | `/project-check` | QA + Security | 8-item security checklist + quality audit + spec alignment |
 | **Done** | `/project-done` | Repo Maintainer | Regression gate → Auto-PR → Archive → Conventional commit |
 | **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration |
 | **Hotfix** | `/project-hotfix` | Senior Developer | Fast-track fix bypassing PDCA (with traceability) |
@@ -219,6 +219,8 @@ The `pactkit.yaml` file controls which components are deployed and how they beha
 | `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push); command-type only, report-only |
 | `lint_blocking` | bool | `false` | Whether lint failures block commits in Done command |
 | `auto_fix` | bool | `false` | Whether to auto-fix lint errors before checking |
+| `check.security_checklist` | bool | `true` | Enable 8-item structured security checklist in Check phase |
+| `done.lesson_quality_threshold` | int | `15` | Minimum quality score (0-25) for lessons to be auto-appended |
 | `agent_models` | object | `{}` | Per-agent model overrides (values: `haiku`, `sonnet`, `opus`, `inherit`) |
 | `rule_scopes` | object | `{}` | Map rule IDs to glob patterns for context-aware scoping |
 | `enterprise` | object | all `false` | Enterprise flags: `no_git`, `no_external`, `non_interactive`, `debug` |
