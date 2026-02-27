@@ -202,7 +202,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Normal TDD failures** (`AssertionError`, `TypeError`, `ValueError`, etc.) proceed normally — modify your source code and iterate.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
-    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`. If zero source files were changed (only `.md`, `.yml`, `docs/`, `.github/`, etc.), skip the broader regression — the TDD loop already validated the new tests. Log: `"Regression: SKIP — doc-only change, no source files modified"`. Proceed to Step 4 (Lint).
+    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`. If zero source files were changed (only `.md`, `.yml`, `docs/`, `.github/`, etc.), skip the broader regression — the TDD loop already validated the new tests. Log: `"Regression: SKIP — doc-only change, no source files modified"`. Proceed to Phase 4.
     - **Map to related tests**: For each changed file, find its corresponding test file using the `test_map_pattern` in `LANG_PROFILES`.
     - **Scope decision**: Check if any changed file is imported by 3+ other modules in `code_graph.mmd`. If yes, run the **full test suite**. If no (low fan-in, isolated change), run only the **mapped test files**.
     - **Fallback**: If no test mapping can be determined, or `code_graph.mmd` does not exist, fall back to the full test suite.
