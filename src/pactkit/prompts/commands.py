@@ -92,6 +92,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
     - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `.claude/pactkit.yaml` (or `pyproject.toml`). Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
+    - **OPTIONAL — Implementation Steps**: If Phase 1 Trace identifies 2+ files to modify, add `## Implementation Steps` section with table format:
+      ```
+      | Step | File | Action | Dependencies | Risk |
+      |------|------|--------|--------------|------|
+      | 1 | `src/foo.py` | Description | None | Low |
+      ```
+      The `Dependencies` column accepts `None`, `Step N`, or comma-separated step references. The `Risk` column accepts `Low`, `Medium`, `High`. This section is optional but RECOMMENDED for multi-file changes.
     - **Spec Lint Self-Check**: After writing the Spec, run `python3 src/pactkit/skills/spec_linter.py docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
 2.  **Board**: Add Story using `add_story`.
 3.  **Memory MCP (Conditional)**: IF `mcp__memory__create_entities` tool is available, store the design context:
@@ -257,18 +264,30 @@ allowed-tools: [Read, Bash, Grep, Glob]
 4.  **Gap Analysis**: Do we have a structured Test Case? If not, plan to create one.
 
 ## Phase 1: Security Scan (OWASP+)
-Apply a comprehensive security checklist to all code related to the Story:
+> **Config**: If `pactkit.yaml` contains `check.security_checklist: false`, skip this phase and log: "Security checklist disabled via config".
 
-- **Input/Output Safety**: XSS, Injection (SQL/NoSQL/command), SSRF, path traversal
-- **AuthN/AuthZ**: Missing auth guards, tenant checks, IDOR, session fixation
-- **Race Condition**: TOCTOU (check-then-act), concurrent read-modify-write, missing locks
-- **Secrets & PII**: API keys in code/logs, excessive PII logging, hardcoded credentials
-- **Runtime Risks**: Unbounded loops, missing timeouts, resource exhaustion, ReDoS
-- **Cryptography**: Weak algorithms (MD5/SHA1), hardcoded IVs, encryption without authentication
-- **Supply Chain**: Unpinned dependencies, dependency confusion, known CVEs
+Evaluate all code related to the Story against this structured 8-item checklist. For each item, output **PASS**, **FAIL**, or **N/A** (not applicable to this story).
 
-For each finding, assign a severity (P0-P3) and note both exploitability and impact.
-If a P0 issue is found, report it immediately — do not wait for the full scan.
+| ID | Category | Check |
+|----|----------|-------|
+| SEC-1 | Secrets | No hardcoded API keys, tokens, or passwords in source code |
+| SEC-2 | Input | All user inputs validated (schema validation or whitelist) |
+| SEC-3 | SQL | All database queries use parameterized queries (no string concat) |
+| SEC-4 | XSS | User-provided content sanitized before rendering |
+| SEC-5 | Auth | Authentication tokens in httpOnly cookies (not localStorage) |
+| SEC-6 | Rate | Rate limiting configured on public endpoints |
+| SEC-7 | Error | Error messages do not expose stack traces or internal paths |
+| SEC-8 | Deps | No known CVEs in dependencies (npm audit / pip-audit clean) |
+
+**Severity rules**:
+- Any **FAIL** on SEC-1 through SEC-5 → classify as **P0 Critical** — report immediately, do not wait for full scan.
+- Any **FAIL** on SEC-6 through SEC-8 → classify as **P1 High**.
+
+**Additional OWASP patterns to consider**: Injection (SQL/NoSQL/command injection), SSRF (Server-Side Request Forgery), Race Condition / TOCTOU (Time-of-Check-Time-of-Use), path traversal, session fixation. Flag any occurrence as P0 if exploitable.
+
+**Cross-phase linkage (R5.1)**: If the Spec contains `## Implementation Steps` with Risk=High items, prioritize those files for security review.
+
+Include the checklist results in Phase 5 Verdict under `### Security Checklist`.
 
 ## Phase 2: Code Quality Scan
 Apply a code quality checklist to all code related to the Story:
@@ -354,6 +373,18 @@ Choose the strategy identified in Phase 0:
 ### Spec Alignment
 - [x] S1: ... (Covered)
 - [ ] S2: ... (Gap)
+
+### Security Checklist
+| ID | Check | Result |
+|----|-------|--------|
+| SEC-1 | Secrets | PASS/FAIL/N/A |
+| SEC-2 | Input | PASS/FAIL/N/A |
+| SEC-3 | SQL | PASS/FAIL/N/A |
+| SEC-4 | XSS | PASS/FAIL/N/A |
+| SEC-5 | Auth | PASS/FAIL/N/A |
+| SEC-6 | Rate | PASS/FAIL/N/A |
+| SEC-7 | Error | PASS/FAIL/N/A |
+| SEC-8 | Deps | PASS/FAIL/N/A |
 
 ### Test Results
 - Unit: X passed, Y failed
@@ -510,11 +541,20 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 2.  **Auto-Fix**:
     - If tests are GREEN but tasks are `[ ]`, **Ask the user**: "Tests passed but tasks are unchecked. Mark as done?"
     - If user agrees, update `sprint_board.md` immediately.
-3.  **Lessons Auto-append (MANDATORY)**: Append a new row to `docs/architecture/governance/lessons.md`:
-    - Format: `| {YYYY-MM-DD} | {one-line summary of what was learned} | {STORY_ID} |`
-    - Date: today's date
-    - Summary: one sentence describing the key insight, pattern, or pitfall from this Story
-    - This is NOT conditional on Memory MCP — always append to lessons.md
+3.  **Lessons Auto-append with Quality Gate (MANDATORY)**: Evaluate the lesson before appending to `docs/architecture/governance/lessons.md`:
+    - **Step 1 — Score** the lesson on 5 dimensions (1=Low, 3=Medium, 5=High):
+      | Dimension | 1 (Low) | 3 (Medium) | 5 (High) |
+      |-----------|---------|------------|----------|
+      | Specificity | Abstract principles only | Has code example | Covers all usage patterns |
+      | Actionability | Unclear what to do | Main steps understandable | Immediately actionable |
+      | Scope Fit | Too broad or narrow | Mostly appropriate | Name and content aligned |
+      | Non-redundancy | Nearly identical to existing | Some unique perspective | Completely unique value |
+      | Coverage | Partial coverage | Main cases covered | Includes edge cases |
+    - **Step 2 — Bonus**: If Check Phase produced any P0 or P1 findings that inspired this lesson, add **+3** to the total.
+    - **Step 3 — Gate**: Read `done.lesson_quality_threshold` from `pactkit.yaml` (default: **15**).
+      - If total score < threshold: **do NOT append**. Log: `"Lesson skipped (score {N}/25 < threshold {T})"`
+      - If total score >= threshold: append row with format: `| {YYYY-MM-DD} | {summary} (score: {N}/25) | {STORY_ID} |`
+    - This is NOT conditional on Memory MCP — always evaluate and either append or log skip.
 4.  **Invariants Refresh (MANDATORY)**: Update the Invariants section in `docs/architecture/governance/rules.md`:
     - Read the current `rules.md` file.
     - Update the test count to match the actual number from the most recent test run (e.g., "All {N}+ tests must pass").

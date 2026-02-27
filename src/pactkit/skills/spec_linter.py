@@ -162,6 +162,22 @@ def _check_acceptance_criteria(text: str, result: LintResult) -> None:
         ))
 
 
+_PIPE_TABLE_ROW = re.compile(r'^\|.+\|.+\|', re.MULTILINE)
+
+
+def _check_implementation_steps(text: str, result: LintResult) -> None:
+    """W005 — Implementation Steps table format validation (STORY-055)."""
+    section = _section_text(text, "Implementation Steps")
+    if section is None:
+        return  # section absent — no warning
+    if not _PIPE_TABLE_ROW.search(section):
+        result.warnings.append(LintIssue(
+            "W005",
+            "## Implementation Steps exists but has no pipe table "
+            "(expected columns: Step, File, Action, Dependencies, Risk)"
+        ))
+
+
 def _check_optional_sections(text: str, result: LintResult) -> None:
     """W001, W002, W004 — recommended sections."""
     if _section_text(text, "Background") is None:
@@ -204,6 +220,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_requirements_section(text, result)
     _check_acceptance_criteria(text, result)
     _check_optional_sections(text, result)
+    _check_implementation_steps(text, result)
     return result
 
 

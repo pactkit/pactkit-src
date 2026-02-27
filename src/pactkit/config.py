@@ -139,6 +139,12 @@ def get_default_config() -> dict:
             'strategy': 'impact',
             'max_impact_tests': 50,
         },
+        'check': {
+            'security_checklist': True,
+        },
+        'done': {
+            'lesson_quality_threshold': 15,
+        },
     }
 
 
@@ -211,7 +217,7 @@ def load_config(path: Path | str | None = None) -> dict:
         return default
 
     # Keys that require deep merge (nested dict sections)
-    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker', 'release', 'regression'}
+    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker', 'release', 'regression', 'check', 'done'}
 
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
@@ -295,7 +301,10 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
 
     # --- Non-list sections: backfill missing with defaults (STORY-033, STORY-039) ---
     defaults = get_default_config()
-    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv', 'release', 'regression')
+    _BACKFILL_KEYS = (
+        'ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix',
+        'venv', 'release', 'regression', 'check', 'done',
+    )
     for key in _BACKFILL_KEYS:
         if key not in user_data:
             user_data[key] = defaults[key]
@@ -318,6 +327,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         'agents', 'commands', 'skills', 'rules',
         'exclude', 'ci', 'issue_tracker', 'hooks',
         'lint_blocking', 'auto_fix', 'venv', 'release', 'regression',
+        'check', 'done',
         'agent_models', 'rule_scopes',
     }
 
@@ -421,6 +431,24 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append('regression:')
         lines.append(f'  strategy: {regression.get("strategy", "impact")}')
         lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
+        lines.append('')
+
+    # Write check section (STORY-055)
+    check = data.get('check', {})
+    if isinstance(check, dict):
+        lines.append('# Check — configure QA verification behavior')
+        lines.append('check:')
+        sc = check.get('security_checklist', True)
+        lines.append(f'  security_checklist: {"true" if sc else "false"}')
+        lines.append('')
+
+    # Write done section (STORY-055)
+    done_cfg = data.get('done', {})
+    if isinstance(done_cfg, dict):
+        lines.append('# Done — configure commit and lesson quality behavior')
+        lines.append('done:')
+        threshold = done_cfg.get('lesson_quality_threshold', 15)
+        lines.append(f'  lesson_quality_threshold: {threshold}')
         lines.append('')
 
     # Write agent_models section if present (BUG-010)
@@ -583,6 +611,26 @@ def validate_config(config: dict) -> None:
                 f"got {max_impact!r}"
             )
 
+    # Validate check section (STORY-055)
+    check = config.get('check', {})
+    if isinstance(check, dict):
+        sc = check.get('security_checklist', True)
+        if not isinstance(sc, bool):
+            warnings.warn(
+                f"check.security_checklist should be a boolean (true/false), "
+                f"got {type(sc).__name__}"
+            )
+
+    # Validate done section (STORY-055)
+    done_cfg = config.get('done', {})
+    if isinstance(done_cfg, dict):
+        threshold = done_cfg.get('lesson_quality_threshold', 15)
+        if not isinstance(threshold, int) or threshold < 0 or threshold > 25:
+            warnings.warn(
+                f"done.lesson_quality_threshold should be an integer 0-25, "
+                f"got {threshold!r}"
+            )
+
     # enterprise section (STORY-047) — accepted without warnings
     # multi_agent field (STORY-046) — accepted without warnings
 
@@ -661,6 +709,19 @@ def generate_default_yaml() -> str:
     lines.append('regression:')
     lines.append(f'  strategy: {regression.get("strategy", "impact")}')
     lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
+
+    # Write check section (STORY-055)
+    check = cfg.get('check', {})
+    lines.extend(['', '# Check — configure QA verification behavior'])
+    lines.append('check:')
+    sc = check.get('security_checklist', True)
+    lines.append(f'  security_checklist: {"true" if sc else "false"}')
+
+    # Write done section (STORY-055)
+    done_cfg = cfg.get('done', {})
+    lines.extend(['', '# Done — configure commit and lesson quality behavior'])
+    lines.append('done:')
+    lines.append(f'  lesson_quality_threshold: {done_cfg.get("lesson_quality_threshold", 15)}')
 
     lines.append('')  # trailing newline
     return '\n'.join(lines)

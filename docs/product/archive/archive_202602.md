@@ -663,3 +663,15 @@
   - [x] T3: AC5 — no-empty-file test
   - [x] T4: AC6–AC7 — frontmatter and CLAUDE.md tests
   - [x] T5: Run full test suite, verify pass (1805 passed)
+
+### STORY-055: PDCA Quality Gates Enhancement [#40](https://github.com/pactkit/pactkit/issues/40)
+> Enhance PDCA workflow with structured security checklists, lesson quality scoring, and implementation step planning.
+
+**Tasks**:
+- [x] R1: Add `## Implementation Steps` template to Plan Phase 3.1
+- [x] R1.5: Add WARN rule to Spec Linter for Implementation Steps format
+- [x] R2: Replace Check Phase 1 prose with 8-item security checklist
+- [x] R3: Add 5-dimension lesson quality scoring to Done Phase 3.3
+- [x] R4: Add `check` and `done` config sections to pactkit.yaml
+- [x] R5: Implement cross-phase linkage (Risk→Security, FAIL→Lesson)
+- [x] T7: Run full test suite, verify pass (1857 passed)
