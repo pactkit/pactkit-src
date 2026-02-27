@@ -479,16 +479,20 @@ Prints an alignment matrix and coverage report. Non-blocking — advisory only.
 
 SKILL_RELEASE_MD = """---
 name: pactkit-release
-description: "Version release: snapshot, archive, and Git tag"
+description: "Version release: snapshot, archive, Git tag, and GitHub Release"
 ---
 
 # PactKit Release
 
-Version release management — update versions, snapshot architecture, create Git tags.
+Version release management — update versions, snapshot architecture, create Git tags, and publish GitHub Releases.
 
 ## When Invoked
-- **Done Phase 4** (release variant): When a version bump story is being closed.
-- Standalone release workflow when cutting a new version.
+- **`/project-release` command**: VERSION is passed explicitly from the command's pre-flight check.
+- **Standalone / legacy path**: VERSION is not provided — auto-detected from `pyproject.toml`.
+
+## Version Parameter
+- If `VERSION` is provided (e.g., by `/project-release`): use it directly, skip auto-detection.
+- If version is not provided: auto-detect by running `git diff HEAD~1 pyproject.toml | grep version` and extracting the new value.
 
 ## Protocol
 

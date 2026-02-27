@@ -698,7 +698,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 """,
 
     "project-release.md": """---
-description: "Version release: snapshot, archive, and Git tag"
+description: "Version release: snapshot, archive, Git tag, and GitHub Release"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
 ---
 
@@ -709,23 +709,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🧠 Phase 0: Pre-flight Check
 1.  **Version Detection**: Check if `pyproject.toml` version was changed vs the previous commit.
     - Run `git diff HEAD~1 pyproject.toml | grep version` (or vs branch base)
+    - Capture the new version value (e.g., `1.4.1`).
     - If no version change detected: print "ℹ️ No version bump detected. Update `pyproject.toml` version before releasing." and STOP.
 2.  **Read Config**: Read `pactkit.yaml` to detect stack and release configuration.
 
-## 🎬 Phase 1: Snapshot & Archive
-1.  **Create Snapshots**: Run snapshot via pactkit-board skill:
-    - `python3 ~/.claude/skills/pactkit-board/scripts/board.py snapshot`
-2.  **Verify Snapshots**: Check that `docs/architecture/snapshots/{version}_*.mmd` files exist.
-    - If missing: report "❌ Snapshot verification failed: expected files in snapshots/ for {version}."
-3.  **Archive**: Run `python3 ~/.claude/skills/pactkit-board/scripts/board.py archive`.
-
-## 🎬 Phase 2: Git Tag
-1.  **Format**: Tag format: `v{version}` (e.g., `v1.4.0`)
-2.  **Create Tag**: `git tag v{version} -m "Release v{version}"`
-3.  **Confirm Push**: Ask user: "Push tag v{version} to remote? (yes/no)"
-    - `yes` → `git push origin v{version}`
-    - `no` → tag created locally only
-4.  **Output**: Print "✅ Release v{version} tagged."
+## 🎬 Phase 1: Invoke pactkit-release Skill
+1.  **Delegate to skill**: Invoke the `pactkit-release` skill with `VERSION={version}` from Phase 0.
+    - The skill handles the full release protocol:
+      Version Update → Spec Backfill → Architecture Snapshot → Git Operations → GitHub Release.
+    - Pass the detected version so the skill skips its own auto-detection step.
 """,
 
     "project-pr.md": """---

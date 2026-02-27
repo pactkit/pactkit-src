@@ -161,12 +161,15 @@ class TestDeployedArtifacts:
                     )
 
     def test_deployed_skills_no_stale_slash_commands(self, tmp_path):
-        """Deployed SKILL.md files have zero /project-doctor or /project-release refs."""
+        """Deployed SKILL.md files have zero /project-doctor refs.
+        Note: /project-release was re-promoted as a command in STORY-051 and is intentionally
+        referenced in pactkit-release/SKILL.md to document its caller context.
+        """
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
-        stale_cmds = ['/project-doctor', '/project-release']
+        stale_cmds = ['/project-doctor']
         skills_dir = tmp_path / '.claude' / 'skills'
         if skills_dir.exists():
             for skill_md in skills_dir.rglob('SKILL.md'):

@@ -627,3 +627,10 @@
 - [x] R3: Implement lazy visualize (git diff triggered)
 - [x] R4: Centralize MCP detection in Phase 0.2
 - [x] R5: Remove Plan Phase 3.4 Issue Tracker creation
+
+### [BUG-025] project-release 与 pactkit-release 功能重复 [#36](https://github.com/pactkit/pactkit/issues/36)
+> Spec: docs/specs/BUG-025.md
+
+- [x] R1: Command 委托给 Skill
+- [x] R2: Skill 增加版本自动检测
+- [x] R3: 功能对齐（含 GitHub Release）
