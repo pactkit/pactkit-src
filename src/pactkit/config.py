@@ -6,6 +6,8 @@ from typing import Union
 
 import yaml
 
+from pactkit import __version__
+
 # ---------------------------------------------------------------------------
 # Valid identifiers (the registry of all known components)
 # ---------------------------------------------------------------------------
@@ -113,7 +115,7 @@ class PactKitConfig:
 def get_default_config() -> dict:
     """Return the default config with all components enabled."""
     return {
-        'version': '0.0.1',
+        'version': __version__,
         'stack': 'auto',
         'root': '.',
         'agents': sorted(VALID_AGENTS),
@@ -310,6 +312,11 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
             user_data[key] = defaults[key]
             added.append(f"section: {key}")
 
+    # BUG-026: Sync version to installed __version__
+    if user_data.get('version') != __version__:
+        user_data['version'] = __version__
+        added.append(f"version: {__version__}")
+
     if added:
         _rewrite_yaml(path, user_data)
 
@@ -336,7 +343,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         '# Edit this file to customize which components are deployed.',
         '# Remove items from a list to disable them. Default: all enabled.',
         '',
-        f'version: "{data.get("version", "0.0.1")}"',
+        f'version: "{__version__}"',
         f'stack: {data.get("stack", "auto")}',
         f'root: {data.get("root", ".")}',
         '',

@@ -56,11 +56,12 @@ class TestVersionConsistency:
         assert m, "version not found in pyproject.toml"
         assert __version__ == m.group(1)
 
-    def test_config_default_version_unchanged(self):
-        """config.py default version is user yaml schema, NOT package version."""
+    def test_config_default_version_matches_package(self):
+        """BUG-026: config.py default version must match installed __version__."""
+        from pactkit import __version__
         from pactkit.config import get_default_config
         cfg = get_default_config()
-        assert cfg['version'] == '0.0.1'
+        assert cfg['version'] == __version__
 
     def test_cli_version_output(self):
         """CLI version command should reference __version__."""

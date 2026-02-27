@@ -675,3 +675,12 @@
 - [x] R4: Add `check` and `done` config sections to pactkit.yaml
 - [x] R5: Implement cross-phase linkage (Risk→Security, FAIL→Lesson)
 - [x] T7: Run full test suite, verify pass (1857 passed)
+
+### BUG-026: Version Sync on Init/Update [#41](https://github.com/pactkit/pactkit/issues/41)
+- **Priority**: High
+- **Spec**: [docs/specs/BUG-026.md](../specs/BUG-026.md)
+- **Tasks**:
+  - [x] Import __version__ in config.py
+  - [x] Update _rewrite_yaml to use __version__
+  - [x] Add unit tests
+  - [x] Add E2E tests

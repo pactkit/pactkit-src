@@ -11,6 +11,9 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
+
+from pactkit import __version__
 
 # Get the pactkit executable path
 PACTKIT_BIN = sys.executable.replace('python', 'pactkit').replace('python3', 'pactkit')
@@ -333,3 +336,62 @@ class TestDeploymentCompleteness:
         for rule_id in VALID_RULES:
             assert any(rule_id in ln for ln in rule_lines), \
                 f"Rule '{rule_id}' not referenced in CLAUDE.md"
+
+
+@pytest.mark.e2e
+class TestVersionSync:
+    """BUG-026: pactkit.yaml version must be synced to __version__ on init/update."""
+
+    def test_init_updates_stale_version(self, tmp_path):
+        """AC1: pactkit init updates stale version in pactkit.yaml to installed version."""
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        yaml_file = claude_dir / "pactkit.yaml"
+        yaml_file.write_text('version: "0.0.1"\nstack: auto\nroot: .\n')
+
+        deploy_target = tmp_path / "deploy"
+        stdout, stderr, exit_code = run_pactkit(
+            "init", "-t", str(deploy_target),
+            cwd=str(tmp_path),
+        )
+
+        assert exit_code == 0, f"init failed: {stderr}"
+        result = yaml.safe_load(yaml_file.read_text())
+        assert result["version"] == __version__, (
+            f"Expected version {__version__!r} after init, got {result['version']!r}"
+        )
+
+    def test_update_updates_stale_version(self, tmp_path):
+        """AC2: pactkit update updates stale version in pactkit.yaml to installed version."""
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        yaml_file = claude_dir / "pactkit.yaml"
+        yaml_file.write_text('version: "1.4.0"\nstack: auto\nroot: .\n')
+
+        deploy_target = tmp_path / "deploy"
+        stdout, stderr, exit_code = run_pactkit(
+            "update", "-t", str(deploy_target),
+            cwd=str(tmp_path),
+        )
+
+        assert exit_code == 0, f"update failed: {stderr}"
+        result = yaml.safe_load(yaml_file.read_text())
+        assert result["version"] == __version__, (
+            f"Expected version {__version__!r} after update, got {result['version']!r}"
+        )
+
+    def test_fresh_init_uses_current_version(self, tmp_path):
+        """AC3: Fresh pactkit init creates pactkit.yaml with installed __version__."""
+        deploy_target = tmp_path / "deploy"
+        stdout, stderr, exit_code = run_pactkit(
+            "init", "-t", str(deploy_target),
+            cwd=str(tmp_path),
+        )
+
+        assert exit_code == 0, f"init failed: {stderr}"
+        yaml_file = tmp_path / ".claude" / "pactkit.yaml"
+        assert yaml_file.exists(), "pactkit.yaml was not created"
+        result = yaml.safe_load(yaml_file.read_text())
+        assert result["version"] == __version__, (
+            f"Expected version {__version__!r} in fresh pactkit.yaml, got {result['version']!r}"
+        )

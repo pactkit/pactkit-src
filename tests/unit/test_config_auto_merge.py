@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import yaml
 
+from pactkit import __version__
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -269,6 +271,7 @@ class TestBackwardCompatibility:
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
         _write_yaml(yaml_path, {
+            'version': __version__,
             'agents': sorted(cfg.VALID_AGENTS),
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),
@@ -389,6 +392,7 @@ class TestDeployerIntegration:
         yaml_path = claude_root / 'pactkit.yaml'
         cfg = _config()
         _write_yaml(yaml_path, {
+            'version': __version__,
             'agents': sorted(cfg.VALID_AGENTS),
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),

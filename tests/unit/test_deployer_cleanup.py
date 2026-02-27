@@ -12,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from pactkit import __version__
 from pactkit.generators.deployer import deploy
 from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
 
@@ -178,7 +179,8 @@ class TestScenario5_ScafpyMigration:
         new_yaml = claude / "pactkit.yaml"
         assert new_yaml.is_file()
         content = new_yaml.read_text()
-        assert '1.2.3' in content, "Migrated content should preserve user version"
+        assert f'version: "{__version__}"' in content, \
+            "BUG-026: version must be synced to __version__ after migration"
 
     def test_scafpy_yaml_deleted_when_both_exist(self, tmp_path):
         """When both scafpy.yaml and pactkit.yaml exist, scafpy.yaml is deleted."""
@@ -191,7 +193,7 @@ class TestScenario5_ScafpyMigration:
 
         assert not (claude / "scafpy.yaml").exists()
         assert (claude / "pactkit.yaml").is_file()
-        assert '2.0.0' in (claude / "pactkit.yaml").read_text()
+        assert f'version: "{__version__}"' in (claude / "pactkit.yaml").read_text()
 
     def test_no_error_when_no_scafpy_remnants(self, tmp_path):
         """Deploy works fine when no scafpy remnants exist."""
