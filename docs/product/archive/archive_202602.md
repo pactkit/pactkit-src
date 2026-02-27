@@ -598,3 +598,15 @@
 - [x] Add worktree-specific error handling (merge conflict, residue cleanup)
 - [x] Write unit tests (17 tests, all GREEN)
 - [x] Full regression pass (1679 tests)
+
+### [STORY-049] GitHub Community Standards & Dependabot
+> Spec: docs/specs/STORY-049.md
+
+- [x] Create CODE_OF_CONDUCT.md (Contributor Covenant v2.1)
+- [x] Create SECURITY.md (GitHub Security Advisory)
+- [x] Update CONTRIBUTING.md reference
+- [x] Create .github/dependabot.yml (pip + github-actions)
+
+## 🔄 In Progress
+
+## ✅ Done

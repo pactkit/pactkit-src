@@ -41,4 +41,4 @@ refactor(scope): code refactoring
 
 ## Code of Conduct
 
-Be respectful, constructive, and collaborative. We welcome contributors of all experience levels.
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior through [GitHub Security Advisories](https://github.com/pactkit/pactkit/security/advisories/new) or by opening a [GitHub Issue](https://github.com/pactkit/pactkit/issues).
