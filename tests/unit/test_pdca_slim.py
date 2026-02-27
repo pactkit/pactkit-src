@@ -39,14 +39,16 @@ class TestCommandReduction:
         'project-init', 'project-design', 'project-sprint', 'project-hotfix',
     }
 
+    # STORY-051: project-release re-promoted to a standalone command (was deprecated in STORY-011)
     REMOVED_COMMANDS = {
         'project-trace', 'project-draw', 'project-status',
-        'project-doctor', 'project-review', 'project-release',
+        'project-doctor', 'project-review',
     }
 
     def test_valid_commands_count(self):
         cfg = _config()
-        assert len(cfg.VALID_COMMANDS) == 9
+        # STORY-051 adds project-release and project-pr → 11 commands
+        assert len(cfg.VALID_COMMANDS) == 11
 
     def test_kept_commands_present(self):
         cfg = _config()
@@ -59,9 +61,9 @@ class TestCommandReduction:
             assert cmd not in cfg.VALID_COMMANDS, f"Should be removed: {cmd}"
 
     def test_commands_content_count(self):
-        """COMMANDS_CONTENT should have 9 entries."""
+        """STORY-051: COMMANDS_CONTENT should have 11 entries (added project-release, project-pr)."""
         p = _prompts()
-        assert len(p.COMMANDS_CONTENT) == 9
+        assert len(p.COMMANDS_CONTENT) == 11
 
     def test_removed_commands_not_in_content(self):
         p = _prompts()
@@ -139,9 +141,10 @@ class TestSkillPromotion:
         assert len(default['skills']) == 10
 
     def test_default_config_has_9_commands(self):
+        """STORY-051: default config now has 11 commands (added project-release, project-pr)."""
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['commands']) == 9
+        assert len(default['commands']) == 11
 
 
 # ===========================================================================
@@ -178,10 +181,15 @@ class TestPdcaCommandIntegration:
             "Act should reference trace as a skill, not a command"
 
     def test_done_references_release_skill(self):
-        """project-done should mention pactkit-release skill."""
+        """STORY-051: Done prompts user to run /project-release; project-release.md has snapshot logic."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        assert 'pactkit-release' in done or 'release skill' in done.lower()
+        release = p.COMMANDS_CONTENT['project-release.md']
+        # Done should prompt user to run /project-release (not embed the skill itself)
+        assert 'project-release' in done, "Done must prompt user to run /project-release"
+        # project-release.md should reference the snapshot/board skill
+        assert 'snapshot' in release.lower() or 'pactkit-board' in release, \
+            "project-release.md must have release workflow (snapshot/tag)"
 
 
 # ===========================================================================
@@ -213,8 +221,9 @@ class TestRoutingTableUpdate:
         p = _prompts()
         routing = p.RULES_MODULES['routing']
         # These should no longer appear as command entries with Playbook refs
+        # Note: project-release re-promoted in STORY-051 and IS in routing now
         for cmd in ('project-trace', 'project-draw', 'project-status',
-                     'project-doctor', 'project-review', 'project-release'):
+                     'project-doctor', 'project-review'):
             # They should not have "Playbook: `commands/{cmd}.md`" references
             assert f'commands/{cmd}.md' not in routing, \
                 f"Routing should not reference {cmd} as a command playbook"

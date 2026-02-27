@@ -1,20 +1,17 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-02-27T16:00:00+08:00 by /project-done
+> Last updated: 2026-02-27T00:00:00Z by /project-done
 
 ## Sprint Status
 - **Backlog**: 0 stories
 - **In Progress**: 0 stories
-- **Done**: 75 items archived
+- **Done**: 76 items archived
 - **Current Version**: 1.4.0
 - **Branch**: main
 
-## Current Story
-None — board is empty.
-
 ## Recent Completions
-- STORY-050: Doc-Only Regression Shortcut — skip full test suite for non-source changes
+- STORY-051: PDCA Workflow Streamlining — Done split into Done+Release+PR; lazy visualize; single lint gate in Done
+- STORY-050: Doc-Only Regression Shortcut — Step 1.3 skips full suite on non-source changes
 - STORY-049: GitHub Community Standards — Security Policy, Code of Conduct & Dependabot
-- STORY-048: Worktree Isolation for Subagent Sprint — isolation="worktree" on all Sprint subagent Task calls
 
 ## Active Branches
 None
@@ -22,11 +19,11 @@ None
 ## Key Decisions
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-02 | CLI tools need subprocess-based E2E tests in addition to unit tests | STORY-041 |
+| 2026-02 | Splitting an overloaded command into focused commands requires updating tests for intentional Spec-driven behavior changes (distinguish regressions from deliberate removals) | STORY-051 |
+| 2026-02 | Regression decision trees need a doc-only shortcut before any other heuristic | STORY-050 |
+| 2026-02 | GitHub Community Standards files benefit from TDD | STORY-049 |
+| 2026-02 | Worktree isolation for subagent Sprint is a prompt-only change | STORY-048 |
 | 2026-02 | Read-side regex tolerance is simpler than format detection | BUG-024 |
-| 2026-02 | Worktree isolation for subagent Sprint is a prompt-only change — Stage A/C need git merge while Stage B only needs file copy | STORY-048 |
-| 2026-02 | GitHub Community Standards files benefit from TDD — 17 content-assertion tests ensure no section is missed | STORY-049 |
-| 2026-02 | Regression decision trees need a doc-only shortcut before any other heuristic — source_dirs from LANG_PROFILES enables zero-cost doc-only commits | STORY-050 |
 
 ## Next Recommended Action
-`/project-design` or `/project-plan` — board is empty, ready for new work.
+Board is empty. Run `/project-design` to start a new product feature, or `/project-plan` to write a new Story.

@@ -45,16 +45,17 @@ class TestDoneRegressionGate:
 
 
 # ==============================================================================
-# Scenario 2: Done Playbook Has Deploy Step
+# Scenario 2: Done Playbook Deploy Step (updated STORY-051)
 # ==============================================================================
 class TestDoneDeployVerify:
-    """STORY-028 Scenario 2: project-done.md has a deploy & verify phase."""
+    """STORY-028 Scenario 2 / STORY-051: Phase 3.7 Deploy & Verify removed from Done."""
 
     def test_done_has_deploy_keyword(self):
+        """STORY-051: Phase 3.7 Deploy & Verify removed from Done to reduce phases."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        lower = done.lower()
-        assert 'deploy' in lower
+        # Phase 3.7 was explicitly removed by STORY-051
+        assert 'Phase 3.7' not in done, "Phase 3.7 must be removed per STORY-051"
 
     def test_done_has_verify_keyword(self):
         p = _prompts()
@@ -63,17 +64,16 @@ class TestDoneDeployVerify:
         assert 'verify' in lower or 'smoke' in lower or 'spot-check' in lower
 
     def test_deploy_before_commit(self):
-        """Deploy & verify must appear before the Git Commit phase heading."""
+        """STORY-051: Deploy & Verify (Phase 3.7) removed from Done; pactkit.yaml still referenced."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        deploy_idx = done.lower().find('deploy')
-        commit_phase_idx = done.find('Phase 4')
-        assert deploy_idx > 0, "No deploy step found"
-        assert commit_phase_idx > 0, "No git commit phase found"
-        assert deploy_idx < commit_phase_idx, "Deploy must come before Phase 4"
+        # Phase 3.7 is no longer present in Done
+        assert 'Phase 3.7' not in done, "Phase 3.7 removed by STORY-051"
+        # But pactkit.yaml config is still referenced (for issue tracker, lint, etc.)
+        assert 'pactkit.yaml' in done, "pactkit.yaml config should still be referenced"
 
     def test_deploy_mentions_deployer(self):
-        """Should reference the deployer mechanism."""
+        """pactkit.yaml is still referenced in Done for config reads."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
         assert 'pactkit init' in done or 'pactkit.yaml' in done or 'deployer' in done.lower()

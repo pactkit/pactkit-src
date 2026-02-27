@@ -34,8 +34,9 @@ class TestGetDefaultConfig:
         assert len(cfg['agents']) == 9
 
     def test_default_commands_count(self):
+        # STORY-051: added project-release and project-pr → 11 commands
         cfg = _config().get_default_config()
-        assert len(cfg['commands']) == 9
+        assert len(cfg['commands']) == 11
 
     def test_default_skills_count(self):
         cfg = _config().get_default_config()

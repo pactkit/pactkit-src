@@ -618,3 +618,12 @@
 - [x] Add Doc-Only detection to Act command prompt
 - [x] Add source_dirs to LANG_PROFILES
 - [x] Update Decision Logging format
+
+### [STORY-051] PDCA Workflow Streamlining [#35](https://github.com/pactkit/pactkit/issues/35)
+> Spec: docs/specs/STORY-051.md
+
+- [x] R1: Split Done command into Done + Release + PR
+- [x] R2: Remove Act Phase 3.4 Lint Check
+- [x] R3: Implement lazy visualize (git diff triggered)
+- [x] R4: Centralize MCP detection in Phase 0.2
+- [x] R5: Remove Plan Phase 3.4 Issue Tracker creation

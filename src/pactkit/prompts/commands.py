@@ -97,19 +97,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Memory MCP (Conditional)**: IF `mcp__memory__create_entities` tool is available, store the design context:
     - Use `mcp__memory__create_entities` with: `name: "{STORY_ID}"`, `entityType: "story"`, `observations: [key architectural decisions, target files, design rationale]`
     - IF this story depends on other stories, use `mcp__memory__create_relations` to record dependencies (e.g., `from: "{STORY_ID}", to: "STORY-XXX", relationType: "depends_on"`)
-4.  **Issue Tracker (Conditional)**: IF `pactkit.yaml` has `issue_tracker.provider: github`:
-    - Check if `gh` CLI is available (run `gh --version`)
-    - If available: create a GitHub Issue with `gh issue create --title "STORY-XXX: Title" --body "Requirements summary"`
-    - Update the Sprint Board entry to include the issue URL
-    - If `gh` CLI is unavailable or issue creation fails: print warning, continue without issue link
-    - If `issue_tracker.provider: none` or section missing: skip silently
-5.  **Session Context Update**: Update `docs/product/context.md` to reflect the new Story:
+4.  **Session Context Update**: Update `docs/product/context.md` to reflect the new Story:
     - Read `docs/product/sprint_board.md` (now containing the new Story)
     - Read `docs/architecture/governance/lessons.md` (last 5 entries)
     - Run `git branch --list 'feature/*' 'fix/*'`
     - Write `docs/product/context.md` using the standard format (see `/project-done` Phase 4.5 for format)
     - Set "Last updated by" to `/project-plan`
-6.  **Handover**: "Trace complete. Spec created. Ready for Act."
+5.  **Handover**: "Trace complete. Spec created. Ready for Act."
 """,
 
     # [FIX] Added Board Update Step to Phase 4
@@ -218,17 +212,16 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       - **STOP** and report to the user: which test failed, what it appears to test, and which of your changes likely caused the failure.
       - Suggest options: (a) you revert your change that caused the regression, or (b) the user reviews and provides guidance.
       - You MUST NOT assume you understand the design intent behind pre-existing tests — the project may have adopted PDCA mid-way and there is no Spec for older features.
-4.  **Lint Check (Conditional)**: IF a CI config exists (`.github/workflows/*.yml` or similar) or `lint_command` is set in `LANG_PROFILES`:
-    - Run the `lint_command` for the detected stack (e.g., `ruff check src/ tests/` for Python).
-    - If lint fails, fix the lint errors in your own new/modified files only, then re-run.
-    - Do NOT modify pre-existing files to fix lint unless the lint error is in a file you changed in this Story.
 
 ## 🎬 Phase 4: Sync & Document
 1.  **Hygiene**: Delete temp files.
-2.  **Update Reality**:
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
+2.  **Update Reality (Lazy Visualize)**:
+    - Check if `git diff --name-only HEAD` includes any files in `LANG_PROFILES[stack].source_dirs` OR if `code_graph.mmd` does not exist.
+    - **If source files changed OR graph missing**: Run all three visualize commands:
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
+    - **If no source files changed AND graph exists**: Skip with log: `"Graph up-to-date — no source changes"`
 3.  **Update Board (CRITICAL)**:
     - Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
     - Use `update_task` or manual edit.
@@ -391,10 +384,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 1.  **Action**: Remove language-specific temp artifacts (see `LANG_PROFILES` cleanup list; default for Python):
     - `rm -rf __pycache__ .pytest_cache`
     - `rm -f .DS_Store *.tmp *.log`
-2.  **Update Reality**:
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
-    - Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
+2.  **Update Reality (Lazy Visualize)**:
+    - Check if `docs/architecture/graphs/code_graph.mmd` exists AND `git diff --name-only` includes any files in `LANG_PROFILES[stack].source_dirs`.
+    - **If source files changed OR graph missing**: Run all three visualize commands:
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
+        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
+    - **If no source files changed AND graph exists**: Skip with log: `"Graph up-to-date — no source changes"`
 3.  **HLD Consistency Check**: Read `docs/architecture/graphs/system_design.mmd` and verify component counts match reality:
     - Compare any numeric labels in subgraphs (e.g., "8 commands", "9 skills") against the actual component counts from `config.py` VALID_* registries or the project source.
     - If a mismatch is found, **warn** the user: "⚠️ system_design.mmd is stale: says {old} but actual is {new}. Update the HLD."
@@ -529,65 +525,13 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
     - If `gh` CLI unavailable or closure fails: print warning, continue
 3.  **If `provider: none` or section missing**: Skip silently.
 
-## 🎬 Phase 3.7: Deploy & Verify (If Applicable)
-> **Purpose**: Ensure the committed code works correctly in deployed form.
-1.  **Detect Deployer**: Check if the project has a deployer (`pactkit init` or configured in `pactkit.yaml`).
-2.  **Deploy**: If a deployer exists, run it (e.g., `python3 pactkit init`).
-3.  **Smoke Test**: Spot-check deployed artifacts to verify they contain expected content.
-4.  **Skip**: If no deployer is detected, skip this phase and note "No deployer found — skipping deploy verification."
-5.  **Gate**: If deployment or verification fails, **STOP**. Do NOT proceed to commit.
-
-## 🎬 Phase 3.8: Release (Conditional) — use pactkit-release skill
-> If this Story involves a version bump, invoke the release workflow:
-1.  **Detect**: Check if `pyproject.toml` version was changed in this Story.
-2.  **If yes**: Run `update_version`, `snapshot`, and `archive` via pactkit-board skill. Tag with `git tag`.
-3.  **Verify Snapshots**: After the snapshot step, check that `docs/architecture/snapshots/{version}_*.mmd` files exist. If missing, report: "❌ Snapshot verification failed: expected files in snapshots/ for {version}."
-4.  **If no version change**: Skip to Phase 4.
-
 ## 🎬 Phase 4: Git Commit
 0.  **Enterprise Check**: If `enterprise.no_git: true` in `pactkit.yaml`, skip ALL git operations in this phase. Print: "ℹ️ Git operations disabled (enterprise.no_git)". Skip to the Session Context Update phase.
 1.  **Format**: `feat(scope): <title from spec>`
 2.  **Execute**: Run the git commit command.
-
-## 🎬 Phase 4.2: Auto-PR Generation (Conditional)
-> **Skip conditions**: working on `main`/`master` branch, OR an open PR already exists for this branch.
-1.  **Trigger Check**:
-    - Run `git branch --show-current` to get current branch name
-    - If branch is `main` or `master`: print "Skipping PR: working on main branch" → skip to Phase 4.5
-    - Run `gh pr list --head <branch> --state open --json number` to check for existing PR
-    - If PR exists: print "PR already open: <URL>" → skip to Phase 4.5
-    - If `gh` CLI unavailable: print "⚠️ gh CLI not available — skipping auto-PR" → skip to Phase 4.5
-2.  **Push Assurance**: If remote tracking branch does not exist, run `git push -u origin <branch>`. If push fails, STOP and report.
-3.  **Generate PR Title**: Format `{type}({scope}): {spec_title}`
-    - `type`: `feat` for STORY, `fix` for BUG/HOTFIX
-    - `scope`: infer from primary modified directory
-    - `spec_title`: extract from `# {ID}: {Title}` heading in Spec (strip the ID prefix)
-    - Max 70 characters
-4.  **Generate PR Body**: Extract from Spec and test results:
-    ```markdown
-    ## Summary
-    {1-3 sentences from Spec ## Background}
-
-    ## Changes
-    {R1, R2, ... from Spec ## Requirements, one bullet each with MUST/SHOULD/MAY}
-
-    ## Acceptance Criteria
-    {AC1, AC2, ... as checklist items — mark [x] if a test for it passed}
-
-    ## Test Results
-    - Unit: {N} passed, {N} failed
-    - E2E: {N} passed, {N} failed
-
-    ## Spec
-    - [{STORY_ID}](docs/specs/{STORY_ID}.md)
-
-    🤖 Generated with [Claude Code](https://claude.com/claude-code)
-    ```
-5.  **User Confirmation**: Show the PR title + body preview. Ask: "Create this PR? (yes/no/edit)"
-    - `yes` → execute `gh pr create --title "..." --body "..."`
-    - `no` → skip, proceed to Phase 4.5
-    - `edit` → accept user feedback, regenerate, ask again
-6.  **Output**: Print PR URL on success.
+3.  **Post-Commit Prompts**:
+    - **Version bump?** If `pyproject.toml` version was changed in this Story: "ℹ️ Version bump detected. Run `/project-release` to create snapshot and git tag."
+    - **Feature branch?** If current branch is not `main`/`master`: "ℹ️ Working on a feature branch. Run `/project-pr` to push and create a pull request."
 
 ## 🎬 Phase 4.5: Session Context Update
 > **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.
@@ -751,6 +695,93 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🎬 Phase 7: Handover
 1.  **Output**: "✅ PactKit Initialized. Reality Graph captured. Knowledge Base ready."
 2.  **Advice**: "⚠️ IMPORTANT: Run `/project-plan 'Reverse engineer'` to align the HLD."
+""",
+
+    "project-release.md": """---
+description: "Version release: snapshot, archive, and Git tag"
+allowed-tools: [Read, Write, Edit, Bash, Glob]
+---
+
+# Command: Release (v1.4.0)
+- **Usage**: `/project-release`
+- **Agent**: Repo Maintainer
+
+## 🧠 Phase 0: Pre-flight Check
+1.  **Version Detection**: Check if `pyproject.toml` version was changed vs the previous commit.
+    - Run `git diff HEAD~1 pyproject.toml | grep version` (or vs branch base)
+    - If no version change detected: print "ℹ️ No version bump detected. Update `pyproject.toml` version before releasing." and STOP.
+2.  **Read Config**: Read `pactkit.yaml` to detect stack and release configuration.
+
+## 🎬 Phase 1: Snapshot & Archive
+1.  **Create Snapshots**: Run snapshot via pactkit-board skill:
+    - `python3 ~/.claude/skills/pactkit-board/scripts/board.py snapshot`
+2.  **Verify Snapshots**: Check that `docs/architecture/snapshots/{version}_*.mmd` files exist.
+    - If missing: report "❌ Snapshot verification failed: expected files in snapshots/ for {version}."
+3.  **Archive**: Run `python3 ~/.claude/skills/pactkit-board/scripts/board.py archive`.
+
+## 🎬 Phase 2: Git Tag
+1.  **Format**: Tag format: `v{version}` (e.g., `v1.4.0`)
+2.  **Create Tag**: `git tag v{version} -m "Release v{version}"`
+3.  **Confirm Push**: Ask user: "Push tag v{version} to remote? (yes/no)"
+    - `yes` → `git push origin v{version}`
+    - `no` → tag created locally only
+4.  **Output**: Print "✅ Release v{version} tagged."
+""",
+
+    "project-pr.md": """---
+description: "Push branch and create pull request via gh CLI"
+allowed-tools: [Read, Write, Edit, Bash, Glob]
+---
+
+# Command: PR (v1.4.0)
+- **Usage**: `/project-pr`
+- **Agent**: Repo Maintainer
+
+## 🧠 Phase 0: Pre-flight Check
+1.  **Branch Check**:
+    - Run `git branch --show-current` to get current branch name
+    - If branch is `main` or `master`: print "Skipping PR: working on main branch" → STOP
+2.  **Existing PR Check**:
+    - Run `gh pr list --head <branch> --state open --json number` to check for existing PR
+    - If PR exists: print "PR already open: <URL>" → STOP
+    - If `gh` CLI unavailable: print "⚠️ gh CLI not available — cannot create PR" → STOP
+3.  **Story Detection**: Infer active Story ID from branch name (e.g., `feature/STORY-051-desc` → `STORY-051`).
+
+## 🎬 Phase 1: Push Assurance
+1.  **Check Remote**: If remote tracking branch does not exist, run `git push -u origin <branch>`.
+2.  **If push fails**: STOP and report the error.
+
+## 🎬 Phase 2: PR Generation
+1.  **Generate PR Title**: Format `{type}({scope}): {spec_title}`
+    - `type`: `feat` for STORY, `fix` for BUG/HOTFIX
+    - `scope`: infer from primary modified directory
+    - `spec_title`: extract from `# {ID}: {Title}` heading in Spec (strip the ID prefix)
+    - Max 70 characters
+2.  **Generate PR Body**: Extract from Spec and test results:
+    ```markdown
+    ## Summary
+    {1-3 sentences from Spec ## Background}
+
+    ## Changes
+    {R1, R2, ... from Spec ## Requirements, one bullet each with MUST/SHOULD/MAY}
+
+    ## Acceptance Criteria
+    {AC1, AC2, ... as checklist items — mark [x] if a test for it passed}
+
+    ## Test Results
+    - Unit: {N} passed, {N} failed
+    - E2E: {N} passed, {N} failed
+
+    ## Spec
+    - [{STORY_ID}](docs/specs/{STORY_ID}.md)
+
+    🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    ```
+3.  **User Confirmation**: Show the PR title + body preview. Ask: "Create this PR? (yes/no/edit)"
+    - `yes` → execute `gh pr create --title "..." --body "..."`
+    - `no` → skip
+    - `edit` → accept user feedback, regenerate, ask again
+4.  **Output**: Print PR URL on success.
 """,
 
 }

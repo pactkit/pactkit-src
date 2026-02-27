@@ -32,6 +32,8 @@ VALID_COMMANDS = frozenset({
     'project-hotfix',
     'project-design',
     'project-clarify',
+    'project-release',
+    'project-pr',
 })
 
 VALID_SKILLS = frozenset({
@@ -73,7 +75,6 @@ DEPRECATED_COMMANDS = frozenset({
     'project-status',
     'project-doctor',
     'project-review',
-    'project-release',
 })
 
 

@@ -225,14 +225,16 @@ class TestConfigAutoGeneration:
 
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
+        # STORY-051: 11 commands (added project-release, project-pr)
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert '9/9 Agents' in output
-        assert '9/9 Commands' in output
+        assert '11/11 Commands' in output
         assert '10/10 Skills' in output
         assert '6/6 Rules' in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
+        # STORY-051: total commands is now 11
         cfg = get_default_config()
         cfg['agents'] = ['system-architect', 'senior-developer']
         cfg['commands'] = ['project-plan', 'project-act', 'project-done']
@@ -240,7 +242,7 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
         assert '2/9 Agents' in output
-        assert '3/9 Commands' in output
+        assert '3/11 Commands' in output
 
 
 # ===========================================================================

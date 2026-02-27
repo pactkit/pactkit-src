@@ -2,8 +2,11 @@
 BUG-011: Stale command references in agent and skill prompt templates.
 
 Tests verify that demoted command names (/project-trace, /project-draw,
-/project-status, /project-doctor, /project-review, /project-release)
+/project-status, /project-doctor, /project-review)
 do not appear as command invocations in prompt source files.
+
+Note: /project-release was demoted to a skill in STORY-011 but re-promoted
+to a standalone command in STORY-051 and is no longer stale.
 """
 import re
 import sys
@@ -14,14 +17,13 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# The 6 demoted command names (STORY-011)
+# The 5 demoted command names (STORY-011; /project-release re-promoted in STORY-051)
 DEMOTED_COMMANDS = [
     '/project-trace',
     '/project-draw',
     '/project-status',
     '/project-doctor',
     '/project-review',
-    '/project-release',
 ]
 
 PROMPTS_DIR = project_root / 'src' / 'pactkit' / 'prompts'
@@ -77,7 +79,7 @@ class TestAC3ZeroStaleRefsInPrompts:
     """No file in src/pactkit/prompts/ should contain demoted command names."""
 
     def test_zero_stale_refs_across_all_prompt_files(self):
-        pattern = re.compile(r'/project-(trace|draw|status|doctor|review|release)')
+        pattern = re.compile(r'/project-(trace|draw|status|doctor|review)')
         violations = []
         for py_file in PROMPTS_DIR.glob('*.py'):
             content = py_file.read_text(encoding='utf-8')

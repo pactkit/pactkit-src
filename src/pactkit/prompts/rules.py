@@ -96,7 +96,7 @@ Format: `type(scope): description`
 
     'routing': """# Command Reference (Routing Table)
 
-## Commands (9 user-facing entry points)
+## Commands (11 user-facing entry points)
 
 ### Init (`/project-init`)
 - **Role**: System Architect
@@ -123,6 +123,16 @@ Format: `type(scope): description`
 - **Role**: Repo Maintainer
 - **Playbook**: `commands/project-done.md`
 
+### Release (`/project-release`)
+- **Role**: Repo Maintainer
+- **Playbook**: `commands/project-release.md`
+- **Goal**: Version release: snapshot, archive, and Git tag.
+
+### PR (`/project-pr`)
+- **Role**: Repo Maintainer
+- **Playbook**: `commands/project-pr.md`
+- **Goal**: Push branch and create pull request via gh CLI.
+
 ### Sprint (`/project-sprint`)
 - **Role**: Team Lead (Orchestrator)
 - **Playbook**: `commands/project-sprint.md`
@@ -147,7 +157,7 @@ Format: `type(scope): description`
 | `pactkit-status` | Init Phase 6, cold-start | Project state overview |
 | `pactkit-doctor` | Init auto-check | Diagnose project health |
 | `pactkit-review` | Check Phase 4 (PR variant) | PR Code Review |
-| `pactkit-release` | Done Phase 3.8 (version release) | Version release: snapshot, archive, Tag |
+| `pactkit-release` | Release Phase 1 (snapshot/archive) | Version release: snapshot, archive, Tag |
 | `pactkit-analyze` | Act Phase 0.6 | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 """,
 

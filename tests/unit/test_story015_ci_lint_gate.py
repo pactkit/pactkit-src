@@ -71,9 +71,16 @@ class TestActCommandLintGate:
         assert 'lint_command' in act or 'lint' in act.lower()
 
     def test_act_prompt_references_ci_lint(self):
+        """STORY-051 R2: lint check consolidated to Done only; lint_command removed from Act."""
         from pactkit.prompts.commands import COMMANDS_CONTENT
         act = COMMANDS_CONTENT['project-act.md']
-        assert 'lint_command' in act
+        done = COMMANDS_CONTENT['project-done.md']
+        # Act must NOT have lint_command (removed per STORY-051)
+        assert 'lint_command' not in act, \
+            "Lint check must be removed from Act per STORY-051 R2"
+        # Done must still have lint_command (single enforcement point)
+        assert 'lint_command' in done, \
+            "Lint gate must remain in Done as single enforcement point"
 
 
 # ===========================================================================

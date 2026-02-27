@@ -1,9 +1,11 @@
 """
 STORY-045: Auto-PR Enhancement
+Updated by STORY-051: Phase 4.2 Auto-PR extracted from project-done.md
+into standalone project-pr.md command.
 
 Tests for:
-- Phase 4.2 Auto-PR Generation inserted into project-done.md
-  (between Phase 4 Git Commit and Phase 4.5 Session Context Update)
+- PR generation logic now lives in project-pr.md (standalone command)
+- project-done.md prompts user to run /project-pr after commit
 """
 
 
@@ -13,39 +15,39 @@ def _commands():
 
 
 # ===========================================================================
-# Phase 4.2: Auto-PR Generation in project-done.md
+# Phase 4.2 extracted to project-pr.md (STORY-051)
 # ===========================================================================
 
 class TestDonePhase42AutoPR:
-    """Phase 4.2 must be present in project-done.md between Phase 4 and Phase 4.5."""
+    """STORY-051: Phase 4.2 was extracted to project-pr.md. Done prompts user to run /project-pr."""
 
     def test_phase_42_exists_in_done(self):
-        """Phase 4.2 header exists in project-done.md."""
-        content = _commands()["project-done.md"]
-        assert "Phase 4.2" in content
+        """STORY-051: Phase 4.2 removed from Done; project-pr.md is the standalone command."""
+        content = _commands()["project-pr.md"]
+        assert "PR" in content or "pull request" in content.lower()
 
     def test_phase_42_mentions_auto_pr(self):
-        """Phase 4.2 is an Auto-PR phase."""
-        content = _commands()["project-done.md"]
-        assert "Auto-PR" in content
+        """PR functionality is now in project-pr.md."""
+        content = _commands()["project-pr.md"]
+        assert "PR" in content or "pull request" in content.lower()
 
     def test_phase_42_mentions_main_master_skip(self):
-        """Phase 4.2 skips when on main/master branch."""
-        content = _commands()["project-done.md"]
+        """project-pr.md skips when on main/master branch."""
+        content = _commands()["project-pr.md"]
         has_main_skip = (
             "main" in content and "master" in content
-            and ("skip" in content.lower() or "Skip" in content)
+            and ("skip" in content.lower() or "Skip" in content or "STOP" in content)
         )
         assert has_main_skip
 
     def test_phase_42_mentions_existing_pr_check(self):
-        """Phase 4.2 checks for an existing open PR."""
-        content = _commands()["project-done.md"]
+        """project-pr.md checks for an existing open PR."""
+        content = _commands()["project-pr.md"]
         assert "gh pr list" in content
 
     def test_phase_42_mentions_user_confirmation(self):
-        """Phase 4.2 asks user for confirmation before creating PR."""
-        content = _commands()["project-done.md"]
+        """project-pr.md asks user for confirmation before creating PR."""
+        content = _commands()["project-pr.md"]
         has_confirmation = (
             "yes/no" in content
             or "yes/no/edit" in content
@@ -55,8 +57,8 @@ class TestDonePhase42AutoPR:
         assert has_confirmation
 
     def test_phase_42_mentions_gh_cli_fallback(self):
-        """Phase 4.2 handles gh CLI being unavailable."""
-        content = _commands()["project-done.md"]
+        """project-pr.md handles gh CLI being unavailable."""
+        content = _commands()["project-pr.md"]
         has_fallback = (
             "gh CLI" in content
             or "gh` CLI" in content
@@ -65,27 +67,25 @@ class TestDonePhase42AutoPR:
             "unavailable" in content
             or "not available" in content
             or "skip" in content.lower()
+            or "STOP" in content
         )
         assert has_fallback
 
     def test_phase_42_mentions_pr_body_structure(self):
-        """Phase 4.2 defines a PR body with Summary, Changes, and Acceptance Criteria."""
-        content = _commands()["project-done.md"]
+        """project-pr.md defines a PR body with Summary, Changes, and Acceptance Criteria."""
+        content = _commands()["project-pr.md"]
         has_summary = "Summary" in content
         has_changes = "Changes" in content
         has_ac = "Acceptance Criteria" in content
         assert has_summary and has_changes and has_ac
 
     def test_phase_42_is_between_phase_4_and_phase_45(self):
-        """Phase 4.2 appears between Phase 4 and Phase 4.5 in document order."""
-        content = _commands()["project-done.md"]
-        # Find Phase 4 (Git Commit) — use the section header
-        pos_4 = content.find("Phase 4: Git Commit")
-        pos_42 = content.find("Phase 4.2")
-        pos_45 = content.find("Phase 4.5")
-        assert pos_4 != -1, "Phase 4 (Git Commit) must exist"
-        assert pos_42 != -1, "Phase 4.2 must exist"
-        assert pos_45 != -1, "Phase 4.5 must exist"
-        assert pos_4 < pos_42 < pos_45, (
-            f"Expected order Phase 4 ({pos_4}) < Phase 4.2 ({pos_42}) < Phase 4.5 ({pos_45})"
-        )
+        """STORY-051: Phase 4.2 removed from Done; Done prompts user to run /project-pr."""
+        done = _commands()["project-done.md"]
+        pr_cmd = _commands()["project-pr.md"]
+        # Done should no longer contain Phase 4.2
+        assert "Phase 4.2" not in done, "Phase 4.2 must be removed from Done"
+        # Done should prompt the user to run /project-pr
+        assert "project-pr" in done, "Done must prompt user to run /project-pr"
+        # project-pr.md should exist with PR content
+        assert "gh pr create" in pr_cmd or "Pull Request" in pr_cmd or "PR" in pr_cmd
