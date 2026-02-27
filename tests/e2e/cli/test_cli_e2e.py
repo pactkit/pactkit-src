@@ -232,3 +232,104 @@ class TestUpdateCommand:
         assert exit_code == 0
         assert (target / "agents").is_dir()
         assert (target / "CLAUDE.md").exists()
+
+
+@pytest.mark.e2e
+class TestDeploymentCompleteness:
+    """STORY-054: Verify all components are deployed completely after pactkit init.
+
+    These tests assert exact counts and exact names — not just ">= 1".
+    Catching cases where VALID_* registry diverges from deployed reality.
+    """
+
+    @pytest.fixture(scope="class")
+    def deploy_target(self, tmp_path_factory):
+        """Run pactkit init once; share the result across all tests in this class."""
+        target = tmp_path_factory.mktemp("completeness")
+        run_pactkit("init", "-t", str(target))
+        return target
+
+    def test_all_agents_deployed(self, deploy_target):
+        """AC1: Exactly 9 agents deployed, names match VALID_AGENTS exactly."""
+        from pactkit.config import VALID_AGENTS
+        agents_dir = deploy_target / "agents"
+        deployed = {f.stem for f in agents_dir.glob("*.md")}
+        assert deployed == set(VALID_AGENTS)
+
+    def test_all_commands_deployed(self, deploy_target):
+        """AC2: Exactly 11 commands deployed, names match VALID_COMMANDS exactly."""
+        from pactkit.config import VALID_COMMANDS
+        commands_dir = deploy_target / "commands"
+        deployed = {f.stem for f in commands_dir.glob("*.md")}
+        assert deployed == set(VALID_COMMANDS)
+
+    def test_all_skills_deployed_with_skill_md(self, deploy_target):
+        """AC3: Exactly 10 skill dirs deployed, each contains SKILL.md."""
+        from pactkit.config import VALID_SKILLS
+        skills_dir = deploy_target / "skills"
+        deployed_dirs = {d.name for d in skills_dir.iterdir() if d.is_dir()}
+        assert deployed_dirs == set(VALID_SKILLS)
+        for skill_name in VALID_SKILLS:
+            assert (skills_dir / skill_name / "SKILL.md").exists(), \
+                f"{skill_name}/SKILL.md missing"
+
+    def test_scripted_skills_have_scripts(self, deploy_target):
+        """AC3: Scripted skills have scripts/<name>.py."""
+        scripted = {
+            "pactkit-visualize": "visualize.py",
+            "pactkit-board": "board.py",
+            "pactkit-scaffold": "scaffold.py",
+        }
+        skills_dir = deploy_target / "skills"
+        for skill_name, script_file in scripted.items():
+            assert (skills_dir / skill_name / "scripts" / script_file).exists(), \
+                f"{skill_name}/scripts/{script_file} missing"
+
+    def test_all_rules_deployed(self, deploy_target):
+        """AC4: Exactly 6 rule files deployed, stems match VALID_RULES exactly."""
+        from pactkit.config import VALID_RULES
+        rules_dir = deploy_target / "rules"
+        deployed = {f.stem for f in rules_dir.glob("*.md")}
+        assert deployed == set(VALID_RULES)
+
+    def test_no_empty_files(self, deploy_target):
+        """AC5: Every deployed file has non-zero byte size."""
+        empty = [
+            str(f.relative_to(deploy_target))
+            for f in deploy_target.rglob("*")
+            if f.is_file() and f.stat().st_size == 0
+        ]
+        assert empty == [], f"Empty files found: {empty}"
+
+    def test_agent_frontmatter_integrity(self, deploy_target):
+        """AC6: Every agent file starts with --- and contains required frontmatter fields."""
+        required_fields = ("name:", "description:", "tools:", "model:")
+        for agent_file in (deploy_target / "agents").glob("*.md"):
+            content = agent_file.read_text()
+            assert content.startswith("---"), \
+                f"{agent_file.name}: missing YAML frontmatter open '---'"
+            for field in required_fields:
+                assert field in content, \
+                    f"{agent_file.name}: missing frontmatter field '{field}'"
+
+    def test_command_frontmatter_integrity(self, deploy_target):
+        """AC7 (R7): Every command file starts with --- and has description + allowed-tools."""
+        required_fields = ("description:", "allowed-tools:")
+        for cmd_file in (deploy_target / "commands").glob("*.md"):
+            content = cmd_file.read_text()
+            assert content.startswith("---"), \
+                f"{cmd_file.name}: missing YAML frontmatter open '---'"
+            for field in required_fields:
+                assert field in content, \
+                    f"{cmd_file.name}: missing frontmatter field '{field}'"
+
+    def test_claude_md_references_all_rules(self, deploy_target):
+        """AC7 (R8): CLAUDE.md contains @~/.claude/rules/ lines for all 6 rules."""
+        from pactkit.config import VALID_RULES
+        content = (deploy_target / "CLAUDE.md").read_text()
+        rule_lines = [ln for ln in content.splitlines() if ln.startswith("@~/.claude/rules/")]
+        assert len(rule_lines) == len(VALID_RULES), \
+            f"Expected {len(VALID_RULES)} rule imports, got {len(rule_lines)}: {rule_lines}"
+        for rule_id in VALID_RULES:
+            assert any(rule_id in ln for ln in rule_lines), \
+                f"Rule '{rule_id}' not referenced in CLAUDE.md"

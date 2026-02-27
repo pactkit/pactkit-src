@@ -651,3 +651,15 @@
 - [x] R3: Update Regression Decision Tree in project-done.md
 - [x] R4: Configuration option in pactkit.yaml (optional)
 - [x] R5: Release Gate — version bump forces full regression
+
+### STORY-054: Deployment Completeness Audit — E2E File Verification [#39](https://github.com/pactkit/pactkit/issues/39)
+- **Status**: Done
+- **Priority**: P1
+- **Goal**: Add e2e completeness tests that verify all 9 agents, 11 commands, 10 skills, 6 rules are deployed — no empty files, correct frontmatter, CLAUDE.md references all rules.
+- **Spec**: `docs/specs/STORY-054.md`
+- **Tasks**:
+  - [x] T1: Write `TestDeploymentCompleteness` test class in `tests/e2e/cli/test_cli_e2e.py`
+  - [x] T2: AC1–AC4 — completeness tests (exact counts + names)
+  - [x] T3: AC5 — no-empty-file test
+  - [x] T4: AC6–AC7 — frontmatter and CLAUDE.md tests
+  - [x] T5: Run full test suite, verify pass (1805 passed)
