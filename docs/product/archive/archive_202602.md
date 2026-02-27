@@ -590,3 +590,11 @@
 - [x] R2: CLI Flag Override
 - [x] R3: Command Playbook 条件逻辑
 - [x] R4: 优雅降级
+
+### STORY-048: Worktree Isolation for Subagent Sprint
+- [x] Modify SPRINT_PROMPT: add isolation="worktree" to all Stage A/B/C Task calls
+- [x] Add worktree change recovery strategy (merge for Build/Close, copy for Check)
+- [x] Add worktree pre-check phase with fallback for unsupported environments
+- [x] Add worktree-specific error handling (merge conflict, residue cleanup)
+- [x] Write unit tests (17 tests, all GREEN)
+- [x] Full regression pass (1679 tests)
