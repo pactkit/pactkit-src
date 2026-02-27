@@ -135,6 +135,10 @@ def get_default_config() -> dict:
         'release': {
             'github_release': False,
         },
+        'regression': {
+            'strategy': 'impact',
+            'max_impact_tests': 50,
+        },
     }
 
 
@@ -207,7 +211,7 @@ def load_config(path: Path | str | None = None) -> dict:
         return default
 
     # Keys that require deep merge (nested dict sections)
-    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker', 'release'}
+    DEEP_MERGE_KEYS = {'venv', 'ci', 'hooks', 'issue_tracker', 'release', 'regression'}
 
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
@@ -291,7 +295,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
 
     # --- Non-list sections: backfill missing with defaults (STORY-033, STORY-039) ---
     defaults = get_default_config()
-    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv', 'release')
+    _BACKFILL_KEYS = ('ci', 'issue_tracker', 'hooks', 'lint_blocking', 'auto_fix', 'venv', 'release', 'regression')
     for key in _BACKFILL_KEYS:
         if key not in user_data:
             user_data[key] = defaults[key]
@@ -313,7 +317,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         'version', 'stack', 'root',
         'agents', 'commands', 'skills', 'rules',
         'exclude', 'ci', 'issue_tracker', 'hooks',
-        'lint_blocking', 'auto_fix', 'venv', 'release',
+        'lint_blocking', 'auto_fix', 'venv', 'release', 'regression',
         'agent_models', 'rule_scopes',
     }
 
@@ -408,6 +412,15 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append('# Release — configure release automation behavior')
         lines.append('release:')
         lines.append(f'  github_release: {"true" if release.get("github_release") else "false"}')
+        lines.append('')
+
+    # Write regression section (STORY-053)
+    regression = data.get('regression', {})
+    if isinstance(regression, dict):
+        lines.append('# Regression — configure impact-based test selection strategy')
+        lines.append('regression:')
+        lines.append(f'  strategy: {regression.get("strategy", "impact")}')
+        lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
         lines.append('')
 
     # Write agent_models section if present (BUG-010)
@@ -555,6 +568,21 @@ def validate_config(config: dict) -> None:
                 f"got {type(github_release).__name__}"
             )
 
+    # Validate regression section (STORY-053)
+    regression = config.get('regression', {})
+    if isinstance(regression, dict):
+        strategy = regression.get('strategy', 'impact')
+        if strategy not in ('impact', 'full'):
+            warnings.warn(
+                f"regression.strategy should be 'impact' or 'full', got '{strategy}'"
+            )
+        max_impact = regression.get('max_impact_tests', 50)
+        if not isinstance(max_impact, int) or max_impact <= 0:
+            warnings.warn(
+                f"regression.max_impact_tests should be a positive integer, "
+                f"got {max_impact!r}"
+            )
+
     # enterprise section (STORY-047) — accepted without warnings
     # multi_agent field (STORY-046) — accepted without warnings
 
@@ -626,6 +654,13 @@ def generate_default_yaml() -> str:
     lines.extend(['', '# Release — configure release automation behavior'])
     lines.append('release:')
     lines.append(f'  github_release: {"true" if release.get("github_release") else "false"}')
+
+    # Write regression section (STORY-053)
+    regression = cfg.get('regression', {})
+    lines.extend(['', '# Regression — configure impact-based test selection strategy'])
+    lines.append('regression:')
+    lines.append(f'  strategy: {regression.get("strategy", "impact")}')
+    lines.append(f'  max_impact_tests: {regression.get("max_impact_tests", 50)}')
 
     lines.append('')  # trailing newline
     return '\n'.join(lines)

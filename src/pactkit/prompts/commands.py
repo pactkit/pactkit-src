@@ -423,6 +423,35 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ### Step 1.5: Fast-Suite Shortcut
 > If the last test run completed in **< 30 seconds** (check pytest output or prior run time), skip the decision tree and always run **full regression** — the suite is fast enough that optimizing for incremental provides no benefit. Proceed directly to Step 3.
 
+### Step 1.6: Release Gate — Version Bump Override (R5)
+> **PURPOSE**: Release commits require a full suite to ensure no regressions are hidden.
+1. Run `git diff HEAD~1 pyproject.toml | grep version` (or vs. branch base).
+2. If a version change is detected (e.g., `1.4.0` → `1.4.1`):
+   - Log: `"Regression: FULL — version bump detected, release requires full test suite"`
+   - Skip impact analysis. Proceed directly to Step 3 (full regression).
+3. If no version change: continue to Step 1.7.
+
+### Step 1.7: Impact-Based Analysis (STORY-053)
+> **PURPOSE**: Use `call_graph.mmd` to target only tests affected by changed functions.
+
+1. **Preconditions**: All of the following must be true to attempt impact analysis:
+   - `docs/architecture/graphs/call_graph.mmd` exists.
+   - `regression.strategy` is `impact` (read from `pactkit.yaml`; default: `impact`).
+2. **Identify changed functions**: Use `git diff HEAD~1 --unified=0` on changed source files to extract modified function names (look for `def ` in the diff).
+3. **Run impact command** for each changed function:
+   ```bash
+   python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py impact --entry <func_name>
+   ```
+   Collect all returned test file paths (space-separated).
+4. **Deduplicate** the collected test paths.
+5. **Decision** (threshold from `regression.max_impact_tests`, default 50):
+   - If total impacted files < threshold: run only impacted test files.
+     - Log: `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`
+     - Run: `pytest {space-separated test paths}`
+     - Skip Step 2. Proceed to Step 2.3 for logging.
+   - If impacted files ≥ threshold or impact command fails: fall through to Step 2 (Decision Tree).
+   - If no changed functions found in diff: fall through to Step 2.
+
 ### Step 2: Decision Tree (Safe-by-Default)
 > **DEFAULT**: Run **full regression** (`pytest tests/`). This is the safe default.
 
@@ -440,7 +469,9 @@ Run **incremental tests** only if ALL of the following conditions are true:
 After evaluating the decision tree, output the decision and the reason:
 - If skip: `"Regression: SKIP — doc-only change, no source files modified"`
 - If story-only: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
-- If full: `"Regression: FULL — {reason}"` (e.g., "Regression: FULL — config.py imported by 5 modules")
+- If full (version bump): `"Regression: FULL — version bump detected, release requires full test suite"`
+- If full (other): `"Regression: FULL — {reason}"` (e.g., "Regression: FULL — config.py imported by 5 modules")
+- If impact-based: `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`
 - If incremental: `"Regression: INCREMENTAL — {N} mapped test files, {conditions summary}"`
 - This log helps the user understand why full regression was chosen and builds trust in the decision tree.
 

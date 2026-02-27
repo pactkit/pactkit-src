@@ -642,3 +642,12 @@
 - [x] R2: Conditional GitHub Release in skill Step 4
 - [x] R3: Config backfill for release section
 - [x] R4: Validation for new section
+
+### [STORY-053] Impact-Based Regression via Call Graph Analysis [#38](https://github.com/pactkit/pactkit/issues/38)
+> Spec: docs/specs/STORY-053.md
+
+- [x] R1: Add reverse caller analysis to visualize.py (--reverse flag)
+- [x] R2: Add test mapping function (impact subcommand)
+- [x] R3: Update Regression Decision Tree in project-done.md
+- [x] R4: Configuration option in pactkit.yaml (optional)
+- [x] R5: Release Gate — version bump forces full regression

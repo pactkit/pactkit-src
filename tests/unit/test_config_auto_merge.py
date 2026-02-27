@@ -280,6 +280,7 @@ class TestBackwardCompatibility:
             'auto_fix': False,
             'venv': {'auto_detect': True},
             'release': {'github_release': False},
+            'regression': {'strategy': 'impact', 'max_impact_tests': 50},
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
@@ -397,6 +398,7 @@ class TestDeployerIntegration:
             'auto_fix': False,
             'venv': {'auto_detect': True},
             'release': {'github_release': False},
+            'regression': {'strategy': 'impact', 'max_impact_tests': 50},
         })
 
         with patch.object(Path, 'home', return_value=tmp_path), \
