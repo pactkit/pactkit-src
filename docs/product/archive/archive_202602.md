@@ -610,3 +610,11 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+
+### [STORY-050] Doc-Only Regression Shortcut
+> Spec: docs/specs/STORY-050.md
+
+- [x] Add Step 1.3 Doc-Only Shortcut to Done command prompt
+- [x] Add Doc-Only detection to Act command prompt
+- [x] Add source_dirs to LANG_PROFILES
+- [x] Update Decision Logging format

@@ -208,6 +208,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Normal TDD failures** (`AssertionError`, `TypeError`, `ValueError`, etc.) proceed normally — modify your source code and iterate.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
+    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`. If zero source files were changed (only `.md`, `.yml`, `docs/`, `.github/`, etc.), skip the broader regression — the TDD loop already validated the new tests. Log: `"Regression: SKIP — doc-only change, no source files modified"`. Proceed to Step 4 (Lint).
     - **Map to related tests**: For each changed file, find its corresponding test file using the `test_map_pattern` in `LANG_PROFILES`.
     - **Scope decision**: Check if any changed file is imported by 3+ other modules in `code_graph.mmd`. If yes, run the **full test suite**. If no (low fan-in, isolated change), run only the **mapped test files**.
     - **Fallback**: If no test mapping can be determined, or `code_graph.mmd` does not exist, fall back to the full test suite.
@@ -407,6 +408,22 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - Run `git diff --name-only HEAD~1` (or vs. branch base) to list all changed files.
 - Check if `docs/architecture/graphs/code_graph.mmd` exists.
 
+### Step 1.3: Doc-Only Shortcut
+> **PURPOSE**: If no source files were changed, skip or minimize regression — running 1000+ tests for a README edit wastes time.
+
+1. **Classify changed files**: From the `git diff` and `git status` output (Step 1), identify which files are **source files** vs **non-source files**:
+   - **Source files**: Files matching `LANG_PROFILES[stack].file_ext` (e.g., `.py`) whose path starts with any directory in `LANG_PROFILES[stack].source_dirs` (e.g., `src/` for Python).
+   - **Non-source files**: Everything else — `.md`, `.yml`, `.yaml`, `.json`, `.mmd`, `docs/`, `.github/`, `tests/`, config files, specs, board files.
+2. **Decision**:
+   - If **zero source files** changed AND **no test files** were added/modified:
+     - Log: `"Regression: SKIP — doc-only change, no source files modified"`
+     - Skip regression entirely. Proceed directly to Step 2.7 (Lint Gate).
+   - If **zero source files** changed BUT **new test files** exist (e.g., `tests/unit/test_story*.py` created in this Story):
+     - Log: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
+     - Run ONLY those new test files (they were already validated in Act Phase 3 TDD loop, but re-confirm here).
+     - Skip the full suite. Proceed to Step 2.7.
+   - If **any source files** changed: Continue to Step 1.5 (normal flow).
+
 ### Step 1.5: Fast-Suite Shortcut
 > If the last test run completed in **< 30 seconds** (check pytest output or prior run time), skip the decision tree and always run **full regression** — the suite is fast enough that optimizing for incremental provides no benefit. Proceed directly to Step 3.
 
@@ -425,6 +442,8 @@ Run **incremental tests** only if ALL of the following conditions are true:
 
 ### Step 2.3: Decision Logging (MANDATORY)
 After evaluating the decision tree, output the decision and the reason:
+- If skip: `"Regression: SKIP — doc-only change, no source files modified"`
+- If story-only: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
 - If full: `"Regression: FULL — {reason}"` (e.g., "Regression: FULL — config.py imported by 5 modules")
 - If incremental: `"Regression: INCREMENTAL — {N} mapped test files, {conditions summary}"`
 - This log helps the user understand why full regression was chosen and builds trust in the decision tree.
