@@ -4,6 +4,35 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.0] - 2026-02-28
+
+### Added
+- **Security Check Scope Filtering** — Plan generates a Security Scope section in Specs; Check phase skips non-applicable SEC-* checks based on the scope table, reducing false positives for prompt-only changes (STORY-056)
+
+### Fixed
+- **Routing Table Accuracy** — Split single "Embedded Skills" table into two: command-invoked (trace, release) and agent-only (draw, status, doctor, review, analyze); corrects 5 incorrect "Embedded In" claims (STORY-058)
+- **Playbook Implicit Instructions** — Removed unverifiable Step 1.5 (Fast-Suite Shortcut) that referenced unobservable state; added explicit [High]/[Medium] signal labels to Clarify Gate ambiguity detection (STORY-057)
+- **Version Sync on Init/Update** — `pactkit.yaml` version field now auto-syncs to `__version__` on every `pactkit init` and `pactkit update` (BUG-026)
+
+### Changed
+- **Lesson Scoring Simplified** — Replaced 5-dimension scoring with 2-check gate for lesson quality evaluation in Done phase
+- **CI Dependencies** — Bump actions/checkout from 4 to 6, actions/setup-python from 5 to 6
+
+## [1.5.0] - 2026-02-27
+
+### Added
+- **PDCA Quality Gates** — Security checklist, lesson scoring threshold, and implementation steps table in Specs; `check.security_checklist` and `done.lesson_quality_threshold` config fields (STORY-055)
+- **Deployment Completeness Audit** — E2E tests verify exact counts and names of deployed files using `VALID_*` set equality assertions (STORY-054)
+- **Impact-Based Regression** — `visualize impact --entry <func>` traces callers via call graph for targeted test selection; `regression.strategy` and `regression.max_impact_tests` config (STORY-053)
+- **Conditional GitHub Release** — `release.github_release` config enables/disables `gh release create` in release workflow (STORY-052)
+- **PDCA Workflow Streamlining** — Split overloaded Done command into focused Done + Release + PR commands; `/project-release` re-promoted from skill to command (STORY-051)
+- **Doc-Only Regression Shortcut** — Skip full test suite when only non-source files changed; `LANG_PROFILES[stack].source_dirs` classification (STORY-050)
+- **Community Standards** — CODE_OF_CONDUCT.md, SECURITY.md, dependabot.yml with content-assertion tests (STORY-049)
+- **Worktree Isolation for Sprint** — `isolation="worktree"` for subagent Sprint; merge/copy recovery instructions for Stage A/C (STORY-048)
+
+### Fixed
+- **Stale project-release reference** — Updated stale-ref tests after re-promoting `/project-release` from skill to command (BUG-025)
+
 ## [1.4.0] - 2026-02-26
 
 ### Added

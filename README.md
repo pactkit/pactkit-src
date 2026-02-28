@@ -11,7 +11,7 @@
 
 <p align="center"><strong>Ship features with AI agents that follow specs, not vibes.</strong></p>
 
-> PactKit gives Claude Code a structured operating system — 9 specialized agents, 9 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
+> PactKit gives Claude Code a structured operating system — 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
 
 ### What it looks like
 
@@ -44,7 +44,7 @@ Requires Python 3.10+ and [Claude Code](https://docs.anthropic.com/en/docs/claud
 ## Quick Start
 
 ```bash
-# Deploy full toolkit (9 commands + 9 agents + 10 skills)
+# Deploy full toolkit (11 commands + 9 agents + 10 skills)
 pactkit init
 
 # Update to latest playbooks (preserves your config)
@@ -90,7 +90,9 @@ Or run the full cycle in one command:
 | **Plan** | `/project-plan` | System Architect | Clarify gate → Codebase scan → Spec generation → Board entry |
 | **Act** | `/project-act` | Senior Developer | Spec lint → Consistency check → TDD loop → Regression check |
 | **Check** | `/project-check` | QA + Security | 8-item security checklist + quality audit + spec alignment |
-| **Done** | `/project-done` | Repo Maintainer | Regression gate → Auto-PR → Archive → Conventional commit |
+| **Done** | `/project-done` | Repo Maintainer | Regression gate → Archive → Conventional commit |
+| **Release** | `/project-release` | Repo Maintainer | Version bump → Snapshot → Git tag → GitHub Release |
+| **PR** | `/project-pr` | Repo Maintainer | Push branch → Create pull request via gh CLI |
 | **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration |
 | **Hotfix** | `/project-hotfix` | Senior Developer | Fast-track fix bypassing PDCA (with traceability) |
 | **Init** | `/project-init` | System Architect | Bootstrap project structure and governance |
@@ -100,13 +102,18 @@ Or run the full cycle in one command:
 
 | Skill | Embedded In | Purpose |
 |-------|-------------|---------|
-| Trace | Plan, Act | Call graph tracing → Sequence diagram |
-| Draw | Plan, Design | Generate Draw.io XML architecture diagrams |
-| Analyze | Act (Phase 0.6) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
-| Status | Init | Cold-start project overview → Sprint + Git + Health report |
-| Doctor | Init | Configuration drift detection → Health report |
-| Review | Check | PR review with SOLID/Security/Quality checklists |
-| Release | Done | Version bump → Archive → Git tag → Changelog |
+| Trace | Plan Phase 1, Act Phase 1 | Deep code tracing and execution flow analysis |
+| Release | Release Phase 1 | Version release: snapshot, archive, Git tag |
+
+### Agent Skills (invoked via agent roles)
+
+| Skill | Available To | Purpose |
+|-------|-------------|---------|
+| Draw | visual-architect, system-architect | Generate Draw.io XML architecture diagrams |
+| Status | system-medic | Project state overview |
+| Doctor | system-medic | Diagnose project health |
+| Review | qa-engineer | PR Code Review |
+| Analyze | senior-developer (Act inline) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 
 ## Agent Ensemble
 
@@ -192,7 +199,7 @@ PactKit deploys to `~/.claude/`:
 ~/.claude/
 ├── CLAUDE.md                 ← Modular constitution (entry point)
 ├── rules/                    ← 6 rule modules
-├── commands/                 ← 9 command playbooks
+├── commands/                 ← 11 command playbooks
 ├── agents/                   ← 9 agent definitions
 └── skills/                   ← 10 skill packages (3 scripted + 7 prompt-only)
     ├── pactkit-visualize/
@@ -210,7 +217,7 @@ The `pactkit.yaml` file controls which components are deployed and how they beha
 | `version` | string | current | PactKit version that generated the config |
 | `root` | string | `.` | Project root directory (deployment target resolves to `~/.claude` by default) |
 | `agents` | list | all 9 | Agent definitions to deploy |
-| `commands` | list | all 9 | Command playbooks to deploy |
+| `commands` | list | all 11 | Command playbooks to deploy |
 | `skills` | list | all 10 | Skills to deploy |
 | `rules` | list | all 6 | Constitution rule modules to deploy |
 | `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`, `exclude.commands: [cmd-name]`) |
