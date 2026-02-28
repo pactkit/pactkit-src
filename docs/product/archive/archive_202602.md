@@ -694,3 +694,7 @@
   - [x] Modify Check Phase 1 to skip non-applicable checks
   - [x] Add config option `check.security_scope_override`
   - [x] Add unit tests
+
+### STORY-057: Playbook Implicit Instruction Cleanup
+- [x] R1: Remove Done Phase 2.5 Step 1.5 (Fast-Suite Shortcut)
+- [x] R2: Add explicit [High]/[Medium] labels to Plan Phase 0.7 Clarify Gate signals

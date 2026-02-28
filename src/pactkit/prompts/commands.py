@@ -46,12 +46,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
 > **PURPOSE**: Surface and resolve requirement ambiguity before the Spec is written. Better to clarify now than rewrite a Spec.
 1.  **Detect Ambiguity**: Analyze the user's input (`$ARGUMENTS`) against these signals:
-    - No quantitative metrics ("高并发" without QPS, "fast" without benchmark)
-    - No boundary conditions ("user management" without specifying which operations)
-    - No technical constraints (no auth method, no framework specified)
-    - Single sentence input (< 15 words) — likely under-specified
-    - Vague quantifiers ("some", "many", "a few", "大量", "一些", "简单")
-    - No target user specified
+    - [High] No quantitative metrics ("高并发" without QPS, "fast" without benchmark)
+    - [High] No boundary conditions ("user management" without specifying which operations)
+    - [Medium] No technical constraints (no auth method, no framework specified)
+    - [Medium] Single sentence input (< 15 words) — likely under-specified
+    - [Medium] Vague quantifiers ("some", "many", "a few", "大量", "一些", "简单")
+    - [Medium] No target user specified
 2.  **Trigger Logic**:
     - ≥ 2 High signals (no metrics, no boundaries) → **Auto-trigger** Clarify
     - 1 High + ≥ 2 Medium signals → **Auto-trigger** Clarify
@@ -480,10 +480,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
      - Log: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
      - Run ONLY those new test files (they were already validated in Act Phase 3 TDD loop, but re-confirm here).
      - Skip the full suite. Proceed to Step 2.7.
-   - If **any source files** changed: Continue to Step 1.5 (normal flow).
-
-### Step 1.5: Fast-Suite Shortcut
-> If the last test run completed in **< 30 seconds** (check pytest output or prior run time), skip the decision tree and always run **full regression** — the suite is fast enough that optimizing for incremental provides no benefit. Proceed directly to Step 3.
+   - If **any source files** changed: Continue to Step 1.6 (normal flow).
 
 ### Step 1.6: Release Gate — Version Bump Override (R5)
 > **PURPOSE**: Release commits require a full suite to ensure no regressions are hidden.

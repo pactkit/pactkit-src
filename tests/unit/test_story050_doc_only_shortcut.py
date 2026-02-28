@@ -24,18 +24,18 @@ class TestDoneDocOnlyShortcut:
         assert 'doc-only' in lower or 'doc only' in lower, \
             'Done prompt missing doc-only shortcut language'
 
-    def test_doc_only_before_fast_suite(self):
-        """Doc-Only Shortcut (Step 1.3) must appear before Fast-Suite Shortcut (Step 1.5)."""
+    def test_doc_only_before_release_gate(self):
+        """Doc-Only Shortcut (Step 1.3) must appear before Release Gate (Step 1.6)."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
         doc_only_idx = done.lower().find('doc-only')
         if doc_only_idx < 0:
             doc_only_idx = done.lower().find('doc only')
-        fast_suite_idx = done.lower().find('fast-suite')
+        release_gate_idx = done.find('Release Gate')
         assert doc_only_idx > 0, 'Doc-Only shortcut not found'
-        assert fast_suite_idx > 0, 'Fast-Suite shortcut not found'
-        assert doc_only_idx < fast_suite_idx, \
-            'Doc-Only shortcut must appear before Fast-Suite shortcut'
+        assert release_gate_idx > 0, 'Release Gate not found'
+        assert doc_only_idx < release_gate_idx, \
+            'Doc-Only shortcut must appear before Release Gate'
 
     def test_done_references_source_dirs(self):
         """Done prompt should reference source_dirs or LANG_PROFILES for source detection."""
@@ -132,11 +132,11 @@ class TestBackwardCompatibility:
         lower = done.lower()
         assert 'full regression' in lower or 'full suite' in lower
 
-    def test_done_still_has_fast_suite_shortcut(self):
-        """Fast-Suite Shortcut must still exist."""
+    def test_done_still_has_release_gate(self):
+        """Release Gate (Step 1.6) must still exist (STORY-057 removed Step 1.5)."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        assert 'Fast-Suite' in done
+        assert 'Release Gate' in done
 
     def test_done_still_has_decision_tree(self):
         """Decision Tree must still exist."""
