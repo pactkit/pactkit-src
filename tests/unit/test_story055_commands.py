@@ -118,61 +118,32 @@ class TestCheckSecurityChecklist:
 # R3: Done Phase — Lesson Quality Scoring
 # ===========================================================================
 
-class TestDoneLessonQualityScoring:
-    """Done Phase 3.3 MUST include 5-dimension lesson quality scoring."""
+class TestDoneLessonQualityGate:
+    """Done Phase 3.3 MUST have a simple lesson quality gate."""
 
     def _done(self) -> str:
         return _commands().COMMANDS_CONTENT['project-done.md']
 
-    def test_done_has_5_dimensions(self):
-        """R3.1: Must have 5 quality dimensions."""
+    def test_done_has_specificity_check(self):
+        """Lesson must reference concrete file/function/pattern."""
         done = self._done()
-        # Check for dimension names
-        assert 'Specificity' in done or 'specificity' in done.lower(), \
-            "Done must include Specificity dimension"
-        assert 'Actionability' in done or 'actionability' in done.lower(), \
-            "Done must include Actionability dimension"
+        assert 'specific' in done.lower() or 'concrete' in done.lower(), \
+            "Done must check lesson specificity"
 
-    def test_done_has_scoring_scale(self):
-        """R3.2: Dimensions must be scored 1-5."""
+    def test_done_has_duplicate_check(self):
+        """Lesson must not duplicate existing entries."""
         done = self._done()
-        assert '1-5' in done or ('score' in done.lower() and '5' in done), \
-            "Done must reference 1-5 scoring scale"
-
-    def test_done_has_quality_threshold(self):
-        """R3.3 + R3.4: Must have threshold gate, default 15."""
-        done = self._done()
-        assert 'threshold' in done.lower() or 'lesson_quality_threshold' in done, \
-            "Done must reference quality threshold"
-        assert '15' in done, \
-            "Done must reference default threshold of 15"
+        assert 'duplicate' in done.lower() or 'different' in done.lower(), \
+            "Done must check for duplicate lessons"
 
     def test_done_has_skip_log_message(self):
-        """R3.5: Must log when lesson is skipped below threshold."""
+        """Must log when lesson is skipped."""
         done = self._done()
         assert 'skipped' in done.lower() or 'Lesson skipped' in done, \
-            "Done must log when lesson is skipped (score below threshold)"
+            "Done must log when lesson is skipped"
 
-    def test_done_lesson_row_includes_score(self):
-        """R3.6: Appended lesson row must include score."""
+    def test_done_lesson_row_format(self):
+        """Appended lesson row must have date, summary, story ID."""
         done = self._done()
-        assert 'score' in done.lower() and '/25' in done, \
-            "Done lesson row format must include score (e.g., 'score: 18/25')"
-
-    def test_done_p0_p1_bonus(self):
-        """R3.7: P0/P1 findings should receive +3 bonus."""
-        done = self._done()
-        assert '+3' in done or 'bonus' in done.lower(), \
-            "Done must reference +3 bonus for P0/P1 findings"
-
-    def test_done_max_score_is_25(self):
-        """Total max score must be 25 (5 dimensions × max 5)."""
-        done = self._done()
-        assert '25' in done, \
-            "Done must reference max score of 25"
-
-    def test_done_configurable_threshold(self):
-        """lesson_quality_threshold must be configurable via pactkit.yaml."""
-        done = self._done()
-        assert 'lesson_quality_threshold' in done, \
-            "Done must reference lesson_quality_threshold config option"
+        assert 'YYYY-MM-DD' in done and 'STORY_ID' in done, \
+            "Done lesson row format must include date and story ID"

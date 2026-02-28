@@ -572,20 +572,11 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 2.  **Auto-Fix**:
     - If tests are GREEN but tasks are `[ ]`, **Ask the user**: "Tests passed but tasks are unchecked. Mark as done?"
     - If user agrees, update `sprint_board.md` immediately.
-3.  **Lessons Auto-append with Quality Gate (MANDATORY)**: Evaluate the lesson before appending to `docs/architecture/governance/lessons.md`:
-    - **Step 1 — Score** the lesson on 5 dimensions (1=Low, 3=Medium, 5=High):
-      | Dimension | 1 (Low) | 3 (Medium) | 5 (High) |
-      |-----------|---------|------------|----------|
-      | Specificity | Abstract principles only | Has code example | Covers all usage patterns |
-      | Actionability | Unclear what to do | Main steps understandable | Immediately actionable |
-      | Scope Fit | Too broad or narrow | Mostly appropriate | Name and content aligned |
-      | Non-redundancy | Nearly identical to existing | Some unique perspective | Completely unique value |
-      | Coverage | Partial coverage | Main cases covered | Includes edge cases |
-    - **Step 2 — Bonus**: If Check Phase produced any P0 or P1 findings that inspired this lesson, add **+3** to the total.
-    - **Step 3 — Gate**: Read `done.lesson_quality_threshold` from `pactkit.yaml` (default: **15**).
-      - If total score < threshold: **do NOT append**. Log: `"Lesson skipped (score {N}/25 < threshold {T})"`
-      - If total score >= threshold: append row with format: `| {YYYY-MM-DD} | {summary} (score: {N}/25) | {STORY_ID} |`
-    - This is NOT conditional on Memory MCP — always evaluate and either append or log skip.
+3.  **Lessons Auto-append (MANDATORY)**: Append a lesson to `docs/architecture/governance/lessons.md` if it passes these two checks:
+    - **Specific?** Does the lesson reference a concrete file, function, or pattern? (Not just a generic principle)
+    - **Non-duplicate?** Is it meaningfully different from the last 5 entries in `lessons.md`?
+    - If both yes: append row with format: `| {YYYY-MM-DD} | {one-line summary} | {STORY_ID} |`
+    - If either no: skip with log: `"Lesson skipped: {reason}"`
 4.  **Invariants Refresh (MANDATORY)**: Update the Invariants section in `docs/architecture/governance/rules.md`:
     - Read the current `rules.md` file.
     - Update the test count to match the actual number from the most recent test run (e.g., "All {N}+ tests must pass").
