@@ -698,3 +698,7 @@
 ### STORY-057: Playbook Implicit Instruction Cleanup
 - [x] R1: Remove Done Phase 2.5 Step 1.5 (Fast-Suite Shortcut)
 - [x] R2: Add explicit [High]/[Medium] labels to Plan Phase 0.7 Clarify Gate signals
+
+### STORY-058: Fix Routing Table Embedded Skills — Match Reality
+- [x] R1: Split Embedded Skills table into Command-embedded vs Agent-only
+- [x] R2: Correct table contents to match actual invocation relationships
