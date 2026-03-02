@@ -1,4 +1,8 @@
-"""Tests for STORY-035: /project-design command — Product Designer for Greenfield Projects."""
+"""Tests for /project-design command — Product Designer for Greenfield Projects.
+
+STORY-035: Original command registration, agent, PRD template, phases.
+STORY-059: Prototype Generation Phase (Section 1.6).
+"""
 
 
 def _prompts():
@@ -272,3 +276,121 @@ class TestDesignPromptExported:
         assert hasattr(p, 'DESIGN_PROMPT')
         assert isinstance(p.DESIGN_PROMPT, str)
         assert len(p.DESIGN_PROMPT) > 200
+
+
+# ===========================================================================
+# STORY-059: Prototype Generation Phase
+# ===========================================================================
+
+class TestPrototypeSection:
+    """STORY-059 S1: DESIGN_PROMPT contains Section 1.6 Prototype Generation."""
+
+    def test_section_exists(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert '### 1.6 Prototype Generation' in content
+
+    def test_section_between_1_5_and_1_7(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        idx_15 = content.index('### 1.5 Page/Screen Design')
+        idx_16 = content.index('### 1.6 Prototype Generation')
+        idx_17 = content.index('### 1.7')
+        assert idx_15 < idx_16 < idx_17
+
+
+class TestSectionRenumbering:
+    """STORY-059 S2: Sections 1.1 through 2.0 sequential, no gaps."""
+
+    def test_all_sections_sequential(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        expected = [
+            '### 1.1', '### 1.2', '### 1.3', '### 1.4', '### 1.5',
+            '### 1.6', '### 1.7', '### 1.8', '### 1.9', '### 2.0',
+        ]
+        indices = []
+        for sec in expected:
+            assert sec in content, f"Missing section {sec}"
+            indices.append(content.index(sec))
+        # Verify monotonically increasing order
+        for i in range(len(indices) - 1):
+            assert indices[i] < indices[i + 1], (
+                f"Section {expected[i]} not before {expected[i+1]}"
+            )
+
+
+class TestPrototypeTailwindCDN:
+    """STORY-059 S3: Section 1.6 references Tailwind CDN and Lucide."""
+
+    def test_tailwind_cdn(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'cdn.tailwindcss.com' in content
+
+    def test_lucide_icons(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'lucide' in content.lower()
+
+
+class TestPrototypeOutputPath:
+    """STORY-059 S4: Section 1.6 specifies docs/prototypes/ output path."""
+
+    def test_output_path(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'docs/prototypes/' in content
+
+
+class TestPrototypePlaywrightConditional:
+    """STORY-059 S5: Playwright MCP is conditional."""
+
+    def test_playwright_tool_referenced(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'mcp__playwright__' in content or 'Playwright' in content
+
+    def test_conditional_check(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        # Must have a conditional pattern (IF ... available)
+        assert 'IF' in content or 'if' in content.lower()
+        assert 'available' in content.lower() or 'conditional' in content.lower()
+
+
+class TestDoesNotSectionUpdated:
+    """STORY-059 S6: 'Does NOT' section updated."""
+
+    def test_no_wireframe_disclaimer(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'Does NOT generate UI wireframe images' not in content
+
+    def test_prototype_html_only_note(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        # Must mention prototypes are HTML-only, not production code
+        lower = content.lower()
+        assert 'prototype' in lower
+        assert 'html' in lower
+
+
+class TestBackwardCompatibilityStory059:
+    """STORY-059 S7: Existing phases intact."""
+
+    def test_all_phases_still_present(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        for phase in ['Phase 0', 'Phase 1', 'Phase 2', 'Phase 3', 'Phase 4', 'Phase 5']:
+            assert phase in content, f"Missing {phase}"
+
+    def test_phase0_still_thinking(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'thinking' in content.lower()
+
+    def test_phase1_still_prd(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'PRD Generation' in content
