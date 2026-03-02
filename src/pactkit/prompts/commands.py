@@ -15,7 +15,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Agent**: System Architect
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 1.  **Analyze Intent**: New feature (Expansion) or Bugfix/Refactor (Modification)?
 2.  **Strategy**:
     - If **New Feature**: Focus on `system_design.mmd` (Architecture).
@@ -278,7 +277,6 @@ allowed-tools: [Read, Bash, Grep, Glob]
 | **P3** | Low | Optional — style, naming, minor suggestion |
 
 ## Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block before using any tools.
 1.  **Analyze Context**: Read the active `docs/specs/{ID}.md`.
 2.  **Determine Layer**:
     * *Logic Only?* -> Strategy: **API Level**.
@@ -434,7 +432,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - **Agent**: Repo Maintainer
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 1.  **Audit**: Are tests passing? Is the Board updated?
 2.  **Semantics**: Determine correct Conventional Commit scope.
 
@@ -694,7 +691,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - **Agent**: System Architect
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block before using any tools.
 1.  **Environment Check**: Is this a fresh folder or legacy project?
 2.  **Compliance**: Does the user need `pactkit.yaml`?
 3.  **Strategy**: If legacy, I must prioritize `visualize` to capture Reality.

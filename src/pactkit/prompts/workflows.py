@@ -14,7 +14,6 @@ allowed-tools: [Read, Bash, Grep, Glob]
 - **Agent**: Code Explorer
 
 ## 🕵️‍♂️ Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block before using any tools.
 1.  **Strategy**: Am I tracing a Data Flow (Model -> DB) or Control Flow (API -> Service)?
 2.  **Boundaries**: Define the stop condition (e.g., "Stop at Database Layer").
 
@@ -181,7 +180,6 @@ allowed-tools: [Read, Write]
 - **Agent**: Visual Architect
 
 ## Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block before using any tools.
 
 ### Step 1: Detect Diagram Type
 Classify the user request into one of these types:
@@ -306,7 +304,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > This enables `model: "sonnet"` for cost-efficient subagents (QA, Security, Closer).
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 > **CRITICAL**: Do NOT use the `Read` tool in this phase. Lead must stay thin.
 1.  **Analyze**: Parse the requirement from `$ARGUMENTS`.
 2.  **STORY-ID**: Determine next available ID by scanning `docs/specs/` using **Glob only** (not Read).
@@ -465,7 +462,6 @@ allowed-tools: [Read, Bash, Grep, Glob]
 | **P3** | Low | Optional improvement — style, naming, minor suggestion |
 
 ## Phase 0: PR Information Retrieval (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 1.  **Parse Input**: `$ARGUMENTS` can be a PR number (e.g. `123`) or a full URL.
 2.  **Fetch PR Metadata**: Run `gh pr view $ARGUMENTS --json title,body,author,baseRefName,headRefName,files`.
 3.  **Fetch PR Diff**: Run `gh pr diff $ARGUMENTS`.
@@ -634,7 +630,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - ❌ Multi-module refactoring → use `/project-plan` + `/project-act`
 
 ## 🧠 Phase 0: Locate & Register (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 1.  **Parse**: Understand what needs to be fixed from `$ARGUMENTS`.
 2.  **Locate**: Use `Grep` or `Glob` to quickly locate the target file and code line.
 3.  **Assess**: Confirm this is a minor fix (suitable for Hotfix), not a change requiring full PDCA.
@@ -692,7 +687,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > "I have an idea" and "I have a prioritized backlog ready for `/project-sprint`."
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
-> **INSTRUCTION**: Output a `<thinking>` block.
 1.  **Parse Vision**: What is the core product idea? What problem does it solve?
 2.  **Identify Domain**: E-commerce, SaaS, internal tool, mobile app, CLI, etc.
 3.  **Detect Stack Hints**: Does the user mention specific technologies? (React, Python, Go, etc.)

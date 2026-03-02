@@ -385,10 +385,10 @@ class TestBackwardCompatibilityStory059:
         for phase in ['Phase 0', 'Phase 1', 'Phase 2', 'Phase 3', 'Phase 4', 'Phase 5']:
             assert phase in content, f"Missing {phase}"
 
-    def test_phase0_still_thinking(self):
+    def test_phase0_exists(self):
         p = _prompts()
         content = p.COMMANDS_CONTENT['project-design.md']
-        assert 'thinking' in content.lower()
+        assert 'Phase 0' in content
 
     def test_phase1_still_prd(self):
         p = _prompts()

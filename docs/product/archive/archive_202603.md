@@ -14,3 +14,13 @@
   - [x] T4: Update deploy() signature (accept flags, remove **_kwargs)
   - [x] T5: Add MAX_SCAN_FILES=500 truncation to _scan_files()
   - [x] T6: Narrow bare except clauses in visualize.py
+
+### [STORY-061] Remove Redundant Thinking Block Instructions from PDCA Playbooks
+> Spec: docs/specs/STORY-061.md
+
+- [x] T1: Remove 4 thinking instructions from commands.py
+- [x] T2: Remove 6 thinking instructions from workflows.py
+- [x] T3: Create test_story061 asserting no thinking instructions remain
+- [x] T4: Update test_design_command.py test_phase0_still_thinking
+
+## 🔄 In Progress
