@@ -117,6 +117,25 @@ def main():
         default="classic",
         help="Output format: classic (default), plugin, or marketplace",
     )
+    # STORY-060: Enterprise flags for upgrade (parity with init/update)
+    upgrade_parser.add_argument(
+        "--no-git",
+        action="store_true",
+        default=False,
+        help="Disable all git operations (enterprise: air-gapped environments)",
+    )
+    upgrade_parser.add_argument(
+        "--no-external",
+        action="store_true",
+        default=False,
+        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
+    )
+    upgrade_parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        default=False,
+        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
+    )
 
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
@@ -125,7 +144,13 @@ def main():
 
     if args.command in ("init", "update", "upgrade"):
         from pactkit.generators.deployer import deploy
-        deploy(target=args.target, format=args.format)
+        deploy(
+            target=args.target,
+            format=args.format,
+            no_git=getattr(args, 'no_git', False),
+            no_external=getattr(args, 'no_external', False),
+            non_interactive=getattr(args, 'non_interactive', False),
+        )
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

@@ -44,7 +44,9 @@ def _rewrite_skills_prefix(content, skills_prefix):
     return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
 
 
-def deploy(config=None, target=None, format="classic", **_kwargs):
+def deploy(config=None, target=None, format="classic",
+           no_git=False, no_external=False, non_interactive=False,
+           mode=None):
     """Deploy PactKit configuration.
 
     Args:
@@ -52,6 +54,10 @@ def deploy(config=None, target=None, format="classic", **_kwargs):
         target: Optional target directory. If None, uses ~/.claude (classic) or
                 ./pactkit-plugin (plugin) or ./pactkit-marketplace (marketplace).
         format: Output format — 'classic', 'plugin', or 'marketplace'.
+        no_git: Disable all git operations (enterprise: air-gapped environments).
+        no_external: Disable external network calls (enterprise).
+        non_interactive: Non-interactive mode: auto-accept defaults (CI/CD).
+        mode: Deprecated, ignored. Kept for backward compatibility.
     """
     if format not in VALID_FORMATS:
         raise ValueError(f"Unknown format: {format!r}. Valid: {', '.join(VALID_FORMATS)}")
