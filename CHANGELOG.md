@@ -4,6 +4,12 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.2] - 2026-03-03
+
+### Added
+- **MCP Recommendations** — After `pactkit init` and `pactkit update`, displays 6 recommended MCP servers (Context7, Memory, Playwright, Draw.io, shadcn, Chrome DevTools) with purposes and config hint; helps users discover optional integrations (STORY-062)
+- **Subagent Model Selection Guidance** — Core protocol now includes model selection guidance (haiku for simple tasks, sonnet for general, opus for complex); balances cost and capability in multi-agent workflows
+
 ## [1.6.1] - 2026-03-03
 
 ### Fixed
