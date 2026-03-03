@@ -33,3 +33,11 @@
 - [x] T3: Call helper after deploy() success
 - [x] T4: Call helper after _deploy_plugin() success
 - [x] T5: Create tests for AC1-AC4
+
+### [BUG-027] Sprint Board Story 标题级别不一致导致归档失败
+> Spec: docs/specs/BUG-027.md
+
+- [x] 添加 create_board 函数到 scaffold.py
+- [x] 修改 board.py 正则支持 #### 格式
+- [x] 更新 project-init Phase 4 使用 scaffold 命令
+- [x] 添加单元测试
