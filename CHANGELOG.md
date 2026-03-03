@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ## [1.6.3] - 2026-03-03
 
 ### Fixed
+- **Sprint Board Story Heading Tolerance** — `board.py` regex now matches both `###` and `####` story headings for backward compatibility; new `create_board()` scaffold function ensures standardized board generation (BUG-027)
 - **PyPI Logo Display** — README logo now uses absolute GitHub raw URL for PyPI rendering
 
 ## [1.6.2] - 2026-03-03
