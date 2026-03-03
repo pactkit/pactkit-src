@@ -24,3 +24,12 @@
 - [x] T4: Update test_design_command.py test_phase0_still_thinking
 
 ## 🔄 In Progress
+
+### [STORY-062] Print MCP Recommendations After Init/Update
+> Spec: docs/specs/STORY-062.md
+
+- [x] T1: Add MCP_RECOMMENDATIONS constant
+- [x] T2: Add _print_mcp_recommendations() helper
+- [x] T3: Call helper after deploy() success
+- [x] T4: Call helper after _deploy_plugin() success
+- [x] T5: Create tests for AC1-AC4

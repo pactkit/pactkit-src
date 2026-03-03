@@ -44,6 +44,25 @@ def _rewrite_skills_prefix(content, skills_prefix):
     return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
 
 
+# STORY-062: MCP server recommendations
+MCP_RECOMMENDATIONS = [
+    {"name": "Context7", "purpose": "Library docs lookup (Act phase)"},
+    {"name": "Memory", "purpose": "Cross-session context (Plan/Act/Done)"},
+    {"name": "Playwright", "purpose": "Browser testing (Check phase)"},
+    {"name": "Draw.io", "purpose": "Diagram editing (Plan phase)"},
+    {"name": "shadcn", "purpose": "UI components (frontend projects)"},
+    {"name": "Chrome DevTools", "purpose": "Performance tracing (Check phase)"},
+]
+
+
+def _print_mcp_recommendations():
+    """Print recommended MCP servers after deployment."""
+    print("\n📦 Recommended MCP Servers (optional, enhance PactKit features):")
+    for mcp in MCP_RECOMMENDATIONS:
+        print(f"   • {mcp['name']:15} — {mcp['purpose']}")
+    print("   Configure in Claude Code settings.json → mcpServers")
+
+
 def deploy(config=None, target=None, format="classic",
            no_git=False, no_external=False, non_interactive=False,
            mode=None):
@@ -150,6 +169,7 @@ def _deploy_classic(config=None, target=None):
           f"{n_commands}/{total_commands} Commands, "
           f"{n_skills}/{total_skills} Skills, "
           f"{n_rules}/{total_rules} Rules")
+    _print_mcp_recommendations()
 
 
 def _deploy_plugin(target=None):
@@ -182,6 +202,7 @@ def _deploy_plugin(target=None):
 
     print(f"\n✅ Plugin: {n_agents} Agents, {n_commands} Commands, "
           f"{n_skills} Skills → {plugin_root}")
+    _print_mcp_recommendations()
 
 
 def _deploy_marketplace(target=None):
