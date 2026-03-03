@@ -42,3 +42,4 @@ docs/architecture/snapshots/
 # Backup
 *.bak
 .mcp.json
+coder/

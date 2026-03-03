@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.1] - 2026-03-03
+
+### Fixed
+- **Init Hang Prevention** — Phase 0.5 Git Guard now prints warning instead of blocking prompt; enterprise flags (`--no-git`, `--no-external`, `--non-interactive`) wired end-to-end from CLI to deploy(); `visualize.py` scan truncated at 500 files with `--focus` escape hatch (STORY-060)
+
+### Changed
+- **Prompt Token Optimization** — Removed 10 redundant `<thinking>` block instructions from PDCA playbooks (4 in commands.py, 6 in workflows.py); Claude's native extended thinking makes explicit instructions unnecessary, saving ~50-100 tokens per invocation (STORY-061)
+
 ## [1.6.0] - 2026-02-28
 
 ### Added
