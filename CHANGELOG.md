@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.3] - 2026-03-03
+
+### Fixed
+- **PyPI Logo Display** — README logo now uses absolute GitHub raw URL for PyPI rendering
+
 ## [1.6.2] - 2026-03-03
 
 ### Added

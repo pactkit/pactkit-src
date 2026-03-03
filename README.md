@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="PactKit" width="480" />
+  <img src="https://raw.githubusercontent.com/pactkit/pactkit/main/docs/assets/logo.png" alt="PactKit" width="480" />
 </p>
 
 <p align="center">
