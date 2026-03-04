@@ -2,7 +2,3 @@
 
 ## 📋 Backlog
 
-## 🔄 In Progress
-
-## ✅ Done
-

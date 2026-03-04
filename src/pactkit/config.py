@@ -58,6 +58,7 @@ VALID_RULES = frozenset({
     '04-routing-table',
     '05-workflow-conventions',
     '06-mcp-integration',
+    '07-shared-protocols',
 })
 
 VALID_STACKS = frozenset({'auto', 'python', 'node', 'go', 'java'})

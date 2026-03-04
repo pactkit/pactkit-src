@@ -41,3 +41,18 @@
 - [x] 修改 board.py 正则支持 #### 格式
 - [x] 更新 project-init Phase 4 使用 scaffold 命令
 - [x] 添加单元测试
+
+### [STORY-063] PDCA Playbook Prompt Slimming
+> Spec: docs/specs/STORY-063.md
+
+- [x] R1: Extract shared protocols to rules.py
+- [x] R2: Slim MCP tool signature teaching
+- [x] R3: Slim inline tool teaching
+- [x] R4: Rewrite Sprint to Protocol-Only
+- [x] R5: Fix ghost DEV_REF/TEST_REF references
+- [x] R6: Add Spec Lint to Design
+- [x] R7: Write story tests
+
+## 🔄 In Progress
+
+## ✅ Done

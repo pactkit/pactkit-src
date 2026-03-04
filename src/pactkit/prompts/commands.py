@@ -71,12 +71,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 6.  **Output**: The enriched_input (original + answers) is used as context for Phase 1 onwards.
 
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
-1.  **Visual Scan**: Run `visualize` to see the module dependency graph.
-    - **Mode Selection**: Use `--mode class` for structure analysis, `--mode call` for logic modification, default for overview.
-    - **Large Codebase Heuristic**: If the project has more than 50 source files, use `--focus <module> --depth 2` instead of a full graph to avoid context window pollution.
+1.  **Visual Scan**: Run `visualize` to see the module dependency graph. Use `--mode class` for structure, `--mode call` for logic.
+    - For large codebases (50+ files), use `--focus <module> --depth 2` to limit scope.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
-    - If modifying existing logic, trace the current implementation:
-      Use `Grep` to locate entry points, then `visualize --mode call --entry <func>` to map call chains.
+    - If modifying existing logic, trace the current implementation.
     - *Goal*: Identify the exact function/class responsible for the logic.
 
 ## 🎬 Phase 2: Design & Impact
@@ -123,15 +121,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       ```
     - **Spec Lint Self-Check**: After writing the Spec, run `python3 src/pactkit/skills/spec_linter.py docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
 2.  **Board**: Add Story using `add_story`.
-3.  **Memory MCP (Conditional)**: IF `mcp__memory__create_entities` tool is available, store the design context:
-    - Use `mcp__memory__create_entities` with: `name: "{STORY_ID}"`, `entityType: "story"`, `observations: [key architectural decisions, target files, design rationale]`
-    - IF this story depends on other stories, use `mcp__memory__create_relations` to record dependencies (e.g., `from: "{STORY_ID}", to: "STORY-XXX", relationType: "depends_on"`)
-4.  **Session Context Update**: Update `docs/product/context.md` to reflect the new Story:
-    - Read `docs/product/sprint_board.md` (now containing the new Story)
-    - Read `docs/architecture/governance/lessons.md` (last 5 entries)
-    - Run `git branch --list 'feature/*' 'fix/*'`
-    - Write `docs/product/context.md` using the standard format (see `/project-done` Phase 4.5 for format)
-    - Set "Last updated by" to `/project-plan`
+3.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
+4.  **Session Context Update**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-plan`.
 5.  **Handover**: "Trace complete. Spec created. Ready for Act."
 """,
 
@@ -153,16 +144,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - You MUST NOT modify the Spec unilaterally — only the user (or Architect via a new `/project-plan` cycle) may amend Tier 1.
     - Wait for user guidance before proceeding.
 3.  **Locate Target**: Which file/function needs surgery?
-4.  **Detect Stack & Select References**: Identify the project type from source files:
-    - `.py` files → Python stack → Consult `DEV_REF_BACKEND` + `TEST_REF_PYTHON`
-    - `.ts`/`.tsx`/`.vue`/`.svelte` files → Frontend stack → Consult `DEV_REF_FRONTEND` + `TEST_REF_NODE`
-    - `.go` files → Go stack → Consult `DEV_REF_BACKEND` + `TEST_REF_GO`
-    - `.java` files → Java stack → Consult `DEV_REF_BACKEND` + `TEST_REF_JAVA`
-    - Mixed (frontend + backend) → Consult both `DEV_REF_FRONTEND` and `DEV_REF_BACKEND`
-    - Use the Stack Reference guidelines throughout implementation and testing phases.
-5.  **Memory MCP (Conditional)**: IF `mcp__memory__search_nodes` tool is available, load prior context:
-    - Use `mcp__memory__search_nodes` with the STORY_ID to retrieve any stored architectural decisions or design rationale from the Plan phase
-    - Use `mcp__memory__search_nodes` with relevant module/feature keywords to find related past decisions from other stories
+4.  **Detect Stack & Select Stack Reference**: Identify the project type from source files (`.py`, `.ts`/`.tsx`, `.go`, `.java`). Apply the corresponding language-specific best practices throughout implementation and testing.
+5.  **Memory MCP (Conditional)**: IF Memory MCP is available, use search_nodes to load prior context for {STORY_ID} — retrieve architectural decisions and design rationale from the Plan phase.
 
 ## 🛡️ Phase 0.5: Spec Lint Gate (Mandatory)
 > **PURPOSE**: Non-AI structural validation — ensures "Spec is Law" has physical enforcement before any code is written.
@@ -202,13 +185,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
-1.  **Visual Scan**: Run `visualize --focus <module>` to see neighbors.
-    - For projects with 50+ source files, add `--depth 2` to limit the graph to 2 levels of dependencies.
-2.  **Call Chain**: Run `visualize --mode call --entry <function>` to trace call dependencies.
-3.  **Trace Verification** — use pactkit-trace skill:
-    - Before touching any code, confirm the call site.
-    - Use `Grep` to find all callers, then `visualize --mode call --entry <func>` to trace dependencies.
-    - *Goal*: Ensure you don't break existing callers.
+1.  **Visual Scan**: Run `visualize --focus <module>` to see neighbors. For large codebases, add `--depth 2`.
+2.  **Trace Verification** — use pactkit-trace skill:
+    - Before touching any code, confirm the call site and ensure you don't break existing callers.
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
 1.  **Constraint**: DO NOT write source code yet.
@@ -217,43 +196,25 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 3: Implementation
 1.  **Write Code**: Implement logic in the appropriate source directory.
-    - **Context7 (Conditional)**: IF you are implementing with an unfamiliar library API, use `mcp__context7__resolve-library-id` followed by `mcp__context7__get-library-docs` to fetch up-to-date documentation before writing code. This ensures correct API usage and avoids deprecated patterns.
-2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2 (the new test file for this Story). Loop until GREEN.
-    - This loop is safe because you wrote these tests and understand their intent.
+    - **Context7 (Conditional)**: IF implementing with an unfamiliar library API, use Context7 MCP to fetch up-to-date documentation before writing code.
+2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2. Loop until GREEN.
     - Do NOT include pre-existing tests in this loop.
-    - **Iteration Cap**: Maximum **5 iterations**. If the loop does not reach GREEN after 5 iterations, **STOP** and report: "TDD loop exceeded 5 iterations. Likely cause: [error summary]. Please review."
-    - **Environment Failure Bailout**: If a test fails with an environment-class error — `ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `FileNotFoundError` (for config/env files), `PermissionError`, or timeout from an external service — apply the following **decision tree** before stopping:
-      1. **Project-internal check**: Is the missing module/name under the project root directory (i.e., part of your codebase, not a third-party package)? Check if the module path maps to a file you are building in this Story.
-         - **If YES (project-internal)**: This is NOT an environment error — it is incomplete implementation. Return to Phase 3 Step 1 and create or update the missing module. Do not trigger the bailout.
-         - **If NO (third-party or external)**: Proceed to step 2.
-      2. Attempt to resolve the third-party dependency (e.g., `pip install <package>`, update `requirements.txt`, check `.env` file).
-      3. If the dependency cannot be resolved after one attempt, **STOP** and report to the user: "Test requires external service or missing dependency. Please ensure [service/package] is available."
-    - **Normal TDD failures** (`AssertionError`, `TypeError`, `ValueError`, etc.) proceed normally — modify your source code and iterate.
+    - **Iteration Cap**: Maximum **5 iterations**. If exceeded, **STOP** and report.
+    - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
+      - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
+      - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
     - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
-    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`. If zero source files were changed (only `.md`, `.yml`, `docs/`, `.github/`, etc.), skip the broader regression — the TDD loop already validated the new tests. Log: `"Regression: SKIP — doc-only change, no source files modified"`. Proceed to Phase 4.
-    - **Map to related tests**: For each changed file, find its corresponding test file using the `test_map_pattern` in `LANG_PROFILES`.
-    - **Scope decision**: Check if any changed file is imported by 3+ other modules in `code_graph.mmd`. If yes, run the **full test suite**. If no (low fan-in, isolated change), run only the **mapped test files**.
-    - **Fallback**: If no test mapping can be determined, or `code_graph.mmd` does not exist, fall back to the full test suite.
-    - **CRITICAL — Pre-existing test failure protocol**:
-      - If a pre-existing test (one you did NOT create in Phase 2) fails, **DO NOT modify** the failing test or the code it tests.
-      - **DO NOT loop** — this is a one-shot check, not an iterative loop.
-      - **STOP** and report to the user: which test failed, what it appears to test, and which of your changes likely caused the failure.
-      - Suggest options: (a) you revert your change that caused the regression, or (b) the user reviews and provides guidance.
-      - You MUST NOT assume you understand the design intent behind pre-existing tests — the project may have adopted PDCA mid-way and there is no Spec for older features.
+    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs`. If zero source files changed, skip regression. Log: `"Regression: SKIP — doc-only change"`.
+    - **Map to related tests**: Use Test Mapping Protocol (see Shared Protocols) for incremental test selection.
+    - **Scope decision**: If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Otherwise, run only mapped tests.
+    - **Fallback**: If no test mapping can be determined, fall back to the full test suite.
+    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 
 ## 🎬 Phase 4: Sync & Document
 1.  **Hygiene**: Delete temp files.
-2.  **Update Reality (Lazy Visualize)**:
-    - Check if `git diff --name-only HEAD` includes any files in `LANG_PROFILES[stack].source_dirs` OR if `code_graph.mmd` does not exist.
-    - **If source files changed OR graph missing**: Run all three visualize commands:
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
-    - **If no source files changed AND graph exists**: Skip with log: `"Graph up-to-date — no source changes"`
-3.  **Update Board (CRITICAL)**:
-    - Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
-    - Use `update_task` or manual edit.
+2.  **Update Reality (Lazy Visualize)**: Apply the Lazy Visualize Protocol (see Shared Protocols) — run `visualize`, `--mode class`, and `--mode call` if source files changed.
+3.  **Update Board (CRITICAL)**: Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
 """,
 
     "project-check.md": """---
@@ -360,27 +321,13 @@ Choose the strategy identified in Phase 0:
 
 ### Strategy B: Browser Level (Visual & Real)
 * **Context**: UI, DOM, User Flows.
-* **Action**:
-    1.  **Check Tool**: Is `playwright` installed?
-    2.  Create/Run `tests/e2e/browser/test_{STORY_ID}_browser.py`.
-    * *Note*: Use `--headless` unless debugging.
-* **Playwright MCP (Conditional)**: IF `mcp__playwright__browser_snapshot` tool is available, prefer using Playwright MCP for browser-level verification:
-    - Use `browser_navigate` to load the target page
-    - Use `browser_snapshot` to capture the accessibility tree (preferred over screenshots for assertions)
-    - Use `browser_click` and `browser_fill_form` for interaction testing
-    - Use `browser_take_screenshot` for visual evidence
-* **Chrome DevTools MCP (Conditional)**: IF `mcp__chrome-devtools__take_snapshot` tool is available, use Chrome DevTools MCP for runtime diagnostics:
-    - Use `performance_start_trace` (with `reload: true, autoStop: true`) to capture Core Web Vitals and performance insights
-    - Use `list_console_messages` (filter by `types: ["error", "warn"]`) to detect runtime errors
-    - Use `list_network_requests` to verify API calls and detect failed requests
+* **Action**: Create/Run `tests/e2e/browser/test_{STORY_ID}_browser.py`.
+* **Playwright MCP (Conditional)**: IF Playwright MCP is available, use it for browser-level verification (navigation, snapshots, interactions).
+* **Chrome DevTools MCP (Conditional)**: IF Chrome DevTools MCP is available, use it for performance tracing and runtime diagnostics.
 
 ## Phase 5: The Verdict
 1.  **Run Suite**: Execute the specific test file created above (Story E2E test).
-2.  **Run Unit (Incremental)**: Run only unit tests related to changed modules, not the full suite.
-    - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
-    - **Map to related tests**: Use `test_map_pattern` in `LANG_PROFILES` to find corresponding test files.
-    - **Run incremental**: Execute only the mapped test files.
-    - **Fallback**: If no test mapping can be determined, fall back to full `pytest tests/unit/`.
+2.  **Run Unit (Incremental)**: Use Test Mapping Protocol (see Shared Protocols) to run only tests related to changed modules. Fallback to full suite if no mapping.
 3.  **Report**: Output structured verdict:
 
 ```
@@ -440,21 +387,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 2.  **Read Board**: Read `docs/product/sprint_board.md`.
 
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
-1.  **Action**: Remove language-specific temp artifacts (see `LANG_PROFILES` cleanup list; default for Python):
-    - `rm -rf __pycache__ .pytest_cache`
-    - `rm -f .DS_Store *.tmp *.log`
-2.  **Update Reality (Lazy Visualize)**:
-    - Check if `docs/architecture/graphs/code_graph.mmd` exists AND `git diff --name-only` includes any files in `LANG_PROFILES[stack].source_dirs`.
-    - **If source files changed OR graph missing**: Run all three visualize commands:
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`
-        - `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call`
-    - **If no source files changed AND graph exists**: Skip with log: `"Graph up-to-date — no source changes"`
-3.  **HLD Consistency Check**: Read `docs/architecture/graphs/system_design.mmd` and verify component counts match reality:
-    - Compare any numeric labels in subgraphs (e.g., "8 commands", "9 skills") against the actual component counts from `config.py` VALID_* registries or the project source.
-    - If a mismatch is found, **warn** the user: "⚠️ system_design.mmd is stale: says {old} but actual is {new}. Update the HLD."
-    - If the user agrees, update the mismatch in `system_design.mmd`.
-    - If `system_design.mmd` does not exist, skip silently.
+1.  **Action**: Remove language-specific temp artifacts per `LANG_PROFILES[stack].cleanup`.
+2.  **Update Reality (Lazy Visualize)**: Apply the Lazy Visualize Protocol (see Shared Protocols) — run `visualize`, `--mode class`, and `--mode call` if `LANG_PROFILES[stack].source_dirs` files changed. If no source changes and graph exists, skip with log: "Graph up-to-date — no source changes".
+3.  **HLD Consistency Check**: Verify `system_design.mmd` component counts match reality. Warn if stale.
 
 ## 🎬 Phase 2.5: Regression Gate (MANDATORY)
 > **CRITICAL**: Do NOT skip this step. This is the safety net before commit.
@@ -464,20 +399,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - Check if `docs/architecture/graphs/code_graph.mmd` exists.
 
 ### Step 1.3: Doc-Only Shortcut
-> **PURPOSE**: If no source files were changed, skip or minimize regression — running 1000+ tests for a README edit wastes time.
-
-1. **Classify changed files**: From the `git diff` and `git status` output (Step 1), identify which files are **source files** vs **non-source files**:
-   - **Source files**: Files matching `LANG_PROFILES[stack].file_ext` (e.g., `.py`) whose path starts with any directory in `LANG_PROFILES[stack].source_dirs` (e.g., `src/` for Python).
-   - **Non-source files**: Everything else — `.md`, `.yml`, `.yaml`, `.json`, `.mmd`, `docs/`, `.github/`, `tests/`, config files, specs, board files.
-2. **Decision**:
-   - If **zero source files** changed AND **no test files** were added/modified:
-     - Log: `"Regression: SKIP — doc-only change, no source files modified"`
-     - Skip regression entirely. Proceed directly to Step 2.7 (Lint Gate).
-   - If **zero source files** changed BUT **new test files** exist (e.g., `tests/unit/test_story*.py` created in this Story):
-     - Log: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
-     - Run ONLY those new test files (they were already validated in Act Phase 3 TDD loop, but re-confirm here).
-     - Skip the full suite. Proceed to Step 2.7.
-   - If **any source files** changed: Continue to Step 1.6 (normal flow).
+Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`:
+- **Zero source files** changed, no new tests → SKIP regression, proceed to Step 2.7.
+- **Zero source files** but new test files exist → run only those test files, proceed to Step 2.7.
+- **Any source files** changed → continue to Step 1.6.
 
 ### Step 1.6: Release Gate — Version Bump Override (R5)
 > **PURPOSE**: Release commits require a full suite to ensure no regressions are hidden.
@@ -509,27 +434,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
    - If no changed functions found in diff: fall through to Step 2.
 
 ### Step 2: Decision Tree (Safe-by-Default)
-> **DEFAULT**: Run **full regression** (`pytest tests/`). This is the safe default.
-
-Run **incremental tests** only if ALL of the following conditions are true:
-- `code_graph.mmd` exists AND appears in `git diff HEAD~1 --name-only` or `git status --short` (i.e., the graph was recently updated, not stale)
-- Changed source files ≤ 3 (small, isolated change set)
-- At least ONE changed source file has a direct test mapping via `test_map_pattern` in `LANG_PROFILES`, OR total test count < 500 (fast enough for full suite as fallback)
-- NO changed file is imported by 3+ other modules in `code_graph.mmd`
-- NO test infrastructure files were changed (`conftest.py`, `pytest.ini`, `pyproject.toml [tool.pytest]`)
-- NO version change in `pactkit.yaml` (version bump implies broader impact)
-
-**Fallback**: If `code_graph.mmd` does not exist (e.g., non-PDCA project or not yet generated), always run full regression.
+> **DEFAULT**: Run **full regression**. Run incremental only if: `code_graph.mmd` recently updated, ≤ 3 source files changed, test mappings exist via `LANG_PROFILES[stack].test_map_pattern`, no high-fan-in files (3+ importers), no test infra changes. For fast/small suites (< 500 tests), skip the decision tree and run full.
+> **Fallback**: If `code_graph.mmd` does not exist, always run full regression.
 
 ### Step 2.3: Decision Logging (MANDATORY)
-After evaluating the decision tree, output the decision and the reason:
-- If skip: `"Regression: SKIP — doc-only change, no source files modified"`
-- If story-only: `"Regression: STORY-ONLY — {N} new test files, no source changes"`
-- If full (version bump): `"Regression: FULL — version bump detected, release requires full test suite"`
-- If full (other): `"Regression: FULL — {reason}"` (e.g., "Regression: FULL — config.py imported by 5 modules")
-- If impact-based: `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`
-- If incremental: `"Regression: INCREMENTAL — {N} mapped test files, {conditions summary}"`
-- This log helps the user understand why full regression was chosen and builds trust in the decision tree.
+After evaluating the decision tree, log the decision with format: `"Regression: {TYPE} — {reason}"` (e.g., SKIP, STORY-ONLY, FULL, IMPACT-BASED, INCREMENTAL).
 
 ### Step 2.5: Coverage Verification (Conditional)
 IF `pytest-cov` is available, run tests with coverage on changed source files:
@@ -576,9 +485,7 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
     - Update the test count to match the actual number from the most recent test run (e.g., "All {N}+ tests must pass").
     - Preserve the Architecture Decisions (ADR) table — only update the Invariants section.
     - If `rules.md` does not exist, skip silently.
-5.  **Memory MCP (Conditional)**: IF `mcp__memory__add_observations` tool is available, record lessons learned:
-    - Use `mcp__memory__add_observations` on the `{STORY_ID}` entity with: implementation patterns used, pitfalls encountered, key files modified, and any non-obvious decisions made during implementation
-    - This builds a cumulative project knowledge base that persists across sessions
+5.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
 
 ## 🎬 Phase 3.5: Archive (Optional)
 1.  **Check**: Are all tasks for the current Story marked `[x]`?
@@ -622,33 +529,8 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 
 ## 🎬 Phase 4.5: Session Context Update
 > **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.
-1.  **Read Board**: Read `docs/product/sprint_board.md` and extract:
-    - Stories in 🔄 In Progress (with IDs and titles)
-    - Stories in 📋 Backlog (count)
-    - Stories in ✅ Done (most recent 3, with IDs and titles)
-2.  **Read Lessons**: Read `docs/architecture/governance/lessons.md` and extract the last 5 entries.
-3.  **Active Branches**: Run `git branch --list 'feature/*' 'fix/*'` to list active branches.
-4.  **Write Context**: Write `docs/product/context.md` with this format:
-    ```markdown
-    # Project Context (Auto-generated)
-    > Last updated: {ISO timestamp} by /project-done
-
-    ## Sprint Status
-    {In Progress stories with IDs | Backlog count | Done count}
-
-    ## Recent Completions
-    {Last 3 completed stories, one line each}
-
-    ## Active Branches
-    {git branch output, or "None" if no feature/fix branches}
-
-    ## Key Decisions
-    {Last 5 lessons from lessons.md}
-
-    ## Next Recommended Action
-    {If In Progress stories exist: `/project-act STORY-XXX` | If only Backlog: `/project-plan` | If board empty: `/project-design`}
-    ```
-5.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
+1.  **Write Context**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Include sections: Sprint Status, Recent Completions, Active Branches, Key Decisions, Next Recommended Action. Set "Last updated by" to `/project-done`.
+2.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
 """,
 
     "project-clarify.md": """---
@@ -717,38 +599,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - If `go.mod` exists → `stack: go`
     - If `pom.xml` or `build.gradle` exists → `stack: java`
     - If none match → ask the user to specify
-4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite if it already exists).
-    - *Purpose*: Project-level instructions for Claude Code (separate from global `~/.claude/CLAUDE.md`).
-    - *Venv Detection*: Check if a virtual environment exists (`.venv/`, `venv/`, or `env/` with `bin/python3`).
-    - *Content template*:
-      ```markdown
-      # {Project Name} — Project Context
-
-      {IF venv detected}
-      ## Virtual Environment
-      Always use the project's virtual environment:
-      - **Activate**: `source {venv_path}/bin/activate`
-      - **Python**: `{venv_path}/bin/python3`
-      - **Pytest**: `{venv_path}/bin/pytest`
-      - **Pip**: `{venv_path}/bin/pip`
-      {END IF}
-
-      ## Dev Commands
-
-      ```
-      # Run tests
-      {IF venv detected}{venv_path}/bin/{ELSE}{END IF}{test_runner from LANG_PROFILES}
-
-      # Lint
-      {lint_command from LANG_PROFILES}
-      ```
-
-      @./docs/product/context.md
-      ```
-    - Use the directory name as the project name.
-    - Fill `test_runner` and `lint_command` from `LANG_PROFILES` based on the detected language.
-    - If venv detected, prefix test commands with venv bin path (e.g., `.venv/bin/pytest`).
-    - The `@./docs/product/context.md` reference enables cross-session context loading.
+4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
+    - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
+    - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
 
 ## 🎬 Phase 2: Architecture Governance
 1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch`.
@@ -771,12 +624,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 2.  **History**: Write `docs/architecture/governance/lessons.md`.
 
 ## 🎬 Phase 6: Session Context Bootstrap
-1.  **Generate Context**: Write `docs/product/context.md` with initial project state:
-    - Read `docs/product/sprint_board.md` (likely empty for new projects)
-    - Read `docs/architecture/governance/lessons.md` (last 5 entries)
-    - Run `git branch --list 'feature/*' 'fix/*'`
-    - Write `docs/product/context.md` using the standard format (see `/project-done` Phase 4.5 for format)
-    - Set "Last updated by" to `/project-init`
+1.  **Generate Context**: Write `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-init`.
 
 ## 🎬 Phase 7: Handover
 1.  **Output**: "✅ PactKit Initialized. Reality Graph captured. Knowledge Base ready."

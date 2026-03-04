@@ -234,6 +234,45 @@ Format: `type(scope): description`
 | **Check** | Chrome DevTools | If `mcp__chrome-devtools__*` tools are available |
 | **Done** | Memory | If `mcp__memory__*` tools are available |
 """,
+    'shared': """# Shared Protocols
+
+## Lazy Visualize Protocol
+> Referenced by: Act Phase 4, Done Phase 2
+
+If source files changed (per `LANG_PROFILES[stack].source_dirs`) OR `code_graph.mmd` is missing, run visualize in all 3 modes (file, class, call). Else skip with log: "Graph up-to-date — no source changes".
+
+## Test Mapping Protocol
+> Referenced by: Act Phase 3, Check Phase 5, Done Phase 2.5, Hotfix Phase 2
+
+Map changed source files to test files via `LANG_PROFILES[stack].test_map_pattern`. If no mapping can be determined, fall back to the full test suite.
+
+## Context.md Canonical Format
+> Referenced by: Init Phase 6, Plan Phase 3, Done Phase 4.5
+
+Write `docs/product/context.md` using this format:
+```markdown
+# Project Context (Auto-generated)
+> Last updated: {ISO timestamp} by {command}
+
+## Sprint Status
+{In Progress stories with IDs | Backlog count | Done count}
+
+## Current Stories
+{Active stories with brief descriptions}
+
+## Recent Completions
+{Last 3 completed stories, one line each}
+
+## Active Branches
+{git branch output, or "None" if no feature/fix branches}
+
+## Key Decisions
+{Last 5 lessons from lessons.md}
+
+## Next Recommended Action
+{If In Progress: `/project-act STORY-XXX` | If Backlog only: `/project-plan` | If empty: `/project-design`}
+```
+""",
 }
 
 # Mapping: module key -> filename
@@ -244,10 +283,11 @@ RULES_FILES = {
     'routing': '04-routing-table.md',
     'workflow': '05-workflow-conventions.md',
     'mcp': '06-mcp-integration.md',
+    'shared': '07-shared-protocols.md',
 }
 
 # Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ['01-', '02-', '03-', '04-', '05-', '06-']
+RULES_MANAGED_PREFIXES = ['01-', '02-', '03-', '04-', '05-', '06-', '07-']
 
 CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 

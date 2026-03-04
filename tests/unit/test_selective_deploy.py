@@ -231,7 +231,7 @@ class TestDeploymentSummary:
         assert '9/9 Agents' in output
         assert '11/11 Commands' in output
         assert '10/10 Skills' in output
-        assert '6/6 Rules' in output
+        assert '7/7 Rules' in output  # STORY-063: added 07-shared-protocols
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-051: total commands is now 11

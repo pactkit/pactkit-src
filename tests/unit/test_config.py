@@ -43,8 +43,9 @@ class TestGetDefaultConfig:
         assert len(cfg['skills']) == 10
 
     def test_default_rules_count(self):
+        """STORY-063: added 07-shared-protocols rule."""
         cfg = _config().get_default_config()
-        assert len(cfg['rules']) == 6
+        assert len(cfg['rules']) == 7
 
     def test_default_stack_is_auto(self):
         cfg = _config().get_default_config()
