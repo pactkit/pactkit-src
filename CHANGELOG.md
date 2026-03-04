@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.5] - 2026-03-04
+
+### Fixed
+- **Ghost DEV_REF Residual** — Removed unresolvable `DEV_REF_FRONTEND`/`DEV_REF_BACKEND` name references from Check playbook (`commands.py:245`) and Review skill (`workflows.py:373-374`); replaced with inline stack-aware prose; added 17 regression guard tests covering all command playbooks and workflow prompts (BUG-028)
+
 ## [1.6.4] - 2026-03-04
 
 ### Changed
