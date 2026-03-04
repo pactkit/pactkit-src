@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.4] - 2026-03-04
+
+### Changed
+- **PDCA Playbook Prompt Slimming** — Extracted shared protocols (Lazy Visualize, Test Mapping, Context.md Format) to `rules.py`, eliminating 4-place duplication; rewrote Sprint to Protocol-Only (70% reduction); removed MCP tool signature teaching from Plan/Act/Check/Done; resolved ghost DEV_REF/TEST_REF references; added Spec Lint to Design phase. Total prompt size: 73,511 → 56,939 chars (22.5% reduction) (STORY-063)
+
+### Added
+- **Shared Protocols Rule** — New `07-shared-protocols.md` rule module containing Lazy Visualize Protocol, Test Mapping Protocol, and Context.md Canonical Format; deployed to `~/.claude/rules/` and referenced by CLAUDE.md
+
 ## [1.6.3] - 2026-03-03
 
 ### Fixed
