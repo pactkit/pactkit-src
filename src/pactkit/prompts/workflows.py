@@ -370,8 +370,8 @@ allowed-tools: [Read, Bash, Grep, Glob]
     - Review based on general best practices only
     - Note: "No associated Spec found. Reviewing against general standards."
 3.  **Detect Stack from Diff**: Check changed file extensions:
-    - `.tsx`/`.vue`/`.svelte`/`.css`/`.scss` → Also apply `DEV_REF_FRONTEND` (component, a11y, rendering perf)
-    - `.py`/`.go`/`.java`/`.rs` → Also apply `DEV_REF_BACKEND` (API design, data layer, observability)
+    - `.tsx`/`.vue`/`.svelte`/`.css`/`.scss` → Also apply frontend best practices (component structure, accessibility, rendering performance)
+    - `.py`/`.go`/`.java`/`.rs` → Also apply backend best practices (API design, data layer, observability)
     - Mixed → Apply both
 
 ## Phase 2: SOLID + Architecture Analysis

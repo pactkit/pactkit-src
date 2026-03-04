@@ -56,3 +56,11 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+
+### [BUG-028] Ghost DEV_REF Residual in Check and Review
+> Spec: docs/specs/BUG-028.md
+
+- [x] R1: Remove ghost DEV_REF from Check playbook
+- [x] R2: Remove ghost DEV_REF from Review skill
+- ~~R3: Clean up dead code in references.py~~ CANCELLED (33 tests protect these constants)
+- [x] R3: Add regression guard tests
