@@ -5,7 +5,7 @@
 | ID | STORY-065 |
 | Status | Draft |
 | Priority | High |
-| Release | 1.6.6 |
+| Release | 1.6.7 |
 
 ## Background
 

@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.7] - 2026-03-05
+
+### Added
+- **Sprint Stage A Model Consistency** — Split Stage A into A1-Plan (`system-architect`, model: opus) and A2-Act (`senior-developer`, model: sonnet) so model selection rule is enforced; Phase 0 reads `agent_models` from `.claude/pactkit.yaml` with opus/sonnet defaults and fallback to sonnet if model unavailable (STORY-065)
+- **Persist Venv Config in CLAUDE.local.md** — `_upsert_venv_managed_block()` in `deployer.py` writes venv instructions into a `<!-- pactkit:venv:start/end -->` managed block in `CLAUDE.local.md` so virtual environment config survives `pactkit update` even when auto-detection fails (STORY-064)
+
+### Fixed
+- **Spec Linter Path Broken in External Projects** — Playbook prompts used hardcoded `python3 src/pactkit/skills/spec_linter.py` which only exists inside the pactkit dev repo; replaced with `pactkit spec-lint` installed CLI entry point; added `pactkit spec-lint` subcommand to `cli.py` supporting single-file and `--all` modes (BUG-030)
+
 ## [1.6.6] - 2026-03-05
 
 ### Fixed
