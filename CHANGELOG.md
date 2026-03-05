@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.6] - 2026-03-05
+
+### Fixed
+- **project-init CLI Hang on Greenfield Projects** — Replaced blocking "ask the user to specify" stack detection fallback with config-first resolution: reads `stack` from `pactkit.yaml` first, file-based detection only when no config exists, safe fallback to `stack: auto` with warning instead of blocking user input mid-flow (BUG-029)
+
 ## [1.6.5] - 2026-03-04
 
 ### Fixed
