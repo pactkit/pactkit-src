@@ -64,3 +64,11 @@
 - [x] R2: Remove ghost DEV_REF from Review skill
 - ~~R3: Clean up dead code in references.py~~ CANCELLED (33 tests protect these constants)
 - [x] R3: Add regression guard tests
+
+### BUG-029: project-init Stack Detection Fallback Causes CLI Hang
+- **Priority**: High
+- **Type**: Bug
+- **Spec**: `docs/specs/BUG-029.md`
+- **Tasks**:
+  - [x] Replace "ask the user to specify" fallback with config-first detection in `src/pactkit/prompts/commands.py`
+  - [x] Add regression tests for all 3 AC scenarios
