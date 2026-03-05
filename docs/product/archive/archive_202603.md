@@ -93,3 +93,12 @@
 - [x] R4: User content outside markers preserved
 - [x] R5: No block written when no venv
 - [x] R6: `CLAUDE.md` venv section unchanged
+
+### STORY-065: Sprint Stage A Model Consistency — Split Plan (opus) and Act (sonnet)
+- **Priority**: High
+- **Spec**: [STORY-065](../specs/STORY-065.md)
+- **Summary**: Sprint Stage A doesn't pass `model` parameter → Plan runs on session default instead of opus; fix by splitting Stage A into A1-Plan (opus) + A2-Act (sonnet)
+- [x] Add Phase 0 config-aware model resolution (agent_models from pactkit.yaml)
+- [x] Split Stage A into A1-Plan (model: opus) + A2-Act (model: sonnet)
+- [x] Update Subagent Reference table (separate Plan and Act rows)
+- [x] Add tests (test_story065_sprint_model.py, 16 tests)
