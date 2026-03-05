@@ -72,3 +72,13 @@
 - **Tasks**:
   - [x] Replace "ask the user to specify" fallback with config-first detection in `src/pactkit/prompts/commands.py`
   - [x] Add regression tests for all 3 AC scenarios
+
+### BUG-030: Spec Linter Path Not Found in External Projects
+- **Priority**: High
+- **Spec**: [BUG-030](../specs/BUG-030.md)
+- **Summary**: Prompts use hardcoded `src/pactkit/skills/spec_linter.py` path which doesn't exist in external projects
+- [x] R1: Add `pactkit spec-lint` CLI subcommand
+- [x] R2: Update `commands.py` prompt references
+- [x] R3: Update `workflows.py` prompt references
+
+## 🔄 In Progress

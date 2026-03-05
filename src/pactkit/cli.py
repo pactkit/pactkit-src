@@ -137,6 +137,16 @@ def main():
         help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
     )
 
+    # pactkit spec-lint
+    spec_lint_parser = subparsers.add_parser("spec-lint", help="Validate spec file(s) structure")
+    spec_lint_parser.add_argument("spec", nargs="?", help="Path to spec file to validate")
+    spec_lint_parser.add_argument("--all", action="store_true", help="Validate all specs in specs dir")
+    spec_lint_parser.add_argument(
+        "--specs-dir",
+        default="docs/specs",
+        help="Directory containing spec files (default: docs/specs)",
+    )
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -151,6 +161,18 @@ def main():
             no_external=getattr(args, 'no_external', False),
             non_interactive=getattr(args, 'non_interactive', False),
         )
+
+    elif args.command == "spec-lint":
+        from pactkit.skills.spec_linter import main as spec_lint_main
+        argv = []
+        if args.all:
+            argv += ["--all", "--specs-dir", args.specs_dir]
+        elif args.spec:
+            argv += [args.spec]
+        else:
+            spec_lint_parser.print_help()
+            raise SystemExit(1)
+        raise SystemExit(spec_lint_main(argv))
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

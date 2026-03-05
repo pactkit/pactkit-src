@@ -119,7 +119,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       | SEC-2 | No | No user input handling |
       | SEC-3 | Yes | models/user.py modified |
       ```
-    - **Spec Lint Self-Check**: After writing the Spec, run `python3 src/pactkit/skills/spec_linter.py docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
+    - **Spec Lint Self-Check**: After writing the Spec, run `pactkit spec-lint docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
 2.  **Board**: Add Story using `add_story`.
 3.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
 4.  **Session Context Update**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-plan`.
@@ -151,7 +151,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **PURPOSE**: Non-AI structural validation — ensures "Spec is Law" has physical enforcement before any code is written.
 1.  **Run Linter**: Execute the Spec Linter on the current Story's spec:
     ```bash
-    python3 src/pactkit/skills/spec_linter.py docs/specs/{STORY_ID}.md
+    pactkit spec-lint docs/specs/{STORY_ID}.md
     ```
     Replace `{STORY_ID}` with the actual Story ID from `$ARGUMENTS` (e.g., `STORY-042`).
 2.  **If ERRORs found**: **STOP**. Output all ERROR and WARN items. Instruct the user:
