@@ -82,3 +82,14 @@
 - [x] R3: Update `workflows.py` prompt references
 
 ## 🔄 In Progress
+
+### STORY-064: Persist Venv Config in CLAUDE.local.md Managed Block
+- **Priority**: High
+- **Spec**: [STORY-064](../specs/STORY-064.md)
+- **Summary**: Write venv instructions to `CLAUDE.local.md` as a managed block so they persist even when venv detection fails on `pactkit update`
+- [x] R1: Add `_upsert_venv_managed_block()` to `deployer.py`
+- [x] R2: Block persists when venv detection fails on update
+- [x] R3: Block updated when venv path changes
+- [x] R4: User content outside markers preserved
+- [x] R5: No block written when no venv
+- [x] R6: `CLAUDE.md` venv section unchanged

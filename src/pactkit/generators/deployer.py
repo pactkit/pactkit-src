@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -679,6 +680,64 @@ def _generate_config_if_missing():
         atomic_write(yaml_path, generate_default_yaml())
 
 
+_VENV_BLOCK_START = "<!-- pactkit:venv:start -->"
+_VENV_BLOCK_END = "<!-- pactkit:venv:end -->"
+
+
+def _upsert_venv_managed_block(local_md_path, venv_info):
+    """Write or update the pactkit-managed venv block in CLAUDE.local.md (STORY-064).
+
+    - If venv_info is None: leave any existing block unchanged (R2 — persist on detection failure).
+    - If venv_info provided and block exists: replace block content only (R3 — update on path change).
+    - If venv_info provided and no block yet: prepend block to file (R1 — write on first init).
+    - User content outside the markers is always preserved (R4).
+    - If venv_info is None and no block exists: do nothing (R5 — no empty block).
+    """
+    if not local_md_path.exists():
+        return
+
+    if venv_info is None:
+        return  # R2: detection failed — leave existing block (or absence of block) unchanged
+
+    venv_path, layout = venv_info
+    if layout == 'unix':
+        instructions = (
+            f"## Virtual Environment\n"
+            f"Always use the project's virtual environment:\n"
+            f"- **Activate**: `source {venv_path}/bin/activate`\n"
+            f"- **Python**: `{venv_path}/bin/python3`\n"
+            f"- **Pytest**: `{venv_path}/bin/pytest`\n"
+            f"- **Pip**: `{venv_path}/bin/pip`\n"
+        )
+    else:  # windows
+        instructions = (
+            f"## Virtual Environment\n"
+            f"Always use the project's virtual environment:\n"
+            f"- **Activate**: `{venv_path}/Scripts/activate`\n"
+            f"- **Python**: `{venv_path}/Scripts/python.exe`\n"
+            f"- **Pytest**: `{venv_path}/Scripts/pytest.exe`\n"
+            f"- **Pip**: `{venv_path}/Scripts/pip.exe`\n"
+        )
+
+    managed_block = f"{_VENV_BLOCK_START}\n{instructions}{_VENV_BLOCK_END}\n"
+
+    content = local_md_path.read_text(encoding="utf-8")
+
+    if _VENV_BLOCK_START in content:
+        # R3: Replace existing block, preserve everything outside
+        new_content = re.sub(
+            re.escape(_VENV_BLOCK_START) + r'.*?' + re.escape(_VENV_BLOCK_END) + r'\n?',
+            managed_block,
+            content,
+            flags=re.DOTALL,
+        )
+    else:
+        # R1: Prepend managed block, preserve existing user content
+        new_content = managed_block + "\n" + content
+
+    atomic_write(local_md_path, new_content)
+
+
 def _generate_claude_local_md_if_missing(claude_dir):
     """Create CLAUDE.local.md with template if it doesn't exist (STORY-040 R3).
 
@@ -771,6 +830,9 @@ def _generate_project_claude_md(config):
         detected = detect_venv(project_root)
         if detected:
             venv_info = detected
+
+    # STORY-064: Persist venv config in CLAUDE.local.md managed block
+    _upsert_venv_managed_block(claude_local_path, venv_info)
 
     # Generate CLAUDE.md content (framework content)
     lines = [f"# {project_name} — Project Context", ""]
