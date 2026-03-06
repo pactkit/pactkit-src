@@ -56,7 +56,7 @@ class TestScenario1FreshProject:
         content = claude_local.read_text()
         # Template header
         assert 'Project Local Instructions' in content
-        assert 'PactKit will never overwrite this file' in content
+        assert 'PactKit manages a venv block at the top' in content
 
     def test_fresh_project_claude_md_imports_claude_local_md(self, tmp_path):
         """CLAUDE.md must import CLAUDE.local.md via @ reference."""

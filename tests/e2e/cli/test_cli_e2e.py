@@ -339,6 +339,56 @@ class TestDeploymentCompleteness:
 
 
 @pytest.mark.e2e
+class TestSpecLintCommand:
+    """BUG-032: E2E tests for pactkit spec-lint subcommand."""
+
+    _VALID_SPEC = (
+        "# STORY-999: Test\n\n"
+        "| Field | Value |\n|---|---|\n"
+        "| ID | STORY-999 |\n| Status | Backlog |\n| Priority | P3 |\n| Release | 1.0.0 |\n\n"
+        "## Summary\nTest summary.\n\n"
+        "## Requirements\n\n### R1: Foo\nMUST do foo.\n\n"
+        "## Acceptance Criteria\n\n### AC1: Bar\n- **Given** x\n- **When** y\n- **Then** z\n\n"
+        "## Security Scope\n| Check | Applicable | Reason |\n|---|---|---|\n| SEC-1 | No | n/a |\n"
+    )
+
+    def test_spec_lint_single_file_pass(self, tmp_path):
+        """AC1: pactkit spec-lint <valid-spec> exits 0 and stdout contains PASS."""
+        spec_file = tmp_path / "STORY-999.md"
+        spec_file.write_text(self._VALID_SPEC)
+        stdout, stderr, exit_code = run_pactkit("spec-lint", str(spec_file))
+        assert exit_code == 0, f"Expected exit 0, got {exit_code}. stderr={stderr}"
+        assert "PASS" in stdout
+
+    def test_spec_lint_single_file_fail(self, tmp_path):
+        """AC1 (failure case): pactkit spec-lint <invalid-spec> exits non-zero."""
+        bad_spec = tmp_path / "BAD.md"
+        bad_spec.write_text("# Not a valid spec\nJust some text.\n")
+        stdout, stderr, exit_code = run_pactkit("spec-lint", str(bad_spec))
+        assert exit_code != 0
+
+    def test_spec_lint_all(self, tmp_path):
+        """AC2: pactkit spec-lint --all --specs-dir <dir> exits 0 when all specs valid."""
+        specs_dir = tmp_path / "specs"
+        specs_dir.mkdir()
+        for i in range(2):
+            (specs_dir / f"STORY-{i}.md").write_text(
+                self._VALID_SPEC.replace("STORY-999", f"STORY-{i}")
+            )
+        stdout, stderr, exit_code = run_pactkit(
+            "spec-lint", "--all", "--specs-dir", str(specs_dir)
+        )
+        assert exit_code == 0, f"Expected exit 0, got {exit_code}. stderr={stderr}"
+
+    def test_spec_lint_no_args_exits_nonzero(self):
+        """AC3: pactkit spec-lint with no args exits non-zero."""
+        stdout, stderr, exit_code = run_pactkit("spec-lint")
+        assert exit_code != 0
+        combined = stdout + stderr
+        assert "usage" in combined.lower() or "spec-lint" in combined.lower()
+
+
+@pytest.mark.e2e
 class TestVersionSync:
     """BUG-026: pactkit.yaml version must be synced to __version__ on init/update."""
 

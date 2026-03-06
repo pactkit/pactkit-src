@@ -741,7 +741,8 @@ def _upsert_venv_managed_block(local_md_path, venv_info):
 def _generate_claude_local_md_if_missing(claude_dir):
     """Create CLAUDE.local.md with template if it doesn't exist (STORY-040 R3).
 
-    This file is user-owned and never modified by PactKit after initial creation.
+    User content is preserved. PactKit manages a venv block at the top
+    via _upsert_venv_managed_block() (STORY-064).
     """
     local_md_path = claude_dir / "CLAUDE.local.md"
     if local_md_path.exists():
@@ -749,7 +750,7 @@ def _generate_claude_local_md_if_missing(claude_dir):
 
     template = """# Project Local Instructions
 # Add your custom Claude Code instructions below.
-# PactKit will never overwrite this file.
+# PactKit manages a venv block at the top; user content below is preserved.
 """
     atomic_write(local_md_path, template)
 

@@ -102,3 +102,16 @@
 - [x] Split Stage A into A1-Plan (model: opus) + A2-Act (model: sonnet)
 - [x] Update Subagent Reference table (separate Plan and Act rows)
 - [x] Add tests (test_story065_sprint_model.py, 16 tests)
+
+### BUG-031: CLAUDE.local.md Docstring Contradicts Managed Block Behavior
+- **Priority**: P3
+- **Spec**: [BUG-031](../specs/BUG-031.md)
+- [x] R1: Update `_generate_claude_local_md_if_missing()` docstring
+- [x] R2: Update template comment
+
+### BUG-032: Missing E2E CLI Test for spec-lint Subcommand
+- **Priority**: P3
+- **Spec**: [BUG-032](../specs/BUG-032.md)
+- [x] R1: Add E2E subprocess tests for `pactkit spec-lint`
+- [x] R2: Verify exit code and output (pass + fail + no args)
+- [x] R3: Follow existing `test_cli_e2e.py` patterns
