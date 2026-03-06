@@ -4,6 +4,12 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.8] - 2026-03-06
+
+### Fixed
+- **Stale Docstring in deployer.py** — `_generate_claude_local_md_if_missing()` docstring and template comment claimed "never modified by PactKit" but STORY-064 introduced `_upsert_venv_managed_block()` which modifies the file; updated to accurately describe managed block behavior (BUG-031)
+- **Missing E2E CLI Test for spec-lint** — Added 4 E2E subprocess tests (`TestSpecLintCommand`) to `test_cli_e2e.py` covering single-file pass/fail, `--all`, and no-args cases; spec-lint was the only CLI subcommand without E2E coverage (BUG-032)
+
 ## [1.6.7] - 2026-03-05
 
 ### Added
