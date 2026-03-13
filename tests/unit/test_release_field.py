@@ -19,14 +19,15 @@ class TestSpecTemplateReleaseField:
         p = _prompts()
         assert 'Release' in p.SCAFFOLD_SOURCE
 
-    def test_scaffold_source_has_tbd(self):
+    def test_scaffold_source_has_version_placeholder(self):
+        """BUG-033: Release uses {VERSION} placeholder, not TBD."""
         p = _prompts()
-        assert 'TBD' in p.SCAFFOLD_SOURCE
+        assert '{VERSION}' in p.SCAFFOLD_SOURCE
 
-    def test_release_line_format(self):
-        """Release line should be formatted as '- **Release**: TBD'."""
+    def test_release_table_format(self):
+        """BUG-033: Release is in table format | Release | {VERSION} |."""
         p = _prompts()
-        assert '- **Release**: TBD' in p.SCAFFOLD_SOURCE
+        assert '| Release |' in p.SCAFFOLD_SOURCE
 
 
 # ==============================================================================

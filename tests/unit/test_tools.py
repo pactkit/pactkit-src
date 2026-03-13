@@ -52,7 +52,7 @@ class TestCreateSpec:
         exec_globals['create_spec']('TEST-003', 'Context Feature')
         content = (tmp_path / 'docs/specs/TEST-003.md').read_text()
 
-        assert '## Context' in content
+        assert '## Background' in content  # BUG-033: renamed from Context
         assert '## Target Call Chain' in content
 
 
