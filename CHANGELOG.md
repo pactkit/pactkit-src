@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.9] - 2026-03-13
+
+### Fixed
+- **scaffold.py create_spec() Template Mismatch** — Generated specs failed spec-lint validation (E001, E004, E008); updated template to use `| Field | Value |` metadata table format, `### R1:` requirement subsections, and `{VERSION}` placeholder instead of literal TBD; added 4 new tests in `test_scaffold.py` (BUG-033)
+
 ## [1.6.8] - 2026-03-06
 
 ### Fixed
