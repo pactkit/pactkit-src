@@ -115,3 +115,16 @@
 - [x] R1: Add E2E subprocess tests for `pactkit spec-lint`
 - [x] R2: Verify exit code and output (pass + fail + no args)
 - [x] R3: Follow existing `test_cli_e2e.py` patterns
+
+### [BUG-034] Plan Command Missing Spec Metadata Table Template
+> Spec: docs/specs/BUG-034.md
+
+- [x] R1: Add metadata table template to Plan command playbook
+- [x] R2: Match scaffold.py create_spec canonical format
+
+## 🔄 In Progress
+
+
+## ✅ Done
+
+- [x] [BUG-033] scaffold.py create_spec() 生成的模板不符合 spec-lint 验证规则 `P1`

@@ -84,6 +84,16 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 3: Deliverables
 1.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
+    - **MUST — Metadata Table**: Include a metadata table at the top of the Spec using this EXACT format:
+      ```markdown
+      | Field | Value |
+      |-------|-------|
+      | ID | {ID} |
+      | Status | Draft |
+      | Priority | P2 |
+      | Release | {version} |
+      ```
+      Field names MUST be exact case (ID, Status, Priority, Release) — not bold, not different names.
     - *Requirement*: Include a "Target Call Chain" section in the Spec based on your Trace findings.
     - **MUST**: Fill in the `## Requirements` section using RFC 2119 keywords (MUST/SHOULD/MAY).
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
