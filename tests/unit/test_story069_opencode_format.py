@@ -103,6 +103,26 @@ class TestR3ProjectDeployment:
 
 
 # ===========================================================================
+# R7: Agent tools format conversion (STORY-069 R7)
+# ===========================================================================
+
+class TestR7AgentToolsFormat:
+    """R7: Agent tools converted to OpenCode record format."""
+
+    def test_agent_tools_is_record(self, tmp_path):
+        """Agent tools should be record format, not string."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        agent_content = (out / "agents" / "system-architect.md").read_text()
+        # Should NOT have "tools: Read, Write" string format
+        assert "tools: Read" not in agent_content
+        assert "tools: [" not in agent_content
+        # Should have record format with indented keys
+        assert "tools:" in agent_content
+        assert "read: true" in agent_content or "write: true" in agent_content
+
+
+# ===========================================================================
 # R4: AGENTS.md with inline rules
 # ===========================================================================
 

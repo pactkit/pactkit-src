@@ -257,7 +257,8 @@ def _deploy_opencode(target=None):
     prefix = OPENCODE_SKILLS_PREFIX
     n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
     _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
-    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix)
+    # STORY-069 R7: Use OpenCode tools format (record, not string)
+    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
     n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
 
     print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, "
@@ -436,13 +437,14 @@ def _deploy_claude_md(claude_root, enabled_rules):
 
 
 def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX,
-                    agent_models=None):
+                    agent_models=None, opencode_format=False):
     """Deploy agent definitions filtered by config.
 
     Args:
         skills_prefix: Path prefix for skill script references.
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
         agent_models: Optional dict of agent_name -> model overrides from pactkit.yaml.
+        opencode_format: If True, convert tools to OpenCode record format (STORY-069 R7).
     """
     if agent_models is None:
         agent_models = {}
@@ -473,9 +475,23 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
             "---",
             f"name: {name}",
             f"description: {cfg['desc']}",
-            f"tools: {cfg['tools']}",
-            f"model: {model}",
         ]
+
+        # STORY-069 R7: Convert tools format for OpenCode
+        if opencode_format:
+            # OpenCode expects tools as record: { read: true, write: true, ... }
+            tools_str = cfg['tools']
+            # Parse "Read, Write, Edit, Bash" or "[Read, Write]" format
+            tools_str = tools_str.strip('[]')
+            tool_names = [t.strip().lower() for t in tools_str.split(',')]
+            tools_record = {t: True for t in tool_names if t}
+            tools_yaml = yaml.dump({'tools': tools_record}, default_flow_style=False).rstrip()
+            content.append(tools_yaml)
+        else:
+            content.append(f"tools: {cfg['tools']}")
+
+        content.append(f"model: {model}")
+
         for field in SIMPLE_OPTIONAL_FIELDS:
             if field in cfg:
                 content.append(f"{field}: {cfg[field]}")
@@ -488,12 +504,15 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
                     allow_unicode=True,
                 ).rstrip()
                 content.append(nested_yaml)
+
+        # Routing reference differs between Claude Code and OpenCode
+        routing_ref = "~/.config/opencode/AGENTS.md" if opencode_format else "~/.claude/CLAUDE.md"
         content.extend([
             "---",
             "",
             cfg['prompt'],
             "",
-            "Please refer to ~/.claude/CLAUDE.md for routing."
+            f"Please refer to {routing_ref} for routing."
         ])
         rewritten = _rewrite_skills_prefix("\n".join(content), skills_prefix)
         atomic_write(agent_path, rewritten)
