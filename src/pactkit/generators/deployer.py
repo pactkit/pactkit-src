@@ -12,11 +12,6 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from pactkit import __version__, prompts
-from pactkit.generators.adapter import (
-    SUPPORTED_AGENTS,
-    get_target_dir,
-    transform,
-)
 from pactkit.config import (
     VALID_AGENTS,
     VALID_COMMANDS,
@@ -27,6 +22,11 @@ from pactkit.config import (
     generate_default_yaml,
     load_config,
     validate_config,
+)
+from pactkit.generators.adapter import (
+    SUPPORTED_AGENTS,
+    get_target_dir,
+    transform,
 )
 from pactkit.skills import load_script
 from pactkit.utils import atomic_write
@@ -209,7 +209,10 @@ def _deploy_cross_agent(agent, config=None, target=None):
     lines.extend(["", "- docs/product/context.md", ""])
     atomic_write(root / constitution_name, "\n".join(lines))
 
-    print(f"\n✅ Deployed ({agent}): {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {deployed_rules} Rules → {root}")
+    print(
+        f"\n✅ Deployed ({agent}): {n_agents} Agents, {n_commands} Commands, "
+        f"{n_skills} Skills, {deployed_rules} Rules → {root}"
+    )
 
 
 def _deploy_classic(config=None, target=None):
