@@ -23,11 +23,6 @@ from pactkit.config import (
     load_config,
     validate_config,
 )
-from pactkit.generators.adapter import (
-    SUPPORTED_AGENTS,
-    get_target_dir,
-    transform,
-)
 from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
@@ -70,7 +65,6 @@ def _print_mcp_recommendations():
 
 
 def deploy(config=None, target=None, format="classic",
-           agent="claude",
            no_git=False, no_external=False, non_interactive=False,
            mode=None):
     """Deploy PactKit configuration.
@@ -88,131 +82,12 @@ def deploy(config=None, target=None, format="classic",
     if format not in VALID_FORMATS:
         raise ValueError(f"Unknown format: {format!r}. Valid: {', '.join(VALID_FORMATS)}")
 
-    if agent not in SUPPORTED_AGENTS + ["all"]:
-        raise ValueError(f"Unknown agent: {agent!r}. Valid: {', '.join(SUPPORTED_AGENTS + ['all'])}")
-
-    if agent == "all":
-        for current in SUPPORTED_AGENTS:
-            if current == "claude":
-                deploy(config=config, target=target, format=format, agent=current)
-            else:
-                # Non-claude targets use generic adapter deployment in classic format only.
-                if format == "classic":
-                    _deploy_cross_agent(current, config=config, target=target)
-        return
-
-    if agent != "claude":
-        if format != "classic":
-            raise ValueError("Non-claude agents currently support format='classic' only")
-        _deploy_cross_agent(agent, config=config, target=target)
-        return
-
     if format == "plugin":
         _deploy_plugin(target)
     elif format == "marketplace":
         _deploy_marketplace(target)
     else:
         _deploy_classic(config, target)
-
-
-def _load_or_default_config(config):
-    if config is not None:
-        return config
-    project_yaml = Path.cwd() / ".claude" / "pactkit.yaml"
-    auto_added = auto_merge_config_file(project_yaml)
-    for item in auto_added:
-        print(f"  -> Auto-added: {item}")
-    return load_config(project_yaml)
-
-
-def _deploy_cross_agent(agent, config=None, target=None):
-    """Deploy adapted PactKit assets for non-Claude runtimes.
-
-    This keeps the same component model (rules/commands/skills/agents), while
-    transforming markdown content via adapter rules.
-    """
-    config = _load_or_default_config(config)
-    validate_config(config)
-
-    if target is not None:
-        root = Path(target)
-    else:
-        # adapter returns command directory; use its parent as runtime root
-        root = Path(get_target_dir(agent, str(Path.cwd()))).parent
-
-    print(f"🚀 PactKit Deployment ({agent})")
-
-    rules_dir = root / "rules"
-    commands_dir = root / "commands"
-    agents_dir = root / "agents"
-    skills_dir = root / "skills"
-    for d in [root, rules_dir, commands_dir, agents_dir, skills_dir]:
-        d.mkdir(parents=True, exist_ok=True)
-
-    enabled_skills = config.get('skills', [])
-    enabled_rules = config.get('rules', [])
-    enabled_agents = config.get('agents', [])
-    enabled_commands = config.get('commands', [])
-
-    # Skills: reuse existing scripted/prompt skill deployer, then adapt markdown docs
-    n_skills = _deploy_skills(skills_dir, enabled_skills)
-    _cleanup_legacy(skills_dir)
-    for md in skills_dir.rglob('*.md'):
-        md.write_text(transform(md.read_text(encoding='utf-8'), agent), encoding='utf-8')
-
-    # Rules
-    rule_id_to_key = {filename.removesuffix('.md'): key for key, filename in prompts.RULES_FILES.items()}
-    deployed_rules = 0
-    for rule_id in enabled_rules:
-        key = rule_id_to_key.get(rule_id)
-        if key is None:
-            continue
-        filename = prompts.RULES_FILES[key]
-        content = transform(prompts.RULES_MODULES[key], agent)
-        atomic_write(rules_dir / filename, content)
-        deployed_rules += 1
-
-    # Commands
-    n_commands = 0
-    for filename, content in prompts.COMMANDS_CONTENT.items():
-        cmd_name = filename.removesuffix('.md')
-        if cmd_name not in set(enabled_commands):
-            continue
-        atomic_write(commands_dir / filename, transform(content, agent))
-        n_commands += 1
-
-    # Agents
-    agent_models = config.get('agent_models', {})
-    n_agents = 0
-    for name, cfg in prompts.AGENTS_EXPERT.items():
-        if name not in set(enabled_agents):
-            continue
-        model = agent_models.get(name, cfg.get('model', 'inherit'))
-        content = [
-            f"# Agent: {name}",
-            "",
-            f"- Description: {cfg['desc']}",
-            f"- Tools: {cfg['tools']}",
-            f"- Model: {model}",
-            "",
-            cfg['prompt'],
-        ]
-        atomic_write(agents_dir / f"{name}.md", transform("\n".join(content), agent))
-        n_agents += 1
-
-    # Constitution entry
-    constitution_name = "CODEX.md" if agent == "codex" else "CONSTITUTION.md"
-    lines = [f"# PactKit Constitution ({agent})", ""]
-    for rule_id in sorted(enabled_rules):
-        if rule_id in rule_id_to_key:
-            lines.append(f"- rules/{rule_id}.md")
-    lines.extend(["", "- docs/product/context.md", ""])
-    atomic_write(root / constitution_name, "\n".join(lines))
-
-    print(
-        f"\n✅ Deployed ({agent}): {n_agents} Agents, {n_commands} Commands, "
-        f"{n_skills} Skills, {deployed_rules} Rules → {root}"
-    )
 
 
 def _deploy_classic(config=None, target=None):

@@ -1,6 +1,6 @@
 """Agent format adapter — transforms Claude Code playbooks to other agent formats."""
 
-SUPPORTED_AGENTS = ["claude", "codex", "cursor", "copilot", "generic"]
+SUPPORTED_AGENTS = ["claude", "cursor", "copilot", "generic"]
 
 
 def strip_frontmatter(content: str) -> str:
@@ -43,20 +43,13 @@ def transform(content: str, agent: str) -> str:
         return content
 
     # All other agents: strip frontmatter
-    transformed = strip_frontmatter(content)
-
-    # Runtime path normalization so non-Claude targets don't get stale refs.
-    if agent == 'codex':
-        transformed = transformed.replace('~/.claude', '~/.codex')
-
-    return transformed
+    return strip_frontmatter(content)
 
 
 def get_target_dir(agent: str, project_root: str = ".") -> str:
     """Return the target directory path for a given agent type."""
     dirs = {
         "claude": "~/.claude/commands",  # handled by existing deployer
-        "codex": f"{project_root}/.codex/commands",
         "cursor": f"{project_root}/.cursor/rules",
         "copilot": f"{project_root}/.github",
         "generic": f"{project_root}/.ai/commands",

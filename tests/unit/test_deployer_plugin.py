@@ -265,27 +265,3 @@ class TestCliFormatArgument:
             main()
         assert not (out / ".claude-plugin").exists()
         assert (out / "CLAUDE.md").is_file()
-
-
-class TestCodexAgentDeployment:
-    """Codex target should deploy adapted artifacts into target root."""
-
-    def test_deploy_codex_writes_codex_constitution(self, tmp_path):
-        from pactkit.generators.deployer import deploy
-
-        out = tmp_path / "codex-out"
-        deploy(format="classic", agent="codex", target=str(out))
-
-        assert (out / "CODEX.md").is_file()
-        assert (out / "commands").is_dir()
-        assert (out / "agents").is_dir()
-        assert (out / "rules").is_dir()
-
-    def test_cli_agent_codex(self, tmp_path):
-        from pactkit.cli import main
-
-        out = tmp_path / "codex-out"
-        with patch("sys.argv", ["pactkit", "init", "--agent", "codex", "-t", str(out)]):
-            main()
-
-        assert (out / "CODEX.md").is_file()
