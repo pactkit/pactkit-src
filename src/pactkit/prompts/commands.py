@@ -615,6 +615,19 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
     - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
     - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+5.  **OpenCode Environment Detection** (STORY-069/BUG-035):
+    - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
+    - **If OpenCode detected**:
+      - Generate `./opencode.json` if missing:
+        ```json
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "instructions": ["AGENTS.md", "docs/product/context.md"]
+        }
+        ```
+      - Generate `./AGENTS.md` if missing (project instructions, can reference global AGENTS.md or be standalone).
+      - Print: "ℹ️ OpenCode environment detected. Generated opencode.json and AGENTS.md."
+    - **If NOT OpenCode**: Skip silently.
 
 ## 🎬 Phase 2: Architecture Governance
 1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch`.

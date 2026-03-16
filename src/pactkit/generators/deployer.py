@@ -253,16 +253,16 @@ def _deploy_opencode(target=None):
     all_skills = sorted(VALID_SKILLS)
 
     # Deploy components with OpenCode skills prefix
+    # Note: opencode.json is NOT generated here — it's project-level, created by /project-init
     prefix = OPENCODE_SKILLS_PREFIX
     n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
     _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
     n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix)
     n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
-    _deploy_opencode_json(opencode_root)
 
     print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, "
           f"{n_skills} Skills → {opencode_root}")
-    _print_mcp_recommendations_opencode()
+    print("\nℹ️ Run `/project-init` in your project to generate opencode.json")
 
 
 def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREFIX):

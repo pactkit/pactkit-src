@@ -140,3 +140,10 @@
 - [x] R6: opencode.json generation with $schema and instructions
 - [x] R11: CLI --format opencode option
 - [x] All 19 unit tests passing
+
+### [BUG-035] OpenCode Format Should Follow Dual-Layer Architecture
+> Spec: docs/specs/BUG-035.md
+
+- [x] R1:移除全局opencode.json
+- [x] R2:更新project-init playbook
+- [x] R3:更新测试
