@@ -128,3 +128,15 @@
 ## ✅ Done
 
 - [x] [BUG-033] scaffold.py create_spec() 生成的模板不符合 spec-lint 验证规则 `P1`
+
+### [STORY-069] OpenCode Deployment Format Support
+> Spec: docs/specs/STORY-069.md
+
+- [x] R1: Add 'opencode' to VALID_FORMATS
+- [x] R2: Global deployment structure (AGENTS.md, agents/, commands/, skills/)
+- [x] R3: Project deployment (opencode.json)
+- [x] R4: AGENTS.md with inline rules (no @import)
+- [x] R5: Skills path rewriting to ~/.config/opencode/skills
+- [x] R6: opencode.json generation with $schema and instructions
+- [x] R11: CLI --format opencode option
+- [x] All 19 unit tests passing

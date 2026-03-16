@@ -27,11 +27,12 @@ from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
 # Valid output formats
-VALID_FORMATS = ('classic', 'plugin', 'marketplace')
+VALID_FORMATS = ('classic', 'plugin', 'marketplace', 'opencode')
 
-# Path prefix constants for deploy-time rewriting (BUG-002)
+# Path prefix constants for deploy-time rewriting (BUG-002, STORY-069)
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
+OPENCODE_SKILLS_PREFIX = "~/.config/opencode/skills"
 
 
 def _rewrite_skills_prefix(content, skills_prefix):
@@ -86,6 +87,8 @@ def deploy(config=None, target=None, format="classic",
         _deploy_plugin(target)
     elif format == "marketplace":
         _deploy_marketplace(target)
+    elif format == "opencode":
+        _deploy_opencode(target)
     else:
         _deploy_classic(config, target)
 
@@ -221,6 +224,45 @@ def _deploy_marketplace(target=None):
     _deploy_marketplace_json(marketplace_root)
 
     print(f"\n✅ Marketplace → {marketplace_root}")
+
+
+def _deploy_opencode(target=None):
+    """OpenCode deployment — generate OpenCode-native configuration (STORY-069).
+
+    OpenCode (anomalyco/opencode) is an open-source AI coding assistant that supports
+    multiple LLM providers. This deployment mode generates OpenCode-native files:
+    - AGENTS.md (instead of CLAUDE.md) with inline rules
+    - opencode.json (project configuration)
+    - agents/, commands/, skills/ directories
+    """
+    opencode_root = Path(target) if target else Path.home() / ".config" / "opencode"
+
+    print("🚀 PactKit OpenCode Deployment")
+
+    # Prepare directories
+    agents_dir = opencode_root / "agents"
+    commands_dir = opencode_root / "commands"
+    skills_dir = opencode_root / "skills"
+
+    for d in [opencode_root, agents_dir, commands_dir, skills_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    # Full deployment — all components enabled
+    all_agents = sorted(VALID_AGENTS)
+    all_commands = sorted(VALID_COMMANDS)
+    all_skills = sorted(VALID_SKILLS)
+
+    # Deploy components with OpenCode skills prefix
+    prefix = OPENCODE_SKILLS_PREFIX
+    n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
+    _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
+    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix)
+    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
+    _deploy_opencode_json(opencode_root)
+
+    print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, "
+          f"{n_skills} Skills → {opencode_root}")
+    _print_mcp_recommendations_opencode()
 
 
 def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREFIX):
@@ -989,3 +1031,64 @@ def _deploy_marketplace_json(marketplace_root):
     }
     content = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     atomic_write(marketplace_root / "marketplace.json", content)
+
+
+# ---------------------------------------------------------------------------
+# OpenCode-format helpers (STORY-069)
+# ---------------------------------------------------------------------------
+
+def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX):
+    """Generate AGENTS.md with all rules inlined (no @import references).
+
+    OpenCode does not support @import syntax, so all rules are inlined.
+    This is similar to _deploy_claude_md_inline but outputs to AGENTS.md.
+    """
+    # Build reverse map: rule_id -> key for ordered iteration
+    rule_id_to_key = {}
+    for key, filename in prompts.RULES_FILES.items():
+        rule_id = filename.removesuffix('.md')
+        rule_id_to_key[rule_id] = key
+
+    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
+
+    # Inline all rule modules in sorted order
+    for rule_id in sorted(rule_id_to_key.keys()):
+        key = rule_id_to_key[rule_id]
+        module_content = prompts.RULES_MODULES[key].strip()
+        lines.append(module_content)
+        lines.append("")  # blank line between modules
+
+    # Add TIP for cross-session context
+    lines.append("> **TIP**: Run `/project-init` to set up project governance"
+                 " and enable cross-session context.")
+    lines.append("")
+
+    rewritten = _rewrite_skills_prefix("\n".join(lines), skills_prefix)
+    atomic_write(opencode_root / "AGENTS.md", rewritten)
+
+
+def _deploy_opencode_json(opencode_root):
+    """Generate opencode.json project configuration.
+
+    Note: provider/apiKey are intentionally excluded — user-managed.
+    """
+    config = {
+        "$schema": "https://opencode.ai/config.json",
+        "instructions": ["AGENTS.md", "docs/product/context.md"],
+        "agent": {
+            "build": {"model": "inherit"},
+            "plan": {"model": "inherit"},
+        },
+    }
+    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+    atomic_write(opencode_root / "opencode.json", content)
+
+
+def _print_mcp_recommendations_opencode():
+    """Print MCP server recommendations for OpenCode deployment."""
+    print("\n📦 Configure MCP servers in opencode.json:")
+    print('  {')
+    print('    "mcp": {')
+    print('      "context7": { "type": "stdio", "command": "npx", "args": ["context7"] }')
+    print('    }')
+    print('  }')

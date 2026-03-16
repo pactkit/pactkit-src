@@ -29,9 +29,9 @@ def main():
     init_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace"],
+        choices=["classic", "plugin", "marketplace", "opencode"],
         default="classic",
-        help="Output format: classic (default), plugin, or marketplace",
+        help="Output format: classic (default), plugin, marketplace, or opencode",
     )
     init_parser.add_argument(
         "--agent",
@@ -71,9 +71,9 @@ def main():
     update_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace"],
+        choices=["classic", "plugin", "marketplace", "opencode"],
         default="classic",
-        help="Output format: classic (default), plugin, or marketplace",
+        help="Output format: classic (default), plugin, marketplace, or opencode",
     )
     update_parser.add_argument(
         "--agent",

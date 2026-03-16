@@ -1,0 +1,205 @@
+"""
+STORY-069: OpenCode Deployment Format Support
+Tests for `pactkit init --format opencode` deployment mode.
+"""
+import json
+from pathlib import Path
+from unittest.mock import patch
+
+from pactkit.config import VALID_AGENTS, VALID_COMMANDS, VALID_SKILLS, VALID_RULES
+from pactkit.generators.deployer import deploy, VALID_FORMATS
+
+
+# ===========================================================================
+# R1: New --format opencode deployment mode
+# ===========================================================================
+
+class TestR1OpenCodeFormatExists:
+    """R1: --format opencode mode MUST be available."""
+
+    def test_opencode_in_valid_formats(self):
+        """'opencode' is in VALID_FORMATS."""
+        assert 'opencode' in VALID_FORMATS
+
+    def test_deploy_accepts_opencode_format(self, tmp_path):
+        """deploy(format='opencode') does not raise."""
+        out = tmp_path / "opencode-test"
+        deploy(format="opencode", target=str(out))
+        assert out.exists()
+
+
+# ===========================================================================
+# R2: Global deployment — ~/.config/opencode/
+# ===========================================================================
+
+class TestR2GlobalDeployment:
+    """R2: Global deployment writes correct directory structure."""
+
+    def test_agents_md_exists(self, tmp_path):
+        """AGENTS.md is created."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        assert (out / "AGENTS.md").is_file()
+
+    def test_agents_dir_exists(self, tmp_path):
+        """agents/ directory is created."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        assert (out / "agents").is_dir()
+
+    def test_commands_dir_exists(self, tmp_path):
+        """commands/ directory is created."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        assert (out / "commands").is_dir()
+
+    def test_skills_dir_exists(self, tmp_path):
+        """skills/ directory is created."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        assert (out / "skills").is_dir()
+
+    def test_all_agents_deployed(self, tmp_path):
+        """All agents are deployed."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        agents_dir = out / "agents"
+        deployed = {f.stem for f in agents_dir.glob("*.md")}
+        assert deployed == VALID_AGENTS
+
+    def test_all_commands_deployed(self, tmp_path):
+        """All commands are deployed."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        commands_dir = out / "commands"
+        deployed = {f.stem for f in commands_dir.glob("*.md")}
+        assert deployed == VALID_COMMANDS
+
+    def test_all_skills_deployed(self, tmp_path):
+        """All skills are deployed."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        skills_dir = out / "skills"
+        deployed = {d.name for d in skills_dir.iterdir() if d.is_dir()}
+        assert deployed == VALID_SKILLS
+
+
+# ===========================================================================
+# R3: Project-level deployment — .opencode/ + project root
+# ===========================================================================
+
+class TestR3ProjectDeployment:
+    """R3: Project-level deployment creates correct structure."""
+
+    def test_opencode_json_at_root(self, tmp_path):
+        """opencode.json is created at target root."""
+        out = tmp_path / "project"
+        deploy(format="opencode", target=str(out))
+        assert (out / "opencode.json").is_file()
+
+
+# ===========================================================================
+# R4: AGENTS.md with inline rules
+# ===========================================================================
+
+class TestR4AgentsMdInlineRules:
+    """R4: AGENTS.md contains inline rules, no @import."""
+
+    def test_agents_md_no_at_import(self, tmp_path):
+        """AGENTS.md does not contain @~/.claude/ references."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        content = (out / "AGENTS.md").read_text()
+        assert "@~/.claude/" not in content
+        assert "@~/.config/opencode/" not in content
+
+    def test_agents_md_contains_core_protocol(self, tmp_path):
+        """AGENTS.md contains Core Protocol content inline."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        content = (out / "AGENTS.md").read_text()
+        assert "# Core Protocol" in content
+
+    def test_agents_md_contains_hierarchy_of_truth(self, tmp_path):
+        """AGENTS.md contains Hierarchy of Truth content inline."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        content = (out / "AGENTS.md").read_text()
+        assert "# The Hierarchy of Truth" in content
+
+
+# ===========================================================================
+# R5: Skills path rewriting
+# ===========================================================================
+
+class TestR5SkillsPathRewriting:
+    """R5: Skills paths rewritten to ~/.config/opencode/skills."""
+
+    def test_skill_md_uses_opencode_path(self, tmp_path):
+        """SKILL.md references use ~/.config/opencode/skills."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        # Check any scripted skill
+        skill_md = out / "skills" / "pactkit-visualize" / "SKILL.md"
+        if skill_md.exists():
+            content = skill_md.read_text()
+            assert "~/.claude/skills" not in content
+            # Path should be rewritten to opencode
+            assert "~/.config/opencode/skills" in content or "${OPENCODE_ROOT}/skills" in content
+
+    def test_agents_md_uses_opencode_path(self, tmp_path):
+        """AGENTS.md skill references use opencode paths."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        content = (out / "AGENTS.md").read_text()
+        assert "~/.claude/skills" not in content
+
+
+# ===========================================================================
+# R6: opencode.json generation
+# ===========================================================================
+
+class TestR6OpenCodeJsonGeneration:
+    """R6: opencode.json has correct structure."""
+
+    def test_opencode_json_has_schema(self, tmp_path):
+        """opencode.json contains $schema field."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        data = json.loads((out / "opencode.json").read_text())
+        assert "$schema" in data
+        assert "opencode.ai" in data["$schema"]
+
+    def test_opencode_json_has_instructions(self, tmp_path):
+        """opencode.json contains instructions field."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        data = json.loads((out / "opencode.json").read_text())
+        assert "instructions" in data
+        assert isinstance(data["instructions"], list)
+
+    def test_opencode_json_no_api_key(self, tmp_path):
+        """opencode.json does NOT contain apiKey or provider secrets."""
+        out = tmp_path / "opencode"
+        deploy(format="opencode", target=str(out))
+        content = (out / "opencode.json").read_text()
+        assert "apiKey" not in content
+        assert "api_key" not in content
+        assert "API_KEY" not in content
+
+
+# ===========================================================================
+# R11: CLI --format opencode
+# ===========================================================================
+
+class TestR11CliFormatOpenCode:
+    """R11: CLI --format includes opencode option."""
+
+    def test_cli_format_opencode(self, tmp_path):
+        """pactkit init --format opencode works via CLI."""
+        from pactkit.cli import main
+        out = tmp_path / "cli-out"
+        with patch("sys.argv", ["pactkit", "init", "--format", "opencode", "-t", str(out)]):
+            main()
+        assert (out / "AGENTS.md").is_file()
+        assert (out / "opencode.json").is_file()
