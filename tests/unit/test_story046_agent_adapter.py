@@ -30,6 +30,10 @@ class TestR1Importable:
         from pactkit.generators.adapter import SUPPORTED_AGENTS
         assert 'cursor' in SUPPORTED_AGENTS
 
+    def test_supported_agents_contains_codex(self):
+        from pactkit.generators.adapter import SUPPORTED_AGENTS
+        assert 'codex' in SUPPORTED_AGENTS
+
     def test_supported_agents_contains_copilot(self):
         from pactkit.generators.adapter import SUPPORTED_AGENTS
         assert 'copilot' in SUPPORTED_AGENTS
@@ -97,6 +101,23 @@ class TestR3TransformCursor:
         from pactkit.generators.adapter import transform
         result = transform(SAMPLE_CONTENT_WITHOUT_FRONTMATTER, 'cursor')
         assert '# Command: Test' in result
+
+
+class TestR3TransformCodex:
+    """transform('codex') strips frontmatter and rewrites claude paths."""
+
+    def test_transform_codex_strips_frontmatter(self):
+        from pactkit.generators.adapter import transform
+        result = transform(SAMPLE_CONTENT_WITH_FRONTMATTER, 'codex')
+        assert 'description:' not in result
+        assert 'allowed-tools:' not in result
+
+    def test_transform_codex_rewrites_claude_path(self):
+        from pactkit.generators.adapter import transform
+        content = "---\nfoo: bar\n---\nUse ~/.claude/skills now"
+        result = transform(content, 'codex')
+        assert '~/.claude' not in result
+        assert '~/.codex' in result
 
 
 class TestR3TransformCopilot:
@@ -185,6 +206,11 @@ class TestGetTargetDir:
         result = get_target_dir('cursor')
         assert '.cursor/rules' in result
 
+    def test_codex_dir_contains_codex_commands(self):
+        from pactkit.generators.adapter import get_target_dir
+        result = get_target_dir('codex')
+        assert '.codex/commands' in result
+
     def test_copilot_dir_contains_github(self):
         from pactkit.generators.adapter import get_target_dir
         result = get_target_dir('copilot')
@@ -229,6 +255,10 @@ class TestGetFileExtension:
     def test_generic_extension_is_md(self):
         from pactkit.generators.adapter import get_file_extension
         assert get_file_extension('generic') == '.md'
+
+    def test_codex_extension_is_md(self):
+        from pactkit.generators.adapter import get_file_extension
+        assert get_file_extension('codex') == '.md'
 
 
 # ===========================================================================

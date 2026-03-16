@@ -40,6 +40,7 @@ pip install pactkit
 ```
 
 Requires Python 3.10+ and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+Codex users are also supported via `--agent codex` deployment mode.
 
 ## Quick Start
 
@@ -50,8 +51,11 @@ pactkit init
 # Update to latest playbooks (preserves your config)
 pactkit update
 
-# Deploy to multiple AI agents (Claude Code + Cursor + Copilot)
+# Deploy to multiple AI agents (Claude Code + Codex + Cursor + Copilot)
 pactkit init --agent all
+
+# Deploy PactKit for Codex runtime
+pactkit init --agent codex
 
 # Check installed version
 pactkit version
@@ -80,6 +84,16 @@ Or run the full cycle in one command:
 
 ```bash
 /project-sprint "Add user authentication"
+```
+
+Codex deployment usage example:
+
+```bash
+# Generate Codex-targeted playbooks into ./.codex
+pactkit init --agent codex
+
+# or deploy to a custom directory
+pactkit init --agent codex -t ./.codex
 ```
 
 ## PDCA+ Workflow
@@ -193,7 +207,7 @@ docs/
 
 ## Configuration
 
-PactKit deploys to `~/.claude/`:
+PactKit deploys to `~/.claude/` by default (Claude mode):
 
 ```
 ~/.claude/
@@ -205,6 +219,17 @@ PactKit deploys to `~/.claude/`:
     ├── pactkit-visualize/
     ├── pactkit-board/
     └── pactkit-scaffold/
+```
+
+For Codex mode (`pactkit init --agent codex`), PactKit deploys adapted assets to:
+
+```
+./.codex/
+├── CODEX.md                  ← Constitution entry for Codex runtime
+├── rules/                    ← Rule modules (adapted)
+├── commands/                 ← PDCA command playbooks (adapted)
+├── agents/                   ← Agent role definitions (adapted)
+└── skills/                   ← PactKit skills
 ```
 
 ### pactkit.yaml Configuration Reference
