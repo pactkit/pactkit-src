@@ -209,6 +209,26 @@ developer: alice
 
 Story IDs become `STORY-alice-001`, preventing merge conflicts when multiple developers work on separate branches.
 
+## Project Structure (PDCA-managed)
+
+PactKit's PDCA lifecycle manages a `docs/` directory:
+
+```
+docs/
+├── product/
+│   ├── sprint_board.md          <- Current iteration board
+│   ├── context.md               <- Auto-generated session context
+│   └── archive/                 <- Archived completed stories
+├── specs/                       <- The Law — requirement specifications
+├── test_cases/                  <- Gherkin acceptance scenarios
+└── architecture/
+    ├── graphs/                  <- Architecture graph files (Mermaid .mmd)
+    ├── governance/
+    │   ├── rules.md             <- Architecture decisions and invariants
+    │   └── lessons.md           <- Lessons learned per story
+    └── snapshots/               <- Versioned architecture graph snapshots
+```
+
 ### pactkit.yaml Configuration Reference
 
 | Field | Type | Default | Description |
@@ -220,8 +240,10 @@ Story IDs become `STORY-alice-001`, preventing merge conflicts when multiple dev
 | `commands` | list | all 11 | Command playbooks to deploy |
 | `skills` | list | all 10 | Skills to deploy |
 | `rules` | list | all 7 | Constitution rule modules to deploy |
+| `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`) |
 | `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`) |
 | `issue_tracker` | object | `provider: none` | External issue tracker (`github`, `none`) |
+| `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push) |
 | `lint_blocking` | bool | `false` | Whether lint failures block commits |
 | `auto_fix` | bool | `false` | Whether to auto-fix lint errors |
 | `agent_models` | object | `{}` | Per-agent model overrides (`haiku`, `sonnet`, `opus`, `inherit`) |

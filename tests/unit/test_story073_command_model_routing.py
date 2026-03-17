@@ -21,10 +21,31 @@ except ImportError:
 class TestAC1CommandModel:
     """AC1: OpenCode commands with sonnet role have model: field."""
 
+    def _deploy_with_providers(self, tmp_path):
+        """Deploy with seeded provider config so model resolution works in CI."""
+        import json
+        out = tmp_path / "oc"
+        out.mkdir(parents=True, exist_ok=True)
+        # Seed opencode.json with provider config (needed for model resolution)
+        providers = {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+                "test-provider": {
+                    "models": {
+                        "claude-sonnet-4.6": {"name": "Sonnet"},
+                        "claude-opus-4.6": {"name": "Opus"},
+                        "claude-haiku-4.5": {"name": "Haiku"},
+                    }
+                }
+            },
+        }
+        (out / "opencode.json").write_text(json.dumps(providers))
+        deploy(format="opencode", target=str(out))
+        return out
+
     def test_act_has_model(self, tmp_path):
         """project-act.md has model: in frontmatter."""
-        out = tmp_path / "oc"
-        deploy(format="opencode", target=str(out))
+        out = self._deploy_with_providers(tmp_path)
         content = (out / "commands" / "project-act.md").read_text()
         parts = content.split("---", 2)
         frontmatter = parts[1]
@@ -32,8 +53,7 @@ class TestAC1CommandModel:
 
     def test_done_has_model(self, tmp_path):
         """project-done.md has model: in frontmatter."""
-        out = tmp_path / "oc"
-        deploy(format="opencode", target=str(out))
+        out = self._deploy_with_providers(tmp_path)
         content = (out / "commands" / "project-done.md").read_text()
         parts = content.split("---", 2)
         frontmatter = parts[1]
@@ -41,7 +61,7 @@ class TestAC1CommandModel:
 
     def test_check_has_model(self, tmp_path):
         """project-check.md has model: in frontmatter."""
-        out = tmp_path / "oc"
+        out = self._deploy_with_providers(tmp_path)
         deploy(format="opencode", target=str(out))
         content = (out / "commands" / "project-check.md").read_text()
         parts = content.split("---", 2)
