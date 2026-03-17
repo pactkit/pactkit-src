@@ -27,7 +27,7 @@ from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
 # Valid output formats
-VALID_FORMATS = ('classic', 'plugin', 'marketplace', 'opencode')
+VALID_FORMATS = ("classic", "plugin", "marketplace", "opencode")
 
 # Path prefix constants for deploy-time rewriting (BUG-002, STORY-069)
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
@@ -65,9 +65,9 @@ def _print_mcp_recommendations():
     print("   Configure in Claude Code settings.json → mcpServers")
 
 
-def deploy(config=None, target=None, format="classic",
-           no_git=False, no_external=False, non_interactive=False,
-           mode=None):
+def deploy(
+    config=None, target=None, format="classic", no_git=False, no_external=False, non_interactive=False, mode=None
+):
     """Deploy PactKit configuration.
 
     Args:
@@ -131,29 +131,29 @@ def _deploy_classic(config=None, target=None):
         d.mkdir(parents=True, exist_ok=True)
 
     # Deploy components filtered by config
-    enabled_skills = config.get('skills', [])
-    enabled_rules = config.get('rules', [])
-    enabled_agents = config.get('agents', [])
-    enabled_commands = config.get('commands', [])
+    enabled_skills = config.get("skills", [])
+    enabled_rules = config.get("rules", [])
+    enabled_agents = config.get("agents", [])
+    enabled_commands = config.get("commands", [])
 
     n_skills = _deploy_skills(skills_dir, enabled_skills)
     _cleanup_legacy(skills_dir)
-    rule_scopes = config.get('rule_scopes', {})
+    rule_scopes = config.get("rule_scopes", {})
     n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes)
     _deploy_claude_md(claude_root, enabled_rules)
-    agent_models = config.get('agent_models', {})
+    agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, agent_models=agent_models)
     n_commands = _deploy_commands(commands_dir, enabled_commands)
 
     # Deploy CI pipeline if configured (STORY-025)
-    ci_config = config.get('ci', {})
-    ci_provider = ci_config.get('provider', 'none') if isinstance(ci_config, dict) else 'none'
+    ci_config = config.get("ci", {})
+    ci_provider = ci_config.get("provider", "none") if isinstance(ci_config, dict) else "none"
     project_root = Path.cwd()
     _deploy_ci(ci_provider, project_root, config)
 
     # Deploy hooks if configured (STORY-027)
-    hooks_config = config.get('hooks', {})
-    _deploy_hooks(claude_root / 'hooks', hooks_config, stack=config.get('stack', 'auto'))
+    hooks_config = config.get("hooks", {})
+    _deploy_hooks(claude_root / "hooks", hooks_config, stack=config.get("stack", "auto"))
 
     # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
     _generate_config_if_missing()
@@ -169,10 +169,12 @@ def _deploy_classic(config=None, target=None):
     total_skills = len(VALID_SKILLS)
     total_rules = len(VALID_RULES)
 
-    print(f"\n✅ Deployed: {n_agents}/{total_agents} Agents, "
-          f"{n_commands}/{total_commands} Commands, "
-          f"{n_skills}/{total_skills} Skills, "
-          f"{n_rules}/{total_rules} Rules")
+    print(
+        f"\n✅ Deployed: {n_agents}/{total_agents} Agents, "
+        f"{n_commands}/{total_commands} Commands, "
+        f"{n_skills}/{total_skills} Skills, "
+        f"{n_rules}/{total_rules} Rules"
+    )
     _print_mcp_recommendations()
 
 
@@ -204,8 +206,7 @@ def _deploy_plugin(target=None):
     n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
     _deploy_plugin_json(plugin_meta_dir)
 
-    print(f"\n✅ Plugin: {n_agents} Agents, {n_commands} Commands, "
-          f"{n_skills} Skills → {plugin_root}")
+    print(f"\n✅ Plugin: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills → {plugin_root}")
     _print_mcp_recommendations()
 
 
@@ -259,10 +260,10 @@ def _deploy_opencode(target=None):
     _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
     # STORY-069 R7: Use OpenCode tools format (record, not string)
     n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
-    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
+    # STORY-070 R1: Use OpenCode command frontmatter format
+    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix, opencode_format=True)
 
-    print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, "
-          f"{n_skills} Skills → {opencode_root}")
+    print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills → {opencode_root}")
     print("\nℹ️ Run `/project-init` in your project to generate opencode.json")
 
 
@@ -276,34 +277,34 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
     # Skills with executable scripts
     scripted_skill_defs = [
         {
-            'name': 'pactkit-visualize',
-            'skill_md': prompts.SKILL_VISUALIZE_MD,
-            'script_name': 'visualize.py',
-            'script_source': load_script('visualize.py'),
+            "name": "pactkit-visualize",
+            "skill_md": prompts.SKILL_VISUALIZE_MD,
+            "script_name": "visualize.py",
+            "script_source": load_script("visualize.py"),
         },
         {
-            'name': 'pactkit-board',
-            'skill_md': prompts.SKILL_BOARD_MD,
-            'script_name': 'board.py',
-            'script_source': load_script('board.py'),
+            "name": "pactkit-board",
+            "skill_md": prompts.SKILL_BOARD_MD,
+            "script_name": "board.py",
+            "script_source": load_script("board.py"),
         },
         {
-            'name': 'pactkit-scaffold',
-            'skill_md': prompts.SKILL_SCAFFOLD_MD,
-            'script_name': 'scaffold.py',
-            'script_source': load_script('scaffold.py'),
+            "name": "pactkit-scaffold",
+            "skill_md": prompts.SKILL_SCAFFOLD_MD,
+            "script_name": "scaffold.py",
+            "script_source": load_script("scaffold.py"),
         },
     ]
 
     # Prompt-only skills (SKILL.md only, no executable script) — STORY-011
     prompt_only_skill_defs = [
-        {'name': 'pactkit-trace', 'skill_md': prompts.SKILL_TRACE_MD},
-        {'name': 'pactkit-draw', 'skill_md': prompts.SKILL_DRAW_MD},
-        {'name': 'pactkit-status', 'skill_md': prompts.SKILL_STATUS_MD},
-        {'name': 'pactkit-doctor', 'skill_md': prompts.SKILL_DOCTOR_MD},
-        {'name': 'pactkit-review', 'skill_md': prompts.SKILL_REVIEW_MD},
-        {'name': 'pactkit-release', 'skill_md': prompts.SKILL_RELEASE_MD},
-        {'name': 'pactkit-analyze', 'skill_md': prompts.SKILL_ANALYZE_MD},
+        {"name": "pactkit-trace", "skill_md": prompts.SKILL_TRACE_MD},
+        {"name": "pactkit-draw", "skill_md": prompts.SKILL_DRAW_MD},
+        {"name": "pactkit-status", "skill_md": prompts.SKILL_STATUS_MD},
+        {"name": "pactkit-doctor", "skill_md": prompts.SKILL_DOCTOR_MD},
+        {"name": "pactkit-review", "skill_md": prompts.SKILL_REVIEW_MD},
+        {"name": "pactkit-release", "skill_md": prompts.SKILL_RELEASE_MD},
+        {"name": "pactkit-analyze", "skill_md": prompts.SKILL_ANALYZE_MD},
     ]
 
     enabled_set = set(enabled_skills)
@@ -311,26 +312,26 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
 
     # Deploy scripted skills (SKILL.md + script)
     for sd in scripted_skill_defs:
-        if sd['name'] not in enabled_set:
+        if sd["name"] not in enabled_set:
             continue
-        skill_dir = skills_dir / sd['name']
-        scripts_dir = skill_dir / 'scripts'
+        skill_dir = skills_dir / sd["name"]
+        scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd['skill_md'], skills_prefix)
-        atomic_write(skill_dir / 'SKILL.md', skill_md)
-        atomic_write(scripts_dir / sd['script_name'], sd['script_source'])
+        skill_md = _rewrite_skills_prefix(sd["skill_md"], skills_prefix)
+        atomic_write(skill_dir / "SKILL.md", skill_md)
+        atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
 
     # Deploy prompt-only skills (SKILL.md only)
     for sd in prompt_only_skill_defs:
-        if sd['name'] not in enabled_set:
+        if sd["name"] not in enabled_set:
             continue
-        skill_dir = skills_dir / sd['name']
+        skill_dir = skills_dir / sd["name"]
         skill_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd['skill_md'], skills_prefix)
-        atomic_write(skill_dir / 'SKILL.md', skill_md)
+        skill_md = _rewrite_skills_prefix(sd["skill_md"], skills_prefix)
+        atomic_write(skill_dir / "SKILL.md", skill_md)
         deployed += 1
 
     return deployed
@@ -338,7 +339,7 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
 
 def _cleanup_legacy(skills_dir):
     """Clean up legacy pactkit_tools.py."""
-    legacy = skills_dir / 'pactkit_tools.py'
+    legacy = skills_dir / "pactkit_tools.py"
     if legacy.exists():
         legacy.unlink()
 
@@ -353,7 +354,7 @@ def _migrate_from_scafpy(claude_root):
 
     # Clean up legacy skill directories
     skills_dir = claude_root / "skills"
-    for old_name in ('scafpy-visualize', 'scafpy-board', 'scafpy-scaffold'):
+    for old_name in ("scafpy-visualize", "scafpy-board", "scafpy-scaffold"):
         old_dir = skills_dir / old_name
         if old_dir.is_dir():
             shutil.rmtree(old_dir)
@@ -383,11 +384,11 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
     # e.g. '01-core-protocol' -> 'core'
     rule_id_to_key = {}
     for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix('.md')
+        rule_id = filename.removesuffix(".md")
         rule_id_to_key[rule_id] = key
 
     # Clean managed rule files
-    for f in rules_dir.glob('*.md'):
+    for f in rules_dir.glob("*.md"):
         if any(f.name.startswith(p) for p in prompts.RULES_MANAGED_PREFIXES):
             f.unlink()
 
@@ -404,7 +405,7 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
         scope = rule_scopes.get(rule_id)
         if scope:
             if isinstance(scope, list):
-                include_lines = '\n'.join(f'  - "{p}"' for p in scope)
+                include_lines = "\n".join(f'  - "{p}"' for p in scope)
                 frontmatter = f"---\nincludeFiles:\n{include_lines}\n---\n\n"
             else:
                 frontmatter = f'---\nincludeFiles: ["{scope}"]\n---\n\n'
@@ -421,7 +422,7 @@ def _deploy_claude_md(claude_root, enabled_rules):
     # Build reverse map: rule identifier -> filename
     rule_id_to_filename = {}
     for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix('.md')
+        rule_id = filename.removesuffix(".md")
         rule_id_to_filename[rule_id] = filename
 
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
@@ -436,15 +437,18 @@ def _deploy_claude_md(claude_root, enabled_rules):
     atomic_write(claude_root / "CLAUDE.md", "\n".join(lines))
 
 
-def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX,
-                    agent_models=None, opencode_format=False):
+def _deploy_agents(
+    agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX, agent_models=None, opencode_format=False
+):
     """Deploy agent definitions filtered by config.
 
     Args:
         skills_prefix: Path prefix for skill script references.
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
         agent_models: Optional dict of agent_name -> model overrides from pactkit.yaml.
-        opencode_format: If True, convert tools to OpenCode record format (STORY-069 R7).
+        opencode_format: If True, convert to OpenCode-native format (STORY-069 R7, STORY-070).
+            OpenCode differences: tools as record, mode: subagent, no name field,
+            no Claude Code-specific fields (permissionMode, memory, skills).
     """
     if agent_models is None:
         agent_models = {}
@@ -453,14 +457,16 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
     # Clean up managed agent files not in enabled set
     managed_agent_files = {f"{name}.md" for name in prompts.AGENTS_EXPERT}
     if agents_dir.exists():
-        for f in agents_dir.glob('*.md'):
+        for f in agents_dir.glob("*.md"):
             if f.name in managed_agent_files and f.stem not in enabled_set:
                 f.unlink()
 
-    # Fields serialized as simple key: value (no nesting)
-    SIMPLE_OPTIONAL_FIELDS = ['permissionMode', 'disallowedTools', 'maxTurns', 'memory', 'skills']
+    # Fields serialized as simple key: value (no nesting) — Claude Code format
+    SIMPLE_OPTIONAL_FIELDS = ["permissionMode", "disallowedTools", "maxTurns", "memory", "skills"]
+    # STORY-070 R4: Fields that are Claude Code-specific and invalid in OpenCode
+    CLAUDE_ONLY_FIELDS = {"permissionMode", "memory", "skills"}
     # Fields that require YAML serialization (nested structures)
-    NESTED_FIELDS = ['hooks']
+    NESTED_FIELDS = ["hooks"]
 
     deployed = 0
     for name, cfg in prompts.AGENTS_EXPERT.items():
@@ -469,31 +475,44 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
         agent_path = agents_dir / f"{name}.md"
 
         # Resolve model: agent_models override > AGENTS_EXPERT default > 'inherit'
-        model = agent_models.get(name, cfg.get('model', 'inherit'))
+        model = agent_models.get(name, cfg.get("model", "inherit"))
 
-        content = [
-            "---",
-            f"name: {name}",
-            f"description: {cfg['desc']}",
-        ]
+        content = ["---"]
+
+        # STORY-070 R3: OpenCode uses filename as agent name — omit 'name' field
+        if not opencode_format:
+            content.append(f"name: {name}")
+
+        content.append(f"description: {cfg['desc']}")
+
+        # STORY-070 R2: OpenCode requires mode field for custom agents
+        if opencode_format:
+            content.append("mode: subagent")
 
         # STORY-069 R7: Convert tools format for OpenCode
         if opencode_format:
             # OpenCode expects tools as record: { read: true, write: true, ... }
-            tools_str = cfg['tools']
+            tools_str = cfg["tools"]
             # Parse "Read, Write, Edit, Bash" or "[Read, Write]" format
-            tools_str = tools_str.strip('[]')
-            tool_names = [t.strip().lower() for t in tools_str.split(',')]
+            tools_str = tools_str.strip("[]")
+            tool_names = [t.strip().lower() for t in tools_str.split(",")]
             tools_record = {t: True for t in tool_names if t}
-            tools_yaml = yaml.dump({'tools': tools_record}, default_flow_style=False).rstrip()
+            tools_yaml = yaml.dump({"tools": tools_record}, default_flow_style=False).rstrip()
             content.append(tools_yaml)
         else:
             content.append(f"tools: {cfg['tools']}")
 
-        content.append(f"model: {model}")
+        # STORY-070 R5: Omit 'model: inherit' in OpenCode (default behavior = inherit)
+        if opencode_format and model == "inherit":
+            pass  # OpenCode inherits model from parent agent by default
+        else:
+            content.append(f"model: {model}")
 
+        # STORY-070 R4: Skip Claude Code-specific fields in OpenCode format
         for field in SIMPLE_OPTIONAL_FIELDS:
             if field in cfg:
+                if opencode_format and field in CLAUDE_ONLY_FIELDS:
+                    continue  # Skip Claude Code-only fields
                 content.append(f"{field}: {cfg[field]}")
         # Serialize nested fields using PyYAML for correct indentation
         for field in NESTED_FIELDS:
@@ -507,13 +526,7 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
 
         # Routing reference differs between Claude Code and OpenCode
         routing_ref = "~/.config/opencode/AGENTS.md" if opencode_format else "~/.claude/CLAUDE.md"
-        content.extend([
-            "---",
-            "",
-            cfg['prompt'],
-            "",
-            f"Please refer to {routing_ref} for routing."
-        ])
+        content.extend(["---", "", cfg["prompt"], "", f"Please refer to {routing_ref} for routing."])
         rewritten = _rewrite_skills_prefix("\n".join(content), skills_prefix)
         atomic_write(agent_path, rewritten)
         deployed += 1
@@ -521,12 +534,14 @@ def _deploy_agents(agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREF
     return deployed
 
 
-def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILLS_PREFIX):
+def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILLS_PREFIX, opencode_format=False):
     """Deploy command playbooks filtered by config.
 
     Args:
         skills_prefix: Path prefix for skill script references.
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
+        opencode_format: If True, convert frontmatter to OpenCode format (STORY-070 R1).
+            Replaces 'allowed-tools: [...]' with 'agent: build'.
     """
     enabled_set = set(enabled_commands)
 
@@ -536,21 +551,59 @@ def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILL
 
     # Clean managed command files not in enabled set
     if commands_dir.exists():
-        for f in commands_dir.glob('*.md'):
+        for f in commands_dir.glob("*.md"):
             if f.name.startswith("project-") and f.name not in enabled_filenames:
                 f.unlink()
 
     # Deploy enabled commands
     deployed = 0
     for filename, content in prompts.COMMANDS_CONTENT.items():
-        cmd_name = filename.removesuffix('.md')
+        cmd_name = filename.removesuffix(".md")
         if cmd_name not in enabled_set:
             continue
+
+        # STORY-070 R1: Convert frontmatter for OpenCode
+        if opencode_format:
+            content = _convert_command_frontmatter_opencode(content)
+
         rewritten = _rewrite_skills_prefix(content, skills_prefix)
         atomic_write(commands_dir / filename, rewritten)
         deployed += 1
 
     return deployed
+
+
+def _convert_command_frontmatter_opencode(content):
+    """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1).
+
+    Replaces 'allowed-tools: [...]' with 'agent: build' in the YAML frontmatter.
+    Preserves the description and body content.
+    """
+    if not content.startswith("---"):
+        return content
+
+    # Split into frontmatter and body
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return content
+
+    frontmatter_lines = parts[1].strip().split("\n")
+    new_lines = []
+    has_agent = False
+
+    for line in frontmatter_lines:
+        stripped = line.strip()
+        if stripped.startswith("allowed-tools:"):
+            # Replace with agent: build
+            if not has_agent:
+                new_lines.append("agent: build")
+                has_agent = True
+        else:
+            if stripped.startswith("agent:"):
+                has_agent = True
+            new_lines.append(line)
+
+    return "---\n" + "\n".join(new_lines) + "\n---" + parts[2]
 
 
 # ---------------------------------------------------------------------------
@@ -621,26 +674,27 @@ def _deploy_ci(provider, project_root, config):
         project_root: Project root directory (parent of .claude/).
         config: Full pactkit config dict.
     """
-    if provider == 'none' or provider not in ('github', 'gitlab'):
+    if provider == "none" or provider not in ("github", "gitlab"):
         return
 
     # Detect lint command from LANG_PROFILES
     from pactkit.prompts.workflows import LANG_PROFILES
-    stack = config.get('stack', 'auto')
-    if stack == 'auto':
-        stack = 'python'  # default fallback
-    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
-    lint_command = profile.get('lint_command', 'ruff check src/ tests/')
 
-    if provider == 'github':
-        workflows_dir = project_root / '.github' / 'workflows'
+    stack = config.get("stack", "auto")
+    if stack == "auto":
+        stack = "python"  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
+    lint_command = profile.get("lint_command", "ruff check src/ tests/")
+
+    if provider == "github":
+        workflows_dir = project_root / ".github" / "workflows"
         workflows_dir.mkdir(parents=True, exist_ok=True)
         content = _GITHUB_WORKFLOW_TEMPLATE.format(lint_command=lint_command)
-        atomic_write(workflows_dir / 'pactkit.yml', content)
+        atomic_write(workflows_dir / "pactkit.yml", content)
         print("  -> CI: .github/workflows/pactkit.yml")
-    elif provider == 'gitlab':
+    elif provider == "gitlab":
         content = _GITLAB_CI_TEMPLATE.format(lint_command=lint_command)
-        atomic_write(project_root / '.gitlab-ci.yml', content)
+        atomic_write(project_root / ".gitlab-ci.yml", content)
         print("  -> CI: .gitlab-ci.yml")
 
 
@@ -692,13 +746,13 @@ exit 0
 """
 
 _HOOK_TEMPLATES = {
-    'pre_commit_lint': ('pre-commit-lint', _HOOK_PRE_COMMIT_LINT),
-    'post_test_coverage': ('post-test-coverage', _HOOK_POST_TEST_COVERAGE),
-    'pre_push_check': ('pre-push-check', _HOOK_PRE_PUSH_CHECK),
+    "pre_commit_lint": ("pre-commit-lint", _HOOK_PRE_COMMIT_LINT),
+    "post_test_coverage": ("post-test-coverage", _HOOK_POST_TEST_COVERAGE),
+    "pre_push_check": ("pre-push-check", _HOOK_PRE_PUSH_CHECK),
 }
 
 
-def _deploy_hooks(hooks_dir, hooks_config, stack='python'):
+def _deploy_hooks(hooks_dir, hooks_config, stack="python"):
     """Deploy enabled hook scripts.
 
     Args:
@@ -717,10 +771,11 @@ def _deploy_hooks(hooks_dir, hooks_config, stack='python'):
 
     # Detect lint command from LANG_PROFILES using the project's stack (BUG-010)
     from pactkit.prompts.workflows import LANG_PROFILES
-    if stack == 'auto':
-        stack = 'python'  # default fallback
-    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
-    lint_command = profile.get('lint_command', 'echo "No linter configured"')
+
+    if stack == "auto":
+        stack = "python"  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
+    lint_command = profile.get("lint_command", 'echo "No linter configured"')
 
     for hook_name in enabled:
         if hook_name not in _HOOK_TEMPLATES:
@@ -761,7 +816,7 @@ def _upsert_venv_managed_block(local_md_path, venv_info):
         return  # R2: detection failed — leave existing block (or absence of block) unchanged
 
     venv_path, layout = venv_info
-    if layout == 'unix':
+    if layout == "unix":
         instructions = (
             f"## Virtual Environment\n"
             f"Always use the project's virtual environment:\n"
@@ -787,7 +842,7 @@ def _upsert_venv_managed_block(local_md_path, venv_info):
     if _VENV_BLOCK_START in content:
         # R3: Replace existing block, preserve everything outside
         new_content = re.sub(
-            re.escape(_VENV_BLOCK_START) + r'.*?' + re.escape(_VENV_BLOCK_END) + r'\n?',
+            re.escape(_VENV_BLOCK_START) + r".*?" + re.escape(_VENV_BLOCK_END) + r"\n?",
             managed_block,
             content,
             flags=re.DOTALL,
@@ -822,7 +877,7 @@ def _is_user_modified_claude_md(content, project_name):
     Simple heuristic: if file doesn't start with # {project_name}, treat as user-modified.
     """
     expected_start = f"# {project_name}"
-    first_line = content.split('\n')[0] if content else ''
+    first_line = content.split("\n")[0] if content else ""
     return not first_line.startswith(expected_start)
 
 
@@ -864,30 +919,29 @@ def _generate_project_claude_md(config):
     _generate_claude_local_md_if_missing(claude_dir)
 
     # Resolve stack and get profile from LANG_PROFILES (BUG-021 R3, R4)
-    stack = config.get('stack', 'auto')
-    if stack == 'auto':
-        stack = 'python'  # default fallback
-    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get('python', {}))
-    lint_command = profile.get('lint_command', 'ruff check src/ tests/')
-    test_runner = profile.get('test_runner', 'pytest')
+    stack = config.get("stack", "auto")
+    if stack == "auto":
+        stack = "python"  # default fallback
+    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
+    lint_command = profile.get("lint_command", "ruff check src/ tests/")
+    test_runner = profile.get("test_runner", "pytest")
 
     # Resolve venv path and layout (BUG-021 R2)
-    venv_config = config.get('venv', {})
+    venv_config = config.get("venv", {})
     venv_info = None  # (path, layout) or None
 
     # Priority: explicit path > auto-detect
-    explicit_path = venv_config.get('path')
+    explicit_path = venv_config.get("path")
     if explicit_path:
         # Check if explicit path exists and determine layout
         explicit_full = project_root / explicit_path
-        if (explicit_full / 'bin' / 'python3').exists() or \
-           (explicit_full / 'bin' / 'python').exists():
-            venv_info = (explicit_path, 'unix')
-        elif (explicit_full / 'Scripts' / 'python.exe').exists():
-            venv_info = (explicit_path, 'windows')
+        if (explicit_full / "bin" / "python3").exists() or (explicit_full / "bin" / "python").exists():
+            venv_info = (explicit_path, "unix")
+        elif (explicit_full / "Scripts" / "python.exe").exists():
+            venv_info = (explicit_path, "windows")
         else:
             warnings.warn(f"venv.path={explicit_path} not found, using system python")
-    elif venv_config.get('auto_detect', True):
+    elif venv_config.get("auto_detect", True):
         # Auto-detect (detect_venv now returns tuple or None)
         detected = detect_venv(project_root)
         if detected:
@@ -902,68 +956,76 @@ def _generate_project_claude_md(config):
     # BUG-021 R2: Platform-aware venv commands
     if venv_info:
         venv_path, layout = venv_info
-        if layout == 'unix':
-            lines.extend([
-                "## Virtual Environment",
-                "Always use the project's virtual environment:",
-                f"- **Activate**: `source {venv_path}/bin/activate`",
-                f"- **Python**: `{venv_path}/bin/python3`",
-                f"- **Pytest**: `{venv_path}/bin/pytest`",
-                f"- **Pip**: `{venv_path}/bin/pip`",
-                "",
-            ])
+        if layout == "unix":
+            lines.extend(
+                [
+                    "## Virtual Environment",
+                    "Always use the project's virtual environment:",
+                    f"- **Activate**: `source {venv_path}/bin/activate`",
+                    f"- **Python**: `{venv_path}/bin/python3`",
+                    f"- **Pytest**: `{venv_path}/bin/pytest`",
+                    f"- **Pip**: `{venv_path}/bin/pip`",
+                    "",
+                ]
+            )
         else:  # windows
-            lines.extend([
-                "## Virtual Environment",
-                "Always use the project's virtual environment:",
-                f"- **Activate**: `{venv_path}/Scripts/activate`",
-                f"- **Python**: `{venv_path}/Scripts/python.exe`",
-                f"- **Pytest**: `{venv_path}/Scripts/pytest.exe`",
-                f"- **Pip**: `{venv_path}/Scripts/pip.exe`",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Virtual Environment",
+                    "Always use the project's virtual environment:",
+                    f"- **Activate**: `{venv_path}/Scripts/activate`",
+                    f"- **Python**: `{venv_path}/Scripts/python.exe`",
+                    f"- **Pytest**: `{venv_path}/Scripts/pytest.exe`",
+                    f"- **Pip**: `{venv_path}/Scripts/pip.exe`",
+                    "",
+                ]
+            )
 
-    lines.extend([
-        "## Dev Commands",
-        "",
-        "```bash",
-        "# Run tests",
-    ])
+    lines.extend(
+        [
+            "## Dev Commands",
+            "",
+            "```bash",
+            "# Run tests",
+        ]
+    )
 
     # BUG-021 R4: Stack-aware test runner with optional venv prefix
     if venv_info:
         venv_path, layout = venv_info
-        if stack == 'python':
+        if stack == "python":
             # Python with venv: prefix the test runner
-            if layout == 'unix':
+            if layout == "unix":
                 lines.append(f"{venv_path}/bin/{test_runner} tests/ -v")
             else:
                 lines.append(f"{venv_path}/Scripts/{test_runner}.exe tests/ -v")
         else:
             # Non-Python stacks (node, go, java) don't use venv prefix
-            if stack in ('go',):
+            if stack in ("go",):
                 lines.append(test_runner)  # 'go test ./...'
             else:
                 lines.append(f"{test_runner}")
     else:
         # No venv: use bare test runner
-        if stack in ('go',):
+        if stack in ("go",):
             lines.append(test_runner)  # 'go test ./...'
-        elif stack == 'python':
+        elif stack == "python":
             lines.append(f"{test_runner} tests/ -v")
         else:
             lines.append(test_runner)
 
-    lines.extend([
-        "",
-        "# Lint",
-        lint_command,  # BUG-021 R3: Stack-aware lint command from LANG_PROFILES
-        "```",
-        "",
-        "@./docs/product/context.md",
-        "@./.claude/CLAUDE.local.md",  # STORY-040 R2: Import user content
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "# Lint",
+            lint_command,  # BUG-021 R3: Stack-aware lint command from LANG_PROFILES
+            "```",
+            "",
+            "@./docs/product/context.md",
+            "@./.claude/CLAUDE.local.md",  # STORY-040 R2: Import user content
+            "",
+        ]
+    )
 
     # R1: Always write CLAUDE.md (no skip-if-exists guard)
     claude_dir.mkdir(parents=True, exist_ok=True)
@@ -978,13 +1040,14 @@ _generate_project_claude_md_if_missing = _generate_project_claude_md
 # Plugin-format helpers
 # ---------------------------------------------------------------------------
 
+
 def _deploy_plugin_json(plugin_meta_dir):
     """Generate .claude-plugin/plugin.json manifest."""
     manifest = {
         "name": "pactkit",
         "version": __version__,
         "description": "Spec-driven agentic DevOps toolkit — PDCA workflows, "
-                       "role-based agents, and behavioral governance for Claude Code",
+        "role-based agents, and behavioral governance for Claude Code",
         "author": {
             "name": "PactKit",
             "url": "https://github.com/pactkit",
@@ -993,8 +1056,14 @@ def _deploy_plugin_json(plugin_meta_dir):
         "repository": "https://github.com/pactkit/pactkit",
         "license": "MIT",
         "keywords": [
-            "devops", "pdca", "spec-driven", "tdd", "governance",
-            "claude-code", "ai-agent", "multi-agent",
+            "devops",
+            "pdca",
+            "spec-driven",
+            "tdd",
+            "governance",
+            "claude-code",
+            "ai-agent",
+            "multi-agent",
         ],
     }
     content = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
@@ -1006,7 +1075,7 @@ def _deploy_claude_md_inline(plugin_root, skills_prefix=CLASSIC_SKILLS_PREFIX):
     # Build reverse map: rule_id -> key for ordered iteration
     rule_id_to_key = {}
     for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix('.md')
+        rule_id = filename.removesuffix(".md")
         rule_id_to_key[rule_id] = key
 
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
@@ -1019,8 +1088,7 @@ def _deploy_claude_md_inline(plugin_root, skills_prefix=CLASSIC_SKILLS_PREFIX):
         lines.append("")  # blank line between modules
 
     # Add TIP for cross-session context (plugin mode has no context.md by default)
-    lines.append("> **TIP**: Run `/project-init` to set up project governance"
-                 " and enable cross-session context.")
+    lines.append("> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.")
     lines.append("")
 
     rewritten = _rewrite_skills_prefix("\n".join(lines), skills_prefix)
@@ -1043,8 +1111,7 @@ def _deploy_marketplace_json(marketplace_root):
                 "name": "pactkit",
                 "source": "./pactkit-plugin",
                 "version": __version__,
-                "description": "PDCA workflows, role-based agents, "
-                               "and behavioral governance",
+                "description": "PDCA workflows, role-based agents, and behavioral governance",
             },
         ],
     }
@@ -1056,6 +1123,7 @@ def _deploy_marketplace_json(marketplace_root):
 # OpenCode-format helpers (STORY-069)
 # ---------------------------------------------------------------------------
 
+
 def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX):
     """Generate AGENTS.md with all rules inlined (no @import references).
 
@@ -1065,7 +1133,7 @@ def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX
     # Build reverse map: rule_id -> key for ordered iteration
     rule_id_to_key = {}
     for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix('.md')
+        rule_id = filename.removesuffix(".md")
         rule_id_to_key[rule_id] = key
 
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
@@ -1078,8 +1146,7 @@ def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX
         lines.append("")  # blank line between modules
 
     # Add TIP for cross-session context
-    lines.append("> **TIP**: Run `/project-init` to set up project governance"
-                 " and enable cross-session context.")
+    lines.append("> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.")
     lines.append("")
 
     rewritten = _rewrite_skills_prefix("\n".join(lines), skills_prefix)
@@ -1090,6 +1157,9 @@ def _deploy_opencode_json(opencode_root):
     """Generate opencode.json project configuration.
 
     Note: provider/apiKey are intentionally excluded — user-managed.
+    Note: This function is NOT called by _deploy_opencode() (global deployment).
+    It exists as a utility for /project-init playbook to generate project-level config.
+    See BUG-035 for the dual-layer architecture decision.
     """
     config = {
         "$schema": "https://opencode.ai/config.json",
@@ -1106,8 +1176,8 @@ def _deploy_opencode_json(opencode_root):
 def _print_mcp_recommendations_opencode():
     """Print MCP server recommendations for OpenCode deployment."""
     print("\n📦 Configure MCP servers in opencode.json:")
-    print('  {')
+    print("  {")
     print('    "mcp": {')
     print('      "context7": { "type": "stdio", "command": "npx", "args": ["context7"] }')
-    print('    }')
-    print('  }')
+    print("    }")
+    print("  }")

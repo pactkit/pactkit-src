@@ -147,3 +147,14 @@
 - [x] R1:移除全局opencode.json
 - [x] R2:更新project-init playbook
 - [x] R3:更新测试
+
+### [STORY-070] OpenCode Format Compliance: Fix Spec-Implementation Gaps
+> Spec: docs/specs/STORY-070.md
+
+- [x] R1 Command frontmatter 转换
+- [x] R2 Agent mode:subagent
+- [x] R3 移除 Agent name 字段
+- [x] R4 清理 Claude Code 专有字段
+- [x] R5 Agent model inherit 省略
+- [x] R6 upgrade 支持 opencode
+- [x] R7 更新测试
