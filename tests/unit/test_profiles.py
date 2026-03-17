@@ -18,7 +18,6 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # AC1: FormatProfile dataclass
 # ---------------------------------------------------------------------------
@@ -159,10 +158,8 @@ class TestValidFormats:
 
     def test_adding_new_profile_propagates_to_valid_formats(self):
         """Simulates adding a new format — verifies auto-propagation logic."""
-        from pactkit.profiles import FORMAT_PROFILES, FormatProfile
-
         # Verify pattern: VALID_FORMATS is derived from FORMAT_PROFILES
-        from pactkit.profiles import VALID_FORMATS
+        from pactkit.profiles import FORMAT_PROFILES, VALID_FORMATS
 
         # All profile keys must be in VALID_FORMATS
         assert frozenset(FORMAT_PROFILES.keys()) <= VALID_FORMATS
@@ -175,8 +172,8 @@ class TestValidFormats:
 
 class TestPactKitYamlCandidates:
     def test_candidates_contain_all_profile_paths(self):
-        from pactkit.profiles import FORMAT_PROFILES
         from pactkit.config import PACTKIT_YAML_CANDIDATES
+        from pactkit.profiles import FORMAT_PROFILES
 
         for fmt, profile in FORMAT_PROFILES.items():
             assert profile.pactkit_yaml_path in PACTKIT_YAML_CANDIDATES, (

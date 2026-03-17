@@ -222,7 +222,7 @@ def detect_venv(project_root: Path) -> tuple[str, str] | None:
 # Search order for pactkit.yaml — auto-generated from FORMAT_PROFILES.
 # Priority: OpenCode > Classic > Codex (newer environments preferred).
 # To change priority or add a new format, update profiles.py — not here.
-from pactkit.profiles import (  # noqa: E402
+from pactkit.profiles import (  # noqa: E402, F401
     FORMAT_PROFILES,
     PACTKIT_YAML_CANDIDATES,
     VALID_FORMATS,
@@ -230,7 +230,8 @@ from pactkit.profiles import (  # noqa: E402
     is_environment_format,
 )
 
-__all_from_profiles__ = [
+# Re-export for downstream consumers (deployer, cli, etc.)
+__all__ = [
     "FORMAT_PROFILES",
     "PACTKIT_YAML_CANDIDATES",
     "VALID_FORMATS",

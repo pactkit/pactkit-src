@@ -25,10 +25,8 @@ from pactkit.config import (
 )
 from pactkit.profiles import (
     VALID_FORMATS,
-    FORMAT_PROFILES,
-    get_profile,
-    is_environment_format,
     FormatProfile,
+    get_profile,
 )
 from pactkit.skills import load_script
 from pactkit.utils import atomic_write

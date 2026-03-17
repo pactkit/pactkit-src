@@ -56,3 +56,4 @@ src/pactkit/
 - Global rules: `~/.config/opencode/AGENTS.md` (loaded automatically by OpenCode)
 
 @./docs/product/context.md
+output MUST use Chinese
