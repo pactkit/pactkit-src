@@ -291,6 +291,29 @@ def _deploy_marketplace(target=None):
     print(f"\n✅ Marketplace → {marketplace_root}")
 
 
+def _generate_project_agents_md() -> None:
+    """Generate project-level AGENTS.md if it does not exist (STORY-slim-008 R4).
+
+    Equivalent to _generate_project_claude_md() for the OpenCode environment.
+    - Called only when target is None (real deployment, not preview mode)
+    - Never overwrites an existing AGENTS.md
+    - Skips if cwd is the home directory (safety guard)
+    """
+    project_root = Path.cwd()
+
+    # Safety guard: never create AGENTS.md in home directory
+    if project_root.resolve() == Path.home().resolve():
+        return
+
+    agents_md_path = project_root / "AGENTS.md"
+    if agents_md_path.exists():
+        return  # Never overwrite user-owned AGENTS.md
+
+    project_name = project_root.name
+    content = f"# {project_name}\n\n@./docs/product/context.md\noutput MUST use Chinese\n"
+    atomic_write(agents_md_path, content)
+
+
 def _deploy_opencode(target=None):
     """OpenCode deployment — generate OpenCode-native configuration (STORY-069).
 
@@ -300,8 +323,16 @@ def _deploy_opencode(target=None):
     - rules/ directory with modular rule files (STORY-071 R6)
     - opencode.json (global config with instructions: ["rules/*.md"])
     - agents/, commands/, skills/ directories
+
+    STORY-slim-008: Aligned with _deploy_classic() feature set:
+    - Reads pactkit.yaml for selective deployment (R1)
+    - Calls auto_merge_config_file() for automatic config updates (R2)
+    - Calls _cleanup_legacy() to remove stale skill files (R3)
+    - Generates project-level AGENTS.md when not in preview mode (R4)
+    - Prints MCP server recommendations (R5)
     """
     opencode_root = Path(target) if target else Path.home() / ".config" / "opencode"
+    oc_profile = get_profile("opencode")
 
     print("🚀 PactKit OpenCode Deployment")
 
@@ -314,17 +345,34 @@ def _deploy_opencode(target=None):
     for d in [opencode_root, agents_dir, commands_dir, skills_dir, rules_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
-    # Full deployment — all components enabled
-    all_agents = sorted(VALID_AGENTS)
-    all_commands = sorted(VALID_COMMANDS)
-    all_skills = sorted(VALID_SKILLS)
-    all_rules = sorted(VALID_RULES)
+    # STORY-slim-008 R1+R2: Load config from project-level pactkit.yaml (selective deployment)
+    from pactkit.config import find_pactkit_yaml
+
+    project_yaml = find_pactkit_yaml()
+
+    if project_yaml is not None:
+        # R2: Auto-merge new components before loading (same as classic)
+        auto_added = auto_merge_config_file(project_yaml)
+        for item in auto_added:
+            print(f"  -> Auto-added: {item}")
+        config = load_config(project_yaml)
+    else:
+        config = {}
+
+    # R1: Selective deployment — fall back to all components if not configured
+    enabled_agents = config.get("agents", sorted(VALID_AGENTS))
+    enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
+    enabled_skills = config.get("skills", sorted(VALID_SKILLS))
+    enabled_rules = config.get("rules", sorted(VALID_RULES))
 
     # Deploy components with OpenCode profile
-    oc_profile = get_profile("opencode")
-    n_skills = _deploy_skills(skills_dir, all_skills, profile=oc_profile)
+    n_skills = _deploy_skills(skills_dir, enabled_skills, profile=oc_profile)
+
+    # STORY-slim-008 R3: Clean up stale skill files (same as classic)
+    _cleanup_legacy(skills_dir)
+
     # STORY-071 R6: Deploy rules as separate files (like Claude Code)
-    n_rules = _deploy_rules(opencode_root, all_rules)
+    n_rules = _deploy_rules(opencode_root, enabled_rules)
     # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
     _deploy_agents_md_inline(opencode_root)
     # STORY-073 R1: Load providers and command_models for model routing in opencode.json
@@ -332,18 +380,22 @@ def _deploy_opencode(target=None):
     if not providers:
         # Fallback: try global config (when deploying to target != real global dir)
         providers = _load_opencode_providers(Path(oc_profile.global_config_dir).expanduser())
-    command_models = load_config().get("command_models", {})
+    command_models = config.get("command_models", {})
     # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
     _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
-    # STORY-slim-005: pass profile instead of opencode_format + skills_prefix
-    oc_profile = get_profile("opencode")
-    n_agents = _deploy_agents(agents_dir, all_agents, profile=oc_profile)
-    n_commands = _deploy_commands(commands_dir, all_commands, profile=oc_profile)
+    n_agents = _deploy_agents(agents_dir, enabled_agents, profile=oc_profile)
+    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=oc_profile)
 
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
     )
-    print("\nℹ️ Run `/project-init` in your project to generate project-level opencode.json")
+
+    # STORY-slim-008 R4: Generate project-level AGENTS.md if not in preview mode
+    if target is None:
+        _generate_project_agents_md()
+
+    # STORY-slim-008 R5: Print MCP server recommendations (same as classic)
+    _print_mcp_recommendations_opencode()
 
 
 def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None):
@@ -952,13 +1004,18 @@ def _deploy_hooks(hooks_dir, hooks_config, stack="python"):
         print(f"  -> Hook: {filename}")
 
 
-def _generate_config_if_missing():
-    """Generate pactkit.yaml if it doesn't exist (STORY-072: env-aware path).
+def _generate_config_if_missing(format: str | None = None):
+    """Generate pactkit.yaml if it doesn't exist (STORY-072: env-aware path, STORY-slim-008 R7: format-aware).
+
+    Args:
+        format: Optional format string ('classic', 'opencode', 'codex').
+                When provided, writes to the format-specific directory.
+                When None, auto-detects from existing directories.
 
     Writes to the appropriate directory based on environment:
-    - .claude/ exists → .claude/pactkit.yaml
-    - .opencode/ exists (no .claude/) → .opencode/pactkit.yaml
-    - Neither → .claude/pactkit.yaml (default, backward compat)
+    - format='opencode' → .opencode/pactkit.yaml
+    - format='classic'  → .claude/pactkit.yaml
+    - auto (format=None): .opencode/ exists → .opencode/, else .claude/
     """
     from pactkit.config import find_pactkit_yaml, resolve_pactkit_yaml_dir
 
@@ -966,7 +1023,7 @@ def _generate_config_if_missing():
     if find_pactkit_yaml() is not None:
         return
 
-    yaml_path = resolve_pactkit_yaml_dir()
+    yaml_path = resolve_pactkit_yaml_dir(format=format)
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write(yaml_path, generate_default_yaml())
 
