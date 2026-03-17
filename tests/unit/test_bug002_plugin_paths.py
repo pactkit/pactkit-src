@@ -64,7 +64,7 @@ class TestPluginSkillsUseCPR:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
         _deploy_skills(skills_dir, sorted(VALID_SKILLS),
-                       skills_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
+                       _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
         found_any = False
         for skill_md in skills_dir.rglob("SKILL.md"):
@@ -84,7 +84,7 @@ class TestPluginSkillsUseCPR:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
         _deploy_skills(skills_dir, sorted(VALID_SKILLS),
-                       skills_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
+                       _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
         for skill_md in skills_dir.rglob("SKILL.md"):
             content = skill_md.read_text()
@@ -100,7 +100,7 @@ class TestPluginCommandsUseCPR:
         commands_dir = tmp_path / "commands"
         commands_dir.mkdir()
         _deploy_commands(commands_dir, sorted(VALID_COMMANDS),
-                         skills_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
+                         _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
         found_any = False
         for cmd_file in commands_dir.glob("*.md"):
@@ -117,7 +117,7 @@ class TestPluginCommandsUseCPR:
         commands_dir = tmp_path / "commands"
         commands_dir.mkdir()
         _deploy_commands(commands_dir, sorted(VALID_COMMANDS),
-                         skills_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
+                         _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
         for cmd_file in commands_dir.glob("*.md"):
             content = cmd_file.read_text()
@@ -133,7 +133,7 @@ class TestPluginAgentsUseCPR:
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         _deploy_agents(agents_dir, sorted(VALID_AGENTS),
-                       skills_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
+                       _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
         for agent_file in agents_dir.glob("*.md"):
             content = agent_file.read_text()

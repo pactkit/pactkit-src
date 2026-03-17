@@ -219,20 +219,31 @@ def detect_venv(project_root: Path) -> tuple[str, str] | None:
 # Locate pactkit.yaml (STORY-072: multi-path lookup)
 # ---------------------------------------------------------------------------
 
-# Search order for pactkit.yaml — first existing file wins
-# OpenCode takes precedence (newer environment) over Claude Code
-PACTKIT_YAML_CANDIDATES = [
-    ".opencode/pactkit.yaml",  # OpenCode environment (preferred)
-    ".claude/pactkit.yaml",  # Claude Code environment (backward compat)
-    ".codex/pactkit.yaml",  # Codex CLI environment
+# Search order for pactkit.yaml — auto-generated from FORMAT_PROFILES.
+# Priority: OpenCode > Classic > Codex (newer environments preferred).
+# To change priority or add a new format, update profiles.py — not here.
+from pactkit.profiles import (  # noqa: E402
+    FORMAT_PROFILES,
+    PACTKIT_YAML_CANDIDATES,
+    VALID_FORMATS,
+    get_profile,
+    is_environment_format,
+)
+
+__all_from_profiles__ = [
+    "FORMAT_PROFILES",
+    "PACTKIT_YAML_CANDIDATES",
+    "VALID_FORMATS",
+    "get_profile",
+    "is_environment_format",
 ]
 
 
 def find_pactkit_yaml(cwd: Path | None = None) -> Path | None:
-    """Find pactkit.yaml by searching candidate paths (STORY-072).
+    """Find pactkit.yaml by searching candidate paths (STORY-072, STORY-slim-005).
 
     Returns the first existing path, or None if not found.
-    Search order: .opencode/pactkit.yaml → .claude/pactkit.yaml → .codex/pactkit.yaml
+    Search order is defined in profiles.PACTKIT_YAML_CANDIDATES.
     """
     if cwd is None:
         cwd = Path.cwd()
@@ -244,35 +255,30 @@ def find_pactkit_yaml(cwd: Path | None = None) -> Path | None:
 
 
 def resolve_pactkit_yaml_dir(cwd: Path | None = None, format: str | None = None) -> Path:
-    """Determine where to write pactkit.yaml based on environment (STORY-072 R2).
+    """Determine where to write pactkit.yaml based on environment (STORY-072 R2, STORY-slim-005 R6).
 
-    When format is explicitly provided, use the corresponding directory:
-    - format="opencode" → .opencode/pactkit.yaml
-    - format="classic"  → .claude/pactkit.yaml
-    - format="codex"    → .codex/pactkit.yaml
-
-    When format is None (auto-detect), check directories in order:
-    - .opencode/ exists → .opencode/pactkit.yaml
-    - .claude/ exists   → .claude/pactkit.yaml
-    - Neither exists    → .claude/pactkit.yaml (default, backward compat)
+    When format is explicitly provided, derives path from FormatProfile (no hardcoded branches).
+    When format is None, returns the first existing candidate path, defaulting to classic.
     """
     if cwd is None:
         cwd = Path.cwd()
 
-    # Explicit format takes precedence
-    if format == "opencode":
-        return cwd / ".opencode" / "pactkit.yaml"
-    if format == "codex":
-        return cwd / ".codex" / "pactkit.yaml"
-    if format == "classic":
-        return cwd / ".claude" / "pactkit.yaml"
+    # Explicit format: look up from profile (no if-elif chains)
+    if format and is_environment_format(format):
+        return cwd / get_profile(format).pactkit_yaml_path
 
-    # Auto-detect: prefer .opencode/ over .claude/ (OpenCode user who also has .claude/)
-    if (cwd / ".opencode").is_dir():
-        return cwd / ".opencode" / "pactkit.yaml"
-    if (cwd / ".claude").is_dir():
-        return cwd / ".claude" / "pactkit.yaml"
-    return cwd / ".claude" / "pactkit.yaml"  # default
+    # Auto-detect: first check for existing yaml files, then fall back to dir existence
+    for candidate in PACTKIT_YAML_CANDIDATES:
+        if (cwd / candidate).exists():
+            return cwd / candidate
+    # Dir-existence fallback (when yaml not yet created — e.g. first-time init)
+    for candidate in PACTKIT_YAML_CANDIDATES:
+        parent_dir = (cwd / candidate).parent
+        if parent_dir.is_dir():
+            return cwd / candidate
+
+    # Default fallback: classic
+    return cwd / get_profile("classic").pactkit_yaml_path
 
 
 # ---------------------------------------------------------------------------

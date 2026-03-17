@@ -23,24 +23,39 @@ from pactkit.config import (
     load_config,
     validate_config,
 )
+from pactkit.profiles import (
+    VALID_FORMATS,
+    FORMAT_PROFILES,
+    get_profile,
+    is_environment_format,
+    FormatProfile,
+)
 from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
-# Valid output formats
-VALID_FORMATS = ("classic", "plugin", "marketplace", "opencode")
-
-# Path prefix constants for deploy-time rewriting (BUG-002, STORY-069)
+# Path prefix constants — kept for plugin/marketplace modes only
+# For classic/opencode/codex: use profile.skills_path_var instead
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
 OPENCODE_SKILLS_PREFIX = "~/.config/opencode/skills"
 
 
-def _rewrite_skills_prefix(content, skills_prefix):
+def _rewrite_skills_prefix(content, profile_or_prefix):
     """Rewrite ~/.claude/skills references to the target skills_prefix.
 
-    No-op when skills_prefix is the classic default. For plugin mode,
-    replaces all occurrences of ~/.claude/skills with ${CLAUDE_PLUGIN_ROOT}/skills.
+    Accepts either a FormatProfile (STORY-slim-005) or a raw string prefix
+    (legacy: used for plugin/marketplace modes).
+
+    No-op when the target is already the classic default.
     """
+    if isinstance(profile_or_prefix, FormatProfile):
+        skills_prefix = profile_or_prefix.skills_path_var
+    else:
+        skills_prefix = profile_or_prefix  # legacy string path for plugin/marketplace
+
+    if skills_prefix == CLASSIC_SKILLS_PREFIX:
+        return content
+    return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
     if skills_prefix == CLASSIC_SKILLS_PREFIX:
         return content
     return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
@@ -143,14 +158,15 @@ def _deploy_classic(config=None, target=None):
     enabled_agents = config.get("agents", [])
     enabled_commands = config.get("commands", [])
 
-    n_skills = _deploy_skills(skills_dir, enabled_skills)
+    classic_profile = get_profile("classic")
+    n_skills = _deploy_skills(skills_dir, enabled_skills, profile=classic_profile)
     _cleanup_legacy(skills_dir)
     rule_scopes = config.get("rule_scopes", {})
     n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes)
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get("agent_models", {})
-    n_agents = _deploy_agents(agents_dir, enabled_agents, agent_models=agent_models)
-    n_commands = _deploy_commands(commands_dir, enabled_commands)
+    n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
+    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=classic_profile)
 
     # Deploy CI pipeline if configured (STORY-025)
     ci_config = config.get("ci", {})
@@ -207,10 +223,10 @@ def _deploy_plugin(target=None):
 
     # Deploy components (BUG-002: rewrite paths for plugin mode)
     prefix = PLUGIN_SKILLS_PREFIX
-    n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
+    n_skills = _deploy_skills(skills_dir, all_skills, _legacy_prefix=prefix)
     _deploy_claude_md_inline(plugin_root, skills_prefix=prefix)
-    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix)
-    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix)
+    n_agents = _deploy_agents(agents_dir, all_agents, _legacy_prefix=prefix)
+    n_commands = _deploy_commands(commands_dir, all_commands, _legacy_prefix=prefix)
     _deploy_plugin_json(plugin_meta_dir)
 
     print(f"\n✅ Plugin: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills → {plugin_root}")
@@ -263,13 +279,13 @@ def _deploy_opencode(target=None):
     all_skills = sorted(VALID_SKILLS)
     all_rules = sorted(VALID_RULES)
 
-    # Deploy components with OpenCode skills prefix
-    prefix = OPENCODE_SKILLS_PREFIX
-    n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
+    # Deploy components with OpenCode profile
+    oc_profile = get_profile("opencode")
+    n_skills = _deploy_skills(skills_dir, all_skills, profile=oc_profile)
     # STORY-071 R6: Deploy rules as separate files (like Claude Code)
     n_rules = _deploy_rules(opencode_root, all_rules)
     # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
-    _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
+    _deploy_agents_md_inline(opencode_root, skills_prefix=oc_profile.skills_path_var)
     # STORY-073 R1: Load providers and command_models for model routing in opencode.json
     providers = _load_opencode_providers(opencode_root)
     if not providers:
@@ -278,10 +294,10 @@ def _deploy_opencode(target=None):
     command_models = load_config().get("command_models", {})
     # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
     _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
-    # STORY-069 R7: Use OpenCode tools format (record, not string)
-    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
-    # STORY-070 R1: Use OpenCode command frontmatter format (no model: in frontmatter)
-    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix, opencode_format=True)
+    # STORY-slim-005: pass profile instead of opencode_format + skills_prefix
+    oc_profile = get_profile("opencode")
+    n_agents = _deploy_agents(agents_dir, all_agents, profile=oc_profile)
+    n_commands = _deploy_commands(commands_dir, all_commands, profile=oc_profile)
 
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
@@ -289,13 +305,21 @@ def _deploy_opencode(target=None):
     print("\nℹ️ Run `/project-init` in your project to generate project-level opencode.json")
 
 
-def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREFIX):
+def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None):
     """Deploy skill directories filtered by config.
 
     Args:
-        skills_prefix: Path prefix for skill script references.
-            Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
+        profile: FormatProfile (STORY-slim-005). Derives skills prefix automatically.
+        _legacy_prefix: Internal raw string prefix for plugin/marketplace modes only.
+            If profile is provided, this is ignored.
     """
+    # Resolve skills prefix from profile or legacy string
+    if profile is not None:
+        _prefix = profile.skills_path_var
+    elif _legacy_prefix is not None:
+        _prefix = _legacy_prefix
+    else:
+        _prefix = CLASSIC_SKILLS_PREFIX
     # Skills with executable scripts
     scripted_skill_defs = [
         {
@@ -340,7 +364,7 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
         scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd["skill_md"], skills_prefix)
+        skill_md = _rewrite_skills_prefix(sd["skill_md"], _prefix)
         atomic_write(skill_dir / "SKILL.md", skill_md)
         atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
@@ -352,7 +376,7 @@ def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREF
         skill_dir = skills_dir / sd["name"]
         skill_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd["skill_md"], skills_prefix)
+        skill_md = _rewrite_skills_prefix(sd["skill_md"], _prefix)
         atomic_write(skill_dir / "SKILL.md", skill_md)
         deployed += 1
 
@@ -460,18 +484,32 @@ def _deploy_claude_md(claude_root, enabled_rules):
 
 
 def _deploy_agents(
-    agents_dir, enabled_agents, skills_prefix=CLASSIC_SKILLS_PREFIX, agent_models=None, opencode_format=False
+    agents_dir,
+    enabled_agents,
+    profile=None,
+    agent_models=None,
+    # Legacy params for plugin/marketplace — ignored when profile is provided
+    _legacy_prefix=None,
+    _legacy_opencode=None,
 ):
     """Deploy agent definitions filtered by config.
 
     Args:
-        skills_prefix: Path prefix for skill script references.
-            Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
+        profile: FormatProfile (STORY-slim-005). Replaces skills_prefix + opencode_format.
         agent_models: Optional dict of agent_name -> model overrides from pactkit.yaml.
-        opencode_format: If True, convert to OpenCode-native format (STORY-069 R7, STORY-070).
-            OpenCode differences: tools as record, mode: subagent, no name field,
-            no Claude Code-specific fields (permissionMode, memory, skills).
+        _legacy_prefix: DEPRECATED. Use profile instead.
+        _legacy_opencode: DEPRECATED. Use profile instead.
     """
+    # Resolve profile (STORY-slim-005: prefer profile over legacy params)
+    if profile is None:
+        # Legacy fallback: reconstruct from old params
+        if _legacy_opencode:
+            profile = get_profile("opencode")
+        else:
+            profile = get_profile("classic")
+    _opencode_format = profile.agent_format == "md" and profile.name != "classic"
+    # Legacy prefix override (plugin/marketplace only)
+    _effective_prefix = _legacy_prefix if _legacy_prefix is not None else profile
     if agent_models is None:
         agent_models = {}
     enabled_set = set(enabled_agents)
@@ -485,8 +523,8 @@ def _deploy_agents(
 
     # Fields serialized as simple key: value (no nesting) — Claude Code format
     SIMPLE_OPTIONAL_FIELDS = ["permissionMode", "disallowedTools", "maxTurns", "memory", "skills"]
-    # STORY-070 R4: Fields that are Claude Code-specific and invalid in OpenCode
-    CLAUDE_ONLY_FIELDS = {"permissionMode", "memory", "skills"}
+    # STORY-slim-005: excluded_agent_fields from profile (replaces hardcoded CLAUDE_ONLY_FIELDS)
+    excluded_fields = profile.excluded_agent_fields
     # Fields that require YAML serialization (nested structures)
     NESTED_FIELDS = ["hooks"]
 
@@ -502,17 +540,17 @@ def _deploy_agents(
         content = ["---"]
 
         # STORY-070 R3: OpenCode uses filename as agent name — omit 'name' field
-        if not opencode_format:
+        if not _opencode_format:
             content.append(f"name: {name}")
 
         content.append(f"description: {cfg['desc']}")
 
         # STORY-070 R2: OpenCode requires mode field for custom agents
-        if opencode_format:
+        if _opencode_format:
             content.append("mode: subagent")
 
         # STORY-069 R7: Convert tools format for OpenCode
-        if opencode_format:
+        if _opencode_format:
             # OpenCode expects tools as record: { read: true, write: true, ... }
             tools_str = cfg["tools"]
             # Parse "Read, Write, Edit, Bash" or "[Read, Write]" format
@@ -525,20 +563,20 @@ def _deploy_agents(
             content.append(f"tools: {cfg['tools']}")
 
         # STORY-070 R5: Omit 'model: inherit' in OpenCode (default behavior = inherit)
-        if opencode_format and model == "inherit":
+        if _opencode_format and model == "inherit":
             pass  # OpenCode inherits model from parent agent by default
         else:
             content.append(f"model: {model}")
 
-        # STORY-070 R4: Skip Claude Code-specific fields in OpenCode format
+        # STORY-slim-005: Skip excluded fields from profile (replaces CLAUDE_ONLY_FIELDS hardcode)
         for field in SIMPLE_OPTIONAL_FIELDS:
             if field in cfg:
-                if opencode_format and field in CLAUDE_ONLY_FIELDS:
-                    continue  # Skip Claude Code-only fields
+                if field in excluded_fields:
+                    continue
                 content.append(f"{field}: {cfg[field]}")
         # Serialize nested fields using PyYAML for correct indentation
         for field in NESTED_FIELDS:
-            if field in cfg:
+            if field in cfg and field not in excluded_fields:
                 nested_yaml = yaml.dump(
                     {field: cfg[field]},
                     default_flow_style=False,
@@ -546,10 +584,10 @@ def _deploy_agents(
                 ).rstrip()
                 content.append(nested_yaml)
 
-        # Routing reference differs between Claude Code and OpenCode
-        routing_ref = "~/.config/opencode/AGENTS.md" if opencode_format else "~/.claude/CLAUDE.md"
+        # Routing reference: from profile.global_instructions_file (STORY-slim-005)
+        routing_ref = f"{profile.global_config_dir}/{profile.global_instructions_file}"
         content.extend(["---", "", cfg["prompt"], "", f"Please refer to {routing_ref} for routing."])
-        rewritten = _rewrite_skills_prefix("\n".join(content), skills_prefix)
+        rewritten = _rewrite_skills_prefix("\n".join(content), _effective_prefix)
         atomic_write(agent_path, rewritten)
         deployed += 1
 
@@ -559,18 +597,28 @@ def _deploy_agents(
 def _deploy_commands(
     commands_dir,
     enabled_commands,
-    skills_prefix=CLASSIC_SKILLS_PREFIX,
-    opencode_format=False,
+    profile=None,
+    # Legacy params for plugin/marketplace — ignored when profile is provided
+    _legacy_prefix=None,
+    _legacy_opencode=None,
 ):
     """Deploy command playbooks filtered by config.
 
     Args:
-        skills_prefix: Path prefix for skill script references.
-            Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
-        opencode_format: If True, convert frontmatter to OpenCode format (STORY-070 R1).
-            Replaces 'allowed-tools: [...]' with 'agent: build'.
-            Model routing is in opencode.json 'command' section, not in frontmatter.
+        profile: FormatProfile (STORY-slim-005). Replaces _legacy_prefix + _legacy_opencode.
+        _legacy_prefix: DEPRECATED. Use profile instead.
+        _legacy_opencode: DEPRECATED. Use profile instead.
     """
+    # Resolve profile (STORY-slim-005)
+    if profile is None:
+        if _legacy_opencode:
+            profile = get_profile("opencode")
+        else:
+            profile = get_profile("classic")
+    _opencode_format = profile.name != "classic" and profile.has_custom_commands
+    # Legacy prefix override (plugin/marketplace only)
+    _effective_prefix = _legacy_prefix if _legacy_prefix is not None else profile
+
     enabled_set = set(enabled_commands)
 
     # Build map: command name -> filename
@@ -591,10 +639,10 @@ def _deploy_commands(
             continue
 
         # STORY-070 R1: Convert frontmatter for OpenCode
-        if opencode_format:
+        if _opencode_format:
             content = _convert_command_frontmatter_opencode(content)
 
-        rewritten = _rewrite_skills_prefix(content, skills_prefix)
+        rewritten = _rewrite_skills_prefix(content, _effective_prefix)
         atomic_write(commands_dir / filename, rewritten)
         deployed += 1
 
