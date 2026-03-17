@@ -42,7 +42,7 @@
 | Feature | Claude Code | Codex CLI | Notes |
 |---------|-------------|-----------|-------|
 | Agent definition format | `.claude/agents/*.md` with YAML frontmatter | 待填写 | Does Codex have agents? |
-| Command format | `.claude/commands/*.md` with `allowed-tools:` | 待填写 | `/cmd` style? |
+| Command format | `.claude/commands/*.md` with `allowed-tools:` | 待填写 | Unknown — Codex may not have custom commands |
 | Rules loading | `@import` in `CLAUDE.md` | 待填写 | `AGENTS.md` inline? |
 | Skill format | `SKILL.md` with `name`+`description` | 待填写 | `.codex/skills/` structure? |
 | Permission model | `settings.json` deny list | Sandbox mode (待填写 details) | What sandbox levels? |
@@ -165,6 +165,7 @@ Based on known facts (update after full research):
 6. Is the sandbox mode configurable or fixed?
 7. Does Codex have an equivalent to `opencode.json` `instructions` field?
 8. What version of Codex should we target? (CLI is Rust-based, separate from Codex Web)
+9. **Version compatibility**: Should PactKit check `codex --version` at deploy time and warn if below minimum? What is the minimum version that supports skills/AGENTS.md?
 
 ---
 

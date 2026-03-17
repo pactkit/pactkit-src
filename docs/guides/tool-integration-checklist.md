@@ -15,7 +15,7 @@ Before writing any code, fill in the `Target Tool` column. Each row determines y
 | Capability | Claude Code | OpenCode | Codex CLI | Target Tool |
 |------------|-------------|----------|-----------|-------------|
 | **Agents (multi-role)** | `.claude/agents/*.md` | `agents/*.md` (`mode: subagent`) | None (single agent) | ？ |
-| **Commands (custom)** | `.claude/commands/*.md` | `commands/*.md` (frontmatter) | Different format | ？ |
+| **Commands (custom)** | `.claude/commands/*.md` | `commands/*.md` (frontmatter) | Unknown (needs research) | ？ |
 | **Skills (scripts)** | `.claude/skills/*/` | `skills/*/SKILL.md` | `.codex/skills/` | ？ |
 | **Rules (modules)** | `rules/*.md` + `@import` | `rules/*.md` + `instructions` | None (only AGENTS.md) | ？ |
 | **Global config dir** | `~/.claude/` | `~/.config/opencode/` | `~/.codex/` | ？ |
@@ -46,6 +46,30 @@ Based on the survey, choose a strategy for each capability:
 | **Multi-provider** | Implement `_resolve_model_id()` shortname → provider/id | Write model ID directly (no resolution needed) |
 | **Single provider** | N/A | Write model ID directly |
 | **Has permission config** | Generate permission block in tool config | Skip (tool uses other safety mechanism) |
+
+### 0.3 Combined Degradation Assessment
+
+> **CRITICAL**: When multiple capabilities are missing, degraded fallbacks compound. Evaluate the combined impact before starting implementation.
+
+**Example — Codex CLI** (no agents, no rules, limited commands):
+- All 9 agent roles must be encoded into AGENTS.md as prompt instructions
+- All 7 rule modules must be inlined into AGENTS.md (no modular loading)
+- Combined AGENTS.md could exceed **30KB+** — verify target tool's context window can handle this
+- Model routing falls back to prompt-level suggestions (no enforcement)
+
+**Size estimation formula**:
+```
+Estimated AGENTS.md size =
+  (agents that need inlining × ~1KB per agent prompt) +
+  (rules that need inlining × ~1.5KB per rule module) +
+  (commands that need embedding × ~3KB per playbook) +
+  header/routing overhead (~2KB)
+```
+
+**Decision gates**:
+- Combined file **< 20KB**: Proceed with inline strategy
+- Combined file **20-50KB**: Test with target tool; may need to trim playbook content
+- Combined file **> 50KB**: Likely exceeds context budget — consider splitting into multiple files or dropping low-priority playbooks
 
 ---
 
@@ -79,7 +103,7 @@ Based on the survey, choose a strategy for each capability:
 | 2.5 | **Add global config writer** | `_update_global_{tool}_config()` with merge strategy — preserve user fields, update managed fields | STORY-071 R7 |
 | 2.6 | **Add project config generator** | `_deploy_{tool}_project_config()` for `/project-init` playbook to call | BUG-035 |
 
-**Lesson from BUG-035**: First attempt wrote `opencode.json` to the global deploy target. Wrong — `opencode.json` is project-level, `pactkit init` should not create it.
+**Lesson from BUG-035**: First attempt wrote the *project-level* `opencode.json` (with `permission`, `mcp` config) during global deploy (`pactkit init`). Wrong — project-level config should only be created by `/project-init` playbook. Global deploy *can* write a global `opencode.json` (with `instructions`, `command` routing), but must never write project-specific config at the global level.
 
 ---
 
@@ -114,7 +138,16 @@ Based on the survey, choose a strategy for each capability:
 | 4.5 | **Description field** | Is `description:` required? Different format? | STORY-070 |
 | 4.6 | **Conversion function** | `_convert_command_frontmatter_{tool}(content)` function for format conversion | STORY-070 |
 
-**Lesson from Hotfix**: Model routing was first implemented by writing `nexus-anthropic-bedrock/claude-sonnet-4.6` into command frontmatter — a provider-specific internal ID that leaked into shared files. Always separate: what goes in shared files (generic) vs local config (user-specific).
+> **🚨 CRITICAL LESSON — Model IDs in Shared Files (Hotfix)**
+>
+> This was the most expensive mistake in the OpenCode integration — it caused an extra hotfix cycle and a PyPI re-release (v2.0.1 → v2.0.2).
+>
+> **What happened**: `_convert_command_frontmatter_opencode()` resolved `sonnet` to the user's provider-specific ID (`nexus-anthropic-bedrock/claude-sonnet-4.6`) and wrote it into the command markdown frontmatter. This ID is an internal company name that:
+> 1. Would leak if the `.opencode/commands/` directory was committed to git
+> 2. Would not work for any other user with a different provider
+> 3. Required a hotfix to move model routing from frontmatter to `opencode.json`
+>
+> **Rule**: Any file that PactKit deploys as a shared artifact (commands, agents, rules, skills) must NEVER contain provider-specific, user-specific, or organization-specific identifiers. Model routing belongs in user-local config files (`opencode.json`, `settings.json`) that are gitignored.
 
 ---
 
@@ -187,6 +220,21 @@ Based on the survey, choose a strategy for each capability:
 
 ---
 
+## Dimension 9.5: Test Strategy
+
+> Lessons from OpenCode: three types of test issues occurred that were not caught until CI or regression.
+
+| # | Check | Detail | Reference |
+|---|-------|--------|-----------|
+| 9.5.1 | **CI has no tool config** | CI runners have no `~/.config/{tool}/` — tests that read provider config must seed it or handle `None` gracefully | STORY-073 CI fix |
+| 9.5.2 | **Skill scripts run standalone** | `board.py`, `scaffold.py` etc are executed by LLM via `python3 path/to/script.py`. They cannot `from pactkit.config import ...` — must inline any needed logic (e.g., multi-path config lookup) | STORY-072 board.py fix |
+| 9.5.3 | **Edit tool auto-formatting** | Some editor tools (ruff, black, the Edit tool itself) may auto-format on save, converting single quotes to double quotes. This breaks `TOOLS_SOURCE` string matching tests. Use `python3 << 'EOF'` or direct file write to avoid triggering formatters | STORY-072 board.py regression |
+| 9.5.4 | **Seed provider config in tests** | Tests for model resolution (e.g., `_resolve_opencode_model_id`) must create a temporary `opencode.json` with provider config before calling `deploy()`, since real config doesn't exist in test env | STORY-073 AC1 fix |
+| 9.5.5 | **Test pre-existing test compatibility** | When changing format output (e.g., AGENTS.md from inline to slim), verify ALL existing tests that check the old format are updated — not just the new story's tests | STORY-071 regression |
+| 9.5.6 | **Roundtrip config test** | `generate_default_yaml()` → `yaml.safe_load()` → compare with `get_default_config()`. Adding any new field to defaults requires updating BOTH `get_default_config()` AND `generate_default_yaml()` | STORY-073 config roundtrip |
+
+---
+
 ## Dimension 10: Verification and Release
 
 | # | Check | Detail | Reference |
@@ -210,15 +258,15 @@ Based on the survey, choose a strategy for each capability:
 
 Use this table as a reference for how things went wrong and what the fix was:
 
-| Round | Problem | Root Cause | Fix |
-|-------|---------|------------|-----|
-| BUG-035 | `opencode.json` placed in global dir | Misunderstood dual-layer architecture | Moved to project-level; added global config writer |
-| STORY-070 | Agent had wrong format (name, tools, fields) | Didn't read official agent format docs | Added `opencode_format` flag with full field transformation |
-| STORY-070 | Command still used `allowed-tools` | Forgot to convert command frontmatter | Added `_convert_command_frontmatter_opencode()` |
-| STORY-071 | AGENTS.md was 12KB monolith | Assumed `@import` worked | Slimmed to 14 lines + modular `rules/*.md` + instructions glob |
-| STORY-071 | No permission/MCP config | Out of scope initially | Added to project-level config generator |
-| STORY-072 | `pactkit.yaml` hardcoded to `.claude/` | Config path tied to Claude Code | Multi-path lookup + env-aware generation |
-| STORY-072 | 10+ playbook locations with hardcoded paths | Scattered hardcodes | Systematic grep + update all 10 locations |
-| STORY-073 | Command model routing didn't work | `model:` not added to command files | Moved model routing to `opencode.json` `command` section |
-| STORY-073 | `project-init` always created CLAUDE.md | No conditional branch | Added `if OpenCode: create AGENTS.md else: create CLAUDE.md` |
-| Hotfix | Internal provider name leaked into shared files | Model ID written to command frontmatter | Model ID moved to user-local `opencode.json` only |
+| Round | Problem | Root Cause | Fix | Discovery → Fix Time |
+|-------|---------|------------|-----|---------------------|
+| BUG-035 | `opencode.json` placed in global dir | Misunderstood dual-layer architecture | Moved to project-level; added global config writer | Same session |
+| STORY-070 | Agent had wrong format (name, tools, fields) | Didn't read official agent format docs | Added `opencode_format` flag with full field transformation | Next review cycle |
+| STORY-070 | Command still used `allowed-tools` | Forgot to convert command frontmatter | Added `_convert_command_frontmatter_opencode()` | Same as above |
+| STORY-071 | AGENTS.md was 12KB monolith | Assumed `@import` worked | Slimmed to 14 lines + modular `rules/*.md` + instructions glob | User reported |
+| STORY-071 | No permission/MCP config | Out of scope initially | Added to project-level config generator | User asked |
+| STORY-072 | `pactkit.yaml` hardcoded to `.claude/` | Config path tied to Claude Code | Multi-path lookup + env-aware generation | User caught 3 rounds in |
+| STORY-072 | 10+ playbook locations with hardcoded paths | Scattered hardcodes | Systematic grep + update all 10 locations | User insisted on completeness |
+| STORY-073 | Command model routing didn't work | `model:` not added to command files | Moved model routing to `opencode.json` `command` section | User noticed routing inactive |
+| STORY-073 | `project-init` always created CLAUDE.md | No conditional branch | Added `if OpenCode: create AGENTS.md else: create CLAUDE.md` | Full audit |
+| Hotfix | Internal provider name leaked into shared files | Model ID written to command frontmatter | Model ID moved to user-local `opencode.json` only | User spotted internal name — **caused v2.0.2 re-release** |
