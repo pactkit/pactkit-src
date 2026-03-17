@@ -4,6 +4,32 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.1.0] - 2026-03-17
+
+### Added
+- **FormatProfile Abstraction** (STORY-slim-005) — Frozen dataclass registry (`profiles.py`) replaces scattered if-else format branching. Adding a new tool format requires only one registry entry. `VALID_FORMATS` and `PACTKIT_YAML_CANDIDATES` auto-generated from `FORMAT_PROFILES`.
+- **Prompt Template Variables** (STORY-slim-006) — 48 hardcoded env-specific paths replaced with 11 named placeholders (`{SKILLS_ROOT}`, `{BOARD_CMD}`, `{PACTKIT_YAML}`, etc.) resolved at deploy time by `_render_prompt(template, profile)`.
+- **Document Schema Registry** (STORY-slim-007) — New `schemas.py` centralizes all document structure rules (Spec sections, Board headers, context.md sections, lessons.md format). New CLI command `pactkit schema [type]` for rule discovery.
+- **Deploy Chain Parity** (STORY-slim-008) — `_deploy_opencode()` now reads `pactkit.yaml` for selective deployment, calls `auto_merge_config_file()`, `_cleanup_legacy()`, generates project-level `AGENTS.md`, prints MCP recommendations. `_generate_config_if_missing(format=)` is format-aware.
+- **Architecture Principles Rule** — New `08-architecture-principles.md` codifies 8 principles (SOLID, DRY, 12-Factor, Defense-in-Depth) derived from project practice. `CLAUDE_MD_TEMPLATE` auto-generated from `RULES_FILES`.
+- **Codex CLI Pre-Research** (STORY-slim-001) — Tool integration checklist (11 dimensions, 60+ checks) and Codex capability matrix completed. Integration specs (STORY-slim-002/003/004) ready.
+- **Daily Retro Skill** — Personal growth feedback loop with 6 dimensions (engineering, architecture, new skills, thinking patterns, process, career). Triggered by cross-day context.md detection.
+- **Docker Containers** — Isolated `claude-code` and `opencode` containers for clean deployment verification.
+
+### Fixed
+- **BUG-slim-001**: `/project-init` no longer creates `.claude/` directory in OpenCode environment. Environment detection moved before `pactkit init` call. Playbook paths now use `$SKILLS_PATH` variable.
+- **Config Priority**: `.opencode/` now takes precedence over `.claude/` in `pactkit.yaml` resolution (newer environment preferred).
+- **Scaffold Developer Prefix**: `create_spec`, `git_start`, `create_e2e` auto-inject developer prefix from `pactkit.yaml`.
+
+### Changed
+- `opencode_format` boolean parameter removed from `_deploy_agents()`, `_deploy_commands()`, `_deploy_skills()` — replaced by `profile: FormatProfile`.
+- `OPENCODE_SKILLS_PREFIX` constant removed — use `get_profile("opencode").skills_path_var`.
+- `CLAUDE_ONLY_FIELDS` hardcoded set replaced by `profile.excluded_agent_fields` (extensible per format).
+- `TRACE_PROMPT` converted from f-string to regular string for template variable compatibility.
+- Spec scaffold template now uses `TBD` as Release placeholder (enforced by spec-lint E008 at Act time).
+
+## [2.0.2] - 2026-03-16
+
 ## [1.6.9] - 2026-03-13
 
 ### Fixed

@@ -5,7 +5,7 @@
 | ID | BUG-slim-001 |
 | Status | Draft |
 | Priority | P1 |
-| Release | 2.0.3 |
+| Release | 2.1.0 |
 
 ## Background
 
