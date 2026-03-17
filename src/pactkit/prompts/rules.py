@@ -1,7 +1,7 @@
 from pactkit import __version__
 
 RULES_MODULES = {
-    'core': """# Core Protocol
+    "core": """# Core Protocol
 
 ## Session Context
 On new session, read `docs/product/context.md` to understand project state before taking action.
@@ -35,7 +35,7 @@ When spawning subagents via the Agent tool, select the `model` parameter based o
 **Default**: If uncertain, use `sonnet` — it balances capability and cost.
 **Cost awareness**: `haiku` is ~10x cheaper than `sonnet`, `sonnet` is ~5x cheaper than `opus`. Prefer the smallest model that can reliably complete the task.
 """,
-    'hierarchy': """# The Hierarchy of Truth
+    "hierarchy": """# The Hierarchy of Truth
 > **CRITICAL**: Code is NOT the law.
 1.  **Tier 1**: **Specs** (`docs/specs/*.md`) & **Test Cases** (`docs/test_cases/*.md`).
 2.  **Tier 2**: **Tests** (The verification of the law).
@@ -61,7 +61,7 @@ When spawning subagents via the Agent tool, select the `model` parameter based o
 - Before modifying tests, you must first read the corresponding Test Case (`docs/test_cases/`)
 - When unsure whether a Spec exists, use `Glob` to search `docs/specs/*.md` (covers STORY-*, HOTFIX-*, BUG-* prefixes)
 """,
-    'atlas': """# File Atlas
+    "atlas": """# File Atlas
 
 | Path | Purpose |
 |------|---------|
@@ -75,7 +75,7 @@ When spawning subagents via the Agent tool, select the `model` parameter based o
 | `docs/product/archive/` | Archived Stories |
 | `docs/product/prd.md` | Product Requirements Document (PRD) |
 """,
-    'workflow': """# Workflow Conventions
+    "workflow": """# Workflow Conventions
 
 ## Git Commit (Conventional Commit)
 Format: `type(scope): description`
@@ -105,8 +105,7 @@ Format: `type(scope): description`
 - Body: Summary + Test Plan
 - Must pass CI and Code Review before merging
 """,
-
-    'routing': """# Command Reference (Routing Table)
+    "routing": """# Command Reference (Routing Table)
 
 ## Commands (11 user-facing entry points)
 
@@ -177,8 +176,7 @@ Format: `type(scope): description`
 | `pactkit-review` | qa-engineer agent | PR Code Review |
 | `pactkit-analyze` | senior-developer (Act Phase 0.6 inline) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
 """,
-
-    'mcp': """# MCP Integration (Conditional)
+    "mcp": """# MCP Integration (Conditional)
 > **PRINCIPLE**: All MCP instructions are conditional. If an MCP server is not available, skip the instruction gracefully.
 
 ## Available MCP Servers
@@ -234,7 +232,7 @@ Format: `type(scope): description`
 | **Check** | Chrome DevTools | If `mcp__chrome-devtools__*` tools are available |
 | **Done** | Memory | If `mcp__memory__*` tools are available |
 """,
-    'shared': """# Shared Protocols
+    "shared": """# Shared Protocols
 
 ## Lazy Visualize Protocol
 > Referenced by: Act Phase 4, Done Phase 2
@@ -273,30 +271,102 @@ Write `docs/product/context.md` using this format:
 {If In Progress: `/project-act STORY-XXX` | If Backlog only: `/project-plan` | If empty: `/project-design`}
 ```
 """,
+    "architecture": """# Architecture Principles
+
+> Derived from SOLID, DRY, 12-Factor App, and Defense-in-Depth practices.
+> Violations of MUST rules are treated as bugs. SHOULD rules are advisory.
+
+## 1. Single Source of Truth (DRY)
+- Every configuration value, schema definition, or structural rule MUST be defined in exactly one place.
+- Canonical locations:
+  - Environment paths/capabilities → `profiles.py` (`FormatProfile`)
+  - Document structure rules → `schemas.py` (`SPEC_REQUIRED_SECTIONS`, `BOARD_SECTIONS`, `CONTEXT_SECTIONS`, etc.)
+  - Valid component sets → `config.py` (`VALID_AGENTS`, `VALID_COMMANDS`, `VALID_SKILLS`, `VALID_RULES`)
+- When standalone scripts (board.py, scaffold.py) cannot import the library, they MUST inline the value with a comment pointing to the canonical source:
+  ```python
+  # Canonical: src/pactkit/schemas.py BOARD_SECTION_BACKLOG
+  _BACKLOG = '## 📋 Backlog'
+  ```
+- When updating a canonical value, search all inline copies with `grep` and update them in the same commit.
+
+## 2. Open-Closed Principle (OCP)
+- Adding a new tool format (e.g., `codex`, `cursor`) MUST NOT require modifying existing functions.
+- Pattern: add a new `FormatProfile` entry to `FORMAT_PROFILES` in `profiles.py`. All downstream code (`deployer`, `config`, `CLI`) auto-picks it up.
+- Adding a new document type MUST only require adding constants to `schemas.py` and an entry to `SCHEMA_REGISTRY`.
+
+## 3. Dependency Inversion (DIP)
+- Prompt templates MUST NOT contain hardcoded environment-specific paths.
+- Pattern: use named placeholders (`{SKILLS_ROOT}`, `{BOARD_CMD}`, `{PACTKIT_YAML}`) resolved at deploy time by `_render_prompt(template, profile)`.
+- Functions MUST accept a `profile: FormatProfile` parameter instead of format-specific booleans (`opencode_format=True`) or manual path strings (`skills_prefix="~/.config/opencode/skills"`).
+
+## 4. Liskov Substitution (LSP) — Deploy Chain Parity
+- All environment-format deploy functions (`_deploy_classic`, `_deploy_opencode`, `_deploy_codex`) MUST support the same user-facing feature set:
+  - Selective deployment (read `pactkit.yaml`)
+  - Auto-merge on upgrade (`auto_merge_config_file`)
+  - Legacy cleanup (`_cleanup_legacy`)
+  - Project-level instructions file generation
+- Format-specific features (e.g., hooks for Claude Code, opencode.json for OpenCode) are extensions, not omissions.
+
+## 5. Interface Segregation (ISP)
+- Each `FormatProfile` exposes only the fields relevant to that format:
+  - `commands_dir = None` for formats without custom commands (Codex)
+  - `excluded_agent_fields` removes fields invalid for that format
+- Consumers MUST check `if profile.has_custom_commands` before deploying commands — not `if format != "codex"`.
+
+## 6. Defense-in-Depth (Security)
+- **Path traversal**: All file writes use `atomic_write()` which creates parent directories safely.
+- **Config isolation**: `_generate_config_if_missing(format=)` writes to the format-specific directory only. Never cross-write.
+- **No secret leakage**: `config.toml` merge (Codex) MUST NOT copy user API keys. `_render_prompt()` variables are all path-based, never credential-based.
+- **Standalone script safety**: Skill scripts (board.py, scaffold.py) MUST NOT execute arbitrary imports. Use `try/except ImportError` fallback for pactkit imports.
+
+## 7. Template Rendering Safety
+- Use sequential `str.replace()` in `_render_prompt()` — NOT `str.format_map()` or f-strings.
+  - Reason: prompt templates contain user-facing complex keys like `{R1, R2, ...}`, `{score}`, `{NNN}` that cause `ValueError: Empty attribute` in Python's format parser.
+- JSON literals in templates (`{"key": "value"}`) are naturally safe with sequential replacement — no escaping needed.
+- When converting f-string prompt constants to template strings, add legacy variables (e.g., `{M}` for backticks) to the `_render_prompt` var_map.
+
+## 8. Schema Consistency Gate
+- Every document type with a structure schema in `schemas.py` SHOULD have a corresponding linter/validator.
+- Currently enforced:
+  - Spec → `spec_linter.py` (E001-E008, W001-W005) — **blocks /project-act**
+  - Board → `board.py` regex parsing — **runtime enforcement**
+- Currently advisory only:
+  - context.md, lessons.md, test_case → referenced in playbook text via `{CONTEXT_SECTIONS}`, `{LESSONS_ROW_FORMAT}`
+- When adding a new schema to `schemas.py`, consider whether it needs a linter gate or if prompt-level enforcement is sufficient.
+
+## Quick Reference: Where to Make Changes
+
+| Change Type | File to Edit | Auto-Propagation |
+|-------------|-------------|------------------|
+| New tool format | `profiles.py` → `FORMAT_PROFILES` | CLI, deployer, config, VALID_FORMATS |
+| New document type | `schemas.py` → `SCHEMA_REGISTRY` | `pactkit schema`, playbooks via render_prompt |
+| New template variable | `deployer.py` → `_render_prompt()` var_map | All deployed prompts |
+| New spec rule | `schemas.py` + `spec_linter.py` | scaffold, playbooks |
+| New prompt placeholder | `profiles.py` (if env-specific) or `schemas.py` (if doc-specific) | `_render_prompt()` |
+""",
 }
 
 # Mapping: module key -> filename
 RULES_FILES = {
-    'core': '01-core-protocol.md',
-    'hierarchy': '02-hierarchy-of-truth.md',
-    'atlas': '03-file-atlas.md',
-    'routing': '04-routing-table.md',
-    'workflow': '05-workflow-conventions.md',
-    'mcp': '06-mcp-integration.md',
-    'shared': '07-shared-protocols.md',
+    "core": "01-core-protocol.md",
+    "hierarchy": "02-hierarchy-of-truth.md",
+    "atlas": "03-file-atlas.md",
+    "routing": "04-routing-table.md",
+    "workflow": "05-workflow-conventions.md",
+    "mcp": "06-mcp-integration.md",
+    "shared": "07-shared-protocols.md",
+    "architecture": "08-architecture-principles.md",
 }
 
 # Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ['01-', '02-', '03-', '04-', '05-', '06-', '07-']
+RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-"]
 
+# CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
+# Classic mode uses @import syntax; OpenCode uses instructions glob (no template needed)
+_claude_rules_imports = "\n".join(f"@~/.claude/rules/{filename}" for filename in sorted(RULES_FILES.values()))
 CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 
-@~/.claude/rules/01-core-protocol.md
-@~/.claude/rules/02-hierarchy-of-truth.md
-@~/.claude/rules/03-file-atlas.md
-@~/.claude/rules/04-routing-table.md
-@~/.claude/rules/05-workflow-conventions.md
-@~/.claude/rules/06-mcp-integration.md
+{_claude_rules_imports}
 
 @./docs/product/context.md
 """

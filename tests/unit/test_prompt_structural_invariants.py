@@ -6,6 +6,7 @@ Each prompt module has a list of structural invariants that MUST be present.
 
 This replaces scattered keyword-in-string tests with meaningful structural checks.
 """
+
 import pytest
 
 from pactkit import prompts
@@ -62,6 +63,7 @@ SKILL_INVARIANTS = {
 # Test Classes
 # ===========================================================================
 
+
 class TestRuleModuleInvariants:
     """Structural invariants for rule modules."""
 
@@ -92,7 +94,7 @@ class TestAgentModuleInvariants:
         """Each agent definition contains required structural elements."""
         agent_cfg = prompts.AGENTS_EXPERT.get(agent_name)
         assert agent_cfg is not None, f"Agent {agent_name} not found"
-        prompt = agent_cfg.get('prompt', '') + agent_cfg.get('desc', '')
+        prompt = agent_cfg.get("prompt", "") + agent_cfg.get("desc", "")
         for invariant in invariants:
             assert invariant in prompt, f"Agent {agent_name} missing: {invariant}"
 
@@ -112,8 +114,8 @@ class TestPromptModuleCounts:
     """Verify expected counts of prompt modules."""
 
     def test_rule_count(self):
-        """Should have 7 rule modules (STORY-063: added shared protocols)."""
-        assert len(prompts.RULES_MODULES) == 7
+        """8 rule modules (added 08-architecture-principles)."""
+        assert len(prompts.RULES_MODULES) == 8
 
     def test_command_count(self):
         """STORY-051: Should have 11 command playbooks (added project-release, project-pr)."""
@@ -126,5 +128,5 @@ class TestPromptModuleCounts:
     def test_skill_count(self):
         """Should have 10 skill definitions."""
         # Count skill constants
-        skill_attrs = [a for a in dir(prompts) if a.startswith('SKILL_') and a.endswith('_MD')]
+        skill_attrs = [a for a in dir(prompts) if a.startswith("SKILL_") and a.endswith("_MD")]
         assert len(skill_attrs) == 10

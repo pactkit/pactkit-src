@@ -1,6 +1,7 @@
 """
 STORY-002: Selective Deployment — Deployer filters by pactkit.yaml config.
 """
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,14 +13,17 @@ from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT, RULES_FILES
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run_deploy(tmp_path, config=None):
     """Run deploy() with ~/.claude and $CWD redirected to tmp_path (BUG-013)."""
     claude_root = tmp_path / ".claude"
     for d in [claude_root, claude_root / "agents", claude_root / "commands", claude_root / "skills"]:
         d.mkdir(parents=True, exist_ok=True)
 
-    with patch.object(Path, 'home', return_value=tmp_path), \
-         patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+    with (
+        patch.object(Path, "home", return_value=tmp_path),
+        patch("pactkit.generators.deployer.Path.cwd", return_value=tmp_path),
+    ):
         deploy(config=config)
 
     return claude_root
@@ -28,6 +32,7 @@ def _run_deploy(tmp_path, config=None):
 # ===========================================================================
 # S1: Full config deploys everything
 # ===========================================================================
+
 
 class TestFullConfigDeploysAll:
     def test_all_agents_deployed(self, tmp_path):
@@ -45,7 +50,7 @@ class TestFullConfigDeploysAll:
     def test_all_skills_deployed(self, tmp_path):
         claude = _run_deploy(tmp_path, config=get_default_config())
         skills_dir = claude / "skills"
-        for skill_name in ['pactkit-visualize', 'pactkit-board', 'pactkit-scaffold']:
+        for skill_name in ["pactkit-visualize", "pactkit-board", "pactkit-scaffold"]:
             assert (skills_dir / skill_name / "SKILL.md").is_file(), f"Missing skill: {skill_name}"
 
     def test_all_rules_deployed(self, tmp_path):
@@ -66,10 +71,11 @@ class TestFullConfigDeploysAll:
 # S2: Partial agent config
 # ===========================================================================
 
+
 class TestPartialAgentConfig:
     def test_only_selected_agents_deployed(self, tmp_path):
         cfg = get_default_config()
-        cfg['agents'] = ['system-architect', 'senior-developer']
+        cfg["agents"] = ["system-architect", "senior-developer"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         agents_dir = claude / "agents"
@@ -91,7 +97,7 @@ class TestPartialAgentConfig:
         (agents_dir / "qa-engineer.md").write_text("stale")
 
         cfg = get_default_config()
-        cfg['agents'] = ['system-architect']
+        cfg["agents"] = ["system-architect"]
         _run_deploy(tmp_path, config=cfg)
 
         assert not (agents_dir / "qa-engineer.md").exists()
@@ -103,7 +109,7 @@ class TestPartialAgentConfig:
         (agents_dir / "my-custom-agent.md").write_text("user content")
 
         cfg = get_default_config()
-        cfg['agents'] = ['system-architect']
+        cfg["agents"] = ["system-architect"]
         _run_deploy(tmp_path, config=cfg)
 
         assert (agents_dir / "my-custom-agent.md").is_file()
@@ -114,10 +120,11 @@ class TestPartialAgentConfig:
 # S3: Partial command config
 # ===========================================================================
 
+
 class TestPartialCommandConfig:
     def test_only_selected_commands_deployed(self, tmp_path):
         cfg = get_default_config()
-        cfg['commands'] = ['project-plan', 'project-act', 'project-done']
+        cfg["commands"] = ["project-plan", "project-act", "project-done"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         cmds_dir = claude / "commands"
@@ -137,7 +144,7 @@ class TestPartialCommandConfig:
         (cmds_dir / "ultra-think.md").write_text("user command")
 
         cfg = get_default_config()
-        cfg['commands'] = ['project-plan']
+        cfg["commands"] = ["project-plan"]
         _run_deploy(tmp_path, config=cfg)
 
         assert (cmds_dir / "ultra-think.md").is_file()
@@ -147,25 +154,26 @@ class TestPartialCommandConfig:
 # S4: CLAUDE.md reflects enabled rules only
 # ===========================================================================
 
+
 class TestSelectiveRules:
     def test_claude_md_only_has_enabled_rules(self, tmp_path):
         cfg = get_default_config()
-        cfg['rules'] = ['01-core-protocol', '05-workflow-conventions']
+        cfg["rules"] = ["01-core-protocol", "05-workflow-conventions"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         content = (claude / "CLAUDE.md").read_text()
 
-        assert '01-core-protocol.md' in content
-        assert '05-workflow-conventions.md' in content
+        assert "01-core-protocol.md" in content
+        assert "05-workflow-conventions.md" in content
         # Disabled rules should NOT be referenced
-        assert '02-hierarchy-of-truth.md' not in content
-        assert '03-file-atlas.md' not in content
-        assert '04-routing-table.md' not in content
-        assert '06-mcp-integration.md' not in content
+        assert "02-hierarchy-of-truth.md" not in content
+        assert "03-file-atlas.md" not in content
+        assert "04-routing-table.md" not in content
+        assert "06-mcp-integration.md" not in content
 
     def test_only_enabled_rule_files_exist(self, tmp_path):
         cfg = get_default_config()
-        cfg['rules'] = ['01-core-protocol']
+        cfg["rules"] = ["01-core-protocol"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         rules_dir = claude / "rules"
@@ -187,6 +195,7 @@ class TestSelectiveRules:
 # S5: Idempotent re-deploy preserves user config
 # ===========================================================================
 
+
 class TestIdempotentDeploy:
     def test_existing_yaml_not_overwritten(self, tmp_path):
         claude = tmp_path / ".claude"
@@ -204,6 +213,7 @@ class TestIdempotentDeploy:
 # S6: Config file auto-generated on first init
 # ===========================================================================
 
+
 class TestConfigAutoGeneration:
     def test_yaml_created_when_missing(self, tmp_path):
         claude = _run_deploy(tmp_path, config=get_default_config())
@@ -212,47 +222,50 @@ class TestConfigAutoGeneration:
 
     def test_generated_yaml_is_valid(self, tmp_path):
         import yaml
+
         claude = _run_deploy(tmp_path, config=get_default_config())
         yaml_path = claude / "pactkit.yaml"
         parsed = yaml.safe_load(yaml_path.read_text())
         assert parsed is not None
-        assert 'agents' in parsed
+        assert "agents" in parsed
 
 
 # ===========================================================================
 # S7: Deployment summary is printed
 # ===========================================================================
 
+
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # STORY-051: 11 commands (added project-release, project-pr)
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
-        assert '9/9 Agents' in output
-        assert '11/11 Commands' in output
-        assert '10/10 Skills' in output
-        assert '7/7 Rules' in output  # STORY-063: added 07-shared-protocols
+        assert "9/9 Agents" in output
+        assert "11/11 Commands" in output
+        assert "10/10 Skills" in output
+        assert "7/7 Rules" in output or "8/8 Rules" in output  # 8 rules after 08-architecture-principles
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-051: total commands is now 11
         cfg = get_default_config()
-        cfg['agents'] = ['system-architect', 'senior-developer']
-        cfg['commands'] = ['project-plan', 'project-act', 'project-done']
+        cfg["agents"] = ["system-architect", "senior-developer"]
+        cfg["commands"] = ["project-plan", "project-act", "project-done"]
 
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
-        assert '2/9 Agents' in output
-        assert '3/11 Commands' in output
+        assert "2/9 Agents" in output
+        assert "3/11 Commands" in output
 
 
 # ===========================================================================
 # S8: Custom target directory works (via deploy with target param)
 # ===========================================================================
 
+
 class TestCustomTarget:
     def test_deploy_with_target(self, tmp_path):
         target = tmp_path / "custom-target"
-        with patch('pactkit.generators.deployer.Path.cwd', return_value=tmp_path):
+        with patch("pactkit.generators.deployer.Path.cwd", return_value=tmp_path):
             deploy(config=get_default_config(), target=str(target))
 
         assert (target / "agents").is_dir()
@@ -274,10 +287,11 @@ class TestCustomTarget:
 # Selective skill deployment
 # ===========================================================================
 
+
 class TestSelectiveSkills:
     def test_only_selected_skills_deployed(self, tmp_path):
         cfg = get_default_config()
-        cfg['skills'] = ['pactkit-visualize']
+        cfg["skills"] = ["pactkit-visualize"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         skills_dir = claude / "skills"
@@ -288,10 +302,10 @@ class TestSelectiveSkills:
 
     def test_empty_skills_deploys_none(self, tmp_path):
         cfg = get_default_config()
-        cfg['skills'] = []
+        cfg["skills"] = []
 
         claude = _run_deploy(tmp_path, config=cfg)
         skills_dir = claude / "skills"
 
-        for name in ['pactkit-visualize', 'pactkit-board', 'pactkit-scaffold']:
+        for name in ["pactkit-visualize", "pactkit-board", "pactkit-scaffold"]:
             assert not (skills_dir / name / "SKILL.md").exists()

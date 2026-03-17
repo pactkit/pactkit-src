@@ -55,6 +55,7 @@ rules:
   - 05-workflow-conventions
   - 06-mcp-integration
   - 07-shared-protocols
+  - 08-architecture-principles
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:

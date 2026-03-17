@@ -68,6 +68,7 @@ VALID_RULES = frozenset(
         "05-workflow-conventions",
         "06-mcp-integration",
         "07-shared-protocols",
+        "08-architecture-principles",
     }
 )
 
