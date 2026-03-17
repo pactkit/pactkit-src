@@ -1,4 +1,5 @@
 """STORY-015: list_stories() unit tests — strict TDD."""
+
 import sys
 from pathlib import Path
 
@@ -10,16 +11,17 @@ if str(project_root) not in sys.path:
 def _load_board_funcs():
     """Load board functions via exec(TOOLS_SOURCE) — same pattern as test_tools.py."""
     import pactkit.prompts as p
+
     ns = {}
     exec(p.TOOLS_SOURCE, ns)
     return ns
 
 
 def _setup_board(tmp_path, content):
-    board_dir = tmp_path / 'docs' / 'product'
+    board_dir = tmp_path / "docs" / "product"
     board_dir.mkdir(parents=True)
-    board_path = board_dir / 'sprint_board.md'
-    board_path.write_text(content, encoding='utf-8')
+    board_path = board_dir / "sprint_board.md"
+    board_path.write_text(content, encoding="utf-8")
     return board_path
 
 
@@ -52,17 +54,17 @@ class TestListStoriesMultiple:
         _setup_board(tmp_path, board_md)
         ns = _load_board_funcs()
 
-        result = ns['list_stories']()
+        result = ns["list_stories"]()
 
         # STORY-014: 5/6 IN_PROGRESS
-        assert 'STORY-014' in result
-        assert '5/6' in result
-        assert 'IN_PROGRESS' in result
+        assert "STORY-014" in result
+        assert "5/6" in result
+        assert "IN_PROGRESS" in result
 
         # STORY-015: 0/4 BACKLOG
-        assert 'STORY-015' in result
-        assert '0/4' in result
-        assert 'BACKLOG' in result
+        assert "STORY-015" in result
+        assert "0/4" in result
+        assert "BACKLOG" in result
 
     def test_stories_appear_in_id_order(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -83,9 +85,9 @@ class TestListStoriesMultiple:
         _setup_board(tmp_path, board_md)
         ns = _load_board_funcs()
 
-        result = ns['list_stories']()
-        idx_014 = result.index('STORY-014')
-        idx_015 = result.index('STORY-015')
+        result = ns["list_stories"]()
+        idx_014 = result.index("STORY-014")
+        idx_015 = result.index("STORY-015")
         assert idx_014 < idx_015, "Stories should be sorted by ID"
 
 
@@ -102,8 +104,8 @@ Sprint 20.0 — PactKit Core
         _setup_board(tmp_path, board_md)
         ns = _load_board_funcs()
 
-        result = ns['list_stories']()
-        assert result == 'No stories on board.'
+        result = ns["list_stories"]()
+        assert result == "No stories on board."
 
 
 class TestListStoriesMissingBoard:
@@ -113,8 +115,8 @@ class TestListStoriesMissingBoard:
         monkeypatch.chdir(tmp_path)
         ns = _load_board_funcs()
 
-        result = ns['list_stories']()
-        assert 'No Board' in result
+        result = ns["list_stories"]()
+        assert "No Board" in result
 
 
 class TestListStoriesAllDone:
@@ -135,15 +137,15 @@ class TestListStoriesAllDone:
         _setup_board(tmp_path, board_md)
         ns = _load_board_funcs()
 
-        result = ns['list_stories']()
-        assert 'STORY-010' in result
-        assert '3/3' in result
-        assert 'DONE' in result
+        result = ns["list_stories"]()
+        assert "STORY-010" in result
+        assert "3/3" in result
+        assert "DONE" in result
         # Must NOT say IN_PROGRESS for this story
         lines = result.strip().splitlines()
         for line in lines:
-            if 'STORY-010' in line:
-                assert 'IN_PROGRESS' not in line
+            if "STORY-010" in line:
+                assert "IN_PROGRESS" not in line
 
 
 class TestListStoriesBackwardCompat:
@@ -151,15 +153,15 @@ class TestListStoriesBackwardCompat:
 
     def test_add_story_still_works(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        board_dir = tmp_path / 'docs' / 'product'
+        board_dir = tmp_path / "docs" / "product"
         board_dir.mkdir(parents=True)
-        (board_dir / 'sprint_board.md').write_text('# Sprint Board\n', encoding='utf-8')
+        (board_dir / "sprint_board.md").write_text("# Sprint Board\n", encoding="utf-8")
 
         ns = _load_board_funcs()
-        result = ns['add_story']('STORY-TEST', 'Test Story', 'T1:foo|T2:bar')
-        assert 'STORY-TEST' in result
-        board = (board_dir / 'sprint_board.md').read_text()
-        assert 'STORY-TEST' in board
+        result = ns["add_story"]("STORY-TEST", "Test Story", "T1:foo|T2:bar")
+        assert "STORY-TEST" in result
+        board = (board_dir / "sprint_board.md").read_text()
+        assert "STORY-TEST" in board
 
     def test_archive_still_works(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -173,16 +175,18 @@ class TestListStoriesBackwardCompat:
 """
         _setup_board(tmp_path, board_md)
         ns = _load_board_funcs()
-        result = ns['archive_stories']()
-        assert 'Archived' in result or 'archive' in result.lower()
+        result = ns["archive_stories"]()
+        assert "Archived" in result or "archive" in result.lower()
 
     def test_list_stories_registered_in_cli(self):
         """Verify list_stories appears in the CLI block of TOOLS_SOURCE."""
         import pactkit.prompts as p
+
         assert "list_stories" in p.BOARD_SOURCE
-        assert "a.cmd == 'list_stories'" in p.BOARD_SOURCE
+        assert 'a.cmd == "list_stories"' in p.BOARD_SOURCE or "a.cmd == 'list_stories'" in p.BOARD_SOURCE
 
     def test_skill_board_md_documents_list_stories(self):
         """R4: SKILL_BOARD_MD must mention list_stories."""
         import pactkit.prompts as p
-        assert 'list_stories' in p.SKILL_BOARD_MD
+
+        assert "list_stories" in p.SKILL_BOARD_MD

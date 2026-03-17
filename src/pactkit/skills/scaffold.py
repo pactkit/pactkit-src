@@ -108,49 +108,49 @@ def _inject_developer_prefix(item_id):
 
 
 # --- SPEC ---
+# STORY-slim-007: SPEC_TEMPLATE is the canonical template defined in src/pactkit/schemas.py.
+# This standalone script cannot import pactkit, so the template is inlined here.
+# When updating the template, update BOTH this file AND src/pactkit/schemas.py.
+_SPEC_TEMPLATE = """\
+# {id}: {title}
+
+| Field | Value |
+|-------|-------|
+| ID | {id} |
+| Status | Draft |
+| Priority | P1 |
+| Release | TBD |
+
+## Background
+
+(Description of the problem or feature)
+
+## Requirements
+
+### R1: (Requirement Name) (MUST)
+
+(Description)
+
+## Acceptance Criteria
+
+### AC1: (Scenario Name)
+
+- **Given** (precondition)
+- **When** (action)
+- **Then** (expected result)
+
+## Out of Scope
+
+- (Items explicitly excluded)
+"""
+
+
 def create_spec(i, t):
     i = _inject_developer_prefix(i)
     p = Path.cwd() / f"docs/specs/{i}.md"
     if not p.parent.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
-    c = nl().join(
-        [
-            f"# {i}: {t}",
-            "",
-            "| Field | Value |",
-            "|-------|-------|",
-            f"| ID | {i} |",
-            "| Status | Draft |",
-            "| Priority | P2 |",
-            "| Release | {VERSION} |",
-            "",
-            "## Background",
-            "",
-            "> Describe the context and motivation for this change.",
-            "",
-            "## Requirements",
-            "",
-            "### R1: [Requirement Title]",
-            "",
-            "The system MUST [describe requirement].",
-            "",
-            "## Acceptance Criteria",
-            "",
-            "### AC1: [Scenario Name]",
-            "",
-            "- **Given** [precondition]",
-            "- **When** [action]",
-            "- **Then** [expected result]",
-            "",
-            "## Target Call Chain",
-            "",
-            "> Trace the call chain affected by this change.",
-            "",
-            "## Out of Scope",
-            "",
-            "- [Items explicitly not included]",
-        ]
-    )
+    c = _SPEC_TEMPLATE.format(id=i, title=t)
     p.write_text(c, encoding="utf-8")
     return "✅ Spec Created"
 

@@ -492,7 +492,7 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 3.  **Lessons Auto-append (MANDATORY)**: Append a lesson to `docs/architecture/governance/lessons.md` if it passes these two checks:
     - **Specific?** Does the lesson reference a concrete file, function, or pattern? (Not just a generic principle)
     - **Non-duplicate?** Is it meaningfully different from the last 5 entries in `lessons.md`?
-    - If both yes: append row with format: `| {YYYY-MM-DD} | {one-line summary} | {STORY_ID} |`
+    - If both yes: append row using format `{LESSONS_ROW_FORMAT}` where date=YYYY-MM-DD, context={STORY_ID}
     - If either no: skip with log: `"Lesson skipped: {reason}"`
 4.  **Invariants Refresh (MANDATORY)**: Update the Invariants section in `docs/architecture/governance/rules.md`:
     - Read the current `rules.md` file.
@@ -543,7 +543,9 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 
 ## 🎬 Phase 4.5: Session Context Update
 > **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.
-1.  **Write Context**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Include sections: Sprint Status, Recent Completions, Active Branches, Key Decisions, Next Recommended Action. Set "Last updated by" to `/project-done`.
+1.  **Write Context**: Update `docs/product/context.md` with the following required sections (from `schemas.CONTEXT_SECTIONS`):
+{CONTEXT_SECTIONS}
+    Set "Last updated by" to `/project-done`.
 2.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
 """,
     "project-clarify.md": """---

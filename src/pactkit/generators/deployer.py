@@ -51,6 +51,9 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
     skills_root = profile.skills_dir
     _backtick = "```"  # M variable used in legacy f-string prompts (TRACE_PROMPT)
 
+    # Document schema variables (STORY-slim-007)
+    from pactkit.schemas import CONTEXT_SECTIONS_TEXT, LESSONS_ROW_FORMAT
+
     var_map = {
         "SKILLS_ROOT": skills_root,
         "RULES_ROOT": profile.rules_dir or "",
@@ -64,6 +67,9 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "BOARD_CMD": f"python3 {skills_root}/pactkit-board/scripts/board.py",
         "SCAFFOLD_CMD": f"python3 {skills_root}/pactkit-scaffold/scripts/scaffold.py",
         "GLOBAL_INSTRUCTIONS": f"{profile.global_config_dir}/{profile.global_instructions_file}",
+        # Document schema variables (STORY-slim-007)
+        "CONTEXT_SECTIONS": CONTEXT_SECTIONS_TEXT,
+        "LESSONS_ROW_FORMAT": LESSONS_ROW_FORMAT,
         # Backtick escape for prompts converted from f-string (M = "```")
         "M": _backtick,
     }
