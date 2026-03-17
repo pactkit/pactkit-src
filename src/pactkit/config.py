@@ -220,9 +220,11 @@ def detect_venv(project_root: Path) -> tuple[str, str] | None:
 # ---------------------------------------------------------------------------
 
 # Search order for pactkit.yaml — first existing file wins
+# OpenCode takes precedence (newer environment) over Claude Code
 PACTKIT_YAML_CANDIDATES = [
+    ".opencode/pactkit.yaml",  # OpenCode environment (preferred)
     ".claude/pactkit.yaml",  # Claude Code environment (backward compat)
-    ".opencode/pactkit.yaml",  # OpenCode environment
+    ".codex/pactkit.yaml",  # Codex CLI environment
 ]
 
 
@@ -230,7 +232,7 @@ def find_pactkit_yaml(cwd: Path | None = None) -> Path | None:
     """Find pactkit.yaml by searching candidate paths (STORY-072).
 
     Returns the first existing path, or None if not found.
-    Search order: .claude/pactkit.yaml → .opencode/pactkit.yaml
+    Search order: .opencode/pactkit.yaml → .claude/pactkit.yaml → .codex/pactkit.yaml
     """
     if cwd is None:
         cwd = Path.cwd()
@@ -241,19 +243,35 @@ def find_pactkit_yaml(cwd: Path | None = None) -> Path | None:
     return None
 
 
-def resolve_pactkit_yaml_dir(cwd: Path | None = None) -> Path:
+def resolve_pactkit_yaml_dir(cwd: Path | None = None, format: str | None = None) -> Path:
     """Determine where to write pactkit.yaml based on environment (STORY-072 R2).
 
-    - .claude/ exists → .claude/pactkit.yaml
-    - .opencode/ exists (and .claude/ doesn't) → .opencode/pactkit.yaml
-    - Neither exists → .claude/pactkit.yaml (default, backward compat)
+    When format is explicitly provided, use the corresponding directory:
+    - format="opencode" → .opencode/pactkit.yaml
+    - format="classic"  → .claude/pactkit.yaml
+    - format="codex"    → .codex/pactkit.yaml
+
+    When format is None (auto-detect), check directories in order:
+    - .opencode/ exists → .opencode/pactkit.yaml
+    - .claude/ exists   → .claude/pactkit.yaml
+    - Neither exists    → .claude/pactkit.yaml (default, backward compat)
     """
     if cwd is None:
         cwd = Path.cwd()
-    if (cwd / ".claude").is_dir():
+
+    # Explicit format takes precedence
+    if format == "opencode":
+        return cwd / ".opencode" / "pactkit.yaml"
+    if format == "codex":
+        return cwd / ".codex" / "pactkit.yaml"
+    if format == "classic":
         return cwd / ".claude" / "pactkit.yaml"
+
+    # Auto-detect: prefer .opencode/ over .claude/ (OpenCode user who also has .claude/)
     if (cwd / ".opencode").is_dir():
         return cwd / ".opencode" / "pactkit.yaml"
+    if (cwd / ".claude").is_dir():
+        return cwd / ".claude" / "pactkit.yaml"
     return cwd / ".claude" / "pactkit.yaml"  # default
 
 

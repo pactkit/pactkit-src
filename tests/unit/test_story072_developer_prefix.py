@@ -57,10 +57,10 @@ class TestAC2OpenCodeUser:
 
 
 class TestAC3ClaudePriority:
-    """AC3: .claude/ wins when both directories have pactkit.yaml."""
+    """AC3: .opencode/ wins when both directories have pactkit.yaml (newer env preferred)."""
 
     def test_claude_over_opencode(self, tmp_path, monkeypatch):
-        """load_config() prefers .claude/ over .opencode/."""
+        """load_config() prefers .opencode/ over .claude/ (OpenCode is newer environment)."""
         monkeypatch.chdir(tmp_path)
         # Create both
         claude_dir = tmp_path / ".claude"
@@ -72,7 +72,7 @@ class TestAC3ClaudePriority:
         (opencode_dir / "pactkit.yaml").write_text(yaml.dump({"developer": "opencode-user"}))
 
         result = load_config()
-        assert result["developer"] == "claude-user"
+        assert result["developer"] == "opencode-user"
 
 
 # ===========================================================================
