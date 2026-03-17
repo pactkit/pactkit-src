@@ -170,3 +170,17 @@
 - [x] R6 全局 AGENTS.md 模块化拆分
 - [x] R7 全局 opencode.json instructions
 - [x] 测试
+
+### [STORY-072] Multi-Developer Story ID Prefix for Merge-Safe Collaboration
+> Spec: docs/specs/STORY-072.md
+
+- [x] R1 load_config() 多路径查找 (.claude/ → .opencode/)
+- [x] R2 pactkit.yaml 生成路径感知 (deployer.py)
+- [x] R3 developer 字段 + 校验 (config.py)
+- [x] R4 board.py snapshot() 路径修复
+- [x] R5 commands.py playbook 路径引用更新 (6处)
+- [x] R6 skills.py doctor 路径更新 (2处)
+- [x] R7 workflows.py sprint 路径更新 (1处)
+- [x] R8 /project-plan developer 前缀 ID 指令
+- [x] R9 删除反向指令 "不要在.opencode/创建"
+- [x] 测试

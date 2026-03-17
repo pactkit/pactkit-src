@@ -104,9 +104,13 @@ def _deploy_classic(config=None, target=None):
     # Migrate legacy scafpy remnants before anything else
     _migrate_from_scafpy(claude_root)
 
-    # Load config from project-level $CWD/.claude/pactkit.yaml (BUG-013)
+    # Load config from project-level pactkit.yaml (STORY-072: multi-path lookup)
     if config is None:
-        project_yaml = Path.cwd() / ".claude" / "pactkit.yaml"
+        from pactkit.config import find_pactkit_yaml
+
+        project_yaml = find_pactkit_yaml()
+        if project_yaml is None:
+            project_yaml = Path.cwd() / ".claude" / "pactkit.yaml"
         # Auto-merge new components before loading (STORY-009)
         auto_added = auto_merge_config_file(project_yaml)
         for item in auto_added:
@@ -117,8 +121,11 @@ def _deploy_classic(config=None, target=None):
 
     # Warn about orphaned global config (BUG-013)
     global_yaml = claude_root / "pactkit.yaml"
-    if global_yaml.exists() and global_yaml != Path.cwd() / ".claude" / "pactkit.yaml":
-        print(f"  ⚠️  Found orphaned {global_yaml} — config is now read from $CWD/.claude/pactkit.yaml")
+    from pactkit.config import find_pactkit_yaml as _find_yaml
+
+    active_yaml = _find_yaml()
+    if global_yaml.exists() and active_yaml and global_yaml.resolve() != active_yaml.resolve():
+        print(f"  ⚠️  Found orphaned {global_yaml} — config is now read from {active_yaml}")
 
     print("🚀 PactKit DevOps Deployment")
 
@@ -798,11 +805,22 @@ def _deploy_hooks(hooks_dir, hooks_config, stack="python"):
 
 
 def _generate_config_if_missing():
-    """Generate pactkit.yaml at $CWD/.claude/ with defaults if it doesn't exist (BUG-013)."""
-    yaml_path = Path.cwd() / ".claude" / "pactkit.yaml"
-    if not yaml_path.exists():
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
-        atomic_write(yaml_path, generate_default_yaml())
+    """Generate pactkit.yaml if it doesn't exist (STORY-072: env-aware path).
+
+    Writes to the appropriate directory based on environment:
+    - .claude/ exists → .claude/pactkit.yaml
+    - .opencode/ exists (no .claude/) → .opencode/pactkit.yaml
+    - Neither → .claude/pactkit.yaml (default, backward compat)
+    """
+    from pactkit.config import find_pactkit_yaml, resolve_pactkit_yaml_dir
+
+    # If already exists anywhere, skip
+    if find_pactkit_yaml() is not None:
+        return
+
+    yaml_path = resolve_pactkit_yaml_dir()
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write(yaml_path, generate_default_yaml())
 
 
 _VENV_BLOCK_START = "<!-- pactkit:venv:start -->"

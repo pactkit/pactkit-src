@@ -29,7 +29,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 > **INSTRUCTION**: Check if the project has been initialized before proceeding.
 1.  **Check Markers**: Verify the existence of ALL three:
-    - `.claude/pactkit.yaml` (project-level config)
+    - `.claude/pactkit.yaml` or `.opencode/pactkit.yaml` (project-level config)
     - `docs/product/sprint_board.md` (sprint board)
     - `docs/architecture/graphs/` (architecture graph directory)
 2.  **If ANY marker is missing**:
@@ -83,7 +83,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3: Deliverables
-1.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
+1.  **Story ID Generation** (STORY-072):
+    - Read `developer` from `pactkit.yaml` (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
+    - If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
+    - NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
+2.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
     - **MUST — Metadata Table**: Include a metadata table at the top of the Spec using this EXACT format:
       ```markdown
       | Field | Value |
@@ -98,7 +103,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **MUST**: Fill in the `## Requirements` section using RFC 2119 keywords (MUST/SHOULD/MAY).
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
-    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `.claude/pactkit.yaml` (or `pyproject.toml`). Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
+    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `pactkit.yaml` (in `.claude/` or `.opencode/`) or `pyproject.toml`. Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
     - **OPTIONAL — Implementation Steps**: If Phase 1 Trace identifies 2+ files to modify, add `## Implementation Steps` section with table format:
       ```
       | Step | File | Action | Dependencies | Risk |
@@ -593,26 +598,29 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🎬 Phase 1: Environment & Config
 1.  **Check CLI Availability**: Run `pactkit version` to check if CLI is available.
     - **If available**: Proceed to Step 2.
-    - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `.claude/pactkit.yaml` with `stack: <detected>`, `version: 0.0.1`, `root: .` and skip to Step 4.
-2.  **Generate Config**: Check if `./.claude/pactkit.yaml` exists.
-    - **If missing**: Run `pactkit init` to generate complete configuration.
+    - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `pactkit.yaml` (in `.claude/` or `.opencode/` depending on environment) with `stack: <detected>`, `version: 0.0.1`, `root: .`, `developer: ""` and skip to Step 4.
+2.  **Generate Config**: Check if `pactkit.yaml` exists (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - **If missing**: Run `pactkit init` to generate complete configuration (auto-detects environment).
     - **If exists**: Run `pactkit update` to backfill any missing sections (preserves user customizations).
 3.  **Stack Detection** (config-first, then file-based fallback):
-    - **Config-first**: If `.claude/pactkit.yaml` exists and has a `stack` value set (including `auto`), use that value and skip file-based detection.
+    - **Config-first**: If `pactkit.yaml` exists (in `.claude/` or `.opencode/`) and has a `stack` value set (including `auto`), use that value and skip file-based detection.
     - **File-based detection** (only if no config value):
       - Valid values: `python`, `node`, `go`, `java`, `auto`
       - If `pyproject.toml` or `requirements.txt` or `setup.py` exists → `stack: python`
       - If `package.json` exists → `stack: node`
       - If `go.mod` exists → `stack: go`
       - If `pom.xml` or `build.gradle` exists → `stack: java`
-    - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `.claude/pactkit.yaml` later."
+    - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `pactkit.yaml` later."
     - Do NOT block on user input for stack selection mid-flow.
 4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
     - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
     - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
-5.  **OpenCode Environment Detection** (STORY-069/BUG-035/STORY-071):
+5.  **OpenCode Environment Detection** (STORY-069/BUG-035/STORY-071/STORY-072):
     - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
     - **If OpenCode detected**:
+      - Ensure `pactkit.yaml` exists in `.opencode/` (PactKit CLI config for this project):
+        - If `.opencode/pactkit.yaml` missing AND `.claude/pactkit.yaml` missing: Run `pactkit init` (generates to `.opencode/pactkit.yaml` since `.opencode/` exists).
+        - If `.claude/pactkit.yaml` exists: skip (Claude Code user who also has OpenCode — config already present).
       - Generate `./opencode.json` if missing (use `_deploy_opencode_json()` helper which includes `permission` and `mcp` config):
         ```json
         {
@@ -623,8 +631,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
         }
         ```
       - Generate `./AGENTS.md` if missing (project instructions, can reference global AGENTS.md or be standalone).
-      - Print: "ℹ️ OpenCode environment detected. Generated opencode.json and AGENTS.md."
-      - **Config note**: `pactkit.yaml` remains in `.claude/` (PactKit deployment tool config). OpenCode does not use it — `opencode.json` is the OpenCode runtime config. Do NOT create `pactkit.yaml` in `.opencode/`.
+      - Print: "ℹ️ OpenCode environment detected. Generated opencode.json, AGENTS.md, and pactkit.yaml."
     - **If NOT OpenCode**: Skip silently.
 
 ## 🎬 Phase 2: Architecture Governance
