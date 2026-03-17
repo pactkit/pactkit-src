@@ -20,6 +20,36 @@ class FormatProfile:
 
     All environment-dependent paths and capabilities live here.
     No caller should ever hardcode "~/.claude" or ".opencode" — use this.
+
+    Template Variable Reference (used in prompt templates via _render_prompt()):
+    ┌─────────────────────┬───────────────────────────┬──────────────────────────────────────┐
+    │ Variable            │ FormatProfile Field        │ Example (opencode)                   │
+    ├─────────────────────┼───────────────────────────┼──────────────────────────────────────┤
+    │ {SKILLS_ROOT}       │ skills_dir                 │ ~/.config/opencode/skills            │
+    │ {RULES_ROOT}        │ rules_dir                  │ ~/.config/opencode/rules             │
+    │ {GLOBAL_CONFIG_DIR} │ global_config_dir          │ ~/.config/opencode                   │
+    │ {PROJECT_CONFIG_DIR}│ project_config_dir         │ .opencode                            │
+    │ {INSTRUCTIONS_FILE} │ project_instructions_file  │ AGENTS.md                            │
+    │ {PACTKIT_YAML}      │ pactkit_yaml_path          │ .opencode/pactkit.yaml               │
+    │ {DISPLAY_NAME}      │ display_name               │ OpenCode                             │
+    ├─────────────────────┼───────────────────────────┼──────────────────────────────────────┤
+    │ {VISUALIZE_CMD}     │ (derived from skills_dir)  │ python3 ~/.../pactkit-visualize/...  │
+    │ {BOARD_CMD}         │ (derived from skills_dir)  │ python3 ~/.../pactkit-board/...      │
+    │ {SCAFFOLD_CMD}      │ (derived from skills_dir)  │ python3 ~/.../pactkit-scaffold/...   │
+    │ {GLOBAL_INSTRUCTIONS│ (derived: dir/file)        │ ~/.config/opencode/AGENTS.md         │
+    └─────────────────────┴───────────────────────────┴──────────────────────────────────────┘
+
+    Adding a new format:
+        1. Add a FormatProfile entry to FORMAT_PROFILES below.
+        2. All template variables auto-derive from the profile fields.
+        3. No prompt files (skills.py, commands.py, workflows.py) need modification.
+
+    Usage rules:
+        - Use {VAR_NAME} in prompt source files (str.format_map syntax).
+        - Call _render_prompt(template, profile) in deployer to inject values.
+        - JSON literal braces in templates must be escaped as {{ and }}.
+        - When adding a new variable: (a) add field to FormatProfile,
+          (b) add to _render_prompt() vars dict, (c) update this table.
     """
 
     # Identity

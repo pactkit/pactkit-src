@@ -1,4 +1,5 @@
 """Tests for STORY-003: Init Guard in project-plan and project-doctor."""
+
 from pactkit.prompts import COMMANDS_CONTENT
 
 
@@ -15,9 +16,9 @@ class TestPlanInitGuard:
         assert "Init Guard" in content
 
     def test_plan_checks_pactkit_yaml(self):
-        """Guard must check .claude/pactkit.yaml."""
+        """Guard must check pactkit.yaml — now via {PACTKIT_YAML} template variable (STORY-slim-006)."""
         content = COMMANDS_CONTENT["project-plan.md"]
-        assert ".claude/pactkit.yaml" in content
+        assert "{PACTKIT_YAML}" in content or "pactkit.yaml" in content
 
     def test_plan_checks_sprint_board(self):
         """Guard must check docs/product/sprint_board.md."""
@@ -70,31 +71,37 @@ class TestDoctorSkillContent:
     def test_doctor_skill_exists(self):
         """SKILL_DOCTOR_MD must exist."""
         from pactkit.prompts import SKILL_DOCTOR_MD
+
         assert isinstance(SKILL_DOCTOR_MD, str)
         assert len(SKILL_DOCTOR_MD) > 50
 
     def test_doctor_checks_pactkit_yaml(self):
         """Doctor skill should check pactkit.yaml."""
         from pactkit.prompts import SKILL_DOCTOR_MD
+
         assert "pactkit.yaml" in SKILL_DOCTOR_MD
 
     def test_doctor_checks_architecture(self):
         """Doctor skill should check architecture."""
         from pactkit.prompts import SKILL_DOCTOR_MD
+
         assert "architecture" in SKILL_DOCTOR_MD.lower() or "graph" in SKILL_DOCTOR_MD.lower()
 
     def test_doctor_has_health_report(self):
         """Doctor skill should output a health report."""
         from pactkit.prompts import SKILL_DOCTOR_MD
+
         assert "health" in SKILL_DOCTOR_MD.lower() or "report" in SKILL_DOCTOR_MD.lower()
 
     def test_doctor_checks_specs_board_linkage(self):
         """Doctor skill should verify specs vs board linkage."""
         from pactkit.prompts import SKILL_DOCTOR_MD
+
         lower = SKILL_DOCTOR_MD.lower()
         assert "spec" in lower or "board" in lower
 
     def test_doctor_has_frontmatter(self):
         """Skill should have YAML frontmatter."""
         from pactkit.prompts import SKILL_DOCTOR_MD
-        assert SKILL_DOCTOR_MD.strip().startswith('---')
+
+        assert SKILL_DOCTOR_MD.strip().startswith("---")

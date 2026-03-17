@@ -244,11 +244,12 @@ class TestPlaybookUpdates:
     """Verify playbook text references are updated."""
 
     def test_init_guard_checks_both_paths(self):
-        """Init Guard marker check mentions both .claude/ and .opencode/."""
+        """Init Guard marker check references pactkit.yaml via template variable (STORY-slim-006)."""
         from pactkit.prompts import COMMANDS_CONTENT
 
         plan_content = COMMANDS_CONTENT["project-plan.md"]
-        assert ".opencode/pactkit.yaml" in plan_content
+        # After STORY-slim-006, uses {PACTKIT_YAML} template variable instead of hardcoded paths
+        assert "{PACTKIT_YAML}" in plan_content or ".opencode/pactkit.yaml" in plan_content
 
     def test_no_reverse_instruction(self):
         """The old 'Do NOT create pactkit.yaml in .opencode/' instruction is removed."""

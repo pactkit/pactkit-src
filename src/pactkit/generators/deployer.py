@@ -37,11 +37,52 @@ CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
 
 
+def _render_prompt(template: str, profile: FormatProfile) -> str:
+    """Render a prompt template by replacing {VAR} placeholders with profile values.
+
+    All available template variables are defined in FormatProfile docstring.
+    See docs/specs/STORY-slim-006.md 'Template Variable Reference' for the full list.
+
+    Usage:
+        - Use {VAR_NAME} in prompt source files.
+        - JSON literal braces must be escaped as {{ and }}.
+        - Unknown {PLACEHOLDERS} (e.g. {STORY_ID}) are left unchanged.
+    """
+    skills_root = profile.skills_dir
+    _backtick = "```"  # M variable used in legacy f-string prompts (TRACE_PROMPT)
+
+    var_map = {
+        "SKILLS_ROOT": skills_root,
+        "RULES_ROOT": profile.rules_dir or "",
+        "GLOBAL_CONFIG_DIR": profile.global_config_dir,
+        "PROJECT_CONFIG_DIR": profile.project_config_dir,
+        "INSTRUCTIONS_FILE": profile.project_instructions_file,
+        "PACTKIT_YAML": profile.pactkit_yaml_path,
+        "DISPLAY_NAME": profile.display_name,
+        # Derived variables
+        "VISUALIZE_CMD": f"python3 {skills_root}/pactkit-visualize/scripts/visualize.py",
+        "BOARD_CMD": f"python3 {skills_root}/pactkit-board/scripts/board.py",
+        "SCAFFOLD_CMD": f"python3 {skills_root}/pactkit-scaffold/scripts/scaffold.py",
+        "GLOBAL_INSTRUCTIONS": f"{profile.global_config_dir}/{profile.global_instructions_file}",
+        # Backtick escape for prompts converted from f-string (M = "```")
+        "M": _backtick,
+    }
+    # Replace only known variables via sequential string replacement.
+    # This avoids str.format_map() issues with complex keys like {R1, R2, ...}
+    # or {some description with commas} that appear in user-facing prompt text.
+    result = template
+    for key, value in var_map.items():
+        result = result.replace("{" + key + "}", value)
+    return result
+
+
 def _rewrite_skills_prefix(content, profile_or_prefix):
     """Rewrite ~/.claude/skills references to the target skills_prefix.
 
-    Accepts either a FormatProfile (STORY-slim-005) or a raw string prefix
-    (legacy: used for plugin/marketplace modes).
+    DEPRECATED for environment formats (classic/opencode/codex): use _render_prompt() instead.
+    This function is retained for plugin/marketplace legacy mode only (_legacy_prefix parameter).
+
+    Accepts either a FormatProfile or a raw string prefix (plugin/marketplace mode).
 
     No-op when the target is already the classic default.
     """
@@ -358,7 +399,11 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd["skill_md"], _prefix)
+        skill_md = (
+            _render_prompt(sd["skill_md"], profile)
+            if profile is not None
+            else _rewrite_skills_prefix(_render_prompt(sd["skill_md"], get_profile("classic")), _prefix)
+        )
         atomic_write(skill_dir / "SKILL.md", skill_md)
         atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
@@ -370,7 +415,11 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         skill_dir = skills_dir / sd["name"]
         skill_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = _rewrite_skills_prefix(sd["skill_md"], _prefix)
+        skill_md = (
+            _render_prompt(sd["skill_md"], profile)
+            if profile is not None
+            else _rewrite_skills_prefix(_render_prompt(sd["skill_md"], get_profile("classic")), _prefix)
+        )
         atomic_write(skill_dir / "SKILL.md", skill_md)
         deployed += 1
 
@@ -581,8 +630,12 @@ def _deploy_agents(
         # Routing reference: from profile.global_instructions_file (STORY-slim-005)
         routing_ref = f"{profile.global_config_dir}/{profile.global_instructions_file}"
         content.extend(["---", "", cfg["prompt"], "", f"Please refer to {routing_ref} for routing."])
-        rewritten = _rewrite_skills_prefix("\n".join(content), _effective_prefix)
-        atomic_write(agent_path, rewritten)
+        raw = "\n".join(content)
+        # Use _render_prompt for environment profiles; fallback to string replace for legacy
+        rendered = (
+            _render_prompt(raw, profile) if _legacy_prefix is None else _rewrite_skills_prefix(raw, _effective_prefix)
+        )
+        atomic_write(agent_path, rendered)
         deployed += 1
 
     return deployed
@@ -636,8 +689,12 @@ def _deploy_commands(
         if _opencode_format:
             content = _convert_command_frontmatter_opencode(content)
 
-        rewritten = _rewrite_skills_prefix(content, _effective_prefix)
-        atomic_write(commands_dir / filename, rewritten)
+        rendered = (
+            _render_prompt(content, profile)
+            if _legacy_prefix is None
+            else _rewrite_skills_prefix(content, _effective_prefix)
+        )
+        atomic_write(commands_dir / filename, rendered)
         deployed += 1
 
     return deployed

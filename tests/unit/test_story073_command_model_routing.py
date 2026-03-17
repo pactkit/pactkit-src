@@ -223,7 +223,8 @@ class TestR4DocStrings:
     """R4: skills.py doc strings mention both paths."""
 
     def test_skills_mention_opencode_path(self):
-        """Skill doc strings mention OpenCode path."""
+        """Skill doc strings use {SKILLS_ROOT} template variable (STORY-slim-006).
+        The actual path is injected at deploy time via _render_prompt()."""
         from pactkit.prompts import skills as skills_mod
 
         full_text = ""
@@ -232,4 +233,8 @@ class TestR4DocStrings:
             if isinstance(val, str) and "Script location" in val:
                 full_text += val
         if full_text:
-            assert "opencode" in full_text.lower() or "~/.config/opencode" in full_text
+            # After STORY-slim-006, skills use {BOARD_CMD}/{VISUALIZE_CMD}/{SCAFFOLD_CMD} placeholders
+            has_placeholder = (
+                "{BOARD_CMD}" in full_text or "{VISUALIZE_CMD}" in full_text or "{SCAFFOLD_CMD}" in full_text
+            )
+            assert has_placeholder, "Skill SKILL.md should use {BOARD_CMD}/{VISUALIZE_CMD}/{SCAFFOLD_CMD} placeholders"

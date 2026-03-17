@@ -31,7 +31,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 > **INSTRUCTION**: Check if the project has been initialized before proceeding.
 1.  **Check Markers**: Verify the existence of ALL three:
-    - `.claude/pactkit.yaml` or `.opencode/pactkit.yaml` (project-level config)
+    - `{PACTKIT_YAML}` (project-level config)
     - `docs/product/sprint_board.md` (sprint board)
     - `docs/architecture/graphs/` (architecture graph directory)
 2.  **If ANY marker is missing**:
@@ -86,7 +86,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 3: Deliverables
 1.  **Story ID Generation** (STORY-072):
-    - Read `developer` from `pactkit.yaml` (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - Read `developer` from `pactkit.yaml` (check `{PACTKIT_YAML}`).
     - If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
     - If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
     - NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
@@ -105,7 +105,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **MUST**: Fill in the `## Requirements` section using RFC 2119 keywords (MUST/SHOULD/MAY).
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
-    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `pactkit.yaml` (in `.claude/` or `.opencode/`) or `pyproject.toml`. Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
+    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `{PACTKIT_YAML}` or `pyproject.toml`. Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
     - **OPTIONAL — Implementation Steps**: If Phase 1 Trace identifies 2+ files to modify, add `## Implementation Steps` section with table format:
       ```
       | Step | File | Action | Dependencies | Risk |
@@ -435,7 +435,7 @@ Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`:
 2. **Identify changed functions**: Use `git diff HEAD~1 --unified=0` on changed source files to extract modified function names (look for `def ` in the diff).
 3. **Run impact command** for each changed function:
    ```bash
-   python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py impact --entry <func_name>
+   {VISUALIZE_CMD} impact --entry <func_name>
    ```
    Collect all returned test file paths (space-separated).
 4. **Deduplicate** the collected test paths.
@@ -503,7 +503,7 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 
 ## 🎬 Phase 3.5: Archive (Optional)
 1.  **Check**: Are all tasks for the current Story marked `[x]`?
-2.  **Action**: If yes, run `python3 ~/.claude/skills/pactkit-board/scripts/board.py archive`.
+2.  **Action**: If yes, run `{BOARD_CMD} archive`.
 3.  **Result**: Completed stories are moved to `docs/product/archive/archive_YYYYMM.md`.
 
 ## 🎬 Phase 3.5.5: Issue Tracker Verification (Backfill Safety Net)

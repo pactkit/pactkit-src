@@ -4,6 +4,7 @@ STORY-034: Auto-refresh pactkit.yaml in Plan Init Guard.
 Tests verify that Plan Phase 0.5 includes a config completeness check
 step that detects stale configs and runs `pactkit update` to backfill.
 """
+
 from pactkit.prompts import COMMANDS_CONTENT
 
 
@@ -89,9 +90,10 @@ class TestAC4PromptTemplateUpdated:
     # --- Existing Init Guard preserved ---
 
     def test_existing_marker_checks_preserved(self):
-        """Original 3 marker checks must still be present."""
+        """Original 3 marker checks must still be present (STORY-slim-006: pactkit.yaml via template var)."""
         content = self._plan()
-        assert ".claude/pactkit.yaml" in content
+        # pactkit.yaml check now uses {PACTKIT_YAML} template variable
+        assert "{PACTKIT_YAML}" in content or "pactkit.yaml" in content
         assert "docs/product/sprint_board.md" in content
         assert "docs/architecture/graphs/" in content
 

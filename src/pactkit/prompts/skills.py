@@ -4,13 +4,13 @@ from pactkit.skills import load_script
 # SKILL SOURCE CODE (loaded from pactkit/skills/)
 # ==============================================================================
 
-VISUALIZE_SOURCE = load_script('visualize.py')
-BOARD_SOURCE = load_script('board.py')
-SCAFFOLD_SOURCE = load_script('scaffold.py')
+VISUALIZE_SOURCE = load_script("visualize.py")
+BOARD_SOURCE = load_script("board.py")
+SCAFFOLD_SOURCE = load_script("scaffold.py")
 
 # --- Backward-compatible combined source (for old tests) ---
 TOOLS_SOURCE = VISUALIZE_SOURCE + "\n" + BOARD_SOURCE + "\n" + SCAFFOLD_SOURCE
-TOOLS_CONTENT = TOOLS_SOURCE.split('\n')
+TOOLS_CONTENT = TOOLS_SOURCE.split("\n")
 
 # ==============================================================================
 # SKILL.md TEMPLATES (Frontmatter + Documentation)
@@ -24,7 +24,7 @@ description: "Generate project code dependency graph (Mermaid), supporting file-
 
 Generate project code relationship graphs (Mermaid format), supporting three analysis modes.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-visualize/scripts/visualize.py`, OpenCode: `~/.config/opencode/skills/pactkit-visualize/scripts/visualize.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths.
 
 ## Prerequisites
 - The project must have Python source files (`.py`) to generate meaningful graphs
@@ -34,7 +34,7 @@ Generate project code relationship graphs (Mermaid format), supporting three ana
 
 ### visualize -- Generate code dependency graph
 ```
-python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize [--mode file|class|call] [--entry <func>] [--focus <module>]
+{VISUALIZE_CMD} visualize [--mode file|class|call] [--entry <func>] [--focus <module>]
 ```
 
 | Parameter | Description | Default |
@@ -47,14 +47,14 @@ python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize [--mod
 
 ### init_arch -- Initialize architecture directory
 ```
-python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch
+{VISUALIZE_CMD} init_arch
 ```
 - Creates `docs/architecture/graphs/` and `docs/architecture/governance/`
 - Generates placeholder file `system_design.mmd`
 
 ### list_rules -- List governance rules
 ```
-python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py list_rules
+{VISUALIZE_CMD} list_rules
 ```
 - Outputs the list of rule files under `docs/architecture/governance/`
 
@@ -85,7 +85,7 @@ description: "Sprint Board atomic operations: add Story, update Task, archive co
 
 Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-board/scripts/board.py`, OpenCode: `~/.config/opencode/skills/pactkit-board/scripts/board.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths.
 
 ## Prerequisites
 - `docs/product/sprint_board.md` must exist (created by `/project-init`)
@@ -95,7 +95,7 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 
 ### add_story -- Add a work item (Story, Hotfix, or Bug)
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py add_story ITEM-ID "Title" "Task A|Task B"
+{BOARD_CMD} add_story ITEM-ID "Title" "Task A|Task B"
 ```
 - `ITEM-ID`: Work item identifier, e.g. `STORY-001`, `HOTFIX-001`, `BUG-001`
 - `Title`: Item title
@@ -104,7 +104,7 @@ python3 ~/.claude/skills/pactkit-board/scripts/board.py add_story ITEM-ID "Title
 
 ### update_task -- Update Task status
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py update_task ITEM-ID "Task Name"
+{BOARD_CMD} update_task ITEM-ID "Task Name"
 ```
 - `Task Name`: Must be an exact match with the task name in the Board
 - Changes `- [ ] Task Name` to `- [x] Task Name`
@@ -112,29 +112,29 @@ python3 ~/.claude/skills/pactkit-board/scripts/board.py update_task ITEM-ID "Tas
 
 ### archive -- Archive completed Stories
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py archive
+{BOARD_CMD} archive
 ```
 - Moves all Stories with every task marked `[x]` to `docs/product/archive/archive_YYYYMM.md`
 
 ### list_stories -- View current Stories
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py list_stories
+{BOARD_CMD} list_stories
 ```
 
 ### update_version -- Update version number
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py update_version 1.0.0
+{BOARD_CMD} update_version 1.0.0
 ```
 
 ### snapshot -- Architecture snapshot
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py snapshot "v1.0.0"
+{BOARD_CMD} snapshot "v1.0.0"
 ```
 - Saves current architecture graphs to `docs/architecture/snapshots/{version}_*.mmd`
 
 ### fix_board -- Relocate misplaced stories to correct sections
 ```
-python3 ~/.claude/skills/pactkit-board/scripts/board.py fix_board
+{BOARD_CMD} fix_board
 ```
 - Scans for stories outside their correct section and relocates them based on task status:
   - All `[ ]` → `## 📋 Backlog`
@@ -159,7 +159,7 @@ description: "File scaffolding: create Spec, test files, E2E tests, Git branches
 
 Project file scaffolding tool for quickly creating standardized project files.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-scaffold/scripts/scaffold.py`, OpenCode: `~/.config/opencode/skills/pactkit-scaffold/scripts/scaffold.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths.
 
 ## Prerequisites
 - `docs/specs/` directory must exist (required by `create_spec`)
@@ -170,7 +170,7 @@ Project file scaffolding tool for quickly creating standardized project files.
 
 ### create_spec -- Create a Spec file
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_spec ITEM-ID "Title"
+{SCAFFOLD_CMD} create_spec ITEM-ID "Title"
 ```
 - `ITEM-ID`: Work item identifier, e.g. `STORY-001`, `HOTFIX-001`, `BUG-001`
 - `Title`: Spec title
@@ -178,20 +178,20 @@ python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_spec ITEM-I
 
 ### create_test_file -- Create a unit test
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_test_file src/module.py
+{SCAFFOLD_CMD} create_test_file src/module.py
 ```
 - Automatically generates the corresponding test file based on the source file path
 - Output: `tests/unit/test_module.py`
 
 ### create_e2e_test -- Create an E2E test
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_e2e_test ITEM-ID "scenario_name"
+{SCAFFOLD_CMD} create_e2e_test ITEM-ID "scenario_name"
 ```
 - Output: `tests/e2e/test_{ITEM-ID}_{scenario}.py`
 
 ### git_start -- Create a Git branch
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py git_start ITEM-ID
+{SCAFFOLD_CMD} git_start ITEM-ID
 ```
 - Branch prefix is inferred from the item type:
   - `STORY-*` → `feature/STORY-*`
@@ -200,16 +200,16 @@ python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py git_start ITEM-ID
 
 ### create_skill -- Create a Skill directory scaffold
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_skill skill-name "Description of the skill"
+{SCAFFOLD_CMD} create_skill skill-name "Description of the skill"
 ```
 - `skill-name`: Skill identifier (must start with lowercase letter: `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 - `Description`: Brief description for SKILL.md frontmatter
-- Output: `~/.claude/skills/{skill-name}/` with `SKILL.md`, `scripts/{clean_name}.py`, `references/.gitkeep`
+- Output: `{SKILLS_ROOT}/{skill-name}/` with `SKILL.md`, `scripts/{clean_name}.py`, `references/.gitkeep`
 - Refuses to overwrite if the skill directory already exists
 
 ### create_board -- Create Sprint Board
 ```
-python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_board
+{SCAFFOLD_CMD} create_board
 ```
 - Creates `docs/product/sprint_board.md` with standard section headers
 - Output: Standard board with `## 📋 Backlog`, `## 🔄 In Progress`, `## ✅ Done` sections
@@ -528,4 +528,3 @@ Version release management — update versions, snapshot architecture, create Gi
 - Create a GitHub Release: `gh release create $VERSION --title "$VERSION" --notes "$NOTES"`.
 - Verify: `gh release view $VERSION` confirms the release exists and is marked Latest.
 """
-

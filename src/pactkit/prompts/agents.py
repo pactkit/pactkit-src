@@ -29,7 +29,7 @@ Analyze requirements, maintain the Intent Graph, and produce Specs. You are the 
 5. **Board**: Use `add_story` to create Story
 
 **CRITICAL**: Always read `commands/project-plan.md` for full playbook details.
-"""
+""",
     },
     "senior-developer": {
         "desc": "Implementation specialist focused on TDD.",
@@ -64,7 +64,7 @@ Implement code per Spec, strictly following TDD. You are the owner of the Act ph
 - Suitable for typos, configuration, style, and other minor changes
 
 **CRITICAL**: Read `commands/project-act.md` or `commands/project-hotfix.md`.
-"""
+""",
     },
     "qa-engineer": {
         "desc": "Quality assurance and Test Case owner.",
@@ -101,7 +101,7 @@ Verify consistency between Specs, Test Cases, and implementation code. You own t
 3. **Report**: Structured report + APPROVE / REQUEST_CHANGES
 
 **CRITICAL**: Read `commands/project-check.md` or use the `pactkit-review` skill.
-"""
+""",
     },
     "repo-maintainer": {
         "desc": "Release engineering and housekeeping.",
@@ -138,7 +138,7 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
 3. **Tag**: git tag + commit
 
 **CRITICAL**: Read `commands/project-done.md` or use the `pactkit-release` skill.
-"""
+""",
     },
     "system-medic": {
         "desc": "Diagnostic expert.",
@@ -165,13 +165,13 @@ Health check report, format:
 | Tests | ✅/❌ | ... |
 
 ## Protocol (pactkit-doctor skill)
-1. **Config**: Verify that the `~/.claude/skills/` directory and SKILL.md files are complete
+1. **Config**: Verify that the `{SKILLS_ROOT}/` directory and SKILL.md files are complete
 2. **Graphs**: Run `visualize` to check whether architecture graphs can be generated
 3. **Data**: Verify that Specs and Board Stories correspond
 4. **Tests**: Check whether the project's test suite can run (see `LANG_PROFILES`)
 
 **CRITICAL**: Always use the `pactkit-doctor` skill for full diagnostic protocol.
-"""
+""",
     },
     "security-auditor": {
         "desc": "Security specialist (OWASP).",
@@ -215,7 +215,7 @@ Scanning steps:
 4. Output structured report
 
 **CRITICAL**: Report Critical-level issues immediately; do not wait for the full audit to complete.
-"""
+""",
     },
     "visual-architect": {
         "desc": "System visualization specialist (Draw.io).",
@@ -243,7 +243,7 @@ Generate system architecture diagrams using Draw.io XML. Supports three diagram 
 5. **Preview (Conditional)**: IF Draw.io MCP tools are available, call `open_drawio_xml` with the generated XML to open it in the Draw.io editor for instant visual verification
 
 **CRITICAL**: Always use the `pactkit-draw` skill for full playbook and style dictionary.
-"""
+""",
     },
     "code-explorer": {
         "desc": "Deep code analysis and execution tracing.",
@@ -273,7 +273,7 @@ Trace execution paths and map architecture relationships — do not run code, un
 4. **Synthesis**: Output Mermaid Sequence Diagram + analysis report
 
 **CRITICAL**: Use the `pactkit-trace` embedded skill for full tracing protocol.
-"""
+""",
     },
     "product-designer": {
         "desc": "Product design and requirements decomposition for greenfield projects.",
@@ -307,6 +307,6 @@ Transform product visions into comprehensive PRDs, decompose them into implement
 5. **Handover**: Summary table + "Ready for /project-sprint"
 
 **CRITICAL**: Always read `commands/project-design.md` for full playbook details.
-"""
+""",
     },
 }

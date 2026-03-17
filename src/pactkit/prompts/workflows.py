@@ -4,7 +4,7 @@ M = "```"
 # ==============================================================================
 # TRACE PROMPT
 # ==============================================================================
-TRACE_PROMPT = f"""---
+TRACE_PROMPT = """---
 description: "Deep code tracing and execution flow analysis"
 allowed-tools: [Read, Bash, Grep, Glob]
 ---
@@ -23,7 +23,7 @@ allowed-tools: [Read, Bash, Grep, Glob]
 2.  **Map Files**: List the core files involved. Don't read everything yet.
 
 ## 🔗 Phase 1.5: Call Graph Analysis (Auto-Trace)
-1.  **Auto-Trace**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode call --entry <function_name>`.
+1.  **Auto-Trace**: Run `{VISUALIZE_CMD} visualize --mode call --entry <function_name>`.
     - *Result*: BFS transitive closure from entry function → `call_graph.mmd`.
 2.  **Read Graph**: Read `docs/architecture/graphs/call_graph.mmd` to see all reachable functions.
 3.  **Scope**: Use this to narrow down Phase 2 tracing targets.
@@ -294,7 +294,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2. `TeamCreate("sprint-{STORY_ID}")`.
 3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Check-Security (blockedBy: Act), Close (blockedBy: both Checks).
 4. Verify worktree support (`git worktree list`). Use `isolation="worktree"` if supported.
-5. Read `pactkit.yaml` (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`), extract `agent_models`: `plan_model=agent_models.get('system-architect','opus')`, `act_model=agent_models.get('senior-developer','sonnet')`. Default: fallback to `sonnet` if model unavailable.
+5. Read `pactkit.yaml` (check `{PACTKIT_YAML}`), extract `agent_models`: `plan_model=agent_models.get('system-architect','opus')`, `act_model=agent_models.get('senior-developer','sonnet')`. Default: fallback to `sonnet` if model unavailable.
 
 ## Phase 1: PDCA Execution
 
@@ -530,7 +530,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Create Spec**: Create a lightweight Spec at `docs/specs/HOTFIX-{NNN}.md` with:
     - Title, Background (one sentence), Target file/line, and what was fixed.
 6.  **Add Board Entry**: Add the hotfix to the Board:
-    - `python3 ~/.claude/skills/pactkit-board/scripts/board.py add_story HOTFIX-{NNN} "Short title" "Fix description"`
+    - `python3 {BOARD_CMD} add_story HOTFIX-{NNN} "Short title" "Fix description"`
 
 ## 🔧 Phase 1: Fix
 1.  **Fix**: Use `Edit` or `Write` to directly fix the target code.
@@ -583,7 +583,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🎬 Phase 1: PRD Generation
 > **Goal**: Create `docs/product/prd.md` — the single source of truth for the product.
 
-1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_prd "{ProductName}"`.
+1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_prd "{ProductName}"`.
 2.  **Fill Sections** — Complete each section in the PRD:
 
 ### 1.1 Product Overview
@@ -668,7 +668,7 @@ Assign each Story to a horizon:
 
 ## 🎬 Phase 2: Architecture
 1.  **Update HLD**: Write the architecture Mermaid diagram from Section 1.4 into `docs/architecture/graphs/system_design.mmd`.
-2.  **Visualize** (if existing code): Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`.
+2.  **Visualize** (if existing code): Run `{VISUALIZE_CMD} visualize`.
 
 ## 🎬 Phase 3: Story Decomposition
 > **Goal**: Convert PRD Feature Breakdown into individual Specs.
@@ -676,7 +676,7 @@ Assign each Story to a horizon:
 1.  **Determine STORY IDs**: Scan `docs/specs/` to find the next available STORY-NNN number.
 2.  **Sort**: Order stories by horizon (Now → Next → Later), then by Priority Score (descending).
 3.  **For each Story**:
-    - Run `python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_spec "STORY-{NNN}" "{title}"`.
+    - Run `{SCAFFOLD_CMD} create_spec "STORY-{NNN}" "{title}"`.
     - Fill in the Spec:
       - `## Requirements` — using RFC 2119 keywords (MUST/SHOULD/MAY)
       - `## Acceptance Criteria` — Given/When/Then scenarios
@@ -686,7 +686,7 @@ Assign each Story to a horizon:
 
 ## 🎬 Phase 4: Board Setup
 1.  **Add Stories**: For each Story (ordered by horizon → priority):
-    - Run `python3 ~/.claude/skills/pactkit-board/scripts/board.py add_story "STORY-{NNN}" "{title}" "{task list}"`.
+    - Run `{BOARD_CMD} add_story "STORY-{NNN}" "{title}" "{task list}"`.
 2.  **Verify**: Read `docs/product/sprint_board.md` to confirm all stories are listed.
 
 ## 🎬 Phase 5: Handover
