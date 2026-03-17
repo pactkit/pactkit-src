@@ -1,8 +1,9 @@
 """
 STORY-073: OpenCode Format Final Mile — Command Model Routing and Claude Code Residuals
-Tests for command model routing, project-init conditional, YAML comments, doc strings.
+Tests for command model routing (in opencode.json), project-init conditional, YAML comments, doc strings.
 """
 
+import json
 
 from pactkit.config import get_default_config
 from pactkit.generators.deployer import deploy
@@ -14,19 +15,17 @@ except ImportError:
 
 
 # ===========================================================================
-# AC1: OpenCode command contains model
+# AC1: OpenCode model routing is in opencode.json command section
 # ===========================================================================
 
 
 class TestAC1CommandModel:
-    """AC1: OpenCode commands with sonnet role have model: field."""
+    """AC1: Model routing is in opencode.json command section (not frontmatter)."""
 
     def _deploy_with_providers(self, tmp_path):
         """Deploy with seeded provider config so model resolution works in CI."""
-        import json
         out = tmp_path / "oc"
         out.mkdir(parents=True, exist_ok=True)
-        # Seed opencode.json with provider config (needed for model resolution)
         providers = {
             "$schema": "https://opencode.ai/config.json",
             "provider": {
@@ -43,59 +42,64 @@ class TestAC1CommandModel:
         deploy(format="opencode", target=str(out))
         return out
 
-    def test_act_has_model(self, tmp_path):
-        """project-act.md has model: in frontmatter."""
+    def test_act_model_in_opencode_json(self, tmp_path):
+        """project-act model routing is in opencode.json command section."""
+        out = self._deploy_with_providers(tmp_path)
+        data = json.loads((out / "opencode.json").read_text())
+        cmd_config = data.get("command", {})
+        assert "project-act" in cmd_config
+        assert "model" in cmd_config["project-act"]
+        assert "sonnet" in cmd_config["project-act"]["model"]
+
+    def test_done_model_in_opencode_json(self, tmp_path):
+        """project-done model routing is in opencode.json command section."""
+        out = self._deploy_with_providers(tmp_path)
+        data = json.loads((out / "opencode.json").read_text())
+        assert "project-done" in data.get("command", {})
+
+    def test_check_model_in_opencode_json(self, tmp_path):
+        """project-check model routing is in opencode.json command section."""
+        out = self._deploy_with_providers(tmp_path)
+        data = json.loads((out / "opencode.json").read_text())
+        assert "project-check" in data.get("command", {})
+
+    def test_frontmatter_has_no_model(self, tmp_path):
+        """Command frontmatter should NOT contain model: (routing is in opencode.json)."""
         out = self._deploy_with_providers(tmp_path)
         content = (out / "commands" / "project-act.md").read_text()
         parts = content.split("---", 2)
         frontmatter = parts[1]
-        assert "model:" in frontmatter
-
-    def test_done_has_model(self, tmp_path):
-        """project-done.md has model: in frontmatter."""
-        out = self._deploy_with_providers(tmp_path)
-        content = (out / "commands" / "project-done.md").read_text()
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
-        assert "model:" in frontmatter
-
-    def test_check_has_model(self, tmp_path):
-        """project-check.md has model: in frontmatter."""
-        out = self._deploy_with_providers(tmp_path)
-        deploy(format="opencode", target=str(out))
-        content = (out / "commands" / "project-check.md").read_text()
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
-        assert "model:" in frontmatter
+        for line in frontmatter.strip().split("\n"):
+            assert not line.strip().startswith("model:"), f"Unexpected model in frontmatter: {line}"
 
 
 # ===========================================================================
-# AC2: Plan command does NOT have model
+# AC2: Plan command NOT in command routing
 # ===========================================================================
 
 
 class TestAC2PlanNoModel:
-    """AC2: Commands that inherit main model don't have model: field."""
+    """AC2: Commands that inherit main model are NOT in opencode.json command section."""
 
-    def test_plan_no_model(self, tmp_path):
-        """project-plan.md does NOT have model: in frontmatter."""
+    def test_plan_not_in_command_routing(self, tmp_path):
+        """project-plan is NOT in opencode.json command section."""
         out = tmp_path / "oc"
+        out.mkdir(parents=True, exist_ok=True)
+        providers = {"$schema": "x", "provider": {"tp": {"models": {"claude-sonnet-4.6": {}}}}}
+        (out / "opencode.json").write_text(json.dumps(providers))
         deploy(format="opencode", target=str(out))
-        content = (out / "commands" / "project-plan.md").read_text()
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
-        for line in frontmatter.strip().split("\n"):
-            assert not line.strip().startswith("model:"), f"Unexpected model: {line}"
+        data = json.loads((out / "opencode.json").read_text())
+        assert "project-plan" not in data.get("command", {})
 
-    def test_clarify_no_model(self, tmp_path):
-        """project-clarify.md does NOT have model: in frontmatter."""
+    def test_clarify_not_in_command_routing(self, tmp_path):
+        """project-clarify is NOT in opencode.json command section."""
         out = tmp_path / "oc"
+        out.mkdir(parents=True, exist_ok=True)
+        providers = {"$schema": "x", "provider": {"tp": {"models": {"claude-sonnet-4.6": {}}}}}
+        (out / "opencode.json").write_text(json.dumps(providers))
         deploy(format="opencode", target=str(out))
-        content = (out / "commands" / "project-clarify.md").read_text()
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
-        for line in frontmatter.strip().split("\n"):
-            assert not line.strip().startswith("model:"), f"Unexpected model: {line}"
+        data = json.loads((out / "opencode.json").read_text())
+        assert "project-clarify" not in data.get("command", {})
 
 
 # ===========================================================================
@@ -130,11 +134,8 @@ class TestAC4InitConditional:
         from pactkit.prompts import COMMANDS_CONTENT
 
         init_content = COMMANDS_CONTENT["project-init.md"]
-        # Should mention skipping CLAUDE.md for OpenCode
         assert "OpenCode" in init_content
         assert "AGENTS.md" in init_content
-        # Should NOT unconditionally say "Create CLAUDE.md"
-        # It should be conditional on environment
         assert "Claude Code" in init_content or ".claude/" in init_content
 
 
@@ -157,7 +158,7 @@ class TestAC5YamlComments:
 
     def test_rewrite_yaml_no_claude_path(self, tmp_path, monkeypatch):
         """_rewrite_yaml() output has no ~/.claude/ in comments."""
-        from pactkit.config import _rewrite_yaml, get_default_config
+        from pactkit.config import _rewrite_yaml
 
         monkeypatch.chdir(tmp_path)
         yaml_path = tmp_path / "test.yaml"
@@ -169,12 +170,12 @@ class TestAC5YamlComments:
 
 
 # ===========================================================================
-# AC6: User can override command model
+# AC6: User can override command model + resolver tests
 # ===========================================================================
 
 
 class TestAC6CommandModelOverride:
-    """AC6: command_models in config overrides defaults."""
+    """AC6: command_models in config and model resolver."""
 
     def test_default_config_has_command_models(self):
         """Default config includes command_models."""
@@ -184,7 +185,6 @@ class TestAC6CommandModelOverride:
 
     def test_resolve_model_id_sonnet(self):
         """_resolve_opencode_model_id resolves 'sonnet' to provider model ID."""
-        # Mock provider config
         providers = {
             "my-provider": {
                 "models": {
@@ -198,13 +198,7 @@ class TestAC6CommandModelOverride:
 
     def test_resolve_model_id_haiku(self):
         """_resolve_opencode_model_id resolves 'haiku' to provider model ID."""
-        providers = {
-            "my-provider": {
-                "models": {
-                    "claude-haiku-4.5": {"name": "Haiku"},
-                }
-            }
-        }
+        providers = {"my-provider": {"models": {"claude-haiku-4.5": {"name": "Haiku"}}}}
         result = _resolve_opencode_model_id("haiku", providers)
         assert result == "my-provider/claude-haiku-4.5"
 
@@ -221,7 +215,7 @@ class TestAC6CommandModelOverride:
 
 
 # ===========================================================================
-# Skills.py doc string update
+# R4: Skills.py doc string update
 # ===========================================================================
 
 
@@ -232,7 +226,6 @@ class TestR4DocStrings:
         """Skill doc strings mention OpenCode path."""
         from pactkit.prompts import skills as skills_mod
 
-        # Check SKILL_VISUALIZE_MD or similar
         full_text = ""
         for attr_name in dir(skills_mod):
             val = getattr(skills_mod, attr_name)

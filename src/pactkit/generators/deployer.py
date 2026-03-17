@@ -270,24 +270,18 @@ def _deploy_opencode(target=None):
     n_rules = _deploy_rules(opencode_root, all_rules)
     # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
     _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
-    # STORY-071 R7: Update global opencode.json with instructions
-    _update_global_opencode_json(opencode_root)
-    # STORY-069 R7: Use OpenCode tools format (record, not string)
-    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
-    # STORY-070 R1 + STORY-073 R1: Use OpenCode command frontmatter format with model routing
+    # STORY-073 R1: Load providers and command_models for model routing in opencode.json
     providers = _load_opencode_providers(opencode_root)
     if not providers:
         # Fallback: try global config (when deploying to target != real global dir)
         providers = _load_opencode_providers(Path.home() / ".config" / "opencode")
     command_models = load_config().get("command_models", {})
-    n_commands = _deploy_commands(
-        commands_dir,
-        all_commands,
-        skills_prefix=prefix,
-        opencode_format=True,
-        command_models=command_models,
-        providers=providers,
-    )
+    # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
+    _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
+    # STORY-069 R7: Use OpenCode tools format (record, not string)
+    n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
+    # STORY-070 R1: Use OpenCode command frontmatter format (no model: in frontmatter)
+    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix, opencode_format=True)
 
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
@@ -567,8 +561,6 @@ def _deploy_commands(
     enabled_commands,
     skills_prefix=CLASSIC_SKILLS_PREFIX,
     opencode_format=False,
-    command_models=None,
-    providers=None,
 ):
     """Deploy command playbooks filtered by config.
 
@@ -577,8 +569,7 @@ def _deploy_commands(
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
         opencode_format: If True, convert frontmatter to OpenCode format (STORY-070 R1).
             Replaces 'allowed-tools: [...]' with 'agent: build'.
-        command_models: Dict of command_name -> model short name (STORY-073 R1).
-        providers: Dict of provider config from opencode.json (STORY-073 R1).
+            Model routing is in opencode.json 'command' section, not in frontmatter.
     """
     enabled_set = set(enabled_commands)
 
@@ -599,11 +590,9 @@ def _deploy_commands(
         if cmd_name not in enabled_set:
             continue
 
-        # STORY-070 R1 + STORY-073 R1: Convert frontmatter for OpenCode
+        # STORY-070 R1: Convert frontmatter for OpenCode
         if opencode_format:
-            content = _convert_command_frontmatter_opencode(
-                content, cmd_name=cmd_name, command_models=command_models, providers=providers
-            )
+            content = _convert_command_frontmatter_opencode(content)
 
         rewritten = _rewrite_skills_prefix(content, skills_prefix)
         atomic_write(commands_dir / filename, rewritten)
@@ -642,11 +631,12 @@ def _load_opencode_providers(opencode_root):
 
 
 def _convert_command_frontmatter_opencode(content, cmd_name=None, command_models=None, providers=None):
-    """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1, STORY-073 R1).
+    """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1).
 
     Replaces 'allowed-tools: [...]' with 'agent: build' in the YAML frontmatter.
-    Adds 'model: provider/model-id' if command_models specifies a model for this command.
-    Preserves the description and body content.
+    Note: Model routing is NOT written to frontmatter (provider-specific IDs should not
+    be baked into shared files). Instead, model routing is configured in opencode.json
+    via the 'command' section by _update_global_opencode_json().
     """
     if not content.startswith("---"):
         return content
@@ -671,14 +661,6 @@ def _convert_command_frontmatter_opencode(content, cmd_name=None, command_models
             if stripped.startswith("agent:"):
                 has_agent = True
             new_lines.append(line)
-
-    # STORY-073 R1: Add model field if command has a model mapping
-    if cmd_name and command_models and providers:
-        model_short = command_models.get(cmd_name)
-        if model_short:
-            model_id = _resolve_opencode_model_id(model_short, providers)
-            if model_id:
-                new_lines.append(f"model: {model_id}")
 
     return "---\n" + "\n".join(new_lines) + "\n---" + parts[2]
 
@@ -1283,11 +1265,14 @@ def _deploy_opencode_json(opencode_root):
     atomic_write(opencode_root / "opencode.json", content)
 
 
-def _update_global_opencode_json(opencode_root):
-    """Update global opencode.json with instructions field (STORY-071 R7).
+def _update_global_opencode_json(opencode_root, command_models=None, providers=None):
+    """Update global opencode.json with instructions and command model routing.
+
+    STORY-071 R7: Add instructions for modular rule loading.
+    STORY-073 R1: Add command model routing (in opencode.json, not in command files).
 
     Merge strategy: preserve existing user config (provider, permission, mcp),
-    only add/update the 'instructions' field.
+    only add/update 'instructions' and 'command' fields.
     """
     json_path = opencode_root / "opencode.json"
     config = {}
@@ -1304,6 +1289,19 @@ def _update_global_opencode_json(opencode_root):
 
     # STORY-071 R7: Set instructions to load modular rules
     config["instructions"] = ["rules/*.md"]
+
+    # STORY-073 R1: Add command model routing
+    # Only write commands that have a model AND can be resolved to a provider model ID
+    if command_models and providers:
+        cmd_config = config.get("command", {})
+        for cmd_name, model_short in command_models.items():
+            model_id = _resolve_opencode_model_id(model_short, providers)
+            if model_id:
+                if cmd_name not in cmd_config:
+                    cmd_config[cmd_name] = {}
+                cmd_config[cmd_name]["model"] = model_id
+        if cmd_config:
+            config["command"] = cmd_config
 
     content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
     atomic_write(json_path, content)
