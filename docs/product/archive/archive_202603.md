@@ -193,3 +193,10 @@
 - [x] R3 YAML 注释去 ~/.claude/
 - [x] R4 源码文档字符串更新
 - [x] 测试
+
+### [STORY-slim-001] Tool Integration Guide: Checklist for New AI Tool Adaptation
+> Spec: docs/specs/STORY-slim-001.md
+
+- [x] R1 创建 10 维度集成检查清单
+- [x] R2 Codex 预研模板
+- [x] R3 /project-plan 提示引用

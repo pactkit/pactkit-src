@@ -15,6 +15,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Agent**: System Architect
 
 ## 🧠 Phase 0: The Thinking Process (Mandatory)
+> **Tool Integration Note**: If the request involves adapting PactKit to a new AI coding tool (new `format` value like `codex`, `cursor`, etc.), **always start** by consulting `docs/guides/tool-integration-checklist.md`. Complete Dimension 0 (capability matrix) before writing any code. See also `docs/guides/codex-integration-preresearch.md` for an example pre-research template.
+
 1.  **Analyze Intent**: New feature (Expansion) or Bugfix/Refactor (Modification)?
 2.  **Strategy**:
     - If **New Feature**: Focus on `system_design.mmd` (Architecture).
