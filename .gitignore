@@ -43,3 +43,4 @@ docs/architecture/snapshots/
 *.bak
 .mcp.json
 coder/
+docker/
