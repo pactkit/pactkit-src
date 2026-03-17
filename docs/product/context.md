@@ -8,19 +8,19 @@ Backlog: 0 | In Progress: 0 | Done: STORY-slim-008, STORY-slim-007, STORY-slim-0
 - None active
 
 ## Recent Completions
-- STORY-slim-008: Deploy Chain Parity — `_deploy_opencode()` now reads pactkit.yaml, calls auto_merge/cleanup_legacy/_generate_project_agents_md/_print_mcp_recommendations; `_generate_config_if_missing(format=)` is format-aware
-- STORY-slim-007: Document Schema Registry — `schemas.py` as single source of truth; spec_linter imports schemas; scaffold/board inline with source-of-truth comment; `{CONTEXT_SECTIONS}` and `{LESSONS_ROW_FORMAT}` injected into render_prompt; `pactkit schema` CLI command added
-- STORY-slim-006: Prompt Template Variables — 48 hardcoded paths → 11 template variables via `_render_prompt()`
+- chore/rules: 08-architecture-principles.md (SOLID/DRY/12-Factor), CLAUDE_MD_TEMPLATE auto-gen, daily-retro skill (6-dimension personal growth feedback loop)
+- STORY-slim-008: Deploy Chain Parity — OpenCode now has full parity with Classic
+- STORY-slim-007: Document Schema Registry — schemas.py single source of truth
 
 ## Active Branches
 - `main` — current production (v2.0.2)
-- `codex-integration` — preresearch complete, specs ready for implementation
+- `codex-integration` — preresearch complete, specs ready
 
 ## Key Decisions
-- **schemas.py** (`src/pactkit/schemas.py`): single source of truth for all 5 doc structure types; standalone scripts (board.py, scaffold.py) inline copies with source-of-truth comment; spec_linter.py imports directly with fallback
-- **_deploy_opencode parity**: Added auto_merge + _cleanup_legacy + _generate_project_agents_md + _print_mcp_recommendations_opencode; no premature _deploy_standard() abstraction
-- **`_generate_config_if_missing(format=)`**: Now accepts format param, uses resolve_pactkit_yaml_dir(format=) for correct path selection
+- **08-architecture-principles.md**: 8 rules covering SOLID, DRY, 12-Factor, Defense-in-Depth, deployed to all formats via RULES_FILES auto-discovery
+- **CLAUDE_MD_TEMPLATE auto-gen**: `sorted(RULES_FILES.values())` → no more manual @import list
+- **daily-retro skill**: 6 dimensions (engineering, architecture, new skills, thinking patterns, process, career); Memory MCP persistence; triggered daily via context.md date check
 
 ## Next Recommended Action
-- Version bump to 2.1.0 for FormatProfile + schemas + deploy parity release
-- Then: codex-integration branch — start STORY-slim-002 (Codex CLI deploy architecture + Agent TOML)
+- Version bump to 2.1.0 then release
+- Switch to `codex-integration` branch → start STORY-slim-002 (Codex CLI deploy architecture)
