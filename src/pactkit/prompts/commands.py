@@ -601,10 +601,20 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 1.  **Check CLI Availability**: Run `pactkit version` to check if CLI is available.
     - **If available**: Proceed to Step 2.
     - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `pactkit.yaml` (in `.claude/` or `.opencode/` depending on environment) with `stack: <detected>`, `version: 0.0.1`, `root: .`, `developer: ""` and skip to Step 4.
-2.  **Generate Config**: Check if `pactkit.yaml` exists (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
-    - **If missing**: Run `pactkit init` to generate complete configuration (auto-detects environment).
-    - **If exists**: Run `pactkit update` to backfill any missing sections (preserves user customizations).
-3.  **Stack Detection** (config-first, then file-based fallback):
+2.  **Environment Detection** (MUST run BEFORE any `pactkit init/update` call — BUG-slim-001):
+    - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
+    - Set `DETECTED_ENV`:
+      - **OpenCode detected** → `DETECTED_ENV=opencode`
+      - **Otherwise** → `DETECTED_ENV=classic`
+    - This variable determines the `--format` flag for all subsequent `pactkit` CLI calls.
+3.  **Generate Config**: Check if `pactkit.yaml` exists (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - **If missing**:
+      - If `DETECTED_ENV=opencode`: Run `pactkit init --format opencode`
+      - If `DETECTED_ENV=classic`: Run `pactkit init`
+    - **If exists**:
+      - If `DETECTED_ENV=opencode`: Run `pactkit update --format opencode`
+      - If `DETECTED_ENV=classic`: Run `pactkit update`
+4.  **Stack Detection** (config-first, then file-based fallback):
     - **Config-first**: If `pactkit.yaml` exists (in `.claude/` or `.opencode/`) and has a `stack` value set (including `auto`), use that value and skip file-based detection.
     - **File-based detection** (only if no config value):
       - Valid values: `python`, `node`, `go`, `java`, `auto`
@@ -614,44 +624,42 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
       - If `pom.xml` or `build.gradle` exists → `stack: java`
     - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `pactkit.yaml` later."
     - Do NOT block on user input for stack selection mid-flow.
-4.  **Project Instructions File** (STORY-073 R2 — environment-aware):
-    - **Claude Code environment** (`.claude/` exists, no OpenCode detected): Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
+5.  **Project Instructions File** (environment-aware):
+    - **If `DETECTED_ENV=classic`**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
       - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
       - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
-    - **OpenCode environment** (OpenCode detected in Step 5): Skip CLAUDE.md creation. Step 5 will create `./AGENTS.md` instead.
-5.  **OpenCode Environment Detection** (STORY-069/BUG-035/STORY-071/STORY-072):
-    - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
-    - **If OpenCode detected**:
-      - Ensure `pactkit.yaml` exists in `.opencode/` (PactKit CLI config for this project):
-        - If `.opencode/pactkit.yaml` missing AND `.claude/pactkit.yaml` missing: Run `pactkit init` (generates to `.opencode/pactkit.yaml` since `.opencode/` exists).
-        - If `.claude/pactkit.yaml` exists: skip (Claude Code user who also has OpenCode — config already present).
-      - Generate `./opencode.json` if missing (use `_deploy_opencode_json()` helper which includes `permission` and `mcp` config):
-        ```json
-        {
-          "$schema": "https://opencode.ai/config.json",
-          "instructions": ["AGENTS.md", "docs/product/context.md"],
-          "permission": { "edit": "allow", "bash": { "*": "allow", "rm -rf /*": "deny" } },
-          "mcp": { "context7": { "type": "remote", "url": "https://mcp.context7.com/mcp" } }
-        }
-        ```
-      - Generate `./AGENTS.md` if missing (project instructions, can reference global AGENTS.md or be standalone).
-      - Print: "ℹ️ OpenCode environment detected. Generated opencode.json, AGENTS.md, and pactkit.yaml."
-    - **If NOT OpenCode**: Skip silently.
+    - **If `DETECTED_ENV=opencode`**: Do NOT create `.claude/` or `CLAUDE.md`. Proceed to Step 6.
+6.  **OpenCode Project Setup** (only if `DETECTED_ENV=opencode`):
+    - Ensure `pactkit.yaml` exists in `.opencode/` (already handled by Step 3).
+    - Generate `./opencode.json` if missing:
+      ```json
+      {
+        "$schema": "https://opencode.ai/config.json",
+        "instructions": ["AGENTS.md", "docs/product/context.md"],
+        "permission": { "edit": "allow", "bash": { "*": "allow", "rm -rf /*": "deny" } },
+        "mcp": { "context7": { "type": "remote", "url": "https://mcp.context7.com/mcp" } }
+      }
+      ```
+    - Generate `./AGENTS.md` if missing (project instructions, can reference global AGENTS.md or be standalone).
+    - Print: "ℹ️ OpenCode environment detected. Generated opencode.json, AGENTS.md, and pactkit.yaml."
 
 ## 🎬 Phase 2: Architecture Governance
-1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch`.
+1.  **Scaffold**: Determine the skills path based on `DETECTED_ENV`:
+    - If `DETECTED_ENV=opencode`: `SKILLS_PATH=~/.config/opencode/skills`
+    - If `DETECTED_ENV=classic`: `SKILLS_PATH=~/.claude/skills`
+    Run `python3 $SKILLS_PATH/pactkit-visualize/scripts/visualize.py init_arch`.
     - *Result*: Folders created. Placeholders (`system_design.mmd`) created.
 2.  **Ensure**: `mkdir -p docs/product docs/specs docs/test_cases tests/e2e/api tests/e2e/browser tests/unit`.
 
 ## 🎬 Phase 3: Discovery (Reverse Engineering)
-1.  **Scan Reality**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize`.
+1.  **Scan Reality**: Run `python3 $SKILLS_PATH/pactkit-visualize/scripts/visualize.py visualize`.
     - *Goal*: If this is an existing project, overwrite the empty `code_graph.mmd` with the REAL class structure immediately.
-2.  **Class Scan**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py visualize --mode class`.
+2.  **Class Scan**: Run `python3 $SKILLS_PATH/pactkit-visualize/scripts/visualize.py visualize --mode class`.
 3.  **Verify**: Read `docs/architecture/graphs/code_graph.mmd` and `class_graph.mmd`.
     - *Check*: Is it still "No code yet"? If files exist in src, this graph MUST contain classes.
 
 ## 🎬 Phase 4: Project Skeleton
-1.  **Board**: Run `python3 ~/.claude/skills/pactkit-scaffold/scripts/scaffold.py create_board` if `docs/product/sprint_board.md` does not exist.
+1.  **Board**: Run `python3 $SKILLS_PATH/pactkit-scaffold/scripts/scaffold.py create_board` if `docs/product/sprint_board.md` does not exist.
     - This ensures the board has all three section headers: `## 📋 Backlog`, `## 🔄 In Progress`, `## ✅ Done`.
 
 ## 🎬 Phase 5: Knowledge Base (The Law)
