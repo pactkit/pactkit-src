@@ -6,11 +6,12 @@ RULES_MODULES = {
 ## Session Context
 On new session, read `docs/product/context.md` to understand project state before taking action.
 If the file is missing, suggest `/project-init` to bootstrap the project.
+If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## Visual First
-Understand the current state before modifying code:
-- Run `visualize` to view the module dependency graph (mandatory before modification)
-- Run `visualize --mode class` to view class inheritance relationships
+Before modifying code:
+- Run `visualize` to view module dependency graph
+- Run `visualize --mode class` for class inheritance
 - Run `visualize --mode call --entry <func>` to trace call chains
 
 ## Strict TDD
