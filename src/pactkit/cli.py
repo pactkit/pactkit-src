@@ -6,6 +6,7 @@ Usage:
     pactkit update                # Re-deploy (same as init, idempotent)
     pactkit version               # Show version
 """
+
 import argparse
 
 from pactkit import __version__
@@ -21,7 +22,8 @@ def main():
     # pactkit init
     init_parser = subparsers.add_parser("init", help="Deploy PactKit configuration")
     init_parser.add_argument(
-        "-t", "--target",
+        "-t",
+        "--target",
         type=str,
         default=None,
         help="Custom target directory (default: ~/.claude)",
@@ -29,9 +31,9 @@ def main():
     init_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace"],
+        choices=["classic", "plugin", "marketplace", "opencode"],
         default="classic",
-        help="Output format: classic (default), plugin, or marketplace",
+        help="Output format: classic (default), plugin, marketplace, or opencode",
     )
     init_parser.add_argument(
         "--agent",
@@ -63,7 +65,8 @@ def main():
     # pactkit update (alias for init)
     update_parser = subparsers.add_parser("update", help="Re-deploy PactKit configuration")
     update_parser.add_argument(
-        "-t", "--target",
+        "-t",
+        "--target",
         type=str,
         default=None,
         help="Custom target directory (default: ~/.claude)",
@@ -71,9 +74,9 @@ def main():
     update_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace"],
+        choices=["classic", "plugin", "marketplace", "opencode"],
         default="classic",
-        help="Output format: classic (default), plugin, or marketplace",
+        help="Output format: classic (default), plugin, marketplace, or opencode",
     )
     update_parser.add_argument(
         "--agent",
@@ -105,7 +108,8 @@ def main():
     # pactkit upgrade (alias for init, migrates legacy scafpy files)
     upgrade_parser = subparsers.add_parser("upgrade", help="Upgrade PactKit (migrate legacy scafpy config)")
     upgrade_parser.add_argument(
-        "-t", "--target",
+        "-t",
+        "--target",
         type=str,
         default=None,
         help="Custom target directory (default: ~/.claude)",
@@ -113,9 +117,9 @@ def main():
     upgrade_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace"],
+        choices=["classic", "plugin", "marketplace", "opencode"],
         default="classic",
-        help="Output format: classic (default), plugin, or marketplace",
+        help="Output format: classic (default), plugin, marketplace, or opencode",
     )
     # STORY-060: Enterprise flags for upgrade (parity with init/update)
     upgrade_parser.add_argument(
@@ -154,16 +158,18 @@ def main():
 
     if args.command in ("init", "update", "upgrade"):
         from pactkit.generators.deployer import deploy
+
         deploy(
             target=args.target,
             format=args.format,
-            no_git=getattr(args, 'no_git', False),
-            no_external=getattr(args, 'no_external', False),
-            non_interactive=getattr(args, 'non_interactive', False),
+            no_git=getattr(args, "no_git", False),
+            no_external=getattr(args, "no_external", False),
+            non_interactive=getattr(args, "non_interactive", False),
         )
 
     elif args.command == "spec-lint":
         from pactkit.skills.spec_linter import main as spec_lint_main
+
         argv = []
         if args.all:
             argv += ["--all", "--specs-dir", args.specs_dir]

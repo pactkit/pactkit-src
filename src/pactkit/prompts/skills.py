@@ -24,7 +24,7 @@ description: "Generate project code dependency graph (Mermaid), supporting file-
 
 Generate project code relationship graphs (Mermaid format), supporting three analysis modes.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-visualize/scripts/visualize.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-visualize/scripts/visualize.py`, OpenCode: `~/.config/opencode/skills/pactkit-visualize/scripts/visualize.py`
 
 ## Prerequisites
 - The project must have Python source files (`.py`) to generate meaningful graphs
@@ -85,7 +85,7 @@ description: "Sprint Board atomic operations: add Story, update Task, archive co
 
 Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-board/scripts/board.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-board/scripts/board.py`, OpenCode: `~/.config/opencode/skills/pactkit-board/scripts/board.py`
 
 ## Prerequisites
 - `docs/product/sprint_board.md` must exist (created by `/project-init`)
@@ -159,7 +159,7 @@ description: "File scaffolding: create Spec, test files, E2E tests, Git branches
 
 Project file scaffolding tool for quickly creating standardized project files.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-scaffold/scripts/scaffold.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-scaffold/scripts/scaffold.py`, OpenCode: `~/.config/opencode/skills/pactkit-scaffold/scripts/scaffold.py`
 
 ## Prerequisites
 - `docs/specs/` directory must exist (required by `create_spec`)
@@ -391,7 +391,7 @@ Diagnostic tool for project health — config drift, missing files, stale graphs
 - Suggest: "Run `/project-plan` to create missing specs."
 
 ### 4. Configuration Drift Detection
-- Compare `pactkit.yaml` against deployed files in `.claude/`:
+- Compare `pactkit.yaml` (in `.claude/` or `.opencode/`) against deployed files:
   - Check if enabled agents match deployed agent files.
   - Check if enabled rules match deployed rule files.
   - Check if enabled skills match deployed skill directories.
@@ -399,7 +399,7 @@ Diagnostic tool for project health — config drift, missing files, stale graphs
 - Suggest: "Run `pactkit update` to sync configuration."
 
 ### 5. Infrastructure & Data
-- Verify `.claude/pactkit.yaml` exists and is valid.
+- Verify `pactkit.yaml` exists (in `.claude/pactkit.yaml` or `.opencode/pactkit.yaml`) and is valid.
 - Check Specs vs Board linkage (every board story should have a spec).
 - Check if `tests/e2e/` is empty.
 

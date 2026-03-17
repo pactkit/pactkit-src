@@ -1,26 +1,28 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-13 by /project-done
+> Last updated: 2026-03-17 by /project-done
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: BUG-033
+Backlog: 0 | In Progress: 0 | Done: STORY-073, STORY-072, STORY-071, STORY-070, STORY-069, BUG-035
 
 ## Current Stories
-None — sprint board empty.
+- None active
 
 ## Recent Completions
-- BUG-033: scaffold.py create_spec() template updated to pass spec-lint — metadata table format, R1 subsections, {VERSION} placeholder, 4 new tests
-- BUG-031: CLAUDE.local.md docstring contradicts managed block behavior — updated docstring and template comment, 4 tests
-- BUG-032: Missing E2E CLI test for spec-lint subcommand — added 4 E2E subprocess tests
+- STORY-073: OpenCode Format Final Mile — Command Model Routing + Claude Code Residuals
+- STORY-072: Multi-Developer Story ID Prefix — pactkit.yaml multi-path + developer field
+- STORY-071: OpenCode Config Parity — Rules Modularization, Permission, MCP
+- STORY-070: OpenCode Format Compliance — agent mode, command frontmatter
 
 ## Active Branches
-None
+- `opencode-test` — OpenCode deployment format (ready to merge)
 
 ## Key Decisions
-- When adding a validation linter, update all code generators to produce output that passes the new rules — test generator output against linter directly (BUG-033)
-- When a new feature changes a file's lifecycle, update all docstrings and template comments that describe the old lifecycle (BUG-031)
-- When adding to a prompt with a hard char-size assertion, compute net delta before writing (STORY-065)
-- Files that are both pactkit-managed and user-editable need `<!-- pactkit:block:start/end -->` markers (STORY-064)
-- Playbook fallbacks must never block on user input — use config-first resolution + non-blocking defaults (BUG-029)
+- Command model 路由：frontmatter `model:` 字段 + command_models 配置 + provider 自动映射
+- pactkit.yaml 跟着 AI 工具目录走：.claude/ 或 .opencode/
+- developer 前缀解决多人 Story ID 冲突
+- OpenCode rules 模块化：AGENTS.md header + rules/*.md + instructions
+- /project-init 条件分支：Claude Code → CLAUDE.md, OpenCode → AGENTS.md
 
 ## Next Recommended Action
-`/project-plan` — Sprint board is empty. Plan the next story.
+1. 运行 `pactkit init --format opencode` 重新部署（model 路由生效）
+2. 运行 `/project-pr` 将 opencode-test 分支合并到 main

@@ -1,5 +1,5 @@
 # Safe markdown helper
-M = '```'
+M = "```"
 
 # ==============================================================================
 # TRACE PROMPT
@@ -60,49 +60,49 @@ sequenceDiagram
 # ==============================================================================
 
 LANG_PROFILES = {
-    'python': {
-        'test_runner': 'pytest',
-        'test_dir': 'tests/',
-        'file_ext': '.py',
-        'source_dirs': ['src/'],
-        'cleanup': ['__pycache__', '.pytest_cache', '*.pyc'],
-        'package_file': 'pyproject.toml',
-        'e2e_test_pattern': 'test_{ID}.py',
-        'test_map_pattern': 'tests/unit/test_{module}.py',
-        'lint_command': 'ruff check src/ tests/',
+    "python": {
+        "test_runner": "pytest",
+        "test_dir": "tests/",
+        "file_ext": ".py",
+        "source_dirs": ["src/"],
+        "cleanup": ["__pycache__", ".pytest_cache", "*.pyc"],
+        "package_file": "pyproject.toml",
+        "e2e_test_pattern": "test_{ID}.py",
+        "test_map_pattern": "tests/unit/test_{module}.py",
+        "lint_command": "ruff check src/ tests/",
     },
-    'node': {
-        'test_runner': 'npx jest',
-        'test_dir': '__tests__/',
-        'file_ext': '.ts',
-        'source_dirs': ['src/', 'lib/', 'app/', 'pages/'],
-        'cleanup': ['node_modules/.cache', '.next', 'dist', 'coverage'],
-        'package_file': 'package.json',
-        'e2e_test_pattern': '{ID}.test.ts',
-        'test_map_pattern': '__tests__/{module}.test.ts',
-        'lint_command': 'npx eslint .',
+    "node": {
+        "test_runner": "npx jest",
+        "test_dir": "__tests__/",
+        "file_ext": ".ts",
+        "source_dirs": ["src/", "lib/", "app/", "pages/"],
+        "cleanup": ["node_modules/.cache", ".next", "dist", "coverage"],
+        "package_file": "package.json",
+        "e2e_test_pattern": "{ID}.test.ts",
+        "test_map_pattern": "__tests__/{module}.test.ts",
+        "lint_command": "npx eslint .",
     },
-    'go': {
-        'test_runner': 'go test ./...',
-        'test_dir': '*_test.go',
-        'file_ext': '.go',
-        'source_dirs': ['./'],
-        'cleanup': ['cover.out', 'cover.html'],
-        'package_file': 'go.mod',
-        'e2e_test_pattern': '{ID}_test.go',
-        'test_map_pattern': '{package}/{module}_test.go',
-        'lint_command': 'golangci-lint run',
+    "go": {
+        "test_runner": "go test ./...",
+        "test_dir": "*_test.go",
+        "file_ext": ".go",
+        "source_dirs": ["./"],
+        "cleanup": ["cover.out", "cover.html"],
+        "package_file": "go.mod",
+        "e2e_test_pattern": "{ID}_test.go",
+        "test_map_pattern": "{package}/{module}_test.go",
+        "lint_command": "golangci-lint run",
     },
-    'java': {
-        'test_runner': 'mvn test',
-        'test_dir': 'src/test/java/',
-        'file_ext': '.java',
-        'source_dirs': ['src/main/java/'],
-        'cleanup': ['target/', 'build/', '.gradle/'],
-        'package_file': 'pom.xml',
-        'e2e_test_pattern': '{ID}Test.java',
-        'test_map_pattern': 'src/test/java/{package}/{module}Test.java',
-        'lint_command': 'mvn checkstyle:check',
+    "java": {
+        "test_runner": "mvn test",
+        "test_dir": "src/test/java/",
+        "file_ext": ".java",
+        "source_dirs": ["src/main/java/"],
+        "cleanup": ["target/", "build/", ".gradle/"],
+        "package_file": "pom.xml",
+        "e2e_test_pattern": "{ID}Test.java",
+        "test_map_pattern": "src/test/java/{package}/{module}Test.java",
+        "lint_command": "mvn checkstyle:check",
     },
 }
 
@@ -294,7 +294,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2. `TeamCreate("sprint-{STORY_ID}")`.
 3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Check-Security (blockedBy: Act), Close (blockedBy: both Checks).
 4. Verify worktree support (`git worktree list`). Use `isolation="worktree"` if supported.
-5. Read `.claude/pactkit.yaml`, extract `agent_models`: `plan_model=agent_models.get('system-architect','opus')`, `act_model=agent_models.get('senior-developer','sonnet')`. Default: fallback to `sonnet` if model unavailable.
+5. Read `pactkit.yaml` (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`), extract `agent_models`: `plan_model=agent_models.get('system-architect','opus')`, `act_model=agent_models.get('senior-developer','sonnet')`. Default: fallback to `sonnet` if model unavailable.
 
 ## Phase 1: PDCA Execution
 

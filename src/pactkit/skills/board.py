@@ -168,8 +168,14 @@ def update_task(sid, tasks_list):
     return f'❌ Task not found in {sid}: {task_name}'
 
 def update_version(version):
-    yaml_path = Path.cwd() / '.claude' / 'pactkit.yaml'
-    if not yaml_path.exists():
+    # STORY-072: Multi-path lookup (.claude/ then .opencode/)
+    yaml_path = None
+    for c in ['.claude/pactkit.yaml', '.opencode/pactkit.yaml']:
+        p = Path.cwd() / c
+        if p.exists():
+            yaml_path = p
+            break
+    if yaml_path is None:
         return '⚠️ No pactkit.yaml found, skipping version update'
     content = yaml_path.read_text(encoding='utf-8')
     content = re.sub(r'version:\s*\S+', f'version: {version}', content)

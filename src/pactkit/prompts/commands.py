@@ -29,7 +29,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 > **INSTRUCTION**: Check if the project has been initialized before proceeding.
 1.  **Check Markers**: Verify the existence of ALL three:
-    - `.claude/pactkit.yaml` (project-level config)
+    - `.claude/pactkit.yaml` or `.opencode/pactkit.yaml` (project-level config)
     - `docs/product/sprint_board.md` (sprint board)
     - `docs/architecture/graphs/` (architecture graph directory)
 2.  **If ANY marker is missing**:
@@ -83,12 +83,27 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3: Deliverables
-1.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
+1.  **Story ID Generation** (STORY-072):
+    - Read `developer` from `pactkit.yaml` (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
+    - If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
+    - NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
+2.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
+    - **MUST — Metadata Table**: Include a metadata table at the top of the Spec using this EXACT format:
+      ```markdown
+      | Field | Value |
+      |-------|-------|
+      | ID | {ID} |
+      | Status | Draft |
+      | Priority | P2 |
+      | Release | {version} |
+      ```
+      Field names MUST be exact case (ID, Status, Priority, Release) — not bold, not different names.
     - *Requirement*: Include a "Target Call Chain" section in the Spec based on your Trace findings.
     - **MUST**: Fill in the `## Requirements` section using RFC 2119 keywords (MUST/SHOULD/MAY).
     - **MUST**: Fill in the `## Acceptance Criteria` section with Given/When/Then scenarios.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
-    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `.claude/pactkit.yaml` (or `pyproject.toml`). Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
+    - **MUST**: Fill in the `Release` metadata field by reading the `version` field from `pactkit.yaml` (in `.claude/` or `.opencode/`) or `pyproject.toml`. Use that EXACT value — do NOT increment or predict a future version. If the file cannot be read, use `TBD`.
     - **OPTIONAL — Implementation Steps**: If Phase 1 Trace identifies 2+ files to modify, add `## Implementation Steps` section with table format:
       ```
       | Step | File | Action | Dependencies | Risk |
@@ -125,7 +140,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4.  **Session Context Update**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-plan`.
 5.  **Handover**: "Trace complete. Spec created. Ready for Act."
 """,
-
     # [FIX] Added Board Update Step to Phase 4
     "project-act.md": """---
 description: "Implement code per Spec, strict TDD"
@@ -216,7 +230,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Update Reality (Lazy Visualize)**: Apply the Lazy Visualize Protocol (see Shared Protocols) — run `visualize`, `--mode class`, and `--mode call` if source files changed.
 3.  **Update Board (CRITICAL)**: Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
 """,
-
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
 allowed-tools: [Read, Bash, Grep, Glob]
@@ -367,7 +380,6 @@ Choose the strategy identified in Phase 0:
 - E2E: X passed, Y failed
 ```
 """,
-
     # [FIX] Upgraded to v19.5 and added Auto-Fix Logic
     "project-done.md": """---
 description: "Code cleanup, Board update, Git commit"
@@ -532,7 +544,6 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 1.  **Write Context**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Include sections: Sprint Status, Recent Completions, Active Branches, Key Decisions, Next Recommended Action. Set "Last updated by" to `/project-done`.
 2.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
 """,
-
     "project-clarify.md": """---
 description: "Standalone requirement clarification before planning"
 allowed-tools: [Read, Bash, Glob, Grep]
@@ -562,7 +573,6 @@ allowed-tools: [Read, Bash, Glob, Grep]
     ```
 2.  Output: "Ready for Plan. Run: `/project-plan \\"{clarified brief summary}\\"`"
 """,
-
     "project-init.md": """---
 description: "Initialize project scaffolding and governance structure"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
@@ -588,23 +598,43 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🎬 Phase 1: Environment & Config
 1.  **Check CLI Availability**: Run `pactkit version` to check if CLI is available.
     - **If available**: Proceed to Step 2.
-    - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `.claude/pactkit.yaml` with `stack: <detected>`, `version: 0.0.1`, `root: .` and skip to Step 4.
-2.  **Generate Config**: Check if `./.claude/pactkit.yaml` exists.
-    - **If missing**: Run `pactkit init` to generate complete configuration.
+    - **If NOT available** (command fails): Print warning: "⚠️ pactkit CLI not found. Install with: `pip install pactkit`". Then manually create a minimal `pactkit.yaml` (in `.claude/` or `.opencode/` depending on environment) with `stack: <detected>`, `version: 0.0.1`, `root: .`, `developer: ""` and skip to Step 4.
+2.  **Generate Config**: Check if `pactkit.yaml` exists (check `.claude/pactkit.yaml` then `.opencode/pactkit.yaml`).
+    - **If missing**: Run `pactkit init` to generate complete configuration (auto-detects environment).
     - **If exists**: Run `pactkit update` to backfill any missing sections (preserves user customizations).
 3.  **Stack Detection** (config-first, then file-based fallback):
-    - **Config-first**: If `.claude/pactkit.yaml` exists and has a `stack` value set (including `auto`), use that value and skip file-based detection.
+    - **Config-first**: If `pactkit.yaml` exists (in `.claude/` or `.opencode/`) and has a `stack` value set (including `auto`), use that value and skip file-based detection.
     - **File-based detection** (only if no config value):
       - Valid values: `python`, `node`, `go`, `java`, `auto`
       - If `pyproject.toml` or `requirements.txt` or `setup.py` exists → `stack: python`
       - If `package.json` exists → `stack: node`
       - If `go.mod` exists → `stack: go`
       - If `pom.xml` or `build.gradle` exists → `stack: java`
-    - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `.claude/pactkit.yaml` later."
+    - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `pactkit.yaml` later."
     - Do NOT block on user input for stack selection mid-flow.
-4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
-    - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
-    - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+4.  **Project Instructions File** (STORY-073 R2 — environment-aware):
+    - **Claude Code environment** (`.claude/` exists, no OpenCode detected): Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
+      - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
+      - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+    - **OpenCode environment** (OpenCode detected in Step 5): Skip CLAUDE.md creation. Step 5 will create `./AGENTS.md` instead.
+5.  **OpenCode Environment Detection** (STORY-069/BUG-035/STORY-071/STORY-072):
+    - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
+    - **If OpenCode detected**:
+      - Ensure `pactkit.yaml` exists in `.opencode/` (PactKit CLI config for this project):
+        - If `.opencode/pactkit.yaml` missing AND `.claude/pactkit.yaml` missing: Run `pactkit init` (generates to `.opencode/pactkit.yaml` since `.opencode/` exists).
+        - If `.claude/pactkit.yaml` exists: skip (Claude Code user who also has OpenCode — config already present).
+      - Generate `./opencode.json` if missing (use `_deploy_opencode_json()` helper which includes `permission` and `mcp` config):
+        ```json
+        {
+          "$schema": "https://opencode.ai/config.json",
+          "instructions": ["AGENTS.md", "docs/product/context.md"],
+          "permission": { "edit": "allow", "bash": { "*": "allow", "rm -rf /*": "deny" } },
+          "mcp": { "context7": { "type": "remote", "url": "https://mcp.context7.com/mcp" } }
+        }
+        ```
+      - Generate `./AGENTS.md` if missing (project instructions, can reference global AGENTS.md or be standalone).
+      - Print: "ℹ️ OpenCode environment detected. Generated opencode.json, AGENTS.md, and pactkit.yaml."
+    - **If NOT OpenCode**: Skip silently.
 
 ## 🎬 Phase 2: Architecture Governance
 1.  **Scaffold**: Run `python3 ~/.claude/skills/pactkit-visualize/scripts/visualize.py init_arch`.
@@ -633,7 +663,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 1.  **Output**: "✅ PactKit Initialized. Reality Graph captured. Knowledge Base ready."
 2.  **Advice**: "⚠️ IMPORTANT: Run `/project-plan 'Reverse engineer'` to align the HLD."
 """,
-
     "project-release.md": """---
 description: "Version release: snapshot, archive, Git tag, and GitHub Release"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
@@ -656,7 +685,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
       Version Update → Spec Backfill → Architecture Snapshot → Git Operations → GitHub Release.
     - Pass the detected version so the skill skips its own auto-detection step.
 """,
-
     "project-pr.md": """---
 description: "Push branch and create pull request via gh CLI"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
@@ -712,7 +740,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - `edit` → accept user feedback, regenerate, ask again
 4.  **Output**: Print PR URL on success.
 """,
-
 }
 
 # Register additional prompts into COMMANDS_CONTENT

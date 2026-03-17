@@ -11,7 +11,14 @@
 
 <p align="center"><strong>Ship features with AI agents that follow specs, not vibes.</strong></p>
 
-> PactKit gives Claude Code a structured operating system — 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
+> PactKit gives AI coding assistants a structured operating system — 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
+
+### Supported AI Tools
+
+| Tool | Format | Command |
+|------|--------|---------|
+| **Claude Code** | Classic | `pactkit init` |
+| **OpenCode** | OpenCode | `pactkit init --format opencode` |
 
 ### What it looks like
 
@@ -30,8 +37,9 @@ AI coding assistants are powerful but unpredictable without structure. PactKit a
 
 - **Spec is the Law** — Specifications are the single source of truth (Spec > Tests > Code)
 - **Multi-Agent Ensemble** — 9 specialized agents collaborate, each with defined roles
-- **Full PDCA Lifecycle** — Plan → Act → Check → Done, with quality gates at every stage
+- **Full PDCA Lifecycle** — Plan -> Act -> Check -> Done, with quality gates at every stage
 - **Safe by Design** — TDD-first development, safe regression testing, pre-existing test protection
+- **Multi-Tool Support** — Works with Claude Code and OpenCode (with model routing)
 
 ## Installation
 
@@ -39,25 +47,33 @@ AI coding assistants are powerful but unpredictable without structure. PactKit a
 pip install pactkit
 ```
 
-Requires Python 3.10+ and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+Requires Python 3.10+ and one of:
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- [OpenCode](https://opencode.ai)
 
 ## Quick Start
 
+### Claude Code
+
 ```bash
-# Deploy full toolkit (11 commands + 9 agents + 10 skills)
+# Deploy full toolkit
 pactkit init
 
 # Update to latest playbooks (preserves your config)
 pactkit update
-
-# Deploy to multiple AI agents (Claude Code + Cursor + Copilot)
-pactkit init --agent all
-
-# Check installed version
-pactkit version
 ```
 
-Then in any project with Claude Code:
+### OpenCode
+
+```bash
+# Deploy to OpenCode (global: ~/.config/opencode/)
+pactkit init --format opencode
+
+# Update existing deployment
+pactkit upgrade --format opencode
+```
+
+Then in any project:
 
 ```bash
 # Clarify — Surface ambiguities before planning
@@ -86,17 +102,17 @@ Or run the full cycle in one command:
 
 | Phase | Command | Agent | What Happens |
 |-------|---------|-------|-------------|
-| **Clarify** | `/project-clarify` | System Architect | Ambiguity detection → Structured questions → Clarified brief |
-| **Plan** | `/project-plan` | System Architect | Clarify gate → Codebase scan → Spec generation → Board entry |
-| **Act** | `/project-act` | Senior Developer | Spec lint → Consistency check → TDD loop → Regression check |
+| **Clarify** | `/project-clarify` | System Architect | Ambiguity detection -> Structured questions -> Clarified brief |
+| **Plan** | `/project-plan` | System Architect | Clarify gate -> Codebase scan -> Spec generation -> Board entry |
+| **Act** | `/project-act` | Senior Developer | Spec lint -> Consistency check -> TDD loop -> Regression check |
 | **Check** | `/project-check` | QA + Security | 8-item security checklist + quality audit + spec alignment |
-| **Done** | `/project-done` | Repo Maintainer | Regression gate → Archive → Conventional commit |
-| **Release** | `/project-release` | Repo Maintainer | Version bump → Snapshot → Git tag → GitHub Release |
-| **PR** | `/project-pr` | Repo Maintainer | Push branch → Create pull request via gh CLI |
+| **Done** | `/project-done` | Repo Maintainer | Regression gate -> Archive -> Conventional commit |
+| **Release** | `/project-release` | Repo Maintainer | Version bump -> Snapshot -> Git tag -> GitHub Release |
+| **PR** | `/project-pr` | Repo Maintainer | Push branch -> Create pull request via gh CLI |
 | **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration |
 | **Hotfix** | `/project-hotfix` | Senior Developer | Fast-track fix bypassing PDCA (with traceability) |
 | **Init** | `/project-init` | System Architect | Bootstrap project structure and governance |
-| **Design** | `/project-design` | Product Designer | PRD generation → Story decomposition → Board setup |
+| **Design** | `/project-design` | Product Designer | PRD generation -> Story decomposition -> Board setup |
 
 ### Embedded Skills (auto-invoked by commands)
 
@@ -113,7 +129,7 @@ Or run the full cycle in one command:
 | Status | system-medic | Project state overview |
 | Doctor | system-medic | Diagnose project health |
 | Review | qa-engineer | PR Code Review |
-| Analyze | senior-developer (Act inline) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
+| Analyze | senior-developer (Act inline) | Cross-artifact consistency check: Spec <-> Board <-> Test Cases |
 
 ## Agent Ensemble
 
@@ -142,11 +158,74 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 | **pactkit-scaffold** | Scripted | File scaffolding: create spec, test files, git branches, skills |
 | **pactkit-trace** | Prompt-only | Deep code tracing and execution flow analysis |
 | **pactkit-draw** | Prompt-only | Generate Draw.io XML architecture diagrams |
-| **pactkit-analyze** | Prompt-only | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
+| **pactkit-analyze** | Prompt-only | Cross-artifact consistency check: Spec <-> Board <-> Test Cases |
 | **pactkit-status** | Prompt-only | Cold-start project overview (sprint + git + health) |
 | **pactkit-doctor** | Prompt-only | Configuration drift detection and health report |
 | **pactkit-review** | Prompt-only | PR code review with SOLID/Security/Quality checklists |
 | **pactkit-release** | Prompt-only | Version bump, architecture snapshot, git tag |
+
+## Deployment Architecture
+
+PactKit supports two deployment formats:
+
+### Claude Code (Classic)
+
+```
+~/.claude/
+├── CLAUDE.md                 <- Modular constitution (entry point with @import)
+├── rules/                    <- 7 rule modules
+├── commands/                 <- 11 command playbooks
+├── agents/                   <- 9 agent definitions
+└── skills/                   <- 10 skill packages
+```
+
+### OpenCode
+
+```
+~/.config/opencode/
+├── AGENTS.md                 <- Slim header (rules loaded via instructions)
+├── rules/                    <- 7 rule modules (loaded via opencode.json instructions)
+├── commands/                 <- 11 command playbooks (with model: routing)
+├── agents/                   <- 9 agent definitions (mode: subagent)
+├── skills/                   <- 10 skill packages (with SKILL.md frontmatter)
+└── opencode.json             <- Global config (instructions, provider preserved)
+```
+
+Key OpenCode differences:
+- **Rules**: Loaded via `opencode.json` `instructions: ["rules/*.md"]` (no `@import`)
+- **Agents**: `mode: subagent`, no `name` field, tools as record format
+- **Commands**: `agent: build` + `model: provider/model-id` (model routing)
+- **Config**: `pactkit.yaml` in `.opencode/` (not `.claude/`)
+- **Model routing**: Commands auto-route to Sonnet for implementation, inherit main model for planning
+
+## Multi-Developer Collaboration
+
+PactKit supports multi-developer workflows with Story ID prefixing:
+
+```yaml
+# In pactkit.yaml
+developer: alice
+```
+
+Story IDs become `STORY-alice-001`, preventing merge conflicts when multiple developers work on separate branches.
+
+### pactkit.yaml Configuration Reference
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `stack` | string | auto-detected | Project stack (`python`, `node`, `go`, `java`) |
+| `version` | string | current | PactKit version that generated the config |
+| `developer` | string | `""` | Developer prefix for Story IDs (multi-developer collaboration) |
+| `agents` | list | all 9 | Agent definitions to deploy |
+| `commands` | list | all 11 | Command playbooks to deploy |
+| `skills` | list | all 10 | Skills to deploy |
+| `rules` | list | all 7 | Constitution rule modules to deploy |
+| `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`) |
+| `issue_tracker` | object | `provider: none` | External issue tracker (`github`, `none`) |
+| `lint_blocking` | bool | `false` | Whether lint failures block commits |
+| `auto_fix` | bool | `false` | Whether to auto-fix lint errors |
+| `agent_models` | object | `{}` | Per-agent model overrides (`haiku`, `sonnet`, `opus`, `inherit`) |
+| `command_models` | object | defaults | Per-command model overrides for OpenCode deployment |
 
 ## Safe Regression
 
@@ -159,78 +238,12 @@ PactKit's safe regression system prevents agents from blindly modifying pre-exis
 ## Hierarchy of Truth
 
 ```
-Tier 1: Specs & Test Cases           — The Law
-Tier 2: Tests                        — The Verification
-Tier 3: Implementation               — The Mutable Reality
+Tier 1: Specs & Test Cases           <- The Law
+Tier 2: Tests                        <- The Verification
+Tier 3: Implementation               <- The Mutable Reality
 ```
 
 When conflicts arise: Spec wins. Always.
-
-## Project Structure (PDCA-managed)
-
-PactKit's PDCA lifecycle manages a `docs/` directory with the following structure:
-
-```
-docs/
-├── product/
-│   ├── sprint_board.md          ← Current iteration board (Backlog/In Progress/Done)
-│   ├── context.md               ← Auto-generated session context for cross-session awareness
-│   ├── archive/                 ← Archived completed stories (by month)
-│   └── prd.md                   ← Product Requirements Document (greenfield projects)
-├── specs/                       ← The Law — requirement specifications (STORY-*, BUG-*, HOTFIX-*)
-├── test_cases/                  ← Gherkin acceptance scenarios mapped from specs
-└── architecture/
-    ├── graphs/                  ← Architecture graph files (Mermaid .mmd)
-    │   ├── code_graph.mmd       ← File-level dependency graph (auto-generated)
-    │   ├── class_graph.mmd      ← Class diagram with inheritance
-    │   ├── call_graph.mmd       ← Function-level call graph
-    │   └── system_design.mmd    ← High-level design (manually maintained)
-    ├── governance/
-    │   ├── rules.md             ← Architecture decisions (ADRs) and invariants
-    │   └── lessons.md           ← Lessons learned per story (auto-appended by Done)
-    └── snapshots/               ← Versioned architecture graph snapshots
-```
-
-## Configuration
-
-PactKit deploys to `~/.claude/`:
-
-```
-~/.claude/
-├── CLAUDE.md                 ← Modular constitution (entry point)
-├── rules/                    ← 6 rule modules
-├── commands/                 ← 11 command playbooks
-├── agents/                   ← 9 agent definitions
-└── skills/                   ← 10 skill packages (3 scripted + 7 prompt-only)
-    ├── pactkit-visualize/
-    ├── pactkit-board/
-    └── pactkit-scaffold/
-```
-
-### pactkit.yaml Configuration Reference
-
-The `pactkit.yaml` file controls which components are deployed and how they behave. All fields below are configurable:
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `stack` | string | auto-detected | Project stack (`python`, `node`, `go`, `java`) |
-| `version` | string | current | PactKit version that generated the config |
-| `root` | string | `.` | Project root directory (deployment target resolves to `~/.claude` by default) |
-| `agents` | list | all 9 | Agent definitions to deploy |
-| `commands` | list | all 11 | Command playbooks to deploy |
-| `skills` | list | all 10 | Skills to deploy |
-| `rules` | list | all 6 | Constitution rule modules to deploy |
-| `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`, `exclude.commands: [cmd-name]`) |
-| `ci` | object | `provider: none` | CI/CD pipeline generation; `ci.provider` supports `github`, `gitlab`, `none` |
-| `issue_tracker` | object | `provider: none` | External issue tracker; `issue_tracker.provider` supports `github`, `none` |
-| `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push); command-type only, report-only |
-| `lint_blocking` | bool | `false` | Whether lint failures block commits in Done command |
-| `auto_fix` | bool | `false` | Whether to auto-fix lint errors before checking |
-| `check.security_checklist` | bool | `true` | Enable 8-item structured security checklist in Check phase |
-| `done.lesson_quality_threshold` | int | `15` | Minimum quality score (0-25) for lessons to be auto-appended |
-| `agent_models` | object | `{}` | Per-agent model overrides (values: `haiku`, `sonnet`, `opus`, `inherit`) |
-| `rule_scopes` | object | `{}` | Map rule IDs to glob patterns for context-aware scoping |
-| `enterprise` | object | all `false` | Enterprise flags: `no_git`, `no_external`, `non_interactive`, `debug` |
 
 ## MCP Integration
 
@@ -251,7 +264,8 @@ All MCP instructions are conditional — gracefully skipped when unavailable.
 
 ```bash
 pip install --upgrade pactkit
-pactkit update
+pactkit update                    # Claude Code
+pactkit upgrade --format opencode # OpenCode
 ```
 
 ## Contributing

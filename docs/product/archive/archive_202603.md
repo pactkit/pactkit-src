@@ -115,3 +115,81 @@
 - [x] R1: Add E2E subprocess tests for `pactkit spec-lint`
 - [x] R2: Verify exit code and output (pass + fail + no args)
 - [x] R3: Follow existing `test_cli_e2e.py` patterns
+
+### [BUG-034] Plan Command Missing Spec Metadata Table Template
+> Spec: docs/specs/BUG-034.md
+
+- [x] R1: Add metadata table template to Plan command playbook
+- [x] R2: Match scaffold.py create_spec canonical format
+
+## 🔄 In Progress
+
+
+## ✅ Done
+
+- [x] [BUG-033] scaffold.py create_spec() 生成的模板不符合 spec-lint 验证规则 `P1`
+
+### [STORY-069] OpenCode Deployment Format Support
+> Spec: docs/specs/STORY-069.md
+
+- [x] R1: Add 'opencode' to VALID_FORMATS
+- [x] R2: Global deployment structure (AGENTS.md, agents/, commands/, skills/)
+- [x] R3: Project deployment (opencode.json)
+- [x] R4: AGENTS.md with inline rules (no @import)
+- [x] R5: Skills path rewriting to ~/.config/opencode/skills
+- [x] R6: opencode.json generation with $schema and instructions
+- [x] R11: CLI --format opencode option
+- [x] All 19 unit tests passing
+
+### [BUG-035] OpenCode Format Should Follow Dual-Layer Architecture
+> Spec: docs/specs/BUG-035.md
+
+- [x] R1:移除全局opencode.json
+- [x] R2:更新project-init playbook
+- [x] R3:更新测试
+
+### [STORY-070] OpenCode Format Compliance: Fix Spec-Implementation Gaps
+> Spec: docs/specs/STORY-070.md
+
+- [x] R1 Command frontmatter 转换
+- [x] R2 Agent mode:subagent
+- [x] R3 移除 Agent name 字段
+- [x] R4 清理 Claude Code 专有字段
+- [x] R5 Agent model inherit 省略
+- [x] R6 upgrade 支持 opencode
+- [x] R7 更新测试
+
+### [STORY-071] OpenCode Config Parity: Rules Modularization, Permission, MCP
+> Spec: docs/specs/STORY-071.md
+
+- [x] R1 opencode.json permission 配置
+- [x] R2 opencode.json MCP 模板
+- [x] R3 project-init pactkit.yaml 说明
+- [x] R4 MCP 推荐打印更新
+- [x] R5 opencode.json 保留用户配置
+- [x] R6 全局 AGENTS.md 模块化拆分
+- [x] R7 全局 opencode.json instructions
+- [x] 测试
+
+### [STORY-072] Multi-Developer Story ID Prefix for Merge-Safe Collaboration
+> Spec: docs/specs/STORY-072.md
+
+- [x] R1 load_config() 多路径查找 (.claude/ → .opencode/)
+- [x] R2 pactkit.yaml 生成路径感知 (deployer.py)
+- [x] R3 developer 字段 + 校验 (config.py)
+- [x] R4 board.py snapshot() 路径修复
+- [x] R5 commands.py playbook 路径引用更新 (6处)
+- [x] R6 skills.py doctor 路径更新 (2处)
+- [x] R7 workflows.py sprint 路径更新 (1处)
+- [x] R8 /project-plan developer 前缀 ID 指令
+- [x] R9 删除反向指令 "不要在.opencode/创建"
+- [x] 测试
+
+### [STORY-073] OpenCode Format Final Mile: Command Model Routing and Claude Code Residuals
+> Spec: docs/specs/STORY-073.md
+
+- [x] R1 Command frontmatter model 字段
+- [x] R2 project-init 条件分支 CLAUDE.md vs AGENTS.md
+- [x] R3 YAML 注释去 ~/.claude/
+- [x] R4 源码文档字符串更新
+- [x] 测试
