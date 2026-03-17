@@ -37,7 +37,6 @@ from pactkit.utils import atomic_write
 # For classic/opencode/codex: use profile.skills_path_var instead
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
-OPENCODE_SKILLS_PREFIX = "~/.config/opencode/skills"
 
 
 def _rewrite_skills_prefix(content, profile_or_prefix):
@@ -53,9 +52,6 @@ def _rewrite_skills_prefix(content, profile_or_prefix):
     else:
         skills_prefix = profile_or_prefix  # legacy string path for plugin/marketplace
 
-    if skills_prefix == CLASSIC_SKILLS_PREFIX:
-        return content
-    return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
     if skills_prefix == CLASSIC_SKILLS_PREFIX:
         return content
     return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
@@ -285,12 +281,12 @@ def _deploy_opencode(target=None):
     # STORY-071 R6: Deploy rules as separate files (like Claude Code)
     n_rules = _deploy_rules(opencode_root, all_rules)
     # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
-    _deploy_agents_md_inline(opencode_root, skills_prefix=oc_profile.skills_path_var)
+    _deploy_agents_md_inline(opencode_root)
     # STORY-073 R1: Load providers and command_models for model routing in opencode.json
     providers = _load_opencode_providers(opencode_root)
     if not providers:
         # Fallback: try global config (when deploying to target != real global dir)
-        providers = _load_opencode_providers(Path.home() / ".config" / "opencode")
+        providers = _load_opencode_providers(Path(oc_profile.global_config_dir).expanduser())
     command_models = load_config().get("command_models", {})
     # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
     _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
@@ -1242,7 +1238,7 @@ def _deploy_marketplace_json(marketplace_root):
 # ---------------------------------------------------------------------------
 
 
-def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX):
+def _deploy_agents_md_inline(opencode_root):
     """Generate slim AGENTS.md header (STORY-071 R6: rules are now in rules/*.md).
 
     The actual rules are deployed as separate files in rules/ and loaded
