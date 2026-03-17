@@ -4,12 +4,10 @@ Tests for `pactkit init --format opencode` deployment mode.
 """
 
 import json
-from pathlib import Path
 from unittest.mock import patch
 
-from pactkit.config import VALID_AGENTS, VALID_COMMANDS, VALID_SKILLS, VALID_RULES
-from pactkit.generators.deployer import deploy, VALID_FORMATS
-
+from pactkit.config import VALID_AGENTS, VALID_COMMANDS, VALID_SKILLS
+from pactkit.generators.deployer import VALID_FORMATS, deploy
 
 # ===========================================================================
 # R1: New --format opencode deployment mode

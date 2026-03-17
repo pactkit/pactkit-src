@@ -3,10 +3,8 @@ BUG-035: OpenCode Format Should Follow Dual-Layer Architecture
 Tests for dual-layer deployment: global (pactkit init) vs project (/project-init).
 """
 
-from pathlib import Path
 
 from pactkit.generators.deployer import deploy
-
 
 # ===========================================================================
 # R1: Global deployment does NOT generate opencode.json
@@ -92,6 +90,7 @@ class TestR5OpencodeJsonStructure:
     def test_opencode_json_has_schema(self, tmp_path):
         """opencode.json contains $schema field."""
         import json
+
         from pactkit.generators.deployer import _deploy_opencode_json
 
         _deploy_opencode_json(tmp_path)
@@ -102,6 +101,7 @@ class TestR5OpencodeJsonStructure:
     def test_opencode_json_has_instructions(self, tmp_path):
         """opencode.json contains instructions field."""
         import json
+
         from pactkit.generators.deployer import _deploy_opencode_json
 
         _deploy_opencode_json(tmp_path)
