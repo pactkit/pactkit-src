@@ -232,8 +232,9 @@ def _deploy_opencode(target=None):
 
     OpenCode (anomalyco/opencode) is an open-source AI coding assistant that supports
     multiple LLM providers. This deployment mode generates OpenCode-native files:
-    - AGENTS.md (instead of CLAUDE.md) with inline rules
-    - opencode.json (project configuration)
+    - AGENTS.md (slim header — rules loaded via instructions)
+    - rules/ directory with modular rule files (STORY-071 R6)
+    - opencode.json (global config with instructions: ["rules/*.md"])
     - agents/, commands/, skills/ directories
     """
     opencode_root = Path(target) if target else Path.home() / ".config" / "opencode"
@@ -244,27 +245,35 @@ def _deploy_opencode(target=None):
     agents_dir = opencode_root / "agents"
     commands_dir = opencode_root / "commands"
     skills_dir = opencode_root / "skills"
+    rules_dir = opencode_root / "rules"
 
-    for d in [opencode_root, agents_dir, commands_dir, skills_dir]:
+    for d in [opencode_root, agents_dir, commands_dir, skills_dir, rules_dir]:
         d.mkdir(parents=True, exist_ok=True)
 
     # Full deployment — all components enabled
     all_agents = sorted(VALID_AGENTS)
     all_commands = sorted(VALID_COMMANDS)
     all_skills = sorted(VALID_SKILLS)
+    all_rules = sorted(VALID_RULES)
 
     # Deploy components with OpenCode skills prefix
-    # Note: opencode.json is NOT generated here — it's project-level, created by /project-init
     prefix = OPENCODE_SKILLS_PREFIX
     n_skills = _deploy_skills(skills_dir, all_skills, skills_prefix=prefix)
+    # STORY-071 R6: Deploy rules as separate files (like Claude Code)
+    n_rules = _deploy_rules(opencode_root, all_rules)
+    # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
     _deploy_agents_md_inline(opencode_root, skills_prefix=prefix)
+    # STORY-071 R7: Update global opencode.json with instructions
+    _update_global_opencode_json(opencode_root)
     # STORY-069 R7: Use OpenCode tools format (record, not string)
     n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
     # STORY-070 R1: Use OpenCode command frontmatter format
     n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix, opencode_format=True)
 
-    print(f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills → {opencode_root}")
-    print("\nℹ️ Run `/project-init` in your project to generate opencode.json")
+    print(
+        f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
+    )
+    print("\nℹ️ Run `/project-init` in your project to generate project-level opencode.json")
 
 
 def _deploy_skills(skills_dir, enabled_skills, skills_prefix=CLASSIC_SKILLS_PREFIX):
@@ -1125,36 +1134,31 @@ def _deploy_marketplace_json(marketplace_root):
 
 
 def _deploy_agents_md_inline(opencode_root, skills_prefix=OPENCODE_SKILLS_PREFIX):
-    """Generate AGENTS.md with all rules inlined (no @import references).
+    """Generate slim AGENTS.md header (STORY-071 R6: rules are now in rules/*.md).
 
-    OpenCode does not support @import syntax, so all rules are inlined.
-    This is similar to _deploy_claude_md_inline but outputs to AGENTS.md.
+    The actual rules are deployed as separate files in rules/ and loaded
+    via opencode.json instructions: ["rules/*.md"].
     """
-    # Build reverse map: rule_id -> key for ordered iteration
-    rule_id_to_key = {}
-    for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix(".md")
-        rule_id_to_key[rule_id] = key
-
-    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
-
-    # Inline all rule modules in sorted order
-    for rule_id in sorted(rule_id_to_key.keys()):
-        key = rule_id_to_key[rule_id]
-        module_content = prompts.RULES_MODULES[key].strip()
-        lines.append(module_content)
-        lines.append("")  # blank line between modules
-
-    # Add TIP for cross-session context
-    lines.append("> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.")
-    lines.append("")
-
-    rewritten = _rewrite_skills_prefix("\n".join(lines), skills_prefix)
-    atomic_write(opencode_root / "AGENTS.md", rewritten)
+    lines = [
+        f"# PactKit Global Constitution (v{__version__} Modular)",
+        "",
+        "Rules are loaded from `rules/*.md` via `opencode.json` instructions.",
+        "",
+        "## Quick Reference",
+        "",
+        "- **Specs** (`docs/specs/`) are the source of truth",
+        "- **Sprint Board**: `docs/product/sprint_board.md`",
+        "- **Architecture**: `docs/architecture/graphs/`",
+        "- **Commands**: Type `/` followed by command name (e.g., `/project-plan`)",
+        "",
+        "> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.",
+        "",
+    ]
+    atomic_write(opencode_root / "AGENTS.md", "\n".join(lines))
 
 
 def _deploy_opencode_json(opencode_root):
-    """Generate opencode.json project configuration.
+    """Generate opencode.json project configuration (STORY-071 R1/R2).
 
     Note: provider/apiKey are intentionally excluded — user-managed.
     Note: This function is NOT called by _deploy_opencode() (global deployment).
@@ -1168,16 +1172,72 @@ def _deploy_opencode_json(opencode_root):
             "build": {"model": "inherit"},
             "plan": {"model": "inherit"},
         },
+        # STORY-071 R1: Permission config (maps Claude Code settings.json safety rules)
+        "permission": {
+            "edit": "allow",
+            "bash": {
+                "*": "allow",
+                "rm -rf /*": "deny",
+                "rm -rf /Users/*": "deny",
+                "rm -rf /System/*": "deny",
+                "sudo rm *": "deny",
+                "sudo mkfs *": "deny",
+                "curl * | sh": "deny",
+                "wget * | sh": "deny",
+            },
+            "read": {
+                "*": "allow",
+                "*.env": "deny",
+                "*.env.*": "deny",
+                "*.env.example": "allow",
+            },
+        },
+        # STORY-071 R2: MCP template (public servers only)
+        "mcp": {
+            "context7": {
+                "type": "remote",
+                "url": "https://mcp.context7.com/mcp",
+            },
+        },
     }
     content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
     atomic_write(opencode_root / "opencode.json", content)
 
 
+def _update_global_opencode_json(opencode_root):
+    """Update global opencode.json with instructions field (STORY-071 R7).
+
+    Merge strategy: preserve existing user config (provider, permission, mcp),
+    only add/update the 'instructions' field.
+    """
+    json_path = opencode_root / "opencode.json"
+    config = {}
+
+    # Read existing config if present
+    if json_path.is_file():
+        try:
+            config = json.loads(json_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            config = {}
+
+    # Ensure $schema
+    config.setdefault("$schema", "https://opencode.ai/config.json")
+
+    # STORY-071 R7: Set instructions to load modular rules
+    config["instructions"] = ["rules/*.md"]
+
+    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+    atomic_write(json_path, content)
+
+
 def _print_mcp_recommendations_opencode():
-    """Print MCP server recommendations for OpenCode deployment."""
-    print("\n📦 Configure MCP servers in opencode.json:")
-    print("  {")
-    print('    "mcp": {')
-    print('      "context7": { "type": "stdio", "command": "npx", "args": ["context7"] }')
-    print("    }")
-    print("  }")
+    """Print MCP server recommendations for OpenCode deployment (STORY-071 R4)."""
+    print("\n📦 MCP Server Configuration (add to opencode.json):")
+    print()
+    print("  Remote MCP (no install needed):")
+    print('    "context7": { "type": "remote", "url": "https://mcp.context7.com/mcp" }')
+    print()
+    print("  Local MCP (requires npx):")
+    print('    "memory":     { "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-memory"] }')
+    print('    "playwright":  { "type": "local", "command": ["npx", "-y", "@playwright/mcp"] }')
+    print('    "puppeteer":   { "type": "local", "command": ["npx", "-y", "@anthropic/mcp-puppeteer"] }')

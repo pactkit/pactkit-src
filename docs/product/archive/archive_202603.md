@@ -158,3 +158,15 @@
 - [x] R5 Agent model inherit 省略
 - [x] R6 upgrade 支持 opencode
 - [x] R7 更新测试
+
+### [STORY-071] OpenCode Config Parity: Rules Modularization, Permission, MCP
+> Spec: docs/specs/STORY-071.md
+
+- [x] R1 opencode.json permission 配置
+- [x] R2 opencode.json MCP 模板
+- [x] R3 project-init pactkit.yaml 说明
+- [x] R4 MCP 推荐打印更新
+- [x] R5 opencode.json 保留用户配置
+- [x] R6 全局 AGENTS.md 模块化拆分
+- [x] R7 全局 opencode.json instructions
+- [x] 测试
