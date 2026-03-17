@@ -24,7 +24,7 @@ description: "Generate project code dependency graph (Mermaid), supporting file-
 
 Generate project code relationship graphs (Mermaid format), supporting three analysis modes.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-visualize/scripts/visualize.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-visualize/scripts/visualize.py`, OpenCode: `~/.config/opencode/skills/pactkit-visualize/scripts/visualize.py`
 
 ## Prerequisites
 - The project must have Python source files (`.py`) to generate meaningful graphs
@@ -85,7 +85,7 @@ description: "Sprint Board atomic operations: add Story, update Task, archive co
 
 Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-board/scripts/board.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-board/scripts/board.py`, OpenCode: `~/.config/opencode/skills/pactkit-board/scripts/board.py`
 
 ## Prerequisites
 - `docs/product/sprint_board.md` must exist (created by `/project-init`)
@@ -159,7 +159,7 @@ description: "File scaffolding: create Spec, test files, E2E tests, Git branches
 
 Project file scaffolding tool for quickly creating standardized project files.
 
-> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic deployment: `~/.claude/skills/pactkit-scaffold/scripts/scaffold.py`
+> **Script location**: Use the base directory from the skill invocation header to resolve script paths. Classic: `~/.claude/skills/pactkit-scaffold/scripts/scaffold.py`, OpenCode: `~/.config/opencode/skills/pactkit-scaffold/scripts/scaffold.py`
 
 ## Prerequisites
 - `docs/specs/` directory must exist (required by `create_spec`)

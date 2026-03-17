@@ -30,11 +30,11 @@ class TestProjectInitPlaybook:
         assert "pip install pactkit" in content
 
     def test_playbook_still_creates_project_claude_md(self):
-        """Playbook should still manually create .claude/CLAUDE.md."""
+        """Playbook should create CLAUDE.md (Claude Code) or AGENTS.md (OpenCode) (STORY-073)."""
         content = COMMANDS_CONTENT["project-init.md"]
-        # Should have project CLAUDE.md creation instruction
+        # Should have conditional instruction for project instructions file
         assert ".claude/CLAUDE.md" in content
-        assert "Project CLAUDE.md" in content
+        assert "Project Instructions File" in content
 
     def test_playbook_uses_pactkit_update_for_existing_config(self):
         """Playbook should use pactkit update when config already exists."""

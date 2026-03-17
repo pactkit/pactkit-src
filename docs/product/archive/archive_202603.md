@@ -184,3 +184,12 @@
 - [x] R8 /project-plan developer 前缀 ID 指令
 - [x] R9 删除反向指令 "不要在.opencode/创建"
 - [x] 测试
+
+### [STORY-073] OpenCode Format Final Mile: Command Model Routing and Claude Code Residuals
+> Spec: docs/specs/STORY-073.md
+
+- [x] R1 Command frontmatter model 字段
+- [x] R2 project-init 条件分支 CLAUDE.md vs AGENTS.md
+- [x] R3 YAML 注释去 ~/.claude/
+- [x] R4 源码文档字符串更新
+- [x] 测试

@@ -274,8 +274,20 @@ def _deploy_opencode(target=None):
     _update_global_opencode_json(opencode_root)
     # STORY-069 R7: Use OpenCode tools format (record, not string)
     n_agents = _deploy_agents(agents_dir, all_agents, skills_prefix=prefix, opencode_format=True)
-    # STORY-070 R1: Use OpenCode command frontmatter format
-    n_commands = _deploy_commands(commands_dir, all_commands, skills_prefix=prefix, opencode_format=True)
+    # STORY-070 R1 + STORY-073 R1: Use OpenCode command frontmatter format with model routing
+    providers = _load_opencode_providers(opencode_root)
+    if not providers:
+        # Fallback: try global config (when deploying to target != real global dir)
+        providers = _load_opencode_providers(Path.home() / ".config" / "opencode")
+    command_models = load_config().get("command_models", {})
+    n_commands = _deploy_commands(
+        commands_dir,
+        all_commands,
+        skills_prefix=prefix,
+        opencode_format=True,
+        command_models=command_models,
+        providers=providers,
+    )
 
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
@@ -550,7 +562,14 @@ def _deploy_agents(
     return deployed
 
 
-def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILLS_PREFIX, opencode_format=False):
+def _deploy_commands(
+    commands_dir,
+    enabled_commands,
+    skills_prefix=CLASSIC_SKILLS_PREFIX,
+    opencode_format=False,
+    command_models=None,
+    providers=None,
+):
     """Deploy command playbooks filtered by config.
 
     Args:
@@ -558,6 +577,8 @@ def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILL
             Classic: ~/.claude/skills (default). Plugin: ${CLAUDE_PLUGIN_ROOT}/skills.
         opencode_format: If True, convert frontmatter to OpenCode format (STORY-070 R1).
             Replaces 'allowed-tools: [...]' with 'agent: build'.
+        command_models: Dict of command_name -> model short name (STORY-073 R1).
+        providers: Dict of provider config from opencode.json (STORY-073 R1).
     """
     enabled_set = set(enabled_commands)
 
@@ -578,9 +599,11 @@ def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILL
         if cmd_name not in enabled_set:
             continue
 
-        # STORY-070 R1: Convert frontmatter for OpenCode
+        # STORY-070 R1 + STORY-073 R1: Convert frontmatter for OpenCode
         if opencode_format:
-            content = _convert_command_frontmatter_opencode(content)
+            content = _convert_command_frontmatter_opencode(
+                content, cmd_name=cmd_name, command_models=command_models, providers=providers
+            )
 
         rewritten = _rewrite_skills_prefix(content, skills_prefix)
         atomic_write(commands_dir / filename, rewritten)
@@ -589,10 +612,40 @@ def _deploy_commands(commands_dir, enabled_commands, skills_prefix=CLASSIC_SKILL
     return deployed
 
 
-def _convert_command_frontmatter_opencode(content):
-    """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1).
+def _resolve_opencode_model_id(short_name, providers):
+    """Resolve a short model name (sonnet/opus/haiku) to a full provider/model-id (STORY-073).
+
+    Searches all provider model IDs for one containing the short_name keyword.
+    Returns 'provider-name/model-id' or None if not found.
+    """
+    if not short_name or not providers:
+        return None
+    keyword = short_name.lower()
+    for provider_name, provider_data in providers.items():
+        models = provider_data.get("models", {})
+        for model_id in models:
+            if keyword in model_id.lower():
+                return f"{provider_name}/{model_id}"
+    return None
+
+
+def _load_opencode_providers(opencode_root):
+    """Load provider config from opencode.json for model resolution."""
+    json_path = opencode_root / "opencode.json"
+    if json_path.is_file():
+        try:
+            data = json.loads(json_path.read_text())
+            return data.get("provider", {})
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _convert_command_frontmatter_opencode(content, cmd_name=None, command_models=None, providers=None):
+    """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1, STORY-073 R1).
 
     Replaces 'allowed-tools: [...]' with 'agent: build' in the YAML frontmatter.
+    Adds 'model: provider/model-id' if command_models specifies a model for this command.
     Preserves the description and body content.
     """
     if not content.startswith("---"):
@@ -618,6 +671,14 @@ def _convert_command_frontmatter_opencode(content):
             if stripped.startswith("agent:"):
                 has_agent = True
             new_lines.append(line)
+
+    # STORY-073 R1: Add model field if command has a model mapping
+    if cmd_name and command_models and providers:
+        model_short = command_models.get(cmd_name)
+        if model_short:
+            model_id = _resolve_opencode_model_id(model_short, providers)
+            if model_id:
+                new_lines.append(f"model: {model_id}")
 
     return "---\n" + "\n".join(new_lines) + "\n---" + parts[2]
 

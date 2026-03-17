@@ -612,9 +612,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
       - If `pom.xml` or `build.gradle` exists → `stack: java`
     - **Safe fallback**: If none match and no config exists, default to `stack: auto` and print warning: "⚠️ No stack detected, defaulting to auto. You can set `stack:` in `pactkit.yaml` later."
     - Do NOT block on user input for stack selection mid-flow.
-4.  **Project CLAUDE.md**: Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
-    - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
-    - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+4.  **Project Instructions File** (STORY-073 R2 — environment-aware):
+    - **Claude Code environment** (`.claude/` exists, no OpenCode detected): Check/Create `./.claude/CLAUDE.md` if missing (do NOT overwrite).
+      - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
+      - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+    - **OpenCode environment** (OpenCode detected in Step 5): Skip CLAUDE.md creation. Step 5 will create `./AGENTS.md` instead.
 5.  **OpenCode Environment Detection** (STORY-069/BUG-035/STORY-071/STORY-072):
     - Check if `~/.config/opencode/AGENTS.md` exists OR `which opencode` succeeds.
     - **If OpenCode detected**:

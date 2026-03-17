@@ -166,6 +166,15 @@ def get_default_config() -> dict:
         "done": {
             "lesson_quality_threshold": 15,
         },
+        "command_models": {
+            "project-act": "sonnet",
+            "project-check": "sonnet",
+            "project-done": "sonnet",
+            "project-init": "sonnet",
+            "project-release": "sonnet",
+            "project-pr": "sonnet",
+            "project-hotfix": "sonnet",
+        },
     }
 
 
@@ -308,7 +317,17 @@ def load_config(path: Path | str | None = None) -> dict:
         return default
 
     # Keys that require deep merge (nested dict sections)
-    DEEP_MERGE_KEYS = {"venv", "ci", "hooks", "issue_tracker", "release", "regression", "check", "done"}
+    DEEP_MERGE_KEYS = {
+        "venv",
+        "ci",
+        "hooks",
+        "issue_tracker",
+        "release",
+        "regression",
+        "check",
+        "done",
+        "command_models",
+    }
 
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
@@ -446,6 +465,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         "check",
         "done",
         "agent_models",
+        "command_models",
         "rule_scopes",
     }
 
@@ -462,10 +482,10 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
     ]
 
     section_comments = {
-        "agents": "# Agents — AI role definitions deployed to ~/.claude/agents/",
-        "commands": "# Commands — PDCA playbooks deployed to ~/.claude/commands/",
-        "skills": "# Skills — tool scripts deployed to ~/.claude/skills/",
-        "rules": "# Rules — constitution modules deployed to ~/.claude/rules/",
+        "agents": "# Agents — AI role definitions",
+        "commands": "# Commands — PDCA playbooks",
+        "skills": "# Skills — tool scripts",
+        "rules": "# Rules — constitution modules",
     }
 
     for key in ("agents", "commands", "skills", "rules"):
@@ -579,6 +599,15 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append("agent_models:")
         for agent_name in sorted(agent_models.keys()):
             lines.append(f"  {agent_name}: {agent_models[agent_name]}")
+        lines.append("")
+
+    # Write command_models section (STORY-073)
+    cmd_models = data.get("command_models", {})
+    if cmd_models and isinstance(cmd_models, dict):
+        lines.append("# Command Models — override model per command for OpenCode deployment")
+        lines.append("command_models:")
+        for cmd_name in sorted(cmd_models.keys()):
+            lines.append(f"  {cmd_name}: {cmd_models[cmd_name]}")
         lines.append("")
 
     # Write rule_scopes section if present (BUG-010)
@@ -755,23 +784,23 @@ def generate_default_yaml() -> str:
         f"root: {cfg['root']}",
         f'developer: "{cfg["developer"]}"',
         "",
-        "# Agents — AI role definitions deployed to ~/.claude/agents/",
+        "# Agents — AI role definitions",
         "agents:",
     ]
     for a in cfg["agents"]:
         lines.append(f"  - {a}")
 
-    lines.extend(["", "# Commands — PDCA playbooks deployed to ~/.claude/commands/"])
+    lines.extend(["", "# Commands — PDCA playbooks"])
     lines.append("commands:")
     for c in cfg["commands"]:
         lines.append(f"  - {c}")
 
-    lines.extend(["", "# Skills — tool scripts deployed to ~/.claude/skills/"])
+    lines.extend(["", "# Skills — tool scripts"])
     lines.append("skills:")
     for s in cfg["skills"]:
         lines.append(f"  - {s}")
 
-    lines.extend(["", "# Rules — constitution modules deployed to ~/.claude/rules/"])
+    lines.extend(["", "# Rules — constitution modules"])
     lines.append("rules:")
     for r in cfg["rules"]:
         lines.append(f"  - {r}")
@@ -828,6 +857,14 @@ def generate_default_yaml() -> str:
     lines.extend(["", "# Done — configure commit and lesson quality behavior"])
     lines.append("done:")
     lines.append(f"  lesson_quality_threshold: {done_cfg.get('lesson_quality_threshold', 15)}")
+
+    # Write command_models section (STORY-073)
+    cmd_models = cfg.get("command_models", {})
+    if cmd_models:
+        lines.extend(["", "# Command Models — override model per command for OpenCode deployment"])
+        lines.append("command_models:")
+        for cmd_name in sorted(cmd_models.keys()):
+            lines.append(f"  {cmd_name}: {cmd_models[cmd_name]}")
 
     lines.append("")  # trailing newline
     return "\n".join(lines)
