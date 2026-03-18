@@ -347,10 +347,21 @@ Write `docs/product/context.md` using this format:
 """,
 }
 
-# Mapping: module key -> filename
-RULES_FILES = {
-    "core": "01-core-protocol.md",
-    "hierarchy": "02-hierarchy-of-truth.md",
+# STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
+#
+# RULES_CORE_FILES: PactKit-managed rules injected every turn via instructions.
+#   Only PactKit-deployed files here — user files (09-*, 10-*) NOT included.
+#
+# RULES_ONDEMAND_FILES: PactKit-managed files referenced via @rules/ in AGENTS.md.
+#
+# RULES_INSTRUCTIONS_CORE: ALL files that go into opencode.json instructions
+#   (superset of RULES_CORE_FILES — includes user-managed safety rules).
+RULES_CORE_FILES = {
+    "core": "01-core-protocol.md",  # Session context, visual-first, TDD — every task
+    "hierarchy": "02-hierarchy-of-truth.md",  # Spec-is-Law — every PDCA task
+}
+
+RULES_ONDEMAND_FILES = {
     "atlas": "03-file-atlas.md",
     "routing": "04-routing-table.md",
     "workflow": "05-workflow-conventions.md",
@@ -359,11 +370,25 @@ RULES_FILES = {
     "architecture": "08-architecture-principles.md",
 }
 
+# Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
+RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
+
+# Files to inject into opencode.json instructions (always-load layer)
+# Includes user-managed safety rules (09-credential-safety) even though PactKit
+# doesn't deploy their content — they are written by the user or by separate tools.
+# SEC-1: credential safety must ALWAYS be in context.
+RULES_INSTRUCTIONS_CORE = [
+    "rules/01-core-protocol.md",
+    "rules/02-hierarchy-of-truth.md",
+    "rules/09-credential-safety.md",  # user-managed but security-critical
+]
+
 # Managed file prefixes (deployer will clean these, leave user files intact)
 RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-"]
 
 # CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
-# Classic mode uses @import syntax; OpenCode uses instructions glob (no template needed)
+# Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)
+# OpenCode uses split strategy: core via instructions, ondemand via AGENTS.md @refs (STORY-slim-009)
 _claude_rules_imports = "\n".join(f"@~/.claude/rules/{filename}" for filename in sorted(RULES_FILES.values()))
 CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 

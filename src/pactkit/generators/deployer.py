@@ -1357,15 +1357,39 @@ def _deploy_marketplace_json(marketplace_root):
 
 
 def _deploy_agents_md_inline(opencode_root):
-    """Generate slim AGENTS.md header (STORY-071 R6: rules are now in rules/*.md).
+    """Generate AGENTS.md with on-demand @reference index (STORY-slim-009 R3).
 
-    The actual rules are deployed as separate files in rules/ and loaded
-    via opencode.json instructions: ["rules/*.md"].
+    Core rules are loaded via opencode.json instructions (always in context).
+    On-demand rules are listed as @refs — AI reads them with Read tool as needed.
+    This mirrors Claude Code's @import lazy-loading in OpenCode's architecture.
     """
+    # Build on-demand @reference list from RULES_ONDEMAND_FILES (DRY)
+    ref_lines = []
+    ondemand_descriptions = {
+        "08-architecture-principles.md": "Architecture decisions, SOLID/DRY patterns",
+        "04-routing-table.md": "Agent/command routing table",
+        "06-mcp-integration.md": "MCP server integration guide",
+        "05-workflow-conventions.md": "PDCA workflow conventions",
+        "07-shared-protocols.md": "PDCA shared protocols (test mapping, visualize, context.md format)",
+        "03-file-atlas.md": "File atlas (project file locations)",
+        "10-retrieval-routing.md": "Information retrieval routing (Context7 vs WebFetch)",
+    }
+    for filename in sorted(prompts.RULES_ONDEMAND_FILES.values()):
+        desc = ondemand_descriptions.get(filename, filename)
+        ref_lines.append(f"- {desc}: @rules/{filename}")
+
+    core_names = ", ".join(f.replace(".md", "") for f in sorted(prompts.RULES_CORE_FILES.values()))
+
     lines = [
         f"# PactKit Global Constitution (v{__version__} Modular)",
         "",
-        "Rules are loaded from `rules/*.md` via `opencode.json` instructions.",
+        f"Core rules ({core_names}) are always loaded via `instructions`.",
+        "",
+        "## On-Demand Rules",
+        "",
+        "CRITICAL: When you encounter a file reference below (e.g., @rules/xxx.md), use your Read tool to load it on a need-to-know basis. Do NOT preemptively load all references — use lazy loading based on actual need.",
+        "",
+        *ref_lines,
         "",
         "## Quick Reference",
         "",
@@ -1449,8 +1473,13 @@ def _update_global_opencode_json(opencode_root, command_models=None, providers=N
     # Ensure $schema
     config.setdefault("$schema", "https://opencode.ai/config.json")
 
-    # STORY-071 R7: Set instructions to load modular rules
-    config["instructions"] = ["rules/*.md"]
+    # STORY-slim-009 R2: Write core-only rules into instructions (lazy loading)
+    # Remove old glob pattern, add core rule paths from RULES_INSTRUCTIONS_CORE, preserve user entries
+    existing = [i for i in config.get("instructions", []) if i != "rules/*.md"]
+    for path in prompts.RULES_INSTRUCTIONS_CORE:
+        if path not in existing:
+            existing.append(path)
+    config["instructions"] = existing
 
     # STORY-073 R1: Add command model routing
     # Only write commands that have a model AND can be resolved to a provider model ID

@@ -191,12 +191,15 @@ class TestAC7GlobalOpencodeJson:
         assert (out / "opencode.json").is_file()
 
     def test_instructions_contains_rules_glob(self, tmp_path):
-        """instructions array contains 'rules/*.md'."""
+        """STORY-slim-009: instructions now contains core rule paths, not glob."""
         out = tmp_path / "oc"
         deploy(format="opencode", target=str(out))
         data = json.loads((out / "opencode.json").read_text())
         assert "instructions" in data
-        assert "rules/*.md" in data["instructions"]
+        # New behavior: individual core rule paths, NOT the glob
+        assert "rules/*.md" not in data["instructions"]
+        assert "rules/01-core-protocol.md" in data["instructions"]
+        assert "rules/02-hierarchy-of-truth.md" in data["instructions"]
 
     def test_preserves_existing_provider(self, tmp_path):
         """Existing provider config is preserved when updating opencode.json."""
@@ -216,4 +219,4 @@ class TestAC7GlobalOpencodeJson:
         assert data["provider"]["anthropic"]["options"]["apiKey"] == "test-key"
         # instructions must be added
         assert "instructions" in data
-        assert "rules/*.md" in data["instructions"]
+        assert "rules/01-core-protocol.md" in data["instructions"]  # STORY-slim-009: core-only
