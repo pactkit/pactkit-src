@@ -1372,7 +1372,6 @@ def _deploy_agents_md_inline(opencode_root):
         "05-workflow-conventions.md": "PDCA workflow conventions",
         "07-shared-protocols.md": "PDCA shared protocols (test mapping, visualize, context.md format)",
         "03-file-atlas.md": "File atlas (project file locations)",
-        "10-retrieval-routing.md": "Information retrieval routing (Context7 vs WebFetch)",
     }
     for filename in sorted(prompts.RULES_ONDEMAND_FILES.values()):
         desc = ondemand_descriptions.get(filename, filename)
