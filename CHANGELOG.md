@@ -4,6 +4,20 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.1.1] - 2026-03-18
+
+### Added
+- **Lazy Rule Loading** (STORY-slim-009) — Rules split into always-load core (`01-core-protocol`, `02-hierarchy-of-truth`, `09-credential-safety`) and on-demand `@reference` layer (6 files loaded by AI via Read tool when needed). Reduces per-turn system prompt overhead by 62% (7200 → 2800 tokens).
+- `RULES_CORE_FILES`, `RULES_ONDEMAND_FILES`, `RULES_INSTRUCTIONS_CORE` constants in `rules.py` for layered rule management.
+- AGENTS.md now contains `@rules/xxx.md` reference index with lazy-loading instructions — mirrors Claude Code's `@import` behavior in OpenCode's architecture.
+
+### Changed
+- `_update_global_opencode_json()` writes individual core rule paths instead of `rules/*.md` glob. Preserves user's existing instructions via merge strategy.
+- `_deploy_agents_md_inline()` generates on-demand `@reference` index from `RULES_ONDEMAND_FILES`.
+
+### Fixed
+- `_update_global_opencode_json()` no longer overwrites user's existing `instructions` entries (merge instead of replace).
+
 ## [2.1.0] - 2026-03-17
 
 ### Added

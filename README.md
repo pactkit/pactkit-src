@@ -183,8 +183,8 @@ PactKit supports two deployment formats:
 
 ```
 ~/.config/opencode/
-├── AGENTS.md                 <- Slim header (rules loaded via instructions)
-├── rules/                    <- 7 rule modules (loaded via opencode.json instructions)
+├── AGENTS.md                 <- On-demand @reference index (lazy rule loading)
+├── rules/                    <- 8 rule modules (3 core always-load + 5 on-demand)
 ├── commands/                 <- 11 command playbooks (with model: routing)
 ├── agents/                   <- 9 agent definitions (mode: subagent)
 ├── skills/                   <- 10 skill packages (with SKILL.md frontmatter)
@@ -192,7 +192,7 @@ PactKit supports two deployment formats:
 ```
 
 Key OpenCode differences:
-- **Rules**: Loaded via `opencode.json` `instructions: ["rules/*.md"]` (no `@import`)
+- **Rules**: Core rules always loaded via `instructions`; on-demand rules via `@reference` in AGENTS.md (lazy loading, -62% tokens)
 - **Agents**: `mode: subagent`, no `name` field, tools as record format
 - **Commands**: `agent: build` + `model: provider/model-id` (model routing)
 - **Config**: `pactkit.yaml` in `.opencode/` (not `.claude/`)
