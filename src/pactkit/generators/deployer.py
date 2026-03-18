@@ -1387,7 +1387,9 @@ def _deploy_agents_md_inline(opencode_root):
         "",
         "## On-Demand Rules",
         "",
-        "CRITICAL: When you encounter a file reference below (e.g., @rules/xxx.md), use your Read tool to load it on a need-to-know basis. Do NOT preemptively load all references — use lazy loading based on actual need.",
+        "CRITICAL: When you encounter a file reference below (e.g., @rules/xxx.md), "
+        "use your Read tool to load it on a need-to-know basis. "
+        "Do NOT preemptively load all references — use lazy loading based on actual need.",
         "",
         *ref_lines,
         "",

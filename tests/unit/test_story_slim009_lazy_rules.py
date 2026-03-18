@@ -10,12 +10,6 @@ Covers:
 """
 
 import json
-import inspect
-import tempfile
-from pathlib import Path
-
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # R1: RULES_CORE_FILES + RULES_ONDEMAND_FILES constants exist
@@ -62,7 +56,7 @@ class TestRulesFilesSplit:
 
     def test_rules_files_is_union(self):
         """RULES_FILES must be the full union of core + ondemand."""
-        from pactkit.prompts.rules import RULES_FILES, RULES_CORE_FILES, RULES_ONDEMAND_FILES
+        from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES, RULES_ONDEMAND_FILES
 
         expected = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
         for key, val in expected.items():
@@ -195,7 +189,7 @@ class TestAllRulesDeployed:
         RULES_MODULES entry and are not deployed by PactKit.
         """
         from pactkit.generators.deployer import _deploy_rules
-        from pactkit.prompts.rules import RULES_MODULES, RULES_FILES
+        from pactkit.prompts.rules import RULES_FILES, RULES_MODULES
 
         # Pass rule IDs as filename stems (how deploy callers use them)
         rule_ids = [v.removesuffix(".md") for k, v in RULES_FILES.items() if k in RULES_MODULES]
@@ -237,9 +231,9 @@ class TestTokenOverhead:
     def test_core_instructions_under_10kb(self, tmp_path):
         """Core rules + AGENTS.md must be under 10KB total."""
         from pactkit.generators.deployer import (
-            _update_global_opencode_json,
             _deploy_agents_md_inline,
             _deploy_rules,
+            _update_global_opencode_json,
         )
         from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES
 
