@@ -102,6 +102,42 @@ def _rewrite_skills_prefix(content, profile_or_prefix):
     return content.replace(CLASSIC_SKILLS_PREFIX, skills_prefix)
 
 
+def _build_rule_id_to_key() -> dict:
+    """Build reverse map: rule_id -> config key.
+
+    Example: '01-core-protocol' -> 'core'
+
+    Used by _deploy_rules() and _deploy_claude_md_inline().
+    """
+    return {filename.removesuffix(".md"): key for key, filename in prompts.RULES_FILES.items()}
+
+
+def _build_rule_id_to_filename() -> dict:
+    """Build reverse map: rule_id -> filename.
+
+    Example: '01-core-protocol' -> '01-core-protocol.md'
+
+    Used by _deploy_claude_md().
+    """
+    return {filename.removesuffix(".md"): filename for filename in prompts.RULES_FILES.values()}
+
+
+def _render_skill_md(sd: dict, profile, _prefix: str) -> str:
+    """Render a skill's SKILL.md content from its definition dict.
+
+    Args:
+        sd: Skill definition dict with at least a 'skill_md' key.
+        profile: FormatProfile if deploying with a named format; None for plugin/marketplace.
+        _prefix: Skills prefix string used only when profile is None.
+
+    Returns:
+        Rendered SKILL.md content string.
+    """
+    if profile is not None:
+        return _render_prompt(sd["skill_md"], profile)
+    return _rewrite_skills_prefix(_render_prompt(sd["skill_md"], get_profile("classic")), _prefix)
+
+
 # STORY-062: MCP server recommendations
 MCP_RECOMMENDATIONS = [
     {"name": "Context7", "purpose": "Library docs lookup (Act phase)"},
@@ -457,11 +493,7 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = (
-            _render_prompt(sd["skill_md"], profile)
-            if profile is not None
-            else _rewrite_skills_prefix(_render_prompt(sd["skill_md"], get_profile("classic")), _prefix)
-        )
+        skill_md = _render_skill_md(sd, profile, _prefix)
         atomic_write(skill_dir / "SKILL.md", skill_md)
         atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
@@ -473,11 +505,7 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         skill_dir = skills_dir / sd["name"]
         skill_dir.mkdir(parents=True, exist_ok=True)
 
-        skill_md = (
-            _render_prompt(sd["skill_md"], profile)
-            if profile is not None
-            else _rewrite_skills_prefix(_render_prompt(sd["skill_md"], get_profile("classic")), _prefix)
-        )
+        skill_md = _render_skill_md(sd, profile, _prefix)
         atomic_write(skill_dir / "SKILL.md", skill_md)
         deployed += 1
 
@@ -529,10 +557,7 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
 
     # Build reverse map: rule identifier -> config key
     # e.g. '01-core-protocol' -> 'core'
-    rule_id_to_key = {}
-    for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix(".md")
-        rule_id_to_key[rule_id] = key
+    rule_id_to_key = _build_rule_id_to_key()
 
     # Clean managed rule files
     for f in rules_dir.glob("*.md"):
@@ -567,10 +592,7 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
 def _deploy_claude_md(claude_root, enabled_rules):
     """Generate CLAUDE.md with @import only for enabled rules."""
     # Build reverse map: rule identifier -> filename
-    rule_id_to_filename = {}
-    for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix(".md")
-        rule_id_to_filename[rule_id] = filename
+    rule_id_to_filename = _build_rule_id_to_filename()
 
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
     for rule_id in sorted(enabled_rules):
@@ -1305,10 +1327,7 @@ def _deploy_plugin_json(plugin_meta_dir):
 def _deploy_claude_md_inline(plugin_root, skills_prefix=CLASSIC_SKILLS_PREFIX):
     """Generate CLAUDE.md with all rules inlined (no @import references)."""
     # Build reverse map: rule_id -> key for ordered iteration
-    rule_id_to_key = {}
-    for key, filename in prompts.RULES_FILES.items():
-        rule_id = filename.removesuffix(".md")
-        rule_id_to_key[rule_id] = key
+    rule_id_to_key = _build_rule_id_to_key()
 
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
 
