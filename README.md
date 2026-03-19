@@ -173,7 +173,7 @@ PactKit supports two deployment formats:
 ```
 ~/.claude/
 ├── CLAUDE.md                 <- Modular constitution (entry point with @import)
-├── rules/                    <- 7 rule modules
+├── rules/                    <- 8 rule modules
 ├── commands/                 <- 11 command playbooks
 ├── agents/                   <- 9 agent definitions
 └── skills/                   <- 10 skill packages
@@ -184,7 +184,7 @@ PactKit supports two deployment formats:
 ```
 ~/.config/opencode/
 ├── AGENTS.md                 <- On-demand @reference index (lazy rule loading)
-├── rules/                    <- 8 rule modules (3 core always-load + 5 on-demand)
+├── rules/                    <- 8 rule modules (3 core always-load + 6 on-demand)
 ├── commands/                 <- 11 command playbooks (with model: routing)
 ├── agents/                   <- 9 agent definitions (mode: subagent)
 ├── skills/                   <- 10 skill packages (with SKILL.md frontmatter)
@@ -239,7 +239,7 @@ docs/
 | `agents` | list | all 9 | Agent definitions to deploy |
 | `commands` | list | all 11 | Command playbooks to deploy |
 | `skills` | list | all 10 | Skills to deploy |
-| `rules` | list | all 7 | Constitution rule modules to deploy |
+| `rules` | list | all 8 | Constitution rule modules to deploy |
 | `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`) |
 | `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`) |
 | `issue_tracker` | object | `provider: none` | External issue tracker (`github`, `none`) |

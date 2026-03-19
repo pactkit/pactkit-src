@@ -65,3 +65,10 @@ src/pactkit/
 
 @./docs/product/context.md
 output MUST use Chinese
+
+## PDCA Execution Lessons
+
+- **/project-done 不要重复跑回归测试**：如果 `/project-act` 阶段刚跑过全量测试且全绿，Done 阶段直接引用该结果，不要再跑一次。只有在 Done 阶段有额外文件修改（非 doc-only）时才重新跑。
+- **大文件一次读完**：`lessons.md` 等治理文件直接一次性读取，不要分多次小范围读取再拼凑。
+- **并行写多个独立文件**：rules.md、lessons.md、context.md、sprint_board.md 的更新互不依赖，应并行执行，不要串行。
+- **流程指令是指导，不是死板清单**：当上下文已经包含某个步骤的结果时（如测试结果、lint 结果），直接复用，不要机械重复执行。
