@@ -114,6 +114,22 @@ Or run the full cycle in one command:
 | **Init** | `/project-init` | System Architect | Bootstrap project structure and governance |
 | **Design** | `/project-design` | Product Designer | PRD generation -> Story decomposition -> Board setup |
 
+### Role-Based Command Guide
+
+Choose commands based on your role:
+
+| Role | Commands | What You Do |
+|------|----------|-------------|
+| **BA** | `/project-clarify` | Surface ambiguities, produce Clarified Brief |
+| **PM** | `/project-design` | Generate PRD, decompose into Stories |
+| **Architect** | `/project-plan`, `/project-init` | Create Specs, initialize project governance |
+| **Developer** | `/project-act`, `/project-hotfix` | TDD implementation, emergency fixes |
+| **QA** | `/project-check` | Security + quality audit, spec alignment |
+| **DevOps** | `/project-done`, `/project-release`, `/project-pr` | Commit, release, pull request |
+| **Team Lead** | `/project-sprint` | One-command PDCA orchestration (**Claude Code only**) |
+
+> **Solo developer?** Focus on `/project-plan` → `/project-act` → `/project-done`. Other commands become valuable when you have team collaboration or external stakeholders.
+
 ### Embedded Skills (auto-invoked by commands)
 
 | Skill | Embedded In | Purpose |
