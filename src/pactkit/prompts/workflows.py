@@ -106,6 +106,62 @@ LANG_PROFILES = {
     },
 }
 
+# ==============================================================================
+# 3c. CI PROFILES (STORY-slim-012)
+# ==============================================================================
+
+CI_PROFILES = {
+    "python": {
+        "setup_action": "actions/setup-python@v5",
+        "setup_key": "python-version",
+        "default_version": "3.11",
+        "install_cmd": (
+            "python -m pip install --upgrade pip\n"
+            "          pip install -e \".[dev]\" || pip install -e .\n"
+            "          pip install pytest ruff\n"
+            "          pactkit init"
+        ),
+        "test_cmd": "pytest tests/ -v",
+        "docker_image": "python",
+        "docker_install": (
+            "pip install -e \".[dev]\" || pip install -e .\n"
+            "    - pip install pytest"
+        ),
+        "setup_name": "Python",
+    },
+    "node": {
+        "setup_action": "actions/setup-node@v5",
+        "setup_key": "node-version",
+        "default_version": "20",
+        "install_cmd": "npm ci",
+        "test_cmd": "npx jest",
+        "docker_image": "node",
+        "docker_install": "npm ci",
+        "setup_name": "Node.js",
+    },
+    "go": {
+        "setup_action": "actions/setup-go@v5",
+        "setup_key": "go-version",
+        "default_version": "1.22",
+        "install_cmd": "go mod download",
+        "test_cmd": "go test ./...",
+        "docker_image": "golang",
+        "docker_install": "go mod download",
+        "setup_name": "Go",
+    },
+    "java": {
+        "setup_action": "actions/setup-java@v4",
+        "setup_key": "java-version",
+        "default_version": "21",
+        "install_cmd": "mvn dependency:resolve",
+        "test_cmd": "mvn test",
+        "docker_image": "maven",
+        "docker_install": "mvn dependency:resolve",
+        "setup_name": "Java",
+        "extra_setup": {"distribution": "temurin"},
+    },
+}
+
 DRAW_REF_STYLES = """## Enterprise Style Dictionary
 > **CRITICAL RULE**: Every style string MUST include `html=1;whiteSpace=wrap;`.
 

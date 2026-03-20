@@ -422,6 +422,12 @@ def _deploy_opencode(target=None):
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=oc_profile)
     n_commands = _deploy_commands(commands_dir, enabled_commands, profile=oc_profile, config=config)
 
+    # STORY-slim-012 R7: Deploy CI pipeline (same as classic — CI files are project-level)
+    ci_config = config.get("ci", {})
+    ci_provider = ci_config.get("provider", "none") if isinstance(ci_config, dict) else "none"
+    project_root = Path.cwd()
+    _deploy_ci(ci_provider, project_root, config)
+
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
     )
@@ -926,63 +932,111 @@ def _convert_command_frontmatter_opencode(content, cmd_name=None, command_models
 
 
 # ---------------------------------------------------------------------------
-# CI/CD pipeline generation (STORY-025)
+# CI/CD pipeline generation (STORY-025, STORY-slim-012)
 # ---------------------------------------------------------------------------
 
-_GITHUB_WORKFLOW_TEMPLATE = """\
-name: PactKit CI
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+def _detect_ghe(project_root):
+    """Detect if the project remote points to GitHub Enterprise (non-github.com)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True, text=True, cwd=str(project_root), timeout=5,
+        )
+        if result.returncode == 0:
+            url = result.stdout.strip()
+            if "github.com" not in url and ("github" in url.lower() or "git" in url.lower()):
+                return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return False
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+def _build_github_workflow(stack, ci_config, lang_profile, is_ghe=False):
+    """Build GitHub Actions workflow YAML content for the given stack."""
+    from pactkit.prompts.workflows import CI_PROFILES
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]" || pip install -e .
-          pip install pytest ruff
-          pactkit init
+    ci_prof = CI_PROFILES.get(stack, CI_PROFILES["python"])
+    runner = ci_config.get("runner", "ubuntu-latest")
+    version = ci_config.get("language_version", ci_prof["default_version"])
+    lint_command = lang_profile.get("lint_command", "ruff check src/ tests/")
+    actions_ref = ci_config.get("actions_ref", "")
 
-      - name: Lint
-        run: {lint_command}
+    # Apply actions_ref prefix: "my-org/" -> "my-org/actions/checkout@v4"
+    checkout_action = f"{actions_ref}actions/checkout@v4"
+    setup_action = ci_prof["setup_action"]
+    if actions_ref:
+        setup_action = f"{actions_ref}{setup_action}"
 
-      - name: Test
-        run: pytest tests/ -v
-"""
+    lines = []
+    if is_ghe:
+        lines.append("# NOTE: GHE detected — verify action availability on your instance")
+    lines.append("name: PactKit CI")
+    lines.append("")
+    lines.append("on:")
+    lines.append("  push:")
+    lines.append("    branches: [main]")
+    lines.append("  pull_request:")
+    lines.append("    branches: [main]")
+    lines.append("")
+    lines.append("jobs:")
+    lines.append("  test:")
+    lines.append(f"    runs-on: {runner}")
+    lines.append("    steps:")
+    lines.append(f"      - uses: {checkout_action}")
+    lines.append("")
+    lines.append(f"      - name: Set up {ci_prof['setup_name']}")
+    lines.append(f"        uses: {setup_action}")
+    lines.append("        with:")
+    lines.append(f'          {ci_prof["setup_key"]}: "{version}"')
+    if "extra_setup" in ci_prof:
+        for key, val in ci_prof["extra_setup"].items():
+            lines.append(f"          {key}: {val}")
+    lines.append("")
+    lines.append("      - name: Install dependencies")
+    lines.append("        run: |")
+    lines.append(f"          {ci_prof['install_cmd']}")
+    lines.append("")
+    lines.append("      - name: Lint")
+    lines.append(f"        run: {lint_command}")
+    lines.append("")
+    lines.append("      - name: Test")
+    lines.append(f"        run: {ci_prof['test_cmd']}")
+    lines.append("")
 
-_GITLAB_CI_TEMPLATE = """\
-stages:
-  - lint
-  - test
+    return "\n".join(lines)
 
-lint:
-  stage: lint
-  image: python:3.11
-  script:
-    - pip install ruff
-    - {lint_command}
 
-test:
-  stage: test
-  image: python:3.11
-  script:
-    - pip install -e ".[dev]" || pip install -e .
-    - pip install pytest
-    - pytest tests/ -v
-"""
+def _build_gitlab_ci(stack, ci_config, lang_profile):
+    """Build GitLab CI YAML content for the given stack."""
+    from pactkit.prompts.workflows import CI_PROFILES
+
+    ci_prof = CI_PROFILES.get(stack, CI_PROFILES["python"])
+    version = ci_config.get("language_version", ci_prof["default_version"])
+    lint_command = lang_profile.get("lint_command", "ruff check src/ tests/")
+    image = f"{ci_prof['docker_image']}:{version}"
+
+    lines = []
+    lines.append("stages:")
+    lines.append("  - lint")
+    lines.append("  - test")
+    lines.append("")
+    lines.append("lint:")
+    lines.append("  stage: lint")
+    lines.append(f"  image: {image}")
+    lines.append("  script:")
+    lines.append(f"    - {lint_command}")
+    lines.append("")
+    lines.append("test:")
+    lines.append("  stage: test")
+    lines.append(f"  image: {image}")
+    lines.append("  script:")
+    lines.append(f"    - {ci_prof['docker_install']}")
+    lines.append(f"    - {ci_prof['test_cmd']}")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def _deploy_ci(provider, project_root, config):
@@ -996,23 +1050,35 @@ def _deploy_ci(provider, project_root, config):
     if provider == "none" or provider not in ("github", "gitlab"):
         return
 
-    # Detect lint command from LANG_PROFILES
     from pactkit.prompts.workflows import LANG_PROFILES
 
     stack = config.get("stack", "auto")
     if stack == "auto":
-        stack = "python"  # default fallback
-    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
-    lint_command = profile.get("lint_command", "ruff check src/ tests/")
+        stack = "python"
+    lang_profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
+    ci_config = config.get("ci", {})
+    if not isinstance(ci_config, dict):
+        ci_config = {}
+
+    # GHE detection priority: _ghe_override (testing) > github_host (explicit) > auto-detect
+    is_ghe = ci_config.pop("_ghe_override", None)
+    if is_ghe is None:
+        github_host = ci_config.get("github_host", "")
+        if github_host:
+            is_ghe = True
+        elif provider == "github":
+            is_ghe = _detect_ghe(project_root)
+        else:
+            is_ghe = False
 
     if provider == "github":
         workflows_dir = project_root / ".github" / "workflows"
         workflows_dir.mkdir(parents=True, exist_ok=True)
-        content = _GITHUB_WORKFLOW_TEMPLATE.format(lint_command=lint_command)
+        content = _build_github_workflow(stack, ci_config, lang_profile, is_ghe=is_ghe)
         atomic_write(workflows_dir / "pactkit.yml", content)
         print("  -> CI: .github/workflows/pactkit.yml")
     elif provider == "gitlab":
-        content = _GITLAB_CI_TEMPLATE.format(lint_command=lint_command)
+        content = _build_gitlab_ci(stack, ci_config, lang_profile)
         atomic_write(project_root / ".gitlab-ci.yml", content)
         print("  -> CI: .gitlab-ci.yml")
 

@@ -544,6 +544,11 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 3.  **Post-Commit Prompts**:
     - **Version bump?** If `pyproject.toml` version was changed in this Story: "ℹ️ Version bump detected. Run `/project-release` to create snapshot and git tag."
     - **Feature branch?** If current branch is not `main`/`master`: "ℹ️ Working on a feature branch. Run `/project-pr` to push and create a pull request."
+    - **CI Status Check (Conditional)**: If `ci.provider` is `github` in `pactkit.yaml` and `gh` CLI is available:
+      1. After push, run `gh run list --limit 1 --json status,name,databaseId` to check the latest workflow run.
+      2. Report: `CI: [pass/fail/pending] — {workflow_name} #{run_id}`
+      3. If CI fails, print a warning but do NOT block the Done flow.
+      4. If `gh` CLI is unavailable or command fails, skip silently.
 
 ## 🎬 Phase 4.5: Session Context Update
 > **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.

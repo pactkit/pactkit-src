@@ -545,6 +545,14 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append("# CI/CD — set provider to github or gitlab to generate pipeline config")
         lines.append("ci:")
         lines.append(f"  provider: {ci.get('provider', 'none')}")
+        runner = ci.get("runner", "ubuntu-latest")
+        lang_ver = ci.get("language_version", "3.11")
+        gh_host = ci.get("github_host", "")
+        act_ref = ci.get("actions_ref", "")
+        lines.append(f"  # runner: {runner}")
+        lines.append(f'  # language_version: "{lang_ver}"')
+        lines.append(f'  # github_host: "{gh_host}"  # GHE server (empty = github.com)')
+        lines.append(f'  # actions_ref: "{act_ref}"  # GHE actions prefix')
         lines.append("")
 
     # Write issue tracker section
@@ -831,9 +839,19 @@ def generate_default_yaml() -> str:
     for r in cfg["rules"]:
         lines.append(f"  - {r}")
 
+    ci = cfg.get("ci", {})
     lines.extend(["", "# CI/CD — set provider to github or gitlab to generate pipeline config"])
     lines.append("ci:")
-    lines.append(f"  provider: {cfg.get('ci', {}).get('provider', 'none')}")
+    ci_d = ci if isinstance(ci, dict) else {}
+    lines.append(f"  provider: {ci_d.get('provider', 'none')}")
+    runner = ci_d.get("runner", "ubuntu-latest")
+    lang_ver = ci_d.get("language_version", "3.11")
+    gh_host = ci_d.get("github_host", "")
+    act_ref = ci_d.get("actions_ref", "")
+    lines.append(f"  # runner: {runner}")
+    lines.append(f'  # language_version: "{lang_ver}"')
+    lines.append(f'  # github_host: "{gh_host}"  # GHE server (empty = github.com)')
+    lines.append(f'  # actions_ref: "{act_ref}"  # GHE actions prefix')
 
     lines.extend(["", "# Issue Tracker — set provider to github to link stories to issues"])
     lines.append("issue_tracker:")
