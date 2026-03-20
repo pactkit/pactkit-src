@@ -2,7 +2,7 @@
 STORY-slim-010: Version Sync Fix & Deployer DRY Refactor
 
 Tests for:
-  AC1 - .claude/pactkit.yaml version matches pyproject.toml
+  AC1 - pactkit.yaml version matches pyproject.toml
   AC2 - _build_rule_id_to_key() helper exists and is used
   AC3 - _build_rule_id_to_filename() helper exists and is used
   AC4 - _render_skill_md() helper exists and is used
@@ -16,7 +16,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CLAUDE_YAML = PROJECT_ROOT / ".claude" / "pactkit.yaml"
+# Use .opencode/pactkit.yaml (tracked in git) for CI; .claude/ is gitignored
+OPENCODE_YAML = PROJECT_ROOT / ".opencode" / "pactkit.yaml"
 PYPROJECT = PROJECT_ROOT / "pyproject.toml"
 DEPLOYER = PROJECT_ROOT / "src" / "pactkit" / "generators" / "deployer.py"
 
@@ -34,18 +35,19 @@ def _read_pyproject_version() -> str:
 
 
 class TestAC1VersionSync:
-    def test_claude_yaml_exists(self):
-        assert CLAUDE_YAML.exists(), f"{CLAUDE_YAML} does not exist"
+    def test_opencode_yaml_exists(self):
+        """AC1: .opencode/pactkit.yaml must exist (tracked in git for CI)."""
+        assert OPENCODE_YAML.exists(), f"{OPENCODE_YAML} does not exist"
 
-    def test_claude_yaml_version_matches_pyproject(self):
-        """AC1: .claude/pactkit.yaml version must match pyproject.toml."""
+    def test_opencode_yaml_version_matches_pyproject(self):
+        """AC1: .opencode/pactkit.yaml version must match pyproject.toml."""
         import yaml
 
         expected = _read_pyproject_version()
-        data = yaml.safe_load(CLAUDE_YAML.read_text())
+        data = yaml.safe_load(OPENCODE_YAML.read_text())
         actual = str(data.get("version", ""))
         assert actual == expected, (
-            f".claude/pactkit.yaml version={actual!r} does not match pyproject.toml version={expected!r}"
+            f".opencode/pactkit.yaml version={actual!r} does not match pyproject.toml version={expected!r}"
         )
 
 
