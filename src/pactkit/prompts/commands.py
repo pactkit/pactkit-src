@@ -14,7 +14,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-plan "$ARGUMENTS"`
 - **Agent**: System Architect
 
-## 🧠 Phase 0: The Thinking Process (Mandatory)
+## 🧠 Phase 0: The Thinking Process
+> **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan the entire Spec in your head before producing output. Start each phase, show your findings, then move to the next.
 > **Tool Integration Note**: If the request involves adapting PactKit to a new AI coding tool (new `format` value like `codex`, `cursor`, etc.), **always start** by consulting `docs/guides/tool-integration-checklist.md`. Complete Dimension 0 (capability matrix) before writing any code. See also `docs/guides/codex-integration-preresearch.md` for an example pre-research template.
 
 1.  **Analyze Intent**: New feature (Expansion) or Bugfix/Refactor (Modification)?
@@ -84,13 +85,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
-## 🎬 Phase 3: Deliverables
-1.  **Story ID Generation** (STORY-072):
-    - Read `developer` from `pactkit.yaml` (check `{PACTKIT_YAML}`).
-    - If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
-    - If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
-    - NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
-2.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
+## 🎬 Phase 3.1: Story ID Generation
+1.  Read `developer` from `pactkit.yaml` (check `{PACTKIT_YAML}`).
+2.  If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
+3.  If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
+4.  NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
+5.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
+
+## 🎬 Phase 3.2: Write Spec
+1.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
     - **MUST — Metadata Table**: Include a metadata table at the top of the Spec using this EXACT format:
       ```markdown
       | Field | Value |
@@ -137,10 +140,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       | SEC-3 | Yes | models/user.py modified |
       ```
     - **Spec Lint Self-Check**: After writing the Spec, run `pactkit spec-lint docs/specs/{ID}.md`. If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean. This prevents the Spec from being rejected at Act Phase 0.5.
-2.  **Board**: Add Story using `add_story`.
-3.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
-4.  **Session Context Update**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-plan`.
-5.  **Handover**: "Trace complete. Spec created. Ready for Act."
+
+## 🎬 Phase 3.3: Board, Memory & Handover
+1.  **Board**: Add Story using `add_story`.
+2.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
+3.  **Session Context Update**: Update `docs/product/context.md` using the Context.md Canonical Format (see Shared Protocols). Set "Last updated by" to `/project-plan`.
+4.  **Handover**: "Trace complete. Spec created. Ready for Act."
 """,
     # [FIX] Added Board Update Step to Phase 4
     "project-act.md": """---
@@ -152,7 +157,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-act $ARGUMENTS`
 - **Agent**: Senior Developer
 
-## 🧠 Phase 0: The Thinking Process (Mandatory)
+## 🧠 Phase 0: The Thinking Process
+> **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan all implementation steps in your head before producing output.
 1.  **Read Law**: Read the Spec (`docs/specs/`) carefully.
 2.  **RFC Gate (Feasibility Check)**: If you identify a requirement in the Spec that is technically infeasible, contradictory, or would require violating a security/architectural constraint, invoke the **RFC Protocol**:
     - **STOP** implementation immediately. Do NOT write any code.
@@ -252,7 +258,8 @@ allowed-tools: [Read, Bash, Grep, Glob]
 | **P2** | Medium | Fix or follow-up — code smell, maintainability concern |
 | **P3** | Low | Optional — style, naming, minor suggestion |
 
-## Phase 0: The Thinking Process (Mandatory)
+## Phase 0: The Thinking Process
+> **Execution Style**: Work through each phase incrementally — output progress as you go.
 1.  **Analyze Context**: Read the active `docs/specs/{ID}.md`.
 2.  **Determine Layer**:
     * *Logic Only?* -> Strategy: **API Level**.
@@ -392,7 +399,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - **Usage**: `/project-done`
 - **Agent**: Repo Maintainer
 
-## 🧠 Phase 0: The Thinking Process (Mandatory)
+## 🧠 Phase 0: The Thinking Process
 1.  **Audit**: Are tests passing? Is the Board updated?
 2.  **Semantics**: Determine correct Conventional Commit scope.
 
@@ -595,7 +602,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - **Usage**: `/project-init`
 - **Agent**: System Architect
 
-## 🧠 Phase 0: The Thinking Process (Mandatory)
+## 🧠 Phase 0: The Thinking Process
 1.  **Environment Check**: Is this a fresh folder or legacy project?
 2.  **Compliance**: Does the user need `pactkit.yaml`?
 3.  **Strategy**: If legacy, I must prioritize `visualize` to capture Reality.

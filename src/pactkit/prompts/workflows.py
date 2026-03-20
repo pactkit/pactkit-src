@@ -13,7 +13,7 @@ allowed-tools: [Read, Bash, Grep, Glob]
 - **Usage**: Invoked as `pactkit-trace` skill
 - **Agent**: Code Explorer
 
-## 🕵️‍♂️ Phase 0: The Thinking Process (Mandatory)
+## 🕵️‍♂️ Phase 0: The Thinking Process
 1.  **Strategy**: Am I tracing a Data Flow (Model -> DB) or Control Flow (API -> Service)?
 2.  **Boundaries**: Define the stop condition (e.g., "Stop at Database Layer").
 
@@ -235,7 +235,7 @@ allowed-tools: [Read, Write]
 - **Usage**: Invoked as `pactkit-draw` skill
 - **Agent**: Visual Architect
 
-## Phase 0: The Thinking Process (Mandatory)
+## Phase 0: The Thinking Process
 
 ### Step 1: Detect Diagram Type
 Classify the user request into one of these types:
@@ -409,7 +409,7 @@ allowed-tools: [Read, Bash, Grep, Glob]
 | **P2** | Medium | Fix in this PR or create follow-up — code smell, maintainability concern |
 | **P3** | Low | Optional improvement — style, naming, minor suggestion |
 
-## Phase 0: PR Information Retrieval (Mandatory)
+## Phase 0: PR Information Retrieval
 1.  **Parse Input**: `$ARGUMENTS` can be a PR number (e.g. `123`) or a full URL.
 2.  **Fetch PR Metadata**: Run `gh pr view $ARGUMENTS --json title,body,author,baseRefName,headRefName,files`.
 3.  **Fetch PR Diff**: Run `gh pr diff $ARGUMENTS`.
@@ -577,7 +577,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - ❌ New feature development → use `/project-plan` + `/project-act`
 - ❌ Multi-module refactoring → use `/project-plan` + `/project-act`
 
-## 🧠 Phase 0: Locate & Register (Mandatory)
+## 🧠 Phase 0: Locate & Register
 1.  **Parse**: Understand what needs to be fixed from `$ARGUMENTS`.
 2.  **Locate**: Use `Grep` or `Glob` to quickly locate the target file and code line.
 3.  **Assess**: Confirm this is a minor fix (suitable for Hotfix), not a change requiring full PDCA.
@@ -630,7 +630,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > implementable Specs, and populate the Sprint Board — bridging the gap between
 > "I have an idea" and "I have a prioritized backlog ready for `/project-sprint`."
 
-## 🧠 Phase 0: The Thinking Process (Mandatory)
+## 🧠 Phase 0: The Thinking Process
+> **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan all PRD sections in your head before producing output. Start each section, show your findings, then move to the next.
 1.  **Parse Vision**: What is the core product idea? What problem does it solve?
 2.  **Identify Domain**: E-commerce, SaaS, internal tool, mobile app, CLI, etc.
 3.  **Detect Stack Hints**: Does the user mention specific technologies? (React, Python, Go, etc.)
@@ -640,7 +641,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **Goal**: Create `docs/product/prd.md` — the single source of truth for the product.
 
 1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_prd "{ProductName}"`.
-2.  **Fill Sections** — Complete each section in the PRD:
+2.  **Fill Sections** — Complete each section in the PRD. Work through 3 groups, outputting progress after each:
+
+### Group A: Product Foundation (Sections 1.1-1.2)
 
 ### 1.1 Product Overview
 - **Vision**: One-sentence product vision statement
@@ -656,6 +659,8 @@ For each persona, fill:
   - *Functional*: What task are they trying to accomplish?
   - *Emotional*: How do they want to feel?
   - *Social*: How do they want to be perceived?
+
+### Group B: Features & Design (Sections 1.3-1.6)
 
 ### 1.3 Feature Breakdown (Epics → Stories)
 Organize features into Epics. For each Story within an Epic, score:
@@ -695,6 +700,8 @@ For each key screen:
     - Interactive elements wired up (buttons show feedback, forms validate, modals open/close)
     - Call `lucide.createIcons()` at the end of `<body>` to render icons
 4.  **Browser Preview (Conditional)**: IF `mcp__playwright__browser_navigate` tool is available, open each prototype in the browser for live preview. IF Playwright MCP is not available, print the file path for manual opening.
+
+### Group C: Technical & Strategy (Sections 1.7-2.0)
 
 ### 1.7 API Design
 - List endpoints: `METHOD /path → description`
