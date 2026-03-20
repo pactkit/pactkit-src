@@ -4,6 +4,22 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.2.0] - 2026-03-20
+
+### Added
+- **Context-Aware Rule Loading** (STORY-slim-011) — `COMMAND_RULES_MAP` maps each of 11 commands to only the rules it needs, reducing per-command token usage by 20-83%. Classic format uses `@import` injection; OpenCode format embeds rule content inline. Credential safety rule (`09`) is force-injected into every command regardless of configuration.
+- **Stack-Aware CI Pipeline Generation** (STORY-slim-012) — `CI_PROFILES` in `workflows.py` supports Python, Node.js, Go, and Java stacks with correct setup actions, install commands, and test runners. New `pactkit.yaml` CI config fields: `runner`, `language_version`, `github_host`, `actions_ref`.
+- **GitHub Enterprise (GHE) Support** — Explicit `ci.github_host` configuration for GHE Server environments, with `ci.actions_ref` prefix replacement for custom action mirrors. Auto-detection fallback via `_detect_ghe()`.
+- **OpenCode CI Parity** — `_deploy_opencode()` now calls `_deploy_ci()`, ensuring CI pipeline files are generated regardless of deployment format.
+- **CI Status Feedback** — `/project-done` Phase 4 now includes optional CI status check via `gh run list` after push (non-blocking).
+- **GitLab CI Stack-Aware** — GitLab CI templates now use correct Docker images and commands per stack (e.g., `node:20` + `npm ci` for Node projects).
+
+### Changed
+- `_deploy_ci()` refactored from hardcoded Python-only templates to parameterized builders (`_build_github_workflow()`, `_build_gitlab_ci()`).
+- `generate_default_yaml()` now outputs commented CI configuration fields (`runner`, `language_version`, `github_host`, `actions_ref`) for user discoverability.
+- CLAUDE.md no longer contains global rule `@import` directives — rules are now injected at command level.
+- OpenCode `opencode.json` instructions reduced to only `09-credential-safety.md` — other rules injected per-command.
+
 ## [2.1.1] - 2026-03-18
 
 ### Added

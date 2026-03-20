@@ -188,9 +188,9 @@ PactKit supports two deployment formats:
 
 ```
 ~/.claude/
-├── CLAUDE.md                 <- Modular constitution (entry point with @import)
-├── rules/                    <- 8 rule modules
-├── commands/                 <- 11 command playbooks
+├── CLAUDE.md                 <- Project context entry point
+├── rules/                    <- 8 rule modules (loaded per-command, not globally)
+├── commands/                 <- 11 command playbooks (with per-command rule @imports)
 ├── agents/                   <- 9 agent definitions
 └── skills/                   <- 10 skill packages
 ```
@@ -208,7 +208,7 @@ PactKit supports two deployment formats:
 ```
 
 Key OpenCode differences:
-- **Rules**: Core rules always loaded via `instructions`; on-demand rules via `@reference` in AGENTS.md (lazy loading, -62% tokens)
+- **Rules**: Per-command inline embedding; credential safety always loaded via `instructions` (context-aware loading, -20% to -83% tokens per command)
 - **Agents**: `mode: subagent`, no `name` field, tools as record format
 - **Commands**: `agent: build` + `model: provider/model-id` (model routing)
 - **Config**: `pactkit.yaml` in `.opencode/` (not `.claude/`)
@@ -257,7 +257,7 @@ docs/
 | `skills` | list | all 10 | Skills to deploy |
 | `rules` | list | all 8 | Constitution rule modules to deploy |
 | `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`) |
-| `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`) |
+| `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`). Sub-fields: `runner` (default: `ubuntu-latest`), `language_version` (default: auto per stack), `github_host` (GHE server address), `actions_ref` (GHE actions prefix) |
 | `issue_tracker` | object | `provider: none` | External issue tracker (`github`, `none`) |
 | `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push) |
 | `lint_blocking` | bool | `false` | Whether lint failures block commits |
