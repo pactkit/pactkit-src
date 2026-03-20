@@ -30,6 +30,18 @@ Thumbs.db
 docs/architecture/graphs/
 docs/architecture/snapshots/
 
+# PactKit - IP protection (keep locally, not tracked in git)
+# Only BUG-*.md specs are tracked; STORY/HOTFIX contain sensitive design details
+docs/specs/STORY-*.md
+docs/specs/HOTFIX-*.md
+docs/test_cases/STORY-*_case.md
+docs/test_cases/HOTFIX-*_case.md
+docs/product/sprint_board.md
+docs/product/context.md
+docs/product/archive/
+docs/product/prd.md
+docs/architecture/governance/
+
 # Claude Code local config
 .claude/
 
