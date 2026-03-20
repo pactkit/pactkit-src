@@ -9,9 +9,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
 </p>
 
-<p align="center"><strong>Ship features with AI agents that follow specs, not vibes.</strong></p>
+<p align="center"><strong>CODE is the Law. Data is the Truth. Prompt is ONLY instruction. AI is ONLY creativity.</strong></p>
 
-> PactKit gives AI coding assistants a structured operating system — 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant writes specs before code, runs TDD, and never commits without passing tests.
+> **PactKit** (Pact 契约 + Kit) is a governance framework that enforces the **P.A.C.T.** contract between humans and AI agents. Deterministic operations run as code, not prompts. Decisions are grounded in data, not memory. AI does what it's best at — creativity and language — while code handles everything that must be repeatable and correct.
+>
+> 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant follows the contract.
 
 ### Supported AI Tools
 
@@ -31,15 +33,31 @@ You:  /project-sprint "Add OAuth2 login"
  Done   Repo Maintainer gates regression, archives story, commits
 ```
 
+## The P.A.C.T. Governance Contract
+
+The name says it all — **Pact** means covenant. These four principles define the boundary between human intent and AI execution:
+
+```
+P   Prompt   is ONLY instruction   Tells AI how to act — defines process, never state
+A   AI       is ONLY creativity    Formatting, summarization, language — never deterministic logic
+C   Code     is the Law            Sole executor of deterministic operations — no bypass, no approximation
+T   Truth    Data is the Truth     Factual basis for all judgment — no memory, no inference, no fabrication
+```
+
+- If a script exists → **use it**. Never reimplement in natural language. (C)
+- If data is available → **read it**. Never guess or recall from memory. (T)
+- Prompts define HOW, never WHAT. Current state comes from data, not docs. (P)
+- AI formats, summarizes, and creates. AI does not parse, compute, or fabricate. (A)
+
+> Read the full philosophy: [docs/architecture/governance/philosophy.md](docs/architecture/governance/philosophy.md)
+
 ## Why PactKit?
 
-AI coding assistants are powerful but unpredictable without structure. PactKit adds a **spec-driven governance layer**:
-
-- **Spec is the Law** — Specifications are the single source of truth (Spec > Tests > Code)
-- **Multi-Agent Ensemble** — 9 specialized agents collaborate, each with defined roles
+- **P.A.C.T. Governance** — A contract between humans and AI agents, with clear boundaries
+- **Multi-Agent Ensemble** — 9 specialized agents collaborate, each with constrained tools
 - **Full PDCA Lifecycle** — Plan -> Act -> Check -> Done, with quality gates at every stage
-- **Safe by Design** — TDD-first development, safe regression testing, pre-existing test protection
-- **Multi-Tool Support** — Works with Claude Code and OpenCode (with model routing)
+- **Safe by Design** — TDD-first, safe regression, pre-existing test protection
+- **Multi-Tool Support** — Works with Claude Code and OpenCode
 
 ## Installation
 
@@ -273,15 +291,15 @@ PactKit's safe regression system prevents agents from blindly modifying pre-exis
 - **Regression Check** — Read-only gate; pre-existing test failure = STOP and report
 - **Done Gate** — Full regression by default; incremental only when ALL safety conditions are met
 
-## Hierarchy of Truth
+## Hierarchy of Truth (the "T" in P.A.C.T.)
 
 ```
-Tier 1: Specs & Test Cases           <- The Law
-Tier 2: Tests                        <- The Verification
+Tier 1: Specs & Test Cases           <- The Law (CODE is the Law)
+Tier 2: Tests                        <- The Verification (DATA is the Truth)
 Tier 3: Implementation               <- The Mutable Reality
 ```
 
-When conflicts arise: Spec wins. Always.
+When conflicts arise: Spec wins. Always. The agent modifies code, never the spec.
 
 ## MCP Integration
 
