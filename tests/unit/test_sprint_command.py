@@ -10,7 +10,8 @@ if str(project_root) not in sys.path:
 
 
 def _parse_frontmatter(text):
-    match = re.match(r'^---\n(.*?)\n---', text.strip(), re.DOTALL)
+    # STORY-slim-011: Commands may have @import lines before ---
+    match = re.search(r'---\n(.*?)\n---', text.strip(), re.DOTALL)
     assert match, f'缺少 YAML frontmatter，内容开头: {text[:80]}'
     fm = {}
     for line in match.group(1).strip().splitlines():

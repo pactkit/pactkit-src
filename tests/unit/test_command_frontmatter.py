@@ -9,8 +9,12 @@ if str(project_root) not in sys.path:
 
 
 def _parse_frontmatter(text):
-    """从 Command Markdown 提取 YAML frontmatter（不依赖 PyYAML）"""
-    match = re.match(r'^---\n(.*?)\n---', text.strip(), re.DOTALL)
+    """从 Command Markdown 提取 YAML frontmatter（不依赖 PyYAML）
+
+    STORY-slim-011: Commands may have @import lines before the --- block.
+    Search for the first --- block anywhere in the text.
+    """
+    match = re.search(r'---\n(.*?)\n---', text.strip(), re.DOTALL)
     assert match, f'缺少 YAML frontmatter，内容开头: {text[:80]}'
     fm = {}
     for line in match.group(1).strip().splitlines():

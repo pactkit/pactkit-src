@@ -243,7 +243,7 @@ def _deploy_classic(config=None, target=None):
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
-    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=classic_profile)
+    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=classic_profile, config=config)
 
     # Deploy CI pipeline if configured (STORY-025)
     ci_config = config.get("ci", {})
@@ -420,7 +420,7 @@ def _deploy_opencode(target=None):
     # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
     _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=oc_profile)
-    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=oc_profile)
+    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=oc_profile, config=config)
 
     print(
         f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
@@ -590,17 +590,13 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
 
 
 def _deploy_claude_md(claude_root, enabled_rules):
-    """Generate CLAUDE.md with @import only for enabled rules."""
-    # Build reverse map: rule identifier -> filename
-    rule_id_to_filename = _build_rule_id_to_filename()
+    """Generate CLAUDE.md — rules now loaded per-command (STORY-slim-011).
 
+    AC11: CLAUDE.md no longer @imports rules globally. Rule loading has been
+    moved to command-level @import headers in _build_command_rules_header().
+    Only @./docs/product/context.md is retained.
+    """
     lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
-    for rule_id in sorted(enabled_rules):
-        filename = rule_id_to_filename.get(rule_id)
-        if filename:
-            lines.append(f"@~/.claude/rules/{filename}")
-
-    lines.append("")
     lines.append("@./docs/product/context.md")
     lines.append("")  # trailing newline
     atomic_write(claude_root / "CLAUDE.md", "\n".join(lines))
@@ -721,10 +717,88 @@ def _deploy_agents(
     return deployed
 
 
+def _get_command_rules(cmd_name, config=None):
+    """Resolve the rule list for a command (STORY-slim-011).
+
+    Priority: config['command_rules'][cmd] > COMMAND_RULES_MAP default.
+    SEC-1: 'credential' is always forced into the result.
+
+    Args:
+        cmd_name: Command name (e.g. 'project-act').
+        config: Optional config dict with 'command_rules' override.
+
+    Returns:
+        List of rule keys (e.g. ['core', 'hierarchy', 'credential']).
+    """
+    if config and "command_rules" in config and cmd_name in config["command_rules"]:
+        rules = list(config["command_rules"][cmd_name])
+    else:
+        rules = list(prompts.COMMAND_RULES_MAP.get(cmd_name, []))
+
+    # SEC-1: Force credential safety
+    if "credential" not in rules:
+        rules.append("credential")
+
+    return rules
+
+
+def _build_command_rules_header(cmd_name, profile, config=None):
+    """Build rule injection header for a command file (STORY-slim-011).
+
+    - Classic: @import lines for each rule
+    - OpenCode: inline rule content embedding
+    - Plugin/marketplace: no injection (rules handled globally)
+
+    Args:
+        cmd_name: Command name.
+        profile: FormatProfile.
+        config: Optional config dict for user overrides.
+
+    Returns:
+        Header string to prepend to command content, or empty string.
+    """
+    rules = _get_command_rules(cmd_name, config)
+    if not rules:
+        return ""
+
+    rule_id_to_filename = _build_rule_id_to_filename()
+
+    if profile.name == "classic":
+        # Classic: @import references
+        lines = []
+        for key in sorted(rules):
+            if key == "credential":
+                lines.append(f"@~/.claude/rules/{prompts.CREDENTIAL_SAFETY_FILE}")
+            else:
+                filename = rule_id_to_filename.get(key) if key in rule_id_to_filename else prompts.RULES_FILES.get(key)
+                if filename:
+                    lines.append(f"@~/.claude/rules/{filename}")
+        lines.append("")  # blank line before command content
+        return "\n".join(lines) + "\n"
+
+    elif profile.name == "opencode":
+        # OpenCode: inline content embedding for managed rules
+        # Credential (09) is loaded via opencode.json instructions, not inlined
+        parts = []
+        for key in sorted(rules):
+            if key == "credential":
+                continue  # handled via opencode.json instructions
+            content = prompts.RULES_MODULES.get(key)
+            if content:
+                parts.append(content.strip())
+        if parts:
+            # Use comment separator (not ---) to avoid clashing with YAML frontmatter
+            header = "\n\n".join(parts) + "\n\n<!-- rules-end -->\n\n"
+            return header
+
+    return ""
+
+
 def _deploy_commands(
     commands_dir,
     enabled_commands,
     profile=None,
+    config=None,
     # Legacy params for plugin/marketplace — ignored when profile is provided
     _legacy_prefix=None,
     _legacy_opencode=None,
@@ -733,6 +807,7 @@ def _deploy_commands(
 
     Args:
         profile: FormatProfile (STORY-slim-005). Replaces _legacy_prefix + _legacy_opencode.
+        config: Optional config dict for command_rules overrides (STORY-slim-011).
         _legacy_prefix: DEPRECATED. Use profile instead.
         _legacy_opencode: DEPRECATED. Use profile instead.
     """
@@ -768,6 +843,12 @@ def _deploy_commands(
         # STORY-070 R1: Convert frontmatter for OpenCode
         if _opencode_format:
             content = _convert_command_frontmatter_opencode(content)
+
+        # STORY-slim-011: Prepend rule injection header (classic=@import, opencode=inline)
+        if _legacy_prefix is None:
+            rules_header = _build_command_rules_header(cmd_name, profile, config)
+            if rules_header:
+                content = rules_header + content
 
         rendered = (
             _render_prompt(content, profile)
@@ -1493,12 +1574,16 @@ def _update_global_opencode_json(opencode_root, command_models=None, providers=N
     # Ensure $schema
     config.setdefault("$schema", "https://opencode.ai/config.json")
 
-    # STORY-slim-009 R2: Write core-only rules into instructions (lazy loading)
-    # Remove old glob pattern, add core rule paths from RULES_INSTRUCTIONS_CORE, preserve user entries
-    existing = [i for i in config.get("instructions", []) if i != "rules/*.md"]
-    for path in prompts.RULES_INSTRUCTIONS_CORE:
-        if path not in existing:
-            existing.append(path)
+    # STORY-slim-011: Only credential safety in instructions (rules now loaded per-command)
+    # Remove old glob pattern and core rules that moved to command-level injection.
+    # Keep 09-credential-safety.md (SEC-1) and any user-added non-rule entries.
+    credential_path = f"rules/{prompts.CREDENTIAL_SAFETY_FILE}"
+    existing = [
+        i for i in config.get("instructions", [])
+        if i != "rules/*.md" and not (i.startswith("rules/") and i != credential_path)
+    ]
+    if credential_path not in existing:
+        existing.append(credential_path)
     config["instructions"] = existing
 
     # STORY-073 R1: Add command model routing

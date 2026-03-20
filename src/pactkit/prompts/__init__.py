@@ -16,7 +16,9 @@ from .references import (
 )
 from .rules import (
     CLAUDE_MD_TEMPLATE,
+    COMMAND_RULES_MAP,
     CONSTITUTION_EXPERT,
+    CREDENTIAL_SAFETY_FILE,
     RULES_CORE_FILES,
     RULES_FILES,
     RULES_INSTRUCTIONS_CORE,

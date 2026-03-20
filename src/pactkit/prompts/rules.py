@@ -383,6 +383,32 @@ RULES_INSTRUCTIONS_CORE = [
     "rules/09-credential-safety.md",  # user-managed but security-critical
 ]
 
+# User-managed credential safety rule (not in RULES_MODULES, but always required)
+# SEC-1: This file must be injected into every command regardless of config.
+CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
+
+# STORY-slim-011: Command → Rules mapping
+# Each command loads only the rules it needs, reducing token waste.
+# "credential" is a special key referencing CREDENTIAL_SAFETY_FILE (user-managed).
+# Keys: core=01, hierarchy=02, atlas=03, routing=04, workflow=05,
+#        mcp=06, shared=07, architecture=08, credential=09
+COMMAND_RULES_MAP = {
+    "project-init": ["core", "atlas", "shared", "credential"],
+    "project-plan": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-clarify": ["core", "credential"],
+    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
+    "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
+    "project-release": ["core", "workflow", "credential"],
+    "project-pr": ["core", "workflow", "credential"],
+    "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
+    "project-design": ["core", "atlas", "mcp", "architecture", "credential"],
+    "project-sprint": [
+        "core", "hierarchy", "atlas", "routing", "workflow",
+        "mcp", "shared", "architecture", "credential",
+    ],
+}
+
 # Managed file prefixes (deployer will clean these, leave user files intact)
 RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-"]
 

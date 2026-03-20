@@ -316,26 +316,26 @@ class TestDeploymentCompleteness:
                     f"{agent_file.name}: missing frontmatter field '{field}'"
 
     def test_command_frontmatter_integrity(self, deploy_target):
-        """AC7 (R7): Every command file starts with --- and has description + allowed-tools."""
+        """AC7 (R7): Every command file has --- frontmatter with description + allowed-tools.
+
+        STORY-slim-011: Commands may start with @import lines before the --- block.
+        """
         required_fields = ("description:", "allowed-tools:")
         for cmd_file in (deploy_target / "commands").glob("*.md"):
             content = cmd_file.read_text()
-            assert content.startswith("---"), \
-                f"{cmd_file.name}: missing YAML frontmatter open '---'"
+            assert "---" in content, \
+                f"{cmd_file.name}: missing YAML frontmatter '---'"
             for field in required_fields:
                 assert field in content, \
                     f"{cmd_file.name}: missing frontmatter field '{field}'"
 
-    def test_claude_md_references_all_rules(self, deploy_target):
-        """AC7 (R8): CLAUDE.md contains @~/.claude/rules/ lines for all 6 rules."""
-        from pactkit.config import VALID_RULES
+    def test_claude_md_no_global_rule_imports(self, deploy_target):
+        """STORY-slim-011 AC11: CLAUDE.md no longer has global rule @imports (rules are per-command)."""
         content = (deploy_target / "CLAUDE.md").read_text()
         rule_lines = [ln for ln in content.splitlines() if ln.startswith("@~/.claude/rules/")]
-        assert len(rule_lines) == len(VALID_RULES), \
-            f"Expected {len(VALID_RULES)} rule imports, got {len(rule_lines)}: {rule_lines}"
-        for rule_id in VALID_RULES:
-            assert any(rule_id in ln for ln in rule_lines), \
-                f"Rule '{rule_id}' not referenced in CLAUDE.md"
+        assert len(rule_lines) == 0, \
+            f"CLAUDE.md should not have global rule imports, found: {rule_lines}"
+        assert "@./docs/product/context.md" in content
 
 
 @pytest.mark.e2e

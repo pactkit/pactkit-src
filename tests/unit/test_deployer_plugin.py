@@ -168,10 +168,12 @@ class TestPluginClaudeMd:
 class TestClassicModeUnchanged:
     """Acceptance Criteria Scenario 4: Classic 模式不受影响"""
 
-    def test_classic_claude_md_has_imports(self, tmp_path):
+    def test_classic_claude_md_no_global_rule_imports(self, tmp_path):
+        """STORY-slim-011: CLAUDE.md no longer has global rule @imports."""
         out = _run_deploy_classic(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        assert "@~/.claude/rules/" in content
+        assert "@~/.claude/rules/" not in content
+        assert "@./docs/product/context.md" in content
 
     def test_classic_has_rules_dir(self, tmp_path):
         out = _run_deploy_classic(tmp_path)
@@ -189,7 +191,7 @@ class TestClassicModeUnchanged:
         out = tmp_path / ".claude"
         deploy(target=str(out))
         content = (out / "CLAUDE.md").read_text()
-        assert "@~/.claude/rules/" in content
+        assert "PactKit Global Constitution" in content
         assert not (out / ".claude-plugin").exists()
 
 
@@ -255,7 +257,7 @@ class TestCliFormatArgument:
         with patch("sys.argv", ["pactkit", "init", "--format", "classic", "-t", str(out)]):
             main()
         assert (out / "CLAUDE.md").is_file()
-        assert "@~/.claude/rules/" in (out / "CLAUDE.md").read_text()
+        assert "PactKit Global Constitution" in (out / "CLAUDE.md").read_text()
 
     def test_cli_default_format_is_classic(self, tmp_path):
         """pactkit init -t <dir> (no --format) defaults to classic."""

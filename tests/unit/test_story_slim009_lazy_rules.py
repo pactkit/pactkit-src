@@ -77,10 +77,9 @@ class TestRulesFilesSplit:
 
 
 class TestInstructionsCoreOnly:
-    def test_opencode_json_has_core_only_instructions(self, tmp_path):
-        """_update_global_opencode_json writes core rule paths, not glob."""
+    def test_opencode_json_has_credential_only_instructions(self, tmp_path):
+        """STORY-slim-011: _update_global_opencode_json writes only credential safety, not core rules."""
         from pactkit.generators.deployer import _update_global_opencode_json
-        from pactkit.prompts.rules import RULES_CORE_FILES
 
         json_path = tmp_path / "opencode.json"
         _update_global_opencode_json(tmp_path)
@@ -91,9 +90,10 @@ class TestInstructionsCoreOnly:
         # Must NOT contain glob
         assert "rules/*.md" not in instructions, "instructions must not contain glob 'rules/*.md'"
 
-        # Must contain exactly the core rule paths
-        for filename in RULES_CORE_FILES.values():
-            assert f"rules/{filename}" in instructions, f"Core rule rules/{filename} missing from instructions"
+        # STORY-slim-011: Only credential safety in instructions (core rules moved to per-command)
+        assert "rules/09-credential-safety.md" in instructions
+        assert "rules/01-core-protocol.md" not in instructions
+        assert "rules/02-hierarchy-of-truth.md" not in instructions
 
     def test_non_core_rules_not_in_instructions(self, tmp_path):
         """On-demand rules must not appear in instructions."""
@@ -126,8 +126,8 @@ class TestInstructionsCoreOnly:
         assert "CONTRIBUTING.md" in instructions
         # Old glob removed
         assert "rules/*.md" not in instructions
-        # Core rules added
-        assert "rules/01-core-protocol.md" in instructions
+        # STORY-slim-011: Only credential safety added (core rules now per-command)
+        assert "rules/09-credential-safety.md" in instructions
 
     def test_no_duplicate_instructions(self, tmp_path):
         """Running update twice must not add duplicates."""

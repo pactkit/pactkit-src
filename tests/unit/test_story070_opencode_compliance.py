@@ -17,14 +17,26 @@ from pactkit.generators.deployer import deploy
 class TestAC1CommandFrontmatter:
     """AC1: Commands use OpenCode frontmatter (agent: build, no allowed-tools)."""
 
+    def _extract_frontmatter(self, content):
+        """Extract YAML frontmatter from content that may have rule headers.
+
+        STORY-slim-011: OpenCode commands have inline rule content before the
+        --- frontmatter block. Find the --- block containing 'description:'.
+        """
+        import re
+        matches = list(re.finditer(r'---\n(.*?)\n---', content, re.DOTALL))
+        assert matches, f"No frontmatter found in content starting with: {content[:80]}"
+        for m in matches:
+            if "description:" in m.group(1):
+                return m.group(1)
+        return matches[-1].group(1)
+
     def test_command_has_agent_build(self, tmp_path):
         """Command frontmatter contains 'agent: build'."""
         out = tmp_path / "oc"
         deploy(format="opencode", target=str(out))
         content = (out / "commands" / "project-plan.md").read_text()
-        # Extract frontmatter (between first --- and second ---)
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
+        frontmatter = self._extract_frontmatter(content)
         assert "agent: build" in frontmatter
 
     def test_command_no_allowed_tools(self, tmp_path):
@@ -32,8 +44,7 @@ class TestAC1CommandFrontmatter:
         out = tmp_path / "oc"
         deploy(format="opencode", target=str(out))
         content = (out / "commands" / "project-plan.md").read_text()
-        parts = content.split("---", 2)
-        frontmatter = parts[1]
+        frontmatter = self._extract_frontmatter(content)
         assert "allowed-tools" not in frontmatter
 
     def test_all_commands_converted(self, tmp_path):
@@ -43,8 +54,7 @@ class TestAC1CommandFrontmatter:
         commands_dir = out / "commands"
         for cmd_file in commands_dir.glob("*.md"):
             content = cmd_file.read_text()
-            parts = content.split("---", 2)
-            frontmatter = parts[1]
+            frontmatter = self._extract_frontmatter(content)
             assert "allowed-tools" not in frontmatter, f"{cmd_file.name} still has allowed-tools"
             assert "agent: build" in frontmatter, f"{cmd_file.name} missing agent: build"
 

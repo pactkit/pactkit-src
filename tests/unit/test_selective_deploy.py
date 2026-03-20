@@ -156,20 +156,18 @@ class TestPartialCommandConfig:
 
 
 class TestSelectiveRules:
-    def test_claude_md_only_has_enabled_rules(self, tmp_path):
+    def test_claude_md_no_global_rule_imports(self, tmp_path):
+        """STORY-slim-011: CLAUDE.md no longer has rule @imports (moved to per-command)."""
         cfg = get_default_config()
         cfg["rules"] = ["01-core-protocol", "05-workflow-conventions"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         content = (claude / "CLAUDE.md").read_text()
 
-        assert "01-core-protocol.md" in content
-        assert "05-workflow-conventions.md" in content
-        # Disabled rules should NOT be referenced
-        assert "02-hierarchy-of-truth.md" not in content
-        assert "03-file-atlas.md" not in content
-        assert "04-routing-table.md" not in content
-        assert "06-mcp-integration.md" not in content
+        # STORY-slim-011: CLAUDE.md should have no rule filenames at all
+        assert "01-core-protocol.md" not in content
+        assert "05-workflow-conventions.md" not in content
+        assert "@./docs/product/context.md" in content
 
     def test_only_enabled_rule_files_exist(self, tmp_path):
         cfg = get_default_config()

@@ -22,10 +22,11 @@ class TestClaudeMdUsesImport:
         content = (tmp_path / '.claude' / 'CLAUDE.md').read_text()
         assert '@' in content, 'CLAUDE.md 不包含 @ 导入语句'
 
-    def test_claude_md_references_rules_dir(self, tmp_path):
+    def test_claude_md_has_context_import(self, tmp_path):
+        """STORY-slim-011: CLAUDE.md no longer has rule @imports, but keeps context.md."""
         _deploy(tmp_path)
         content = (tmp_path / '.claude' / 'CLAUDE.md').read_text()
-        assert '~/.claude/rules/' in content
+        assert '@./docs/product/context.md' in content
 
     def test_claude_md_is_slim(self, tmp_path):
         _deploy(tmp_path)
