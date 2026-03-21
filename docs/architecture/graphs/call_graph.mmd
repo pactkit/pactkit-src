@@ -107,6 +107,7 @@ graph TD
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
     transform["transform"]
+    update_spec_status["update_spec_status"]
     validate_config["validate_config"]
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
@@ -171,6 +172,7 @@ graph TD
     main --> append_lesson
     main --> refresh_test_count
     main --> check_coverage
+    main --> update_spec_status
     scan_and_replace_tbd --> _get_done_ids
     clean_artifacts --> detect_stack
     _parse_coverage_output --> _classify_coverage

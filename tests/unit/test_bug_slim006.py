@@ -207,7 +207,8 @@ class TestAC7CleanupKeyRemoved:
     def test_profiles_have_5_consumed_keys(self):
         """After removing cleanup, each profile should have 5 keys."""
         profiles = _get_lang_profiles()
-        expected = {"test_runner", "file_ext", "source_dirs", "test_map_pattern", "lint_command"}
+        from pactkit.schemas import LANG_PROFILE_REQUIRED_KEYS
+        expected = LANG_PROFILE_REQUIRED_KEYS
         for lang in self.PROFILES:
             assert set(profiles[lang].keys()) == expected, (
                 f"LANG_PROFILES[{lang}] keys: {set(profiles[lang].keys())} != {expected}"

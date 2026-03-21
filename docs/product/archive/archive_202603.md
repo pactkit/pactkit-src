@@ -336,3 +336,13 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+
+### STORY-slim-018: Systemic Cross-Flow Guards — Automated Validation for Prompt-CLI Integrity
+- [x] R1: Prompt-to-CLI cross-reference guard test
+- [x] R2: Canonical LANG_PROFILE_REQUIRED_KEYS as SSoT
+- [x] R3: Done flow MUST update Spec Status to Done
+- [x] R4: Declarative cross-flow coverage matrix test
+
+## 🔄 In Progress
+
+## ✅ Done

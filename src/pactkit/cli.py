@@ -275,6 +275,11 @@ def main():
     cov_parser = subparsers.add_parser("coverage-gate", help="Run coverage verification")
     cov_parser.add_argument("files", nargs="+", help="Changed source file paths")
 
+    # pactkit spec-status (STORY-slim-018 R3)
+    spec_status_parser = subparsers.add_parser("spec-status", help="Update Status field in a spec file")
+    spec_status_parser.add_argument("spec", help="Path to spec file")
+    spec_status_parser.add_argument("status", choices=["Draft", "In Progress", "Done"], help="New status value")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -563,6 +568,16 @@ def main():
         result = check_coverage(args.files, Path.cwd())
         import json
         print(json.dumps(result, indent=2))
+
+    elif args.command == "spec-status":
+        from pathlib import Path
+
+        from pactkit.spec_status import update_spec_status
+
+        result = update_spec_status(Path(args.spec), args.status)
+        print(result["message"])
+        if result["action"] == "error":
+            raise SystemExit(1)
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

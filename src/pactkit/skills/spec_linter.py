@@ -24,6 +24,7 @@ try:
         SPEC_REQUIRED_SECTIONS,
         SPEC_REQUIREMENT_PATTERN,
         SPEC_RFC_PATTERN,
+        SPEC_VALID_STATUSES,
     )
 except ImportError:
     # Fallback for standalone execution without pactkit installed
@@ -34,6 +35,7 @@ except ImportError:
     SPEC_AC_PATTERN = r"### AC\d+[:\s]|### Scenario\s+\d+[:\s]"
     SPEC_GIVEN_WHEN_THEN = ("Given", "When", "Then")
     SPEC_RFC_PATTERN = re.compile(r"\b(MUST|SHOULD|MAY|SHALL|REQUIRED|RECOMMENDED|OPTIONAL)\b")
+    SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -140,6 +142,13 @@ def _check_metadata(text: str, result: LintResult) -> dict[str, str]:
     # E008: Release must not be TBD
     if fields.get("Release", "").upper() == "TBD":
         result.errors.append(LintIssue("E008", "Release field is 'TBD' — must be a concrete version before Act"))
+
+    # W006: Status value must be in SPEC_VALID_STATUSES (STORY-slim-018 R3)
+    status_val = fields.get("Status", "")
+    if status_val and status_val not in SPEC_VALID_STATUSES:
+        result.warnings.append(
+            LintIssue("W006", f"Status value '{status_val}' not in allowed set: {', '.join(SPEC_VALID_STATUSES)}")
+        )
 
     return fields
 

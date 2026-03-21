@@ -228,7 +228,8 @@ class TestBackwardCompatibility:
     def test_lang_profiles_existing_fields_preserved(self):
         """Existing LANG_PROFILES fields must still be present."""
         p = _prompts()
-        required = ['test_runner', 'file_ext', 'test_map_pattern', 'lint_command']
+        from pactkit.schemas import LANG_PROFILE_REQUIRED_KEYS
+        required = list(LANG_PROFILE_REQUIRED_KEYS)
         for lang in ['python', 'node', 'go', 'java']:
             for field in required:
                 assert field in p.LANG_PROFILES[lang], f"{lang} missing {field}"

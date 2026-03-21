@@ -83,6 +83,22 @@ SPEC_TEMPLATE = """\
 - (Items explicitly excluded)
 """
 
+# ─── Spec Status Values ──────────────────────────────────────────────────────
+
+SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
+
+# ─── LANG_PROFILES Key Schema ───────────────────────────────────────────────
+# Canonical key set for LANG_PROFILES entries in workflows.py.
+# All test files MUST import this instead of hardcoding their own key lists.
+
+LANG_PROFILE_REQUIRED_KEYS = frozenset({
+    "test_runner",
+    "file_ext",
+    "source_dirs",
+    "test_map_pattern",
+    "lint_command",
+})
+
 # ─── Sprint Board Schema ─────────────────────────────────────────────────────
 # board.py (deployed as standalone skill script) maintains inline copies of these
 # constants. When updating here, also update src/pactkit/skills/board.py.

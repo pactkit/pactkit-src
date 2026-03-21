@@ -466,7 +466,8 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
     - `pactkit lint-context` — validates `docs/product/context.md` structure
     - `pactkit lint-lessons` — validates `docs/architecture/governance/lessons.md` structure
     - These are non-blocking: report warnings but do not stop the Done flow.
-6.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
+6.  **Spec Status Update (MANDATORY)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file. If `pactkit spec-status` is unavailable, manually edit the spec file.
+7.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
 
 ## 🎬 Phase 3.5: Archive (Optional)
 1.  **Check**: Are all tasks for the current Story marked `[x]`?

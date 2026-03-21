@@ -91,7 +91,8 @@ class TestAC5DeadKeysRemoved:
 # --- AC6: Consumed keys intact ---
 
 class TestAC6ConsumedKeysIntact:
-    CONSUMED_KEYS = {"test_runner", "file_ext", "source_dirs", "test_map_pattern", "lint_command"}
+    from pactkit.schemas import LANG_PROFILE_REQUIRED_KEYS
+    CONSUMED_KEYS = LANG_PROFILE_REQUIRED_KEYS
 
     def test_python_has_consumed_keys(self):
         profiles = _get_lang_profiles()

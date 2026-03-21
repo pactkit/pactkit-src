@@ -31,6 +31,8 @@ graph TD
     click src_pactkit_utils_py href "src/pactkit/utils.py"
     src_pactkit_cleaners_py["cleaners.py"]
     click src_pactkit_cleaners_py href "src/pactkit/cleaners.py"
+    src_pactkit_spec_status_py["spec_status.py"]
+    click src_pactkit_spec_status_py href "src/pactkit/spec_status.py"
     src_pactkit_coverage_gate_py["coverage_gate.py"]
     click src_pactkit_coverage_gate_py href "src/pactkit/coverage_gate.py"
     src_pactkit_scripts_py["scripts.py"]
@@ -95,6 +97,8 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_lessons_py
     src_pactkit_cli_py --> src_pactkit_invariants_py
     src_pactkit_cli_py --> src_pactkit_coverage_gate_py
+    src_pactkit_cli_py --> src_pactkit_spec_status_py
+    src_pactkit_spec_status_py --> src_pactkit_schemas_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py

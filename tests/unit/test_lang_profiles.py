@@ -36,7 +36,8 @@ class TestLangProfilesExists:
 class TestProfileFields:
     """STORY-025 Scenario 2: Each profile has all required fields."""
 
-    REQUIRED_FIELDS = ['test_runner', 'file_ext', 'test_map_pattern', 'lint_command']
+    from pactkit.schemas import LANG_PROFILE_REQUIRED_KEYS
+    REQUIRED_FIELDS = list(LANG_PROFILE_REQUIRED_KEYS)
 
     @pytest.mark.parametrize("lang", ["python", "node", "go", "java"])
     def test_has_all_fields(self, lang):
