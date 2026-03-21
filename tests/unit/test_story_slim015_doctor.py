@@ -4,6 +4,7 @@ Covers R1-R7: doctor diagnostics, backfill-release, issue-sync, CLI wiring, prom
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from unittest.mock import patch
 
@@ -342,7 +343,7 @@ class TestR5IssueSync:
 class TestR6CLIWiring:
     """CLI must expose doctor, backfill-release, issue-sync subcommands."""
 
-    _PACTKIT = str(Path(__file__).parents[2] / ".venv" / "bin" / "pactkit")
+    _PACTKIT = shutil.which("pactkit") or str(Path(__file__).parents[2] / ".venv" / "bin" / "pactkit")
 
     def test_doctor_subcommand_exists(self):
         """pactkit doctor should be a recognized subcommand."""

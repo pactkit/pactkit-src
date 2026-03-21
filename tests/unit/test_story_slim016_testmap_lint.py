@@ -4,6 +4,7 @@ Covers R1-R4: test-map, lint runner, CLI wiring, prompt delegation.
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from unittest.mock import patch
 
@@ -138,7 +139,7 @@ class TestR2LintRunner:
 class TestR3CLIWiring:
     """CLI must expose test-map and lint subcommands."""
 
-    _PACTKIT = str(Path(__file__).parents[2] / ".venv" / "bin" / "pactkit")
+    _PACTKIT = shutil.which("pactkit") or str(Path(__file__).parents[2] / ".venv" / "bin" / "pactkit")
 
     def test_test_map_subcommand_exists(self):
         """pactkit test-map should be a recognized subcommand."""
