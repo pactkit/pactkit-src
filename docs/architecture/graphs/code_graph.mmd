@@ -5,6 +5,8 @@ graph TD
     click src_pactkit_regression_py href "src/pactkit/regression.py"
     src_pactkit_config_py["config.py"]
     click src_pactkit_config_py href "src/pactkit/config.py"
+    src_pactkit_lessons_py["lessons.py"]
+    click src_pactkit_lessons_py href "src/pactkit/lessons.py"
     src_pactkit_guards_py["guards.py"]
     click src_pactkit_guards_py href "src/pactkit/guards.py"
     src_pactkit_sec_scope_py["sec_scope.py"]
@@ -29,6 +31,8 @@ graph TD
     click src_pactkit_utils_py href "src/pactkit/utils.py"
     src_pactkit_cleaners_py["cleaners.py"]
     click src_pactkit_cleaners_py href "src/pactkit/cleaners.py"
+    src_pactkit_coverage_gate_py["coverage_gate.py"]
+    click src_pactkit_coverage_gate_py href "src/pactkit/coverage_gate.py"
     src_pactkit_scripts_py["scripts.py"]
     click src_pactkit_scripts_py href "src/pactkit/scripts.py"
     src_pactkit_issue_sync_py["issue_sync.py"]
@@ -39,6 +43,8 @@ graph TD
     click src_pactkit_doctor_py href "src/pactkit/doctor.py"
     src_pactkit_profiles_py["profiles.py"]
     click src_pactkit_profiles_py href "src/pactkit/profiles.py"
+    src_pactkit_invariants_py["invariants.py"]
+    click src_pactkit_invariants_py href "src/pactkit/invariants.py"
     src_pactkit_prompts_skills_py["skills.py"]
     click src_pactkit_prompts_skills_py href "src/pactkit/prompts/skills.py"
     src_pactkit_prompts_references_py["references.py"]
@@ -86,6 +92,9 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_issue_sync_py
     src_pactkit_cli_py --> src_pactkit_test_mapper_py
     src_pactkit_cli_py --> src_pactkit_lint_runner_py
+    src_pactkit_cli_py --> src_pactkit_lessons_py
+    src_pactkit_cli_py --> src_pactkit_invariants_py
+    src_pactkit_cli_py --> src_pactkit_coverage_gate_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py

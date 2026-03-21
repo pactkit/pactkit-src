@@ -303,3 +303,12 @@
 - [x] R4: Forward --agent in upgrade handler
 - [x] R5: Check Phase 3 use pactkit spec-lint for Spec structure
 - [x] R6: Design must call pactkit context after board setup
+
+### [STORY-slim-017] Done Phase Deterministic Gate Migration — Lessons, Invariants, Coverage
+> Spec: docs/specs/STORY-slim-017.md
+
+- [x] R1: pactkit lesson-append with dedup
+- [x] R2: pactkit invariants-refresh test count
+- [x] R3: pactkit coverage-gate verification
+- [x] R4: CLI wiring (3 new subcommands)
+- [x] R5: Prompt delegation to new CLI commands

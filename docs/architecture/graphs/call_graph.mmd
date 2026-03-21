@@ -6,6 +6,7 @@ graph TD
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
     _check_gh_available["_check_gh_available"]
+    _classify_coverage["_classify_coverage"]
     _cleanup_legacy["_cleanup_legacy"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
@@ -26,6 +27,7 @@ graph TD
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
     _detect_ghe["_detect_ghe"]
+    _extract_module_path["_extract_module_path"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
     _generate_project_agents_md["_generate_project_agents_md"]
@@ -34,14 +36,19 @@ graph TD
     _get_done_ids["_get_done_ids"]
     _get_git_branches["_get_git_branches"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
+    _get_last_n_entries["_get_last_n_entries"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
+    _is_duplicate["_is_duplicate"]
+    _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
+    _jaccard_similarity["_jaccard_similarity"]
     _load_opencode_providers["_load_opencode_providers"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
+    _parse_coverage_output["_parse_coverage_output"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
@@ -55,15 +62,18 @@ graph TD
     _resolve_opencode_model_id["_resolve_opencode_model_id"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
+    _run_pytest_cov["_run_pytest_cov"]
     _schema_command["_schema_command"]
     _search_issue["_search_issue"]
     _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
+    append_lesson["append_lesson"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
+    check_coverage["check_coverage"]
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
     check_stale_graphs["check_stale_graphs"]
@@ -88,6 +98,7 @@ graph TD
     main["main"]
     map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
+    refresh_test_count["refresh_test_count"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_lint["run_lint"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
@@ -107,6 +118,10 @@ graph TD
     auto_merge_config_file --> get_default_config
     auto_merge_config_file --> _rewrite_yaml
     generate_default_yaml --> get_default_config
+    _is_duplicate --> _jaccard_similarity
+    append_lesson --> _get_last_n_entries
+    append_lesson --> _is_duplicate
+    append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml
     detect_security_scope --> _is_docs_or_tests_only
@@ -149,8 +164,15 @@ graph TD
     main --> issue_sync
     main --> map_to_tests
     main --> run_lint
+    main --> append_lesson
+    main --> refresh_test_count
+    main --> check_coverage
     scan_and_replace_tbd --> _get_done_ids
     clean_artifacts --> detect_stack
+    _parse_coverage_output --> _classify_coverage
+    check_coverage --> _parse_coverage_output
+    check_coverage --> _extract_module_path
+    check_coverage --> _run_pytest_cov
     _get_issue_tracker_provider --> find_pactkit_yaml
     issue_sync --> _parse_item_type
     issue_sync --> _get_issue_tracker_provider

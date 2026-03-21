@@ -261,6 +261,20 @@ def main():
     lint_parser = subparsers.add_parser("lint", help="Run stack-aware lint")
     lint_parser.add_argument("--fix", action="store_true", help="Auto-fix lint errors")
 
+    # pactkit lesson-append (STORY-slim-017 R1)
+    lesson_parser = subparsers.add_parser("lesson-append", help="Append lesson with dedup check")
+    lesson_parser.add_argument("--story", required=True, help="Story ID (e.g. STORY-017)")
+    lesson_parser.add_argument("--text", required=True, help="Lesson text")
+    lesson_parser.add_argument("--context", default="", help="Context (file:func)")
+
+    # pactkit invariants-refresh (STORY-slim-017 R2)
+    inv_parser = subparsers.add_parser("invariants-refresh", help="Update test count in rules.md")
+    inv_parser.add_argument("--test-count", type=int, required=True, help="New test count")
+
+    # pactkit coverage-gate (STORY-slim-017 R3)
+    cov_parser = subparsers.add_parser("coverage-gate", help="Run coverage verification")
+    cov_parser.add_argument("files", nargs="+", help="Changed source file paths")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -510,6 +524,33 @@ def main():
             print(result["message"])
             if result["blocking"]:
                 raise SystemExit(result["exit_code"])
+
+    elif args.command == "lesson-append":
+        from pathlib import Path
+
+        from pactkit.lessons import append_lesson
+
+        result = append_lesson(Path.cwd(), args.story, args.text, args.context)
+        import json
+        print(json.dumps(result))
+
+    elif args.command == "invariants-refresh":
+        from pathlib import Path
+
+        from pactkit.invariants import refresh_test_count
+
+        result = refresh_test_count(Path.cwd(), args.test_count)
+        import json
+        print(json.dumps(result))
+
+    elif args.command == "coverage-gate":
+        from pathlib import Path
+
+        from pactkit.coverage_gate import check_coverage
+
+        result = check_coverage(args.files, Path.cwd())
+        import json
+        print(json.dumps(result, indent=2))
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

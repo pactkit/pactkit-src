@@ -423,11 +423,12 @@ Otherwise continue to Step 1.7.
 After evaluating the decision tree, log the decision with format: `"Regression: {TYPE} — {reason}"` (e.g., SKIP, STORY-ONLY, FULL, IMPACT-BASED, INCREMENTAL).
 
 ### Step 2.5: Coverage Verification (Conditional)
-IF `pytest-cov` is available, run tests with coverage on changed source files:
-- `pytest --cov=<changed_modules> --cov-report=term-missing tests/`
-- **≥ 80%** line coverage on changed files: PASS — proceed normally
-- **50-79%**: WARN — output: "Changed file `{file}` has {N}% coverage. Consider running `/project-check` to generate missing tests."
-- **< 50%**: BLOCK — require user confirmation: "Changed file `{file}` has only {N}% coverage. Proceed anyway?"
+Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source files.
+- The command auto-detects modules, runs pytest --cov, and applies 3-tier thresholds:
+  - **≥ 80%**: PASS — proceed normally
+  - **50-79%**: WARN — output: "Changed file `{file}` has {N}% coverage. Consider running `/project-check` to generate missing tests."
+  - **< 50%**: BLOCK — require user confirmation: "Changed file `{file}` has only {N}% coverage. Proceed anyway?"
+- If `pactkit coverage-gate` is unavailable, fall back to manual: construct `pytest --cov=<changed_modules> --cov-report=term-missing tests/` and parse output.
 - Include coverage data in the output so the user can evaluate test quality.
 
 ### Step 2.7: Smart Lint Gate (STORY-030)
@@ -452,16 +453,14 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 2.  **Auto-Fix**:
     - If tests are GREEN but tasks are `[ ]`, **Ask the user**: "Tests passed but tasks are unchecked. Mark as done?"
     - If user agrees, update `sprint_board.md` immediately.
-3.  **Lessons Auto-append (MANDATORY)**: Append a lesson to `docs/architecture/governance/lessons.md` if it passes these two checks:
-    - **Specific?** Does the lesson reference a concrete file, function, or pattern? (Not just a generic principle)
-    - **Non-duplicate?** Is it meaningfully different from the last 5 entries in `lessons.md`?
-    - If both yes: append row using format `{LESSONS_ROW_FORMAT}` where date=YYYY-MM-DD, context={STORY_ID}
-    - If either no: skip with log: `"Lesson skipped: {reason}"`
-4.  **Invariants Refresh (MANDATORY)**: Update the Invariants section in `docs/architecture/governance/rules.md`:
-    - Read the current `rules.md` file.
-    - Update the test count to match the actual number from the most recent test run (e.g., "All {N}+ tests must pass").
-    - Preserve the Architecture Decisions (ADR) table — only update the Invariants section.
-    - If `rules.md` does not exist, skip silently.
+3.  **Lessons Auto-append (MANDATORY)**: Run `pactkit lesson-append --story {STORY_ID} --text "lesson text" [--context "file.py:func"]`.
+    - The command checks specificity (references concrete file/function?) and dedup (different from last 5 entries?).
+    - If both pass: appends row using format `{LESSONS_ROW_FORMAT}` where date=YYYY-MM-DD, context={STORY_ID}
+    - If either fails: skip with log from command output.
+    - If `pactkit lesson-append` is unavailable, fall back to manual append with the same checks.
+4.  **Invariants Refresh (MANDATORY)**: Run `pactkit invariants-refresh --test-count {N}` where {N} is the actual count from the most recent test run.
+    - The command updates `docs/architecture/governance/rules.md` invariant "All {N}+ tests must pass".
+    - If `pactkit invariants-refresh` is unavailable, fall back to manual: read rules.md, find the pattern, replace the number.
 5.  **Document Validators (Non-blocking)**: Run document structure checks as warnings:
     - `pactkit lint-context` — validates `docs/product/context.md` structure
     - `pactkit lint-lessons` — validates `docs/architecture/governance/lessons.md` structure
