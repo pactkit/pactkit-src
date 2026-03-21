@@ -13,7 +13,7 @@
 
 > **PactKit** (Pact 契约 + Kit) is a governance framework that enforces the **P.A.C.T.** contract between humans and AI agents. Deterministic operations run as code, not prompts. Decisions are grounded in data, not memory. AI does what it's best at — creativity and language — while code handles everything that must be repeatable and correct.
 >
-> 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant follows the contract.
+> 25 CLI subcommands, 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant follows the contract.
 
 ### Supported AI Tools
 
@@ -197,6 +197,38 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 | **pactkit-doctor** | Prompt-only | Configuration drift detection and health report |
 | **pactkit-review** | Prompt-only | PR code review with SOLID/Security/Quality checklists |
 | **pactkit-release** | Prompt-only | Version bump, architecture snapshot, git tag |
+
+## CLI Subcommands
+
+PactKit ships 25 deterministic CLI subcommands — operations that were previously delegated to AI prompts are now enforced in Python code (the "C" in P.A.C.T.):
+
+| Command | Purpose |
+|---------|---------|
+| `pactkit init` | Deploy toolkit to AI coding assistant |
+| `pactkit update` | Update playbooks (preserves config) |
+| `pactkit upgrade` | Upgrade with format selection |
+| `pactkit version` | Show installed version |
+| `pactkit schema` | Print document schemas |
+| `pactkit doctor` | Diagnose project health (HLD drift, board, config) |
+| `pactkit spec-lint` | Validate spec structure (14 rules: E001-E008, W001-W006) |
+| `pactkit spec-status` | Update spec Status field (Draft/In Progress/Done) |
+| `pactkit guard` | Check project init markers |
+| `pactkit next-id` | Generate next Story/Bug ID |
+| `pactkit context` | Generate `context.md` from project state |
+| `pactkit clean` | Remove stack-specific temp artifacts |
+| `pactkit lint` | Stack-aware lint with auto-fix and blocking modes |
+| `pactkit regression` | Classify changes (SKIP/FULL/IMPACT) |
+| `pactkit test-map` | Map source files to test files |
+| `pactkit coverage-gate` | Enforce 3-tier coverage thresholds (80/50/block) |
+| `pactkit visualize` | Conditional graph regeneration (lazy mode) |
+| `pactkit lesson-append` | Append lesson with specificity check and dedup |
+| `pactkit invariants-refresh` | Update test count invariant in rules.md |
+| `pactkit sec-scope` | Detect security scope for changed files |
+| `pactkit backfill-release` | Replace Release: TBD in completed specs |
+| `pactkit issue-sync` | GitHub issue lifecycle for BUG/HOTFIX items |
+| `pactkit lint-context` | Validate context.md structure |
+| `pactkit lint-lessons` | Validate lessons.md structure |
+| `pactkit lint-testcase` | Validate test case structure |
 
 ## Deployment Architecture
 
