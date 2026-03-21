@@ -9,6 +9,8 @@ graph TD
     click src_pactkit_guards_py href "src/pactkit/guards.py"
     src_pactkit_sec_scope_py["sec_scope.py"]
     click src_pactkit_sec_scope_py href "src/pactkit/sec_scope.py"
+    src_pactkit_lint_runner_py["lint_runner.py"]
+    click src_pactkit_lint_runner_py href "src/pactkit/lint_runner.py"
     src_pactkit_validators_py["validators.py"]
     click src_pactkit_validators_py href "src/pactkit/validators.py"
     src_pactkit___init___py["__init__.py"]
@@ -31,6 +33,8 @@ graph TD
     click src_pactkit_scripts_py href "src/pactkit/scripts.py"
     src_pactkit_issue_sync_py["issue_sync.py"]
     click src_pactkit_issue_sync_py href "src/pactkit/issue_sync.py"
+    src_pactkit_test_mapper_py["test_mapper.py"]
+    click src_pactkit_test_mapper_py href "src/pactkit/test_mapper.py"
     src_pactkit_doctor_py["doctor.py"]
     click src_pactkit_doctor_py href "src/pactkit/doctor.py"
     src_pactkit_profiles_py["profiles.py"]
@@ -58,6 +62,9 @@ graph TD
     src_pactkit_config_py --> src_pactkit___init___py
     src_pactkit_config_py --> src_pactkit_profiles_py
     src_pactkit_guards_py --> src_pactkit_config_py
+    src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
+    src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
+    src_pactkit_lint_runner_py --> src_pactkit_config_py
     src_pactkit_validators_py --> src_pactkit_schemas_py
     src_pactkit_lazy_visualize_py --> src_pactkit_cleaners_py
     src_pactkit_lazy_visualize_py --> src_pactkit_prompts_workflows_py
@@ -77,7 +84,11 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_doctor_py
     src_pactkit_cli_py --> src_pactkit_backfill_py
     src_pactkit_cli_py --> src_pactkit_issue_sync_py
+    src_pactkit_cli_py --> src_pactkit_test_mapper_py
+    src_pactkit_cli_py --> src_pactkit_lint_runner_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
+    src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
+    src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py
     src_pactkit_doctor_py --> src_pactkit_config_py
     src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
     src_pactkit_prompts_skills_py --> src_pactkit___init___py

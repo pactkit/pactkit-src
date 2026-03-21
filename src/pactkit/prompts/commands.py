@@ -196,7 +196,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: use Test Mapping Protocol (see Shared Protocols) for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 
 ## 🎬 Phase 4: Sync & Document
@@ -314,7 +314,7 @@ Choose the strategy identified in Phase 0:
 
 ## Phase 5: The Verdict
 1.  **Run Suite**: Execute the specific test file created above (Story E2E test).
-2.  **Run Unit (Incremental)**: Use Test Mapping Protocol (see Shared Protocols) to run only tests related to changed modules. Fallback to full suite if no mapping.
+2.  **Run Unit (Incremental)**: Run `pactkit test-map <changed-files>` to map source files to test files. Run only mapped tests. Fallback to full suite if no mapping.
 3.  **Report**: Output structured verdict:
 
 ```
@@ -433,17 +433,12 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 ### Step 2.7: Smart Lint Gate (STORY-030)
 > **Purpose**: Stack-aware lint check with configurable behavior.
 
-1. **Detect Stack**: Read `lint_command` from `LANG_PROFILES` for the detected project stack.
-   - Example (Python): `ruff check src/ tests/`
-   - Example (Node): `npx eslint .`
-2. **Auto-Fix (Conditional)**: Read `auto_fix` from `pactkit.yaml`.
-   - If `auto_fix: true`: Run lint with fix flag first (e.g., `ruff check --fix src/ tests/`), then re-run lint to verify.
-   - If `auto_fix: false` (default): Skip auto-fix, run lint in check-only mode.
-3. **Run Lint**: Execute the lint command for the detected stack.
-4. **Blocking Behavior**: Read `lint_blocking` from `pactkit.yaml`.
-   - If `lint_blocking: true`: Lint failures **STOP** the commit. Report errors and do NOT proceed.
+1. Run `pactkit lint` to execute the stack-aware lint gate. This auto-detects the project stack, reads `lint_command` from `LANG_PROFILES`, and respects `auto_fix` and `lint_blocking` from `pactkit.yaml`.
+   - If `auto_fix: true` in config: `pactkit lint` runs fix pass first, then check pass.
+   - If `lint_blocking: true` and lint fails: **STOP** the commit. Report errors and do NOT proceed.
    - If `lint_blocking: false` (default): Lint failures are reported as **warnings**. Print findings but proceed with commit.
-5. **Skip**: If no lint command found for the stack, skip silently: "No lint command configured — skipping lint gate."
+2. If `pactkit lint` is unavailable, fall back to manual lint: detect stack, read `lint_command` from LANG_PROFILES, run the command directly.
+3. **Skip**: If no lint command found for the stack, skip silently: "No lint command configured — skipping lint gate."
 
 ### Step 3: Gate
 - If any test fails, **STOP immediately**. Do NOT proceed to commit.

@@ -246,6 +246,14 @@ def main():
     issue_sync_parser = subparsers.add_parser("issue-sync", help="Sync GitHub issue for BUG/HOTFIX items")
     issue_sync_parser.add_argument("item_id", help="Item ID (e.g. BUG-slim-003)")
 
+    # pactkit test-map (STORY-slim-016 R1)
+    test_map_parser = subparsers.add_parser("test-map", help="Map source files to test files")
+    test_map_parser.add_argument("files", nargs="*", help="Source file paths")
+
+    # pactkit lint (STORY-slim-016 R2)
+    lint_parser = subparsers.add_parser("lint", help="Run stack-aware lint")
+    lint_parser.add_argument("--fix", action="store_true", help="Auto-fix lint errors")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -467,6 +475,33 @@ def main():
         print(result["message"])
         if result["action"] == "error":
             raise SystemExit(1)
+
+    elif args.command == "test-map":
+        from pathlib import Path
+
+        from pactkit.test_mapper import map_to_tests
+
+        if not args.files:
+            print("Usage: pactkit test-map <file1> [file2 ...]")
+            raise SystemExit(1)
+        result = map_to_tests(args.files, Path.cwd())
+        for test_path in result["mapped"]:
+            print(test_path)
+
+    elif args.command == "lint":
+        from pathlib import Path
+
+        from pactkit.lint_runner import run_lint
+
+        result = run_lint(Path.cwd(), fix=args.fix)
+        if result["stdout"]:
+            print(result["stdout"])
+        if result["exit_code"] == 0:
+            print(result["message"])
+        else:
+            print(result["message"])
+            if result["blocking"]:
+                raise SystemExit(result["exit_code"])
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

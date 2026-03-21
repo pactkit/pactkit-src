@@ -1,4 +1,5 @@
 graph TD
+    _add_fix_flag["_add_fix_flag"]
     _build_command_rules_header["_build_command_rules_header"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
@@ -85,8 +86,10 @@ graph TD
     lint_testcase["lint_testcase"]
     load_config["load_config"]
     main["main"]
+    map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    run_lint["run_lint"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
@@ -115,6 +118,10 @@ graph TD
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_ends_with_ext
+    run_lint --> detect_stack
+    run_lint --> find_pactkit_yaml
+    run_lint --> _add_fix_flag
+    run_lint --> load_config
     should_visualize --> detect_stack
     generate_context --> _get_git_branches
     generate_context --> _parse_last_lessons
@@ -140,6 +147,8 @@ graph TD
     main --> check_stale_graphs
     main --> scan_and_replace_tbd
     main --> issue_sync
+    main --> map_to_tests
+    main --> run_lint
     scan_and_replace_tbd --> _get_done_ids
     clean_artifacts --> detect_stack
     _get_issue_tracker_provider --> find_pactkit_yaml
@@ -148,6 +157,7 @@ graph TD
     issue_sync --> _search_issue
     issue_sync --> _create_issue
     issue_sync --> _check_gh_available
+    map_to_tests --> detect_stack
     check_config_drift --> find_pactkit_yaml
     check_stale_graphs --> load_config
     _render_skill_md --> _rewrite_skills_prefix
