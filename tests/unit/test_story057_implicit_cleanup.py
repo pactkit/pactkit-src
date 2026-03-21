@@ -119,12 +119,13 @@ class TestClarifyGateSignalLabels:
                 return
         raise AssertionError("Signal 'No technical constraints' not found")
 
-    def test_single_sentence_is_medium(self):
+    def test_single_sentence_is_low(self):
+        """BUG-slim-002 R4: Single sentence downgraded from Medium to Low."""
         plan = self._plan()
         for line in plan.split('\n'):
             if 'single sentence' in line.lower() or '< 15 words' in line:
-                assert '[Medium]' in line, \
-                    "'Single sentence input' signal must be labeled [Medium]"
+                assert '[Low]' in line, \
+                    "'Single sentence input' signal must be labeled [Low] (BUG-slim-002 R4)"
                 return
         raise AssertionError("Signal 'Single sentence input' not found")
 

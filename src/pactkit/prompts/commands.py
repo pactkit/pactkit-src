@@ -36,9 +36,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - `docs/product/sprint_board.md` (sprint board)
     - `docs/architecture/graphs/` (architecture graph directory)
 2.  **If ANY marker is missing**:
-    - Print: "⚠️ Project not initialized. Running `/project-init` first..."
-    - Execute the full `/project-init` flow to scaffold the missing structure.
-    - After `/project-init` completes, resume this Plan command from Phase 1.
+    - Print: "⚠️ Project not initialized. Missing: [list missing markers]."
+    - Print: "Run `/project-init` to set up the project, then re-run `/project-plan`."
+    - **STOP**. Do NOT auto-execute `/project-init` or continue with Plan.
 3.  **If ALL markers exist**: Proceed to Step 4.
 4.  **Config Completeness Check**: Verify `pactkit.yaml` has all expected sections (hooks, ci, issue_tracker, lint_blocking, auto_fix).
     - If any sections are missing, the config is stale. Run `pactkit update` to backfill missing sections.
@@ -51,13 +51,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - [High] No quantitative metrics ("高并发" without QPS, "fast" without benchmark)
     - [High] No boundary conditions ("user management" without specifying which operations)
     - [Medium] No technical constraints (no auth method, no framework specified)
-    - [Medium] Single sentence input (< 15 words) — likely under-specified
+    - [Low] Single sentence input (< 15 words) — likely under-specified but not blocking
     - [Medium] Vague quantifiers ("some", "many", "a few", "大量", "一些", "简单")
     - [Medium] No target user specified
 2.  **Trigger Logic**:
-    - ≥ 2 High signals (no metrics, no boundaries) → **Auto-trigger** Clarify
-    - 1 High + ≥ 2 Medium signals → **Auto-trigger** Clarify
-    - ≥ 2 Medium signals → **Suggest** Clarify (ask user: "Input seems underspecified. Clarify? yes/skip")
+    - 2 High + ≥ 1 Medium signals → **Auto-trigger** Clarify
+    - ≥ 2 High signals (no Medium) → **Suggest** Clarify (ask user: "Input may be underspecified. Clarify? yes/skip")
+    - 1 High + ≥ 2 Medium signals → **Suggest** Clarify
     - Otherwise → **Silent skip**
 3.  **Greenfield Force-Trigger**: If Phase 0 detected a Greenfield project and the user chose to continue with `/project-plan` (not `/project-design`), **always trigger** Clarify regardless of score.
 4.  **If triggered**: Generate 3–6 structured questions covering:
@@ -182,32 +182,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **If WARNs only**: Output the WARN list, then **continue** to Phase 1.
 4.  **If all pass**: Continue silently to Phase 1.
 
-## 📊 Phase 0.6: Consistency Check (Advisory)
-> **PURPOSE**: Left-shift quality — catch Spec ↔ Board ↔ Test Case misalignment at the cheapest point (pure text, before any code).
-> **NON-BLOCKING**: All findings are WARN or INFO. This phase NEVER stops Act.
-1.  **Spec ↔ Board Alignment**:
-    - Parse all `### R{N}:` subsections from `docs/specs/{STORY_ID}.md` → list of requirements
-    - Parse the Story's task list from `docs/product/sprint_board.md` (the `- [ ]` items under this Story)
-    - Cross-reference: for each requirement, find a matching task (exact `R{N}` ID OR ≥50% keyword overlap)
-    - Output alignment matrix:
-      ```
-      | Spec Requirement | Board Task | Status |
-      | R1: xxx          | Task: xxx  | ✅ Aligned |
-      | R2: xxx          | —          | ⚠️ Missing Task |
-      | —                | Task: yyy  | ⚠️ No matching Requirement |
-      ```
-2.  **Spec AC ↔ Test Case Coverage**:
-    - Parse all `### AC{N}:` subsections from the Spec
-    - Check if `docs/test_cases/{STORY_ID}_case.md` exists
-    - If exists: cross-reference AC items with Scenario entries; report uncovered ACs
-    - If not exists: output `ℹ️ Test Case not yet created (normal — generated during Check phase)`
-3.  **Summary**:
-    - Output counts: `Alignment: {N}/{total} requirements matched | Coverage: {N}/{total} ACs covered`
-    - If WARNs found: "Consider updating the Board tasks to match Spec requirements before proceeding."
-4.  **Continue**: Regardless of findings, proceed to Phase 1.
+## 📊 Phase 0.6: Consistency Check (Lightweight)
+> **PURPOSE**: Quick pre-flight to verify artifacts exist. Full alignment analysis is deferred to `/project-check` (normal workflow).
+> **NON-BLOCKING**: This phase NEVER stops Act.
+1.  **Spec exists?**: Check if `docs/specs/{STORY_ID}.md` exists. If not: WARN "Spec not found".
+2.  **Board entry exists?**: Check if `{STORY_ID}` appears in `docs/product/sprint_board.md`. If not: WARN "Board entry not found".
+3.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
-1.  **Visual Scan**: Run `visualize --focus <module>` to see neighbors. For large codebases, add `--depth 2`.
+1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site and ensure you don't break existing callers.
 
