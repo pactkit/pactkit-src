@@ -36,7 +36,7 @@ class TestLangProfilesExists:
 class TestProfileFields:
     """STORY-025 Scenario 2: Each profile has all required fields."""
 
-    REQUIRED_FIELDS = ['test_runner', 'test_dir', 'file_ext', 'cleanup', 'package_file']
+    REQUIRED_FIELDS = ['test_runner', 'file_ext', 'cleanup', 'test_map_pattern', 'lint_command']
 
     @pytest.mark.parametrize("lang", ["python", "node", "go", "java"])
     def test_has_all_fields(self, lang):
@@ -66,10 +66,6 @@ class TestPythonProfile:
         p = _prompts()
         assert p.LANG_PROFILES['python']['test_runner'] == 'pytest'
 
-    def test_test_dir(self):
-        p = _prompts()
-        assert 'tests/' in p.LANG_PROFILES['python']['test_dir']
-
     def test_file_ext(self):
         p = _prompts()
         assert p.LANG_PROFILES['python']['file_ext'] == '.py'
@@ -78,9 +74,6 @@ class TestPythonProfile:
         p = _prompts()
         assert '__pycache__' in p.LANG_PROFILES['python']['cleanup']
 
-    def test_package_file(self):
-        p = _prompts()
-        assert p.LANG_PROFILES['python']['package_file'] == 'pyproject.toml'
 
 
 # ==============================================================================
@@ -97,10 +90,6 @@ class TestNodeProfile:
     def test_file_ext(self):
         p = _prompts()
         assert p.LANG_PROFILES['node']['file_ext'] in ['.ts', '.tsx', '.js']
-
-    def test_package_file(self):
-        p = _prompts()
-        assert p.LANG_PROFILES['node']['package_file'] == 'package.json'
 
     def test_cleanup_has_node_modules_cache(self):
         p = _prompts()

@@ -62,45 +62,33 @@ sequenceDiagram
 LANG_PROFILES = {
     "python": {
         "test_runner": "pytest",
-        "test_dir": "tests/",
         "file_ext": ".py",
         "source_dirs": ["src/"],
         "cleanup": ["__pycache__", ".pytest_cache", "*.pyc"],
-        "package_file": "pyproject.toml",
-        "e2e_test_pattern": "test_{ID}.py",
         "test_map_pattern": "tests/unit/test_{module}.py",
         "lint_command": "ruff check src/ tests/",
     },
     "node": {
         "test_runner": "npx jest",
-        "test_dir": "__tests__/",
         "file_ext": ".ts",
         "source_dirs": ["src/", "lib/", "app/", "pages/"],
         "cleanup": ["node_modules/.cache", ".next", "dist", "coverage"],
-        "package_file": "package.json",
-        "e2e_test_pattern": "{ID}.test.ts",
         "test_map_pattern": "__tests__/{module}.test.ts",
         "lint_command": "npx eslint .",
     },
     "go": {
         "test_runner": "go test ./...",
-        "test_dir": "*_test.go",
         "file_ext": ".go",
         "source_dirs": ["./"],
         "cleanup": ["cover.out", "cover.html"],
-        "package_file": "go.mod",
-        "e2e_test_pattern": "{ID}_test.go",
         "test_map_pattern": "{package}/{module}_test.go",
         "lint_command": "golangci-lint run",
     },
     "java": {
         "test_runner": "mvn test",
-        "test_dir": "src/test/java/",
         "file_ext": ".java",
         "source_dirs": ["src/main/java/"],
         "cleanup": ["target/", "build/", ".gradle/"],
-        "package_file": "pom.xml",
-        "e2e_test_pattern": "{ID}Test.java",
         "test_map_pattern": "src/test/java/{package}/{module}Test.java",
         "lint_command": "mvn checkstyle:check",
     },
@@ -608,7 +596,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Confirm**: **Must ask the user for confirmation** before executing `git commit`.
     - Output: "Suggested commit: `fix(scope): description`. Confirm commit?"
 3.  **Execute**: After user confirmation, execute git add + git commit.
-4.  **Update Board**: Mark the hotfix task as done on the Board.
+4.  **Update Board**: Run `{BOARD_CMD} update_task HOTFIX-{NNN} "Task Name"` for each task to mark it done.
+
+## 📋 Phase 3.5: Session Context Update
+1.  **Update Context**: Run `pactkit context` to regenerate `docs/product/context.md`. Set "Last updated by" to `/project-hotfix`.
 
 ## 🚫 What This Command Does NOT Do
 - Does not require writing tests before code (no TDD)

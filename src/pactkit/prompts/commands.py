@@ -201,7 +201,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 4: Sync & Document
 1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed).
-2.  **Update Board (CRITICAL)**: Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
+2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
@@ -285,7 +285,8 @@ For each finding, assign a severity (P0-P3). Flag issues that may cause silent f
 4.  **Action**: If missing, generate it based *strictly* on the Spec's Acceptance Criteria.
     * *Format*: Gherkin (Given/When/Then).
     * *Constraint*: Do not write Python code yet.
-5.  **Coverage Report**: Compare Scenarios in Spec vs Test Cases. Report any uncovered Scenario.
+5.  **Validate Test Case Structure**: Run `pactkit lint-testcase docs/test_cases/{STORY_ID}_case.md` to validate the test case file structure. If errors, WARN the user.
+6.  **Coverage Report**: Compare Scenarios in Spec vs Test Cases. Report any uncovered Scenario.
 
 ## Phase 3.5: Test Quality Gate
 > **Purpose**: Prevent tautological or low-value tests from passing the regression gate unchallenged.

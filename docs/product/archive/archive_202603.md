@@ -312,3 +312,12 @@
 - [x] R3: pactkit coverage-gate verification
 - [x] R4: CLI wiring (3 new subcommands)
 - [x] R5: Prompt delegation to new CLI commands
+
+### [BUG-slim-005] Cross-Flow Residual Gaps — Hotfix Context, Board Refs, Dead Code
+> Spec: docs/specs/BUG-slim-005.md
+
+- [x] R1: Hotfix add pactkit context Phase 3.5
+- [x] R2: Hotfix board update ref {BOARD_CMD}
+- [x] R3: Act board update ref {BOARD_CMD}
+- [x] R4: Check add lint-testcase reference
+- [x] R5: Remove 3 dead LANG_PROFILES keys
