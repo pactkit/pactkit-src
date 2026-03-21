@@ -4,6 +4,28 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.0] - 2026-03-22
+
+### Added
+- **Deterministic CLI Subcommands** (STORY-slim-014) — Migrated 7 Done-phase operations from prompt-delegated to Python CLI: `clean`, `regression`, `context`, `sec-scope`, `guard`, `next-id`, `visualize --lazy`.
+- **Doctor, Backfill-Release, Issue-Sync CLI** (STORY-slim-015) — `pactkit doctor` diagnoses project health (HLD drift, board structure, config completeness). `pactkit backfill-release` replaces `Release: TBD` in completed specs. `pactkit issue-sync` handles GitHub issue lifecycle for BUG/HOTFIX items.
+- **Test-Map and Lint CLI** (STORY-slim-016) — `pactkit test-map` maps changed source files to test files via `LANG_PROFILES.test_map_pattern`. `pactkit lint` runs stack-aware lint with auto-fix and blocking modes from `pactkit.yaml`.
+- **Lesson-Append, Invariants-Refresh, Coverage-Gate CLI** (STORY-slim-017) — `pactkit lesson-append` checks specificity (file/function reference) and dedup (Jaccard < 0.5) before appending. `pactkit invariants-refresh` updates test count invariant. `pactkit coverage-gate` enforces 3-tier coverage thresholds (80/50/block).
+- **Systemic Cross-Flow Guards** (STORY-slim-018) — 4 guard test suites: R1 prompt-CLI cross-reference validation, R2 canonical `LANG_PROFILE_REQUIRED_KEYS` SSoT in `schemas.py`, R3 Spec Status lifecycle (`spec-status` CLI + W006 lint rule), R4 declarative cross-flow coverage matrix (12 subcommands × prompt keys).
+- **Spec Status CLI** — `pactkit spec-status <spec> <status>` programmatically updates `| Status |` field in spec files. W006 lint rule flags invalid status values.
+
+### Fixed
+- **Cross-Flow Integrity** (BUG-slim-003 through BUG-slim-006) — 4 rounds of systematic audits fixed 25+ gaps: dead CLI subcommands with zero prompt references, argparser flags without `deploy()` parity, `visualize --lazy` not calling actual function, double `python3` prefix in HOTFIX_PROMPT, unused LANG_PROFILES keys removed.
+- **SSoT Violations** — `backfill.py` imports `BOARD_SECTION_DONE` from schemas (was hardcoded regex). `lessons.py` uses `LESSONS_ROW_FORMAT` from schemas. 5 test files import `LANG_PROFILE_REQUIRED_KEYS` instead of hardcoding key sets.
+- **Prompt Cognitive Overload** (STORY-slim-013) — Reduced redundancy across PDCA command prompts.
+- **Rules-Commands Collision** (BUG-slim-002) — Resolved instruction conflicts between rules and command playbooks.
+- **Draw Skill Stuck** — Added concrete templates to `pactkit-draw` to prevent empty-output behavior.
+
+### Changed
+- `SPEC_VALID_STATUSES` and `LANG_PROFILE_REQUIRED_KEYS` canonicalized in `schemas.py` as single source of truth.
+- Sprint board required sections enforced: `## 📋 Backlog`, `## 🔄 In Progress`, `## ✅ Done`.
+- BUG-017/BUG-029 spec Status fields corrected to valid values per `SPEC_VALID_STATUSES`.
+
 ## [2.2.0] - 2026-03-20
 
 ### Added

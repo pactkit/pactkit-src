@@ -69,6 +69,7 @@ graph TD
     click src_pactkit_generators___init___py href "src/pactkit/generators/__init__.py"
     src_pactkit_config_py --> src_pactkit___init___py
     src_pactkit_config_py --> src_pactkit_profiles_py
+    src_pactkit_lessons_py --> src_pactkit_schemas_py
     src_pactkit_guards_py --> src_pactkit_config_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
@@ -98,6 +99,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_invariants_py
     src_pactkit_cli_py --> src_pactkit_coverage_gate_py
     src_pactkit_cli_py --> src_pactkit_spec_status_py
+    src_pactkit_backfill_py --> src_pactkit_schemas_py
     src_pactkit_spec_status_py --> src_pactkit_schemas_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
