@@ -346,7 +346,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > Each subagent reads `docs/specs/`, `commands/*.md`, and `docs/product/sprint_board.md` from disk.
 
 ## Phase 0: Setup
-1. Parse requirement from `$ARGUMENTS`. Determine next STORY-ID via Glob on `docs/specs/`.
+1. Parse requirement from `$ARGUMENTS`. Run `pactkit next-id` to determine next STORY-ID.
 2. `TeamCreate("sprint-{STORY_ID}")`.
 3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Check-Security (blockedBy: Act), Close (blockedBy: both Checks).
 4. Verify worktree support (`git worktree list`). Use `isolation="worktree"` if supported.
@@ -582,7 +582,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Locate**: Use `Grep` or `Glob` to quickly locate the target file and code line.
 3.  **Assess**: Confirm this is a minor fix (suitable for Hotfix), not a change requiring full PDCA.
     - If the assessment reveals a complex change, **proactively suggest the user switch to** `/project-plan`.
-4.  **Assign HOTFIX- ID**: Scan `docs/specs/` for existing `HOTFIX-*.md` files, determine the next available number (e.g., `HOTFIX-001`, `HOTFIX-002`).
+4.  **Assign HOTFIX-ID**: Run `pactkit next-id` to get the next available ID (supports HOTFIX prefix via `--prefix HOTFIX` if configured, otherwise use HOTFIX-{NNN} pattern from output).
 5.  **Create Spec**: Create a lightweight Spec at `docs/specs/HOTFIX-{NNN}.md` with:
     - Title, Background (one sentence), Target file/line, and what was fixed.
 6.  **Add Board Entry**: Add the hotfix to the Board:
@@ -736,7 +736,7 @@ Assign each Story to a horizon:
 ## 🎬 Phase 3: Story Decomposition
 > **Goal**: Convert PRD Feature Breakdown into individual Specs.
 
-1.  **Determine STORY IDs**: Scan `docs/specs/` to find the next available STORY-NNN number.
+1.  **Determine STORY IDs**: Run `pactkit next-id` to get the next available STORY-NNN number.
 2.  **Sort**: Order stories by horizon (Now → Next → Later), then by Priority Score (descending).
 3.  **For each Story**:
     - Run `{SCAFFOLD_CMD} create_spec "STORY-{NNN}" "{title}"`.

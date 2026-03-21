@@ -77,6 +77,25 @@ def lint_lessons(path: Path) -> list[str]:
     if LESSONS_TABLE_SEPARATOR not in content:
         errors.append(f"Missing table separator: '{LESSONS_TABLE_SEPARATOR}'")
 
+    # Validate row column count (3 columns per LESSONS_ROW_FORMAT)
+    lines = content.splitlines()
+    in_table = False
+    for i, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if stripped == LESSONS_TABLE_SEPARATOR:
+            in_table = True
+            continue
+        if in_table and stripped.startswith("|") and stripped.endswith("|"):
+            # A proper 3-col row like "| a | b | c |" splits to ['', ' a ', ' b ', ' c ', '']
+            col_count = len(stripped.split("|")) - 2  # subtract leading/trailing empty
+            if col_count != 3:
+                errors.append(
+                    f"Line {i}: expected 3 columns but found {col_count}"
+                )
+        elif in_table and not stripped.startswith("|"):
+            # End of table
+            break
+
     return errors
 
 

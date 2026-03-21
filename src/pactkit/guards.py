@@ -37,3 +37,31 @@ def check_init_markers(project_root: Path) -> tuple[bool, list[str]]:
         missing.append("docs/architecture/graphs/ not found (run `/project-init`)")
 
     return (len(missing) == 0, missing)
+
+
+# Expected top-level keys in pactkit.yaml
+_EXPECTED_CONFIG_KEYS = ("developer", "stack", "agents", "commands", "skills", "rules")
+
+
+def check_config_completeness(project_root: Path) -> list[str]:
+    """Check pactkit.yaml for expected top-level sections.
+
+    Returns:
+        List of warning strings; empty list means config is complete.
+    """
+    yaml_path = find_pactkit_yaml(project_root)
+    if yaml_path is None:
+        return ["pactkit.yaml not found — skipping config completeness check"]
+
+    try:
+        import yaml
+        with open(yaml_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return [f"Cannot parse {yaml_path}"]
+
+    warnings: list[str] = []
+    for key in _EXPECTED_CONFIG_KEYS:
+        if key not in data:
+            warnings.append(f"Missing config section: '{key}' in {yaml_path.name}")
+    return warnings

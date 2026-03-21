@@ -12,7 +12,7 @@ _CLEANUP_PATTERNS: dict[str, list[str]] = {
     "python": ["__pycache__", ".pytest_cache", "*.pyc"],
     "node": ["node_modules/.cache", ".next", "dist", "coverage"],
     "go": ["cover.out", "cover.html"],
-    "java": ["target/", "*.class", "build/"],
+    "java": ["target/", "build/", ".gradle/"],
 }
 
 # Stack detection markers (ordered by priority)

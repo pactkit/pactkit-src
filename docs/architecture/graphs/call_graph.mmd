@@ -1,0 +1,227 @@
+graph TD
+    _build_command_rules_header["_build_command_rules_header"]
+    _build_github_workflow["_build_github_workflow"]
+    _build_gitlab_ci["_build_gitlab_ci"]
+    _build_rule_id_to_filename["_build_rule_id_to_filename"]
+    _build_rule_id_to_key["_build_rule_id_to_key"]
+    _cleanup_legacy["_cleanup_legacy"]
+    _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
+    _deploy_agents["_deploy_agents"]
+    _deploy_agents_md_inline["_deploy_agents_md_inline"]
+    _deploy_ci["_deploy_ci"]
+    _deploy_classic["_deploy_classic"]
+    _deploy_claude_md["_deploy_claude_md"]
+    _deploy_claude_md_inline["_deploy_claude_md_inline"]
+    _deploy_commands["_deploy_commands"]
+    _deploy_hooks["_deploy_hooks"]
+    _deploy_marketplace["_deploy_marketplace"]
+    _deploy_marketplace_json["_deploy_marketplace_json"]
+    _deploy_opencode["_deploy_opencode"]
+    _deploy_opencode_json["_deploy_opencode_json"]
+    _deploy_plugin["_deploy_plugin"]
+    _deploy_plugin_json["_deploy_plugin_json"]
+    _deploy_rules["_deploy_rules"]
+    _deploy_skills["_deploy_skills"]
+    _detect_ghe["_detect_ghe"]
+    _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
+    _generate_config_if_missing["_generate_config_if_missing"]
+    _generate_project_agents_md["_generate_project_agents_md"]
+    _generate_project_claude_md["_generate_project_claude_md"]
+    _get_command_rules["_get_command_rules"]
+    _get_git_branches["_get_git_branches"]
+    _is_doc_only["_is_doc_only"]
+    _is_docs_or_tests_only["_is_docs_or_tests_only"]
+    _is_user_modified_claude_md["_is_user_modified_claude_md"]
+    _is_version_file["_is_version_file"]
+    _load_opencode_providers["_load_opencode_providers"]
+    _migrate_from_scafpy["_migrate_from_scafpy"]
+    _parse_active_stories["_parse_active_stories"]
+    _parse_board["_parse_board"]
+    _parse_last_lessons["_parse_last_lessons"]
+    _parse_recent_completions["_parse_recent_completions"]
+    _path_ends_with_ext["_path_ends_with_ext"]
+    _path_matches_any["_path_matches_any"]
+    _print_mcp_recommendations["_print_mcp_recommendations"]
+    _print_mcp_recommendations_opencode["_print_mcp_recommendations_opencode"]
+    _read_content["_read_content"]
+    _render_prompt["_render_prompt"]
+    _render_skill_md["_render_skill_md"]
+    _resolve_opencode_model_id["_resolve_opencode_model_id"]
+    _rewrite_skills_prefix["_rewrite_skills_prefix"]
+    _rewrite_yaml["_rewrite_yaml"]
+    _schema_command["_schema_command"]
+    _update_global_opencode_json["_update_global_opencode_json"]
+    _upsert_venv_managed_block["_upsert_venv_managed_block"]
+    _validate_developer["_validate_developer"]
+    atomic_write["atomic_write"]
+    auto_merge_config_file["auto_merge_config_file"]
+    check_config_completeness["check_config_completeness"]
+    check_init_markers["check_init_markers"]
+    classify_changes["classify_changes"]
+    clean_artifacts["clean_artifacts"]
+    deploy["deploy"]
+    detect_security_scope["detect_security_scope"]
+    detect_stack["detect_stack"]
+    detect_venv["detect_venv"]
+    find_pactkit_yaml["find_pactkit_yaml"]
+    format_markdown_table["format_markdown_table"]
+    generate_context["generate_context"]
+    generate_default_yaml["generate_default_yaml"]
+    get_default_config["get_default_config"]
+    get_profile["get_profile"]
+    is_environment_format["is_environment_format"]
+    lint_context["lint_context"]
+    lint_lessons["lint_lessons"]
+    lint_testcase["lint_testcase"]
+    load_config["load_config"]
+    main["main"]
+    next_story_id["next_story_id"]
+    resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    should_visualize["should_visualize"]
+    strip_frontmatter["strip_frontmatter"]
+    transform["transform"]
+    validate_config["validate_config"]
+    classify_changes --> _is_doc_only
+    classify_changes --> _is_version_file
+    resolve_pactkit_yaml_dir --> is_environment_format
+    resolve_pactkit_yaml_dir --> get_profile
+    resolve_pactkit_yaml_dir --> get_profile
+    load_config --> get_default_config
+    load_config --> _validate_developer
+    load_config --> find_pactkit_yaml
+    load_config --> get_default_config
+    auto_merge_config_file --> get_default_config
+    auto_merge_config_file --> _rewrite_yaml
+    generate_default_yaml --> get_default_config
+    check_init_markers --> find_pactkit_yaml
+    check_config_completeness --> find_pactkit_yaml
+    detect_security_scope --> _is_docs_or_tests_only
+    detect_security_scope --> _read_content
+    detect_security_scope --> _path_ends_with_ext
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_ends_with_ext
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_ends_with_ext
+    should_visualize --> detect_stack
+    generate_context --> _get_git_branches
+    generate_context --> _parse_last_lessons
+    generate_context --> _parse_board
+    generate_context --> _parse_active_stories
+    generate_context --> _parse_recent_completions
+    main --> deploy
+    main --> _schema_command
+    main --> check_init_markers
+    main --> load_config
+    main --> next_story_id
+    main --> clean_artifacts
+    main --> classify_changes
+    main --> generate_context
+    main --> detect_security_scope
+    main --> format_markdown_table
+    main --> lint_context
+    main --> lint_lessons
+    main --> lint_testcase
+    main --> should_visualize
+    clean_artifacts --> detect_stack
+    _render_skill_md --> _rewrite_skills_prefix
+    _render_skill_md --> _render_prompt
+    _render_skill_md --> _render_prompt
+    _render_skill_md --> get_profile
+    deploy --> _deploy_plugin
+    deploy --> _deploy_marketplace
+    deploy --> _deploy_opencode
+    deploy --> _deploy_classic
+    _deploy_classic --> _migrate_from_scafpy
+    _deploy_classic --> validate_config
+    _deploy_classic --> get_profile
+    _deploy_classic --> _deploy_skills
+    _deploy_classic --> _cleanup_legacy
+    _deploy_classic --> _deploy_rules
+    _deploy_classic --> _deploy_claude_md
+    _deploy_classic --> _deploy_agents
+    _deploy_classic --> _deploy_commands
+    _deploy_classic --> _deploy_ci
+    _deploy_classic --> _deploy_hooks
+    _deploy_classic --> _generate_config_if_missing
+    _deploy_classic --> _print_mcp_recommendations
+    _deploy_classic --> find_pactkit_yaml
+    _deploy_classic --> auto_merge_config_file
+    _deploy_classic --> load_config
+    _deploy_classic --> _generate_project_claude_md
+    _deploy_plugin --> _deploy_skills
+    _deploy_plugin --> _deploy_claude_md_inline
+    _deploy_plugin --> _deploy_agents
+    _deploy_plugin --> _deploy_commands
+    _deploy_plugin --> _deploy_plugin_json
+    _deploy_plugin --> _print_mcp_recommendations
+    _deploy_marketplace --> _deploy_plugin
+    _deploy_marketplace --> _deploy_marketplace_json
+    _generate_project_agents_md --> atomic_write
+    _deploy_opencode --> get_profile
+    _deploy_opencode --> find_pactkit_yaml
+    _deploy_opencode --> _deploy_skills
+    _deploy_opencode --> _cleanup_legacy
+    _deploy_opencode --> _deploy_rules
+    _deploy_opencode --> _deploy_agents_md_inline
+    _deploy_opencode --> _load_opencode_providers
+    _deploy_opencode --> _update_global_opencode_json
+    _deploy_opencode --> _deploy_agents
+    _deploy_opencode --> _deploy_commands
+    _deploy_opencode --> _deploy_ci
+    _deploy_opencode --> _print_mcp_recommendations_opencode
+    _deploy_opencode --> auto_merge_config_file
+    _deploy_opencode --> load_config
+    _deploy_opencode --> _load_opencode_providers
+    _deploy_opencode --> _generate_project_agents_md
+    _deploy_skills --> _render_skill_md
+    _deploy_skills --> atomic_write
+    _deploy_skills --> atomic_write
+    _deploy_skills --> _render_skill_md
+    _deploy_skills --> atomic_write
+    _deploy_rules --> _build_rule_id_to_key
+    _deploy_rules --> atomic_write
+    _deploy_claude_md --> atomic_write
+    _deploy_agents --> atomic_write
+    _deploy_agents --> get_profile
+    _deploy_agents --> get_profile
+    _deploy_agents --> _render_prompt
+    _deploy_agents --> _rewrite_skills_prefix
+    _build_command_rules_header --> _get_command_rules
+    _build_command_rules_header --> _build_rule_id_to_filename
+    _deploy_commands --> atomic_write
+    _deploy_commands --> get_profile
+    _deploy_commands --> get_profile
+    _deploy_commands --> _convert_command_frontmatter_opencode
+    _deploy_commands --> _build_command_rules_header
+    _deploy_commands --> _render_prompt
+    _deploy_commands --> _rewrite_skills_prefix
+    _deploy_ci --> _build_github_workflow
+    _deploy_ci --> atomic_write
+    _deploy_ci --> _build_gitlab_ci
+    _deploy_ci --> atomic_write
+    _deploy_ci --> _detect_ghe
+    _deploy_hooks --> atomic_write
+    _generate_config_if_missing --> resolve_pactkit_yaml_dir
+    _generate_config_if_missing --> atomic_write
+    _generate_config_if_missing --> find_pactkit_yaml
+    _generate_config_if_missing --> generate_default_yaml
+    _upsert_venv_managed_block --> atomic_write
+    _generate_claude_local_md_if_missing --> atomic_write
+    _generate_project_claude_md --> _generate_claude_local_md_if_missing
+    _generate_project_claude_md --> _upsert_venv_managed_block
+    _generate_project_claude_md --> atomic_write
+    _generate_project_claude_md --> _is_user_modified_claude_md
+    _generate_project_claude_md --> atomic_write
+    _generate_project_claude_md --> detect_venv
+    _deploy_plugin_json --> atomic_write
+    _deploy_claude_md_inline --> _build_rule_id_to_key
+    _deploy_claude_md_inline --> _rewrite_skills_prefix
+    _deploy_claude_md_inline --> atomic_write
+    _deploy_marketplace_json --> atomic_write
+    _deploy_agents_md_inline --> atomic_write
+    _deploy_opencode_json --> atomic_write
+    _update_global_opencode_json --> atomic_write
+    _update_global_opencode_json --> _resolve_opencode_model_id
+    transform --> strip_frontmatter
