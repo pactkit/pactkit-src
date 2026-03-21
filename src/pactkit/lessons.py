@@ -6,6 +6,8 @@ import re
 from datetime import date
 from pathlib import Path
 
+from pactkit.schemas import LESSONS_ROW_FORMAT
+
 
 def _is_specific(text: str) -> bool:
     """Check if text references a concrete file, function, or code pattern."""
@@ -70,7 +72,7 @@ def append_lesson(
 
     today = date.today().isoformat()
     ctx = context if context else story_id
-    row = f"| {today} | {text} | {ctx} |\n"
+    row = LESSONS_ROW_FORMAT.format(date=today, lesson=text, context=ctx) + "\n"
 
     with open(lessons_path, "a", encoding="utf-8") as f:
         f.write(row)

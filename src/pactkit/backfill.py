@@ -7,6 +7,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from pactkit.schemas import BOARD_SECTION_DONE
+
 _ITEM_ID_RE = re.compile(r"((?:STORY|BUG|HOTFIX)(?:-[\w]+)?-\d+)")
 _TBD_RE = re.compile(r"\|\s*Release\s*\|\s*TBD\s*\|")
 
@@ -19,7 +21,7 @@ def _get_done_ids(project_root: Path) -> set[str]:
     if board_path.exists():
         text = board_path.read_text(encoding="utf-8")
         # Find the Done section
-        done_match = re.search(r"## ✅ Done\b", text)
+        done_match = re.search(re.escape(BOARD_SECTION_DONE) + r"\b", text)
         if done_match:
             done_section = text[done_match.start():]
             done_ids.update(_ITEM_ID_RE.findall(done_section))
