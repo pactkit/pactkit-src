@@ -7,7 +7,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-
 # ---------------------------------------------------------------------------
 # R1: map_to_tests
 # ---------------------------------------------------------------------------
@@ -169,6 +168,7 @@ class TestR4PromptDelegation:
 
     def _reload_prompts(self):
         import importlib
+
         import pactkit.prompts as p
         importlib.reload(p)
         return p

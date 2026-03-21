@@ -5,11 +5,11 @@ Tests for pactkit.lazy_visualize module.
 
 from __future__ import annotations
 
-import unittest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 import subprocess
 import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 
 class TestShouldVisualize(unittest.TestCase):

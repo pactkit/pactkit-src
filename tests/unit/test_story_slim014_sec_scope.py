@@ -5,9 +5,9 @@ Tests for pactkit.sec_scope module.
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
 
 
 class TestDetectSecurityScope(unittest.TestCase):

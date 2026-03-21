@@ -4,10 +4,8 @@ Covers R1-R7: doctor diagnostics, backfill-release, issue-sync, CLI wiring, prom
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from unittest.mock import patch
-
 
 # ---------------------------------------------------------------------------
 # R1: check_orphaned_specs
@@ -141,6 +139,7 @@ class TestR3StaleGraphs:
         """Graph older than source by > threshold → stale."""
         import os
         import time
+
         from pactkit.doctor import check_stale_graphs
 
         # Create source dir with a recent file
@@ -382,6 +381,7 @@ class TestR7PromptDelegation:
 
     def _reload_prompts(self):
         import importlib
+
         import pactkit.prompts as p
         importlib.reload(p)
         return p

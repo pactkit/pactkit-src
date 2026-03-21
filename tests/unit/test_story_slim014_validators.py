@@ -5,10 +5,9 @@ Tests for pactkit.validators module.
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
-import tempfile
-import os
 
 
 class TestLintContext(unittest.TestCase):
