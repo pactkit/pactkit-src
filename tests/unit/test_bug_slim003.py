@@ -98,14 +98,14 @@ class TestR3ContextConsistency:
 # ---------------------------------------------------------------------------
 
 class TestR4CleanersJavaAlignment:
-    """cleaners.py Java cleanup must match LANG_PROFILES canonical source."""
+    """cleaners.py Java cleanup patterns are correct (canonical source since BUG-slim-006)."""
 
-    def test_java_cleanup_matches_lang_profiles(self):
-        """_CLEANUP_PATTERNS['java'] must equal LANG_PROFILES['java']['cleanup']."""
+    def test_java_cleanup_has_all_languages(self):
+        """_CLEANUP_PATTERNS must cover all 4 languages."""
         from pactkit.cleaners import _CLEANUP_PATTERNS
-        from pactkit.prompts.workflows import LANG_PROFILES
 
-        assert _CLEANUP_PATTERNS["java"] == LANG_PROFILES["java"]["cleanup"]
+        for lang in ["python", "node", "go", "java"]:
+            assert lang in _CLEANUP_PATTERNS, f"Missing {lang} in _CLEANUP_PATTERNS"
 
     def test_java_cleanup_has_gradle(self):
         """Java cleanup must include .gradle/ directory."""

@@ -167,7 +167,7 @@ class TestBackwardCompatibility:
     def test_existing_lang_profile_fields_preserved(self):
         """All existing LANG_PROFILES fields must still be present."""
         p = _prompts()
-        required = ['test_runner', 'file_ext', 'cleanup',
+        required = ['test_runner', 'file_ext',
                      'source_dirs', 'test_map_pattern', 'lint_command']
         for lang in ['python', 'node', 'go', 'java']:
             for field in required:

@@ -376,7 +376,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
 1.  Run `pactkit clean` to remove language-specific temp artifacts.
 2.  Run `pactkit visualize --lazy` to update graphs only if source files changed (file, `--mode class`, `--mode call`). If skipped, log: "Graph up-to-date — no source changes".
-3.  **HLD Consistency Check**: Verify `system_design.mmd` component counts match reality. Warn if stale.
+3.  **HLD Consistency Check**: Run `pactkit doctor` and check HLD drift. If drift > 3, WARN user: "system_design.mmd is {N} modules behind — consider updating it."
 
 ## 🎬 Phase 2.5: Regression Gate (MANDATORY)
 > **CRITICAL**: Do NOT skip this step. This is the safety net before commit.
@@ -497,6 +497,11 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
 
 ## 🎬 Phase 4: Git Commit
 0.  **Enterprise Check**: If `enterprise.no_git: true` in `pactkit.yaml`, skip ALL git operations in this phase. Print: "ℹ️ Git operations disabled (enterprise.no_git)". Skip to the Session Context Update phase.
+0.5.  **Deployment Verification (MANDATORY)**: Before committing, verify code changes are reflected in the deployed environment:
+    - Run `pactkit update` to redeploy all prompts, agents, commands, skills, and rules.
+    - Smoke-check: for each AC that references prompt/deployed file content, `grep` 1-2 key assertions on deployed files (e.g., `~/.claude/commands/*.md`).
+    - Report: `Deploy verification: PASS ({N} assertions checked)` or `FAIL (details)`.
+    - If FAIL, fix the deployment issue before committing.
 1.  **Format**: `feat(scope): <title from spec>`
 2.  **Execute**: Run the git commit command.
 3.  **Post-Commit Prompts**:

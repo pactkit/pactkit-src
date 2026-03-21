@@ -11,12 +11,11 @@
 | ADR-005 | schemas.py as document structure source of truth | DRY: one place for Spec/Board/Context/Lessons/TestCase rules | 2026-03 |
 | ADR-006 | Sequential str.replace in `_render_prompt()` | Safe with user-facing complex keys; format_map fails on `{R1, R2}` | 2026-03 |
 | ADR-007 | Deploy chain parity over premature abstraction | Add functions one-by-one rather than shared `_deploy_standard()` | 2026-03 |
-
 | ADR-008 | Lazy rule loading: RULES_CORE_FILES + RULES_ONDEMAND_FILES + RULES_INSTRUCTIONS_CORE | OpenCode instructions glob loads all files every turn; split avoids -62% token overhead | 2026-03 |
 
 ## Invariants
 
-1. All 2629+ tests must pass before any commit to `main`.
+1. All 2645+ tests must pass before any commit to `main`.
 2. Specs (`docs/specs/`) are the source of truth — code conforms to specs, not the reverse.
 3. CLI entry point is `pactkit` via `src/pactkit/cli.py:main`.
 4. No runtime dependencies beyond `pyyaml`.

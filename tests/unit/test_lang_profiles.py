@@ -36,7 +36,7 @@ class TestLangProfilesExists:
 class TestProfileFields:
     """STORY-025 Scenario 2: Each profile has all required fields."""
 
-    REQUIRED_FIELDS = ['test_runner', 'file_ext', 'cleanup', 'test_map_pattern', 'lint_command']
+    REQUIRED_FIELDS = ['test_runner', 'file_ext', 'test_map_pattern', 'lint_command']
 
     @pytest.mark.parametrize("lang", ["python", "node", "go", "java"])
     def test_has_all_fields(self, lang):
@@ -51,9 +51,9 @@ class TestProfileFields:
         assert len(p.LANG_PROFILES[lang]['test_runner']) > 0
 
     @pytest.mark.parametrize("lang", ["python", "node", "go", "java"])
-    def test_cleanup_is_list(self, lang):
+    def test_source_dirs_is_list(self, lang):
         p = _prompts()
-        assert isinstance(p.LANG_PROFILES[lang]['cleanup'], list)
+        assert isinstance(p.LANG_PROFILES[lang]['source_dirs'], list)
 
 
 # ==============================================================================
@@ -70,9 +70,9 @@ class TestPythonProfile:
         p = _prompts()
         assert p.LANG_PROFILES['python']['file_ext'] == '.py'
 
-    def test_cleanup_has_pycache(self):
+    def test_source_dirs_has_src(self):
         p = _prompts()
-        assert '__pycache__' in p.LANG_PROFILES['python']['cleanup']
+        assert 'src/' in p.LANG_PROFILES['python']['source_dirs']
 
 
 
@@ -91,12 +91,10 @@ class TestNodeProfile:
         p = _prompts()
         assert p.LANG_PROFILES['node']['file_ext'] in ['.ts', '.tsx', '.js']
 
-    def test_cleanup_has_node_modules_cache(self):
+    def test_source_dirs_has_src(self):
         p = _prompts()
-        cleanup = p.LANG_PROFILES['node']['cleanup']
-        # Should have some Node-specific cleanup items
-        cleanup_str = ' '.join(cleanup)
-        assert 'node_modules' in cleanup_str or '.next' in cleanup_str or 'dist' in cleanup_str
+        dirs = p.LANG_PROFILES['node']['source_dirs']
+        assert 'src/' in dirs or 'app/' in dirs
 
 
 # ==============================================================================

@@ -149,3 +149,35 @@ def check_stale_graphs(
             stale.append({"file": graph.name, "days_behind": days_behind})
 
     return {"stale": stale, "missing": False}
+
+
+def check_hld_module_count(project_root: Path) -> dict:
+    """Compare module count in system_design.mmd vs actual source files.
+
+    Returns:
+        {"source_modules": N, "hld_nodes": M, "drift": N - M}
+    """
+    hld_path = project_root / "docs" / "architecture" / "graphs" / "system_design.mmd"
+
+    # Count actual .py modules (excluding __init__.py, __pycache__)
+    src_dir = project_root / "src" / "pactkit"
+    source_modules = 0
+    if src_dir.is_dir():
+        for f in src_dir.iterdir():
+            if (f.suffix == ".py"
+                    and f.name != "__init__.py"
+                    and not f.name.startswith("__")):
+                source_modules += 1
+
+    # Count node declarations in system_design.mmd
+    hld_nodes = 0
+    if hld_path.exists():
+        hld_text = hld_path.read_text(encoding="utf-8")
+        # Count Mermaid node declarations: Identifier["label"]
+        hld_nodes = len(re.findall(r'\w+\["[^"]+"\]', hld_text))
+
+    return {
+        "source_modules": source_modules,
+        "hld_nodes": hld_nodes,
+        "drift": source_modules - hld_nodes,
+    }

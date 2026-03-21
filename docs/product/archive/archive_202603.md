@@ -321,3 +321,18 @@
 - [x] R3: Act board update ref {BOARD_CMD}
 - [x] R4: Check add lint-testcase reference
 - [x] R5: Remove 3 dead LANG_PROFILES keys
+
+### BUG-slim-006: Post-Migration Cross-Flow Residual Gaps — Graphs, Board Schema, HOTFIX ID
+- [x] R1: Fix sprint_board.md missing In Progress section
+- [x] R2: Fix HOTFIX_PROMPT next-id --prefix broken reference
+- [x] R3: Make pactkit visualize --lazy an end-to-end executor
+- [x] R4: Add HLD module count check to pactkit doctor
+- [x] R5: Fix rules.md ADR-008 table formatting
+- [x] R6: Fix context.md Active Branches
+- [x] R7: Remove dead cleanup key from LANG_PROFILES
+- [x] R8: Update system_design.mmd HLD (one-time data fix)
+- [x] R9: Update Done Phase 2 prompt to use pactkit doctor for HLD check
+
+## 🔄 In Progress
+
+## ✅ Done

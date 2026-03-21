@@ -64,7 +64,6 @@ LANG_PROFILES = {
         "test_runner": "pytest",
         "file_ext": ".py",
         "source_dirs": ["src/"],
-        "cleanup": ["__pycache__", ".pytest_cache", "*.pyc"],
         "test_map_pattern": "tests/unit/test_{module}.py",
         "lint_command": "ruff check src/ tests/",
     },
@@ -72,7 +71,6 @@ LANG_PROFILES = {
         "test_runner": "npx jest",
         "file_ext": ".ts",
         "source_dirs": ["src/", "lib/", "app/", "pages/"],
-        "cleanup": ["node_modules/.cache", ".next", "dist", "coverage"],
         "test_map_pattern": "__tests__/{module}.test.ts",
         "lint_command": "npx eslint .",
     },
@@ -80,7 +78,6 @@ LANG_PROFILES = {
         "test_runner": "go test ./...",
         "file_ext": ".go",
         "source_dirs": ["./"],
-        "cleanup": ["cover.out", "cover.html"],
         "test_map_pattern": "{package}/{module}_test.go",
         "lint_command": "golangci-lint run",
     },
@@ -88,7 +85,6 @@ LANG_PROFILES = {
         "test_runner": "mvn test",
         "file_ext": ".java",
         "source_dirs": ["src/main/java/"],
-        "cleanup": ["target/", "build/", ".gradle/"],
         "test_map_pattern": "src/test/java/{package}/{module}Test.java",
         "lint_command": "mvn checkstyle:check",
     },
@@ -570,7 +566,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Locate**: Use `Grep` or `Glob` to quickly locate the target file and code line.
 3.  **Assess**: Confirm this is a minor fix (suitable for Hotfix), not a change requiring full PDCA.
     - If the assessment reveals a complex change, **proactively suggest the user switch to** `/project-plan`.
-4.  **Assign HOTFIX-ID**: Run `pactkit next-id` to get the next available ID (supports HOTFIX prefix via `--prefix HOTFIX` if configured, otherwise use HOTFIX-{NNN} pattern from output).
+4.  **Assign HOTFIX-ID**: Run `pactkit next-id` to get the next STORY number, then use HOTFIX-{developer}-{NNN} pattern (e.g., HOTFIX-slim-001). The numeric part should match the next-id output.
 5.  **Create Spec**: Create a lightweight Spec at `docs/specs/HOTFIX-{NNN}.md` with:
     - Title, Background (one sentence), Target file/line, and what was fixed.
 6.  **Add Board Entry**: Add the hotfix to the Board:

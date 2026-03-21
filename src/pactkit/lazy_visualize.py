@@ -78,3 +78,29 @@ def should_visualize(
         return (True, f"code_graph.mmd missing: {graph_file}")
 
     return (False, "Graph up-to-date — no source changes")
+
+
+def run_visualize_graphs(project_root: Path) -> None:
+    """Execute visualize.py to regenerate all graph files.
+
+    Runs file, class, call modes. Also refreshes focus graphs if they exist.
+    """
+    import sys
+
+    viz_script = Path(__file__).resolve().parent / "skills" / "visualize.py"
+    if not viz_script.exists():
+        return
+
+    mode_flag = "--mode"
+    for mode in ["file", "class", "call"]:
+        subprocess.run([sys.executable, str(viz_script), "visualize", mode_flag, mode],
+                       cwd=str(project_root))
+
+    # Refresh focus graphs if they exist
+    graph_dir = project_root / "docs" / "architecture" / "graphs"
+    if (graph_dir / "focus_file_graph.mmd").exists():
+        subprocess.run([sys.executable, str(viz_script), "visualize", "--focus", "cli"],
+                       cwd=str(project_root))
+    if (graph_dir / "focus_call_graph.mmd").exists():
+        subprocess.run([sys.executable, str(viz_script), "visualize", "--focus", "cli", mode_flag, "call"],
+                       cwd=str(project_root))

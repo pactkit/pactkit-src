@@ -429,18 +429,23 @@ def main():
 
             from pactkit.lazy_visualize import should_visualize
 
-            should_run, reason = should_visualize(Path.cwd(), stack=args.stack)
+            project_root = Path.cwd()
+            should_run, reason = should_visualize(project_root, stack=args.stack)
             if not should_run:
                 print(reason)
                 raise SystemExit(0)
             print(f"Visualize needed: {reason}")
-        # Fall through to actual visualize (existing skill handles it)
+            # Execute graph generation end-to-end (BUG-slim-006 R3)
+            from pactkit.lazy_visualize import run_visualize_graphs
+            run_visualize_graphs(project_root)
+            raise SystemExit(0)
+        # Non-lazy: print guidance for manual run
         print("Run visualize skill for full graph generation")
 
     elif args.command == "doctor":
         from pathlib import Path
 
-        from pactkit.doctor import check_config_drift, check_orphaned_specs, check_stale_graphs
+        from pactkit.doctor import check_config_drift, check_hld_module_count, check_orphaned_specs, check_stale_graphs
 
         root = Path.cwd()
         has_issues = False
@@ -467,6 +472,13 @@ def main():
             has_issues = True
         for item in stale_result["stale"]:
             print(f"  Stale: {item['file']} ({item['days_behind']} days behind source)")
+            has_issues = True
+
+        # R4 (BUG-slim-006): HLD module count drift
+        hld_result = check_hld_module_count(root)
+        if hld_result["drift"] > 3:
+            print(f"  HLD drift: {hld_result['drift']} modules not in system_design.mmd "
+                  f"(source: {hld_result['source_modules']}, hld: {hld_result['hld_nodes']})")
             has_issues = True
 
         if not has_issues:

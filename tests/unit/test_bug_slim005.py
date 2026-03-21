@@ -91,7 +91,7 @@ class TestAC5DeadKeysRemoved:
 # --- AC6: Consumed keys intact ---
 
 class TestAC6ConsumedKeysIntact:
-    CONSUMED_KEYS = {"test_runner", "file_ext", "source_dirs", "cleanup", "test_map_pattern", "lint_command"}
+    CONSUMED_KEYS = {"test_runner", "file_ext", "source_dirs", "test_map_pattern", "lint_command"}
 
     def test_python_has_consumed_keys(self):
         profiles = _get_lang_profiles()
