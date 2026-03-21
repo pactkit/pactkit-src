@@ -293,3 +293,13 @@
 - [x] R5: Backward compatibility + all tests pass
 - [x] R6: Security Scope auto-detection (pactkit sec-scope)
 - [x] R7: Lazy Visualize CLI (pactkit visualize --lazy)
+
+### [BUG-slim-004] Cross-Flow Integrity Gaps — Unreferenced CLI & Missing Lint in Hotfix [#76](https://github.com/pactkit/pactkit/issues/76)
+> Spec: docs/specs/BUG-slim-004.md
+
+- [x] R1: Add lint step to Hotfix flow
+- [x] R2: Reference document validators in Done prompt
+- [x] R3: Add --agent flag to upgrade subparser
+- [x] R4: Forward --agent in upgrade handler
+- [x] R5: Check Phase 3 use pactkit spec-lint for Spec structure
+- [x] R6: Design must call pactkit context after board setup

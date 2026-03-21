@@ -158,7 +158,8 @@ def _print_mcp_recommendations():
 
 
 def deploy(
-    config=None, target=None, format="classic", no_git=False, no_external=False, non_interactive=False, mode=None
+    config=None, target=None, format="classic", agent="claude",
+    no_git=False, no_external=False, non_interactive=False, mode=None
 ):
     """Deploy PactKit configuration.
 
@@ -167,6 +168,7 @@ def deploy(
         target: Optional target directory. If None, uses ~/.claude (classic) or
                 ./pactkit-plugin (plugin) or ./pactkit-marketplace (marketplace).
         format: Output format — 'classic', 'plugin', or 'marketplace'.
+        agent: Target agent format (claude, cursor, copilot, generic, all).
         no_git: Disable all git operations (enterprise: air-gapped environments).
         no_external: Disable external network calls (enterprise).
         non_interactive: Non-interactive mode: auto-accept defaults (CI/CD).

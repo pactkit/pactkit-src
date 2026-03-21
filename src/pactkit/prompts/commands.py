@@ -277,9 +277,9 @@ Apply a code quality checklist to all code related to the Story:
 For each finding, assign a severity (P0-P3). Flag issues that may cause silent failures.
 
 ## Phase 3: Spec Verification & Test Case Definition (The Law)
-1.  **Verify Spec Structure**: Read `docs/specs/{STORY_ID}.md`.
-    * *Check*: Does the Spec contain `## Acceptance Criteria` with Given/When/Then Scenarios?
-    * *If missing*: WARN the user — "Spec lacks structured Acceptance Criteria. Run `/project-plan` to fix."
+1.  **Verify Spec Structure**: Run `pactkit spec-lint docs/specs/{STORY_ID}.md` to validate Spec structure (E006 checks for `## Acceptance Criteria`).
+    * *If ERRORs*: WARN the user — "Spec structure issues found. Run `/project-plan` to fix."
+    * *If WARNs only*: Note warnings and continue.
 2.  **Extract Scenarios**: List all Scenarios from the Spec's `## Acceptance Criteria` section.
 3.  **Check**: Does `docs/test_cases/{STORY_ID}_case.md` exist?
 4.  **Action**: If missing, generate it based *strictly* on the Spec's Acceptance Criteria.
@@ -462,7 +462,11 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
     - Update the test count to match the actual number from the most recent test run (e.g., "All {N}+ tests must pass").
     - Preserve the Architecture Decisions (ADR) table — only update the Invariants section.
     - If `rules.md` does not exist, skip silently.
-5.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
+5.  **Document Validators (Non-blocking)**: Run document structure checks as warnings:
+    - `pactkit lint-context` — validates `docs/product/context.md` structure
+    - `pactkit lint-lessons` — validates `docs/architecture/governance/lessons.md` structure
+    - These are non-blocking: report warnings but do not stop the Done flow.
+6.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
 
 ## 🎬 Phase 3.5: Archive (Optional)
 1.  **Check**: Are all tasks for the current Story marked `[x]`?

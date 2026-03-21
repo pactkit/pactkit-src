@@ -595,7 +595,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## ✅ Phase 2: Verify
 1.  **Run Tests (Incremental)**: Run `pactkit test-map <changed-files>` to find related test files, then run only those tests (e.g., `pytest tests/unit/test_foo.py -q`). Fallback to full suite if no mapping.
-2.  **On Failure**: If tests fail:
+2.  **Run Lint**: Run `pactkit lint` to verify no lint errors in changed files. If `pactkit lint` is unavailable, fall back to the stack's lint command directly.
+3.  **On Failure**: If tests or lint fail:
     - Output the failing test name and error message
     - **Do not auto-rollback** — let the user decide whether to continue
     - Suggestion: check whether the fix is correct, or switch to `/project-act` for the full workflow
@@ -751,6 +752,9 @@ Assign each Story to a horizon:
 1.  **Add Stories**: For each Story (ordered by horizon → priority):
     - Run `{BOARD_CMD} add_story "STORY-{NNN}" "{title}" "{task list}"`.
 2.  **Verify**: Read `docs/product/sprint_board.md` to confirm all stories are listed.
+
+## 🎬 Phase 4.5: Session Context Update
+1.  **Update Context**: Run `pactkit context` to regenerate `docs/product/context.md` with the newly created stories and board state.
 
 ## 🎬 Phase 5: Handover
 1.  **Summary Table**: Output a table of all created artifacts:

@@ -154,6 +154,13 @@ def main():
         default="classic",
         help="Output format: classic (default), plugin, marketplace, or opencode",
     )
+    upgrade_parser.add_argument(
+        "--agent",
+        type=str,
+        choices=["claude", "cursor", "copilot", "generic", "all"],
+        default="claude",
+        help="Target agent format: claude (default), cursor, copilot, generic, or all",
+    )
     # STORY-060: Enterprise flags for upgrade (parity with init/update)
     upgrade_parser.add_argument(
         "--no-git",
@@ -265,6 +272,7 @@ def main():
         deploy(
             target=args.target,
             format=args.format,
+            agent=getattr(args, "agent", "claude"),
             no_git=getattr(args, "no_git", False),
             no_external=getattr(args, "no_external", False),
             non_interactive=getattr(args, "non_interactive", False),
