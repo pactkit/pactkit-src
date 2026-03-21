@@ -21,12 +21,18 @@ graph TD
     click src_pactkit_schemas_py href "src/pactkit/schemas.py"
     src_pactkit_cli_py["cli.py"]
     click src_pactkit_cli_py href "src/pactkit/cli.py"
+    src_pactkit_backfill_py["backfill.py"]
+    click src_pactkit_backfill_py href "src/pactkit/backfill.py"
     src_pactkit_utils_py["utils.py"]
     click src_pactkit_utils_py href "src/pactkit/utils.py"
     src_pactkit_cleaners_py["cleaners.py"]
     click src_pactkit_cleaners_py href "src/pactkit/cleaners.py"
     src_pactkit_scripts_py["scripts.py"]
     click src_pactkit_scripts_py href "src/pactkit/scripts.py"
+    src_pactkit_issue_sync_py["issue_sync.py"]
+    click src_pactkit_issue_sync_py href "src/pactkit/issue_sync.py"
+    src_pactkit_doctor_py["doctor.py"]
+    click src_pactkit_doctor_py href "src/pactkit/doctor.py"
     src_pactkit_profiles_py["profiles.py"]
     click src_pactkit_profiles_py href "src/pactkit/profiles.py"
     src_pactkit_prompts_skills_py["skills.py"]
@@ -68,6 +74,12 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
     src_pactkit_cli_py --> src_pactkit_lazy_visualize_py
+    src_pactkit_cli_py --> src_pactkit_doctor_py
+    src_pactkit_cli_py --> src_pactkit_backfill_py
+    src_pactkit_cli_py --> src_pactkit_issue_sync_py
+    src_pactkit_issue_sync_py --> src_pactkit_config_py
+    src_pactkit_doctor_py --> src_pactkit_config_py
+    src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
     src_pactkit_prompts_skills_py --> src_pactkit___init___py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py

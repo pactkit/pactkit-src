@@ -4,8 +4,10 @@ graph TD
     _build_gitlab_ci["_build_gitlab_ci"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
+    _check_gh_available["_check_gh_available"]
     _cleanup_legacy["_cleanup_legacy"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
+    _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
     _deploy_agents_md_inline["_deploy_agents_md_inline"]
     _deploy_ci["_deploy_ci"]
@@ -28,7 +30,9 @@ graph TD
     _generate_project_agents_md["_generate_project_agents_md"]
     _generate_project_claude_md["_generate_project_claude_md"]
     _get_command_rules["_get_command_rules"]
+    _get_done_ids["_get_done_ids"]
     _get_git_branches["_get_git_branches"]
+    _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
@@ -37,6 +41,7 @@ graph TD
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
+    _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
     _path_ends_with_ext["_path_ends_with_ext"]
@@ -50,13 +55,17 @@ graph TD
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
     _schema_command["_schema_command"]
+    _search_issue["_search_issue"]
     _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
     check_config_completeness["check_config_completeness"]
+    check_config_drift["check_config_drift"]
     check_init_markers["check_init_markers"]
+    check_orphaned_specs["check_orphaned_specs"]
+    check_stale_graphs["check_stale_graphs"]
     classify_changes["classify_changes"]
     clean_artifacts["clean_artifacts"]
     deploy["deploy"]
@@ -70,6 +79,7 @@ graph TD
     get_default_config["get_default_config"]
     get_profile["get_profile"]
     is_environment_format["is_environment_format"]
+    issue_sync["issue_sync"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
@@ -77,6 +87,7 @@ graph TD
     main["main"]
     next_story_id["next_story_id"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    scan_and_replace_tbd["scan_and_replace_tbd"]
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
     transform["transform"]
@@ -124,7 +135,21 @@ graph TD
     main --> lint_lessons
     main --> lint_testcase
     main --> should_visualize
+    main --> check_orphaned_specs
+    main --> check_config_drift
+    main --> check_stale_graphs
+    main --> scan_and_replace_tbd
+    main --> issue_sync
+    scan_and_replace_tbd --> _get_done_ids
     clean_artifacts --> detect_stack
+    _get_issue_tracker_provider --> find_pactkit_yaml
+    issue_sync --> _parse_item_type
+    issue_sync --> _get_issue_tracker_provider
+    issue_sync --> _search_issue
+    issue_sync --> _create_issue
+    issue_sync --> _check_gh_available
+    check_config_drift --> find_pactkit_yaml
+    check_stale_graphs --> load_config
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt

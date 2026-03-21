@@ -235,6 +235,17 @@ def main():
     viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
     viz_parser.add_argument("--stack", default="auto", help="Language stack (default: auto)")
 
+    # pactkit doctor (STORY-slim-015 R1-R3)
+    subparsers.add_parser("doctor", help="Diagnose project health")
+
+    # pactkit backfill-release (STORY-slim-015 R4)
+    backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")
+    backfill_parser.add_argument("version", help="Version string to backfill (e.g. 2.3.0)")
+
+    # pactkit issue-sync (STORY-slim-015 R5)
+    issue_sync_parser = subparsers.add_parser("issue-sync", help="Sync GitHub issue for BUG/HOTFIX items")
+    issue_sync_parser.add_argument("item_id", help="Item ID (e.g. BUG-slim-003)")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -395,6 +406,67 @@ def main():
             print(f"Visualize needed: {reason}")
         # Fall through to actual visualize (existing skill handles it)
         print("Run visualize skill for full graph generation")
+
+    elif args.command == "doctor":
+        from pathlib import Path
+
+        from pactkit.doctor import check_config_drift, check_orphaned_specs, check_stale_graphs
+
+        root = Path.cwd()
+        has_issues = False
+
+        # R1: Orphaned/missing specs
+        spec_result = check_orphaned_specs(root)
+        for item in spec_result["orphaned"]:
+            print(f"  Orphaned: {item['id']} (spec exists, not on board)")
+            has_issues = True
+        for item in spec_result["missing"]:
+            print(f"  Missing: {item['id']} (on board, no spec file)")
+            has_issues = True
+
+        # R2: Config drift
+        drift_result = check_config_drift(root)
+        for item in drift_result["missing_deployments"]:
+            print(f"  Drift: {item['type']} '{item['name']}' configured but not deployed")
+            has_issues = True
+
+        # R3: Stale graphs
+        stale_result = check_stale_graphs(root)
+        if stale_result.get("missing"):
+            print("  Missing: docs/architecture/graphs/ directory not found")
+            has_issues = True
+        for item in stale_result["stale"]:
+            print(f"  Stale: {item['file']} ({item['days_behind']} days behind source)")
+            has_issues = True
+
+        if not has_issues:
+            print("Health: OK")
+        else:
+            print("Health: NEEDS ATTENTION")
+            raise SystemExit(1)
+
+    elif args.command == "backfill-release":
+        from pathlib import Path
+
+        from pactkit.backfill import scan_and_replace_tbd
+
+        result = scan_and_replace_tbd(Path.cwd(), args.version)
+        for item in result["backfilled"]:
+            print(f"  Backfilled: {item['id']} → {args.version}")
+        for item in result["skipped"]:
+            print(f"  Skipped: {item['id']} ({item['reason']})")
+        if not result["backfilled"] and not result["skipped"]:
+            print("No specs with Release: TBD found")
+
+    elif args.command == "issue-sync":
+        from pathlib import Path
+
+        from pactkit.issue_sync import issue_sync
+
+        result = issue_sync(args.item_id, Path.cwd())
+        print(result["message"])
+        if result["action"] == "error":
+            raise SystemExit(1)
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

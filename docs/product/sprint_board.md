@@ -2,17 +2,6 @@
 
 ## 📋 Backlog
 
-### [STORY-slim-015] Doctor & Release CLI — Deterministic Diagnostics
-> Spec: docs/specs/STORY-slim-015.md
-
-- [ ] R1: pactkit doctor — orphaned/missing spec detection
-- [ ] R2: pactkit doctor — config drift detection
-- [ ] R3: pactkit doctor — stale graph detection
-- [ ] R4: pactkit backfill-release — spec TBD replacement
-- [ ] R5: pactkit issue-sync — GitHub issue lifecycle
-- [ ] R6: CLI wiring (doctor, backfill-release, issue-sync)
-- [ ] R7: Prompt delegation to new CLI commands
-
 ### [STORY-slim-016] Test Mapping & Stack-Aware Lint CLI
 > Spec: docs/specs/STORY-slim-016.md
 
@@ -22,6 +11,17 @@
 - [ ] R4: Prompt delegation to new CLI commands
 
 ## ✅ Done
+
+### [STORY-slim-015] Doctor & Release CLI — Deterministic Diagnostics
+> Spec: docs/specs/STORY-slim-015.md
+
+- [x] R1: pactkit doctor — orphaned/missing spec detection
+- [x] R2: pactkit doctor — config drift detection
+- [x] R3: pactkit doctor — stale graph detection
+- [x] R4: pactkit backfill-release — spec TBD replacement
+- [x] R5: pactkit issue-sync — GitHub issue lifecycle
+- [x] R6: CLI wiring (doctor, backfill-release, issue-sync)
+- [x] R7: Prompt delegation to new CLI commands
 
 ### [BUG-slim-003] CLI Migration Gaps — Prompt Inconsistencies & Implementation Mismatches [#75](https://github.com/pactkit/pactkit/issues/75)
 > Spec: docs/specs/BUG-slim-003.md

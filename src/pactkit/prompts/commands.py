@@ -476,24 +476,15 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
 
 ## 🎬 Phase 3.5.5: Issue Tracker Verification (BUG/HOTFIX Only)
 > **Purpose**: Verify GitHub Issue exists for BUG/HOTFIX items; STORY items are NOT synced to protect IP.
-1.  **Check Item Type**: Parse the current item ID (e.g., `STORY-001`, `BUG-001`, `HOTFIX-001`).
-    - **If STORY-***: Skip this phase entirely. Print: "ℹ️ Issue sync skipped for STORY (IP protection)". Proceed to Phase 3.6.
-    - **If BUG-* or HOTFIX-***: Continue with issue verification.
-2.  **Check Config**: Read `pactkit.yaml` for `issue_tracker.provider`.
-3.  **If `provider: none` or section missing**: Skip silently, proceed to Phase 3.6.
-4.  **If `provider: github`**:
-    a. **CLI Check**: Run `gh --version`. If unavailable, print warning "Issue tracker verification skipped: gh CLI unavailable" and proceed to Phase 3.6.
-    b. **Search**: Run `gh issue list --search "{ITEM_ID}" --state all --json number,title,url` to find existing issue.
-    c. **If issue found**:
-       - Check if Sprint Board entry has issue link (e.g., `[#N](url)`)
-       - If no link: update Sprint Board entry to include `[#{number}]({url})`
-       - Proceed to Phase 3.6 for closure
-    d. **If issue NOT found (Backfill)**:
-       - Create issue: `gh issue create --title "{ITEM_ID}: {Item Title}" --body "Spec: docs/specs/{ITEM_ID}.md\n\n**Status**: Backfilled during Done phase"`
-       - Parse the returned issue URL
-       - Update Sprint Board entry to include `[#{number}]({url})`
-       - Proceed to Phase 3.6 for closure
-    e. **If any gh command fails**: Print warning with error message, continue to Phase 3.6.
+1.  Run `pactkit issue-sync {ITEM_ID}` to handle the full issue lifecycle:
+    - STORY items: skipped automatically (IP protection).
+    - BUG/HOTFIX items: searches for existing issue, backfill-creates if missing, returns issue URL.
+2.  If `pactkit issue-sync` returns a URL, update the Sprint Board entry to include `[#{number}]({url})`.
+3.  If `pactkit issue-sync` is unavailable, fall back to manual `gh` CLI commands:
+    a. **CLI Check**: Run `gh --version`. If unavailable, print warning and proceed to Phase 3.6.
+    b. **Search**: Run `gh issue list --search "{ITEM_ID}" --state all --json number,title,url`.
+    c. **If not found**: Create issue via `gh issue create`.
+    d. **If any gh command fails**: Print warning, continue to Phase 3.6.
 
 ## 🎬 Phase 3.6: Issue Tracker Closure (BUG/HOTFIX Only)
 > **Purpose**: Close linked external issues when BUG/HOTFIX is done. STORY items are skipped.
