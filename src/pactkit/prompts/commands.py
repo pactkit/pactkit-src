@@ -30,20 +30,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **If existing project** (stories on board, source files present): Skip this check — greenfield detection does not apply to established projects.
 
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
-> **INSTRUCTION**: Check if the project has been initialized before proceeding.
-1.  **Check Markers**: Verify the existence of ALL three:
-    - `{PACTKIT_YAML}` (project-level config)
-    - `docs/product/sprint_board.md` (sprint board)
-    - `docs/architecture/graphs/` (architecture graph directory)
-2.  **If ANY marker is missing**:
-    - Print: "⚠️ Project not initialized. Missing: [list missing markers]."
-    - Print: "Run `/project-init` to set up the project, then re-run `/project-plan`."
-    - **STOP**. Do NOT auto-execute `/project-init` or continue with Plan.
-3.  **If ALL markers exist**: Proceed to Step 4.
-4.  **Config Completeness Check**: Verify `pactkit.yaml` has all expected sections (hooks, ci, issue_tracker, lint_blocking, auto_fix).
-    - If any sections are missing, the config is stale. Run `pactkit update` to backfill missing sections.
-    - Report what was added (e.g., "Config refreshed: added hooks, ci sections").
-    - If the config is already complete and up to date, skip silently to Phase 1.
+1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/sprint_board.md`, `docs/architecture/graphs/`).
+2.  If exit code 1: project is not initialized — print the missing markers and **STOP**. Suggest running `/project-init`.
+3.  If all exist: check config completeness (hooks, ci, issue_tracker sections). If stale, run `pactkit update` and report what was added.
+4.  If PASS: proceed to Phase 1.
 
 ## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
 > **PURPOSE**: Surface and resolve requirement ambiguity before the Spec is written. Better to clarify now than rewrite a Spec.
@@ -86,11 +76,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
-1.  Read `developer` from `pactkit.yaml` (check `{PACTKIT_YAML}`).
-2.  If `developer` has a value (e.g., `alice`): use ID format `STORY-{developer}-{NNN}` (e.g., `STORY-alice-001`).
-3.  If `developer` is empty or missing: use ID format `STORY-{NNN}` (backward compatible).
-4.  NNN: scan `docs/specs/` for existing files with the same prefix, find the max number, increment by 1.
-5.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
+1.  Run `pactkit next-id` to get the next Story ID (reads developer prefix from pactkit.yaml, scans `docs/specs/`).
+2.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
 
 ## 🎬 Phase 3.2: Write Spec
 1.  **Spec**: Create `docs/specs/{ID}.md` detailing the *Change*.
@@ -208,18 +195,14 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
       - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
-3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run a broader regression check.
-    - **Identify changed modules**: `git diff --name-only HEAD` to list modified source files.
-    - **Doc-Only detection**: Classify changed files using `LANG_PROFILES[stack].source_dirs`. If zero source files changed, skip regression. Log: `"Regression: SKIP — doc-only change"`.
-    - **Map to related tests**: Use Test Mapping Protocol (see Shared Protocols) for incremental test selection.
-    - **Scope decision**: If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Otherwise, run only mapped tests.
-    - **Fallback**: If no test mapping can be determined, fall back to the full test suite.
+3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
+    - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
+    - If IMPACT: use Test Mapping Protocol (see Shared Protocols) for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 
 ## 🎬 Phase 4: Sync & Document
-1.  **Hygiene**: Delete temp files.
-2.  **Update Reality (Lazy Visualize)**: Apply the Lazy Visualize Protocol (see Shared Protocols) — run `visualize`, `--mode class`, and `--mode call` if source files changed.
-3.  **Update Board (CRITICAL)**: Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
+1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed).
+2.  **Update Board (CRITICAL)**: Mark the tasks in `docs/product/sprint_board.md` as `[x]`.
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
@@ -251,7 +234,7 @@ allowed-tools: [Read, Bash, Grep, Glob]
 4.  **Gap Analysis**: Do we have a structured Test Case? If not, plan to create one.
 5.  **Security Scope**: Check if the Spec contains a `## Security Scope` section.
     - If present: parse the `Applicable` column for each SEC-* check. Pass this scope to Phase 1.
-    - If absent (legacy Spec): fall back to running all 8 checks (backward compatible).
+    - If absent (legacy Spec): run `pactkit sec-scope <changed-files>` to auto-detect, or fall back to all 8 checks.
 
 ## Phase 1: Security Scan (OWASP+)
 > **Config**: If `pactkit.yaml` contains `check.security_checklist: false`, skip this phase and log: "Security checklist disabled via config".
@@ -391,8 +374,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 2.  **Read Board**: Read `docs/product/sprint_board.md`.
 
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
-1.  **Action**: Remove language-specific temp artifacts per `LANG_PROFILES[stack].cleanup`.
-2.  **Update Reality (Lazy Visualize)**: Apply the Lazy Visualize Protocol (see Shared Protocols) — run `visualize`, `--mode class`, and `--mode call` if `LANG_PROFILES[stack].source_dirs` files changed. If no source changes and graph exists, skip with log: "Graph up-to-date — no source changes".
+1.  Run `pactkit clean` to remove language-specific temp artifacts.
+2.  Run `pactkit visualize --lazy` to update graphs only if source files changed (file, `--mode class`, `--mode call`). If skipped, log: "Graph up-to-date — no source changes".
 3.  **HLD Consistency Check**: Verify `system_design.mmd` component counts match reality. Warn if stale.
 
 ## 🎬 Phase 2.5: Regression Gate (MANDATORY)
@@ -402,19 +385,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - Run `git diff --name-only HEAD~1` (or vs. branch base) to list all changed files.
 - Check if `docs/architecture/graphs/code_graph.mmd` exists.
 
-### Step 1.3: Doc-Only Shortcut
-Classify changed files using `LANG_PROFILES[stack].source_dirs` and `file_ext`:
-- **Zero source files** changed, no new tests → SKIP regression, proceed to Step 2.7.
-- **Zero source files** but new test files exist → run only those test files, proceed to Step 2.7.
-- **Any source files** changed → continue to Step 1.6.
+### Step 1.3: Classification Shortcut
+Run `pactkit regression` (or `pactkit regression <files>`) to classify changes (doc-only → SKIP):
+- **SKIP** → proceed to Step 2.7 (no regression needed).
+- **FULL** → skip impact analysis, proceed directly to Step 3 (full regression).
+- **IMPACT** → continue to Step 1.6.
 
-### Step 1.6: Release Gate — Version Bump Override (R5)
-> **PURPOSE**: Release commits require a full suite to ensure no regressions are hidden.
-1. Run `git diff HEAD~1 pyproject.toml | grep version` (or vs. branch base).
-2. If a version change is detected (e.g., `1.4.0` → `1.4.1`):
-   - Log: `"Regression: FULL — version bump detected, release requires full test suite"`
-   - Skip impact analysis. Proceed directly to Step 3 (full regression).
-3. If no version change: continue to Step 1.7.
+### Step 1.6: Release Gate — Version Bump Override
+If `pactkit regression` returns FULL (version/dependency change detected), proceed directly to Step 3.
+Otherwise continue to Step 1.7.
 
 ### Step 1.7: Impact-Based Analysis (STORY-053)
 > **PURPOSE**: Use `call_graph.mmd` to target only tests affected by changed functions.
@@ -541,10 +520,7 @@ IF `pytest-cov` is available, run tests with coverage on changed source files:
       4. If `gh` CLI is unavailable or command fails, skip silently.
 
 ## 🎬 Phase 4.5: Session Context Update
-> **Purpose**: Generate `docs/product/context.md` so the next session auto-loads project state.
-1.  **Write Context**: Update `docs/product/context.md` with the following required sections (from `schemas.CONTEXT_SECTIONS`):
-{CONTEXT_SECTIONS}
-    Set "Last updated by" to `/project-done`.
+1.  Run `pactkit context` to generate `docs/product/context.md` (sections: {CONTEXT_SECTIONS}). Set "Last updated by" to `/project-done`.
 2.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
 """,
     "project-clarify.md": """---

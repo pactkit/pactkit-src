@@ -194,6 +194,47 @@ def main():
     )
     schema_parser.add_argument("--all", action="store_true", dest="all_types", help="Show all schemas")
 
+    # pactkit guard (STORY-slim-014 R1)
+    subparsers.add_parser("guard", help="Check project init markers")
+
+    # pactkit next-id (STORY-slim-014 R1)
+    subparsers.add_parser("next-id", help="Generate next Story ID")
+
+    # pactkit clean (STORY-slim-014 R1)
+    clean_parser = subparsers.add_parser("clean", help="Remove temp artifacts")
+    clean_parser.add_argument("--stack", default="auto", help="Language stack (default: auto)")
+    clean_parser.add_argument("--dry-run", action="store_true", help="List files without deleting")
+
+    # pactkit regression (STORY-slim-014 R1)
+    regression_parser = subparsers.add_parser("regression", help="Classify changes for regression testing")
+    regression_parser.add_argument("files", nargs="*", help="Changed file paths (default: git diff)")
+
+    # pactkit context (STORY-slim-014 R1)
+    subparsers.add_parser("context", help="Generate docs/product/context.md")
+
+    # pactkit sec-scope (STORY-slim-014 R6)
+    sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
+    sec_scope_parser.add_argument("files", nargs="*", help="Changed file paths")
+
+    # pactkit lint-context (STORY-slim-014 R2)
+    lint_ctx_parser = subparsers.add_parser("lint-context", help="Validate context.md structure")
+    lint_ctx_parser.add_argument("path", nargs="?", default="docs/product/context.md", help="Path to context.md")
+
+    # pactkit lint-lessons (STORY-slim-014 R2)
+    lint_les_parser = subparsers.add_parser("lint-lessons", help="Validate lessons.md structure")
+    lint_les_parser.add_argument(
+        "path", nargs="?", default="docs/architecture/governance/lessons.md", help="Path to lessons.md"
+    )
+
+    # pactkit lint-testcase (STORY-slim-014 R2)
+    lint_tc_parser = subparsers.add_parser("lint-testcase", help="Validate test case file structure")
+    lint_tc_parser.add_argument("path", help="Path to test case file")
+
+    # pactkit visualize --lazy (STORY-slim-014 R7)
+    viz_parser = subparsers.add_parser("visualize", help="Visualize code dependency graph")
+    viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
+    viz_parser.add_argument("--stack", default="auto", help="Language stack (default: auto)")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -225,6 +266,135 @@ def main():
 
     elif args.command == "schema":
         _schema_command(args)
+
+    elif args.command == "guard":
+        from pathlib import Path
+
+        from pactkit.guards import check_init_markers
+
+        ok, missing = check_init_markers(Path.cwd())
+        if ok:
+            print("Guard: PASS — all init markers present")
+        else:
+            for m in missing:
+                print(f"  ✗ {m}")
+            raise SystemExit(1)
+
+    elif args.command == "next-id":
+        from pathlib import Path
+
+        from pactkit.config import load_config
+        from pactkit.id_generator import next_story_id
+
+        cfg = load_config()
+        specs_dir = Path.cwd() / "docs" / "specs"
+        print(next_story_id(specs_dir=specs_dir, developer=cfg.get("developer", "")))
+
+    elif args.command == "clean":
+        from pathlib import Path
+
+        from pactkit.cleaners import clean_artifacts
+
+        removed = clean_artifacts(Path.cwd(), stack=args.stack, dry_run=args.dry_run)
+        if removed:
+            prefix = "Would remove" if args.dry_run else "Removed"
+            for p in removed:
+                print(f"  {prefix}: {p}")
+            print(f"{prefix} {len(removed)} item(s)")
+        else:
+            print("Nothing to clean")
+
+    elif args.command == "regression":
+        import subprocess
+
+        from pactkit.regression import classify_changes
+
+        files = args.files
+        if not files:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", "HEAD"],
+                capture_output=True,
+                text=True,
+            )
+            files = [f for f in result.stdout.strip().split("\n") if f]
+        strategy, reason = classify_changes(files)
+        print(f"{strategy.upper()} — {reason}")
+        raise SystemExit(0 if strategy == "skip" else 0)
+
+    elif args.command == "context":
+        from pathlib import Path
+
+        from pactkit.context_gen import generate_context
+
+        content = generate_context(Path.cwd(), command="pactkit context")
+        ctx_path = Path.cwd() / "docs" / "product" / "context.md"
+        ctx_path.parent.mkdir(parents=True, exist_ok=True)
+        ctx_path.write_text(content, encoding="utf-8")
+        print(f"Generated {ctx_path}")
+
+    elif args.command == "sec-scope":
+        from pathlib import Path
+
+        from pactkit.sec_scope import detect_security_scope, format_markdown_table
+
+        if not args.files:
+            print("Usage: pactkit sec-scope <file1> [file2 ...]")
+            raise SystemExit(1)
+        results = detect_security_scope(args.files, project_root=Path.cwd())
+        print(format_markdown_table(results))
+
+    elif args.command == "lint-context":
+        from pathlib import Path
+
+        from pactkit.validators import lint_context
+
+        errors = lint_context(Path(args.path))
+        if errors:
+            for e in errors:
+                print(f"  ✗ {e}")
+            raise SystemExit(1)
+        else:
+            print(f"{args.path}\n  Result: PASS")
+
+    elif args.command == "lint-lessons":
+        from pathlib import Path
+
+        from pactkit.validators import lint_lessons
+
+        errors = lint_lessons(Path(args.path))
+        if errors:
+            for e in errors:
+                print(f"  ✗ {e}")
+            raise SystemExit(1)
+        else:
+            print(f"{args.path}\n  Result: PASS")
+
+    elif args.command == "lint-testcase":
+        from pathlib import Path
+
+        from pactkit.validators import lint_testcase
+
+        errors = lint_testcase(Path(args.path))
+        if errors:
+            for e in errors:
+                print(f"  ✗ {e}")
+            raise SystemExit(1)
+        else:
+            print(f"{args.path}\n  Result: PASS")
+
+    elif args.command == "visualize":
+        if args.lazy:
+            from pathlib import Path
+
+            from pactkit.lazy_visualize import should_visualize
+
+            should_run, reason = should_visualize(Path.cwd(), stack=args.stack)
+            if not should_run:
+                print(reason)
+                raise SystemExit(0)
+            print(f"Visualize needed: {reason}")
+        # Fall through to actual visualize (existing skill handles it)
+        print("Run visualize skill for full graph generation")
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")
