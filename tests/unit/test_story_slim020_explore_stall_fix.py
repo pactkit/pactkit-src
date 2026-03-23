@@ -6,7 +6,7 @@ Verifies:
 - Other phases unchanged
 """
 
-from pactkit.prompts import COMMANDS_CONTENT, AGENTS_EXPERT
+from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
 
 PLAN = COMMANDS_CONTENT["project-plan.md"]
 EXPLORER = AGENTS_EXPERT["code-explorer"]
