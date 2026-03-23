@@ -247,16 +247,16 @@ class TestCommonModeRemoved:
         test_dir = Path(__file__).resolve().parent
         assert not (test_dir / "test_common_user.py").exists()
 
-    def test_cli_no_mode_flag(self):
-
-        # Verify --mode is not in the CLI by checking the source
+    def test_cli_no_common_mode_flag(self):
+        # Verify common_user mode is not in the CLI
+        # Note: --mode exists for visualize (HOTFIX-slim-023), but common_user is removed
         import inspect
 
         from pactkit.cli import main
 
         source = inspect.getsource(main)
-        assert "--mode" not in source
         assert "common_user" not in source
+        assert "common-user" not in source
 
 
 # ===========================================================================

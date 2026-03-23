@@ -35,9 +35,9 @@ This requirement MUST be satisfied.
 
 ## Acceptance Criteria
 
-### AC1: Happy Path
+### AC1: Happy Path (R1)
 **Given** a valid input
-**When** the action is taken
+**When** R1 action is taken
 **Then** the result is correct
 
 ## Out of Scope
@@ -184,7 +184,7 @@ class TestE005AcceptanceCriteria:
 class TestE006ACSubsections:
     def test_no_AC_subsection_raises_E006(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "### AC1: Happy Path\n**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
+            "### AC1: Happy Path (R1)\n**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
             "Just some text.\n"
         )
         spec = write_spec(tmp_path, content)
@@ -194,8 +194,8 @@ class TestE006ACSubsections:
 
     def test_scenario_prefix_accepted_no_E006(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "### AC1: Happy Path\n**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
-            "### Scenario 1: Happy Path\n**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n"
+            "### AC1: Happy Path (R1)\n**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
+            "### Scenario 1: Happy Path (R1)\n**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n"
         )
         spec = write_spec(tmp_path, content)
         result = validate_spec(str(spec))
@@ -216,8 +216,8 @@ class TestE006ACSubsections:
 class TestE007GivenWhenThen:
     def test_missing_given_raises_E007(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
-            "**When** the action is taken\n**Then** the result is correct\n"
+            "**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
+            "**When** R1 action is taken\n**Then** the result is correct\n"
         )
         spec = write_spec(tmp_path, content)
         result = validate_spec(str(spec))
@@ -226,8 +226,8 @@ class TestE007GivenWhenThen:
 
     def test_missing_when_raises_E007(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
-            "**Given** a valid input\n**Then** the result is correct\n"
+            "**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
+            "**Given** a valid input\n**Then** R1 result is correct\n"
         )
         spec = write_spec(tmp_path, content)
         result = validate_spec(str(spec))
@@ -236,8 +236,8 @@ class TestE007GivenWhenThen:
 
     def test_missing_then_raises_E007(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
-            "**Given** a valid input\n**When** the action is taken\n"
+            "**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
+            "**Given** a valid input\n**When** R1 action is taken\n"
         )
         spec = write_spec(tmp_path, content)
         result = validate_spec(str(spec))
@@ -246,8 +246,8 @@ class TestE007GivenWhenThen:
 
     def test_case_insensitive_keywords_no_E007(self, tmp_path):
         content = MINIMAL_VALID_SPEC.replace(
-            "**Given** a valid input\n**When** the action is taken\n**Then** the result is correct\n",
-            "given a valid input\nwhen the action is taken\nthen the result is correct\n"
+            "**Given** a valid input\n**When** R1 action is taken\n**Then** the result is correct\n",
+            "given a valid input\nwhen R1 action is taken\nthen the result is correct\n"
         )
         spec = write_spec(tmp_path, content)
         result = validate_spec(str(spec))

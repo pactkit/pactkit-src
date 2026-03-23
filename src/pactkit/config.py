@@ -958,8 +958,8 @@ def generate_default_yaml() -> str:
     lines.append(f"  blocking: {'true' if e2e.get('blocking') else 'false'}")
     lines.append(f"  test_dir: {e2e.get('test_dir', 'tests/e2e')}")
     lines.append(f"  env_file: {e2e.get('env_file', '.env.test')}")
-    lines.append(f"  # api_spec: {e2e.get('api_spec', '')}  # OpenAPI spec path for frontend/backend")
-    lines.append(f"  # compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
+    lines.append(f"  api_spec: \"{e2e.get('api_spec', '')}\"  # OpenAPI spec path for frontend/backend")
+    lines.append(f"  compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
 
     # Write command_models section (STORY-073)
     cmd_models = cfg.get("command_models", {})

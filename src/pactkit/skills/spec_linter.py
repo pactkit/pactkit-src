@@ -197,6 +197,53 @@ def _check_acceptance_criteria(text: str, result: LintResult) -> None:
 
 _PIPE_TABLE_ROW = re.compile(r"^\|.+\|.+\|", re.MULTILINE)
 
+# STORY-slim-024: R{N} ID extraction pattern
+_REQ_ID_PATTERN = re.compile(r"###\s+(R\d+)[:\s]", re.MULTILINE)
+
+
+def _extract_requirement_ids(req_section: str) -> dict[str, str]:
+    """Extract R{N} IDs and their body text from Requirements section.
+
+    Returns dict mapping R{N} (e.g., "R1") to the requirement body text.
+    """
+    result: dict[str, str] = {}
+    # Find all ### R{N}: headers
+    matches = list(_REQ_ID_PATTERN.finditer(req_section))
+    for i, m in enumerate(matches):
+        req_id = m.group(1).upper()  # Normalize to uppercase (R1, R2, etc.)
+        # Body is from end of this header to start of next (or end of section)
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(req_section)
+        body = req_section[start:end].strip()
+        result[req_id] = body
+    return result
+
+
+def _check_req_ac_coverage(text: str, result: LintResult) -> None:
+    """W007 — Check that all R{N} are referenced by at least one AC."""
+    req_section = _section_text(text, "Requirements")
+    ac_section = _section_text(text, "Acceptance Criteria")
+
+    if req_section is None or ac_section is None:
+        return  # Missing sections are handled by E003/E005
+
+    # Extract all R{N} IDs and their bodies
+    req_map = _extract_requirement_ids(req_section)
+    if not req_map:
+        return  # No requirements found (handled by E004)
+
+    # Check each R{N} for coverage in AC section
+    ac_lower = ac_section.lower()
+    for req_id, req_body in req_map.items():
+        # Case-insensitive search for R{N} as word boundary
+        if req_id.lower() not in ac_lower:
+            # Check if the requirement uses SHOULD keyword
+            has_should = "SHOULD" in req_body.upper()
+            emphasis = " (SHOULD)" if has_should else ""
+            result.warnings.append(
+                LintIssue("W007", f"Requirement {req_id} has no corresponding AC reference{emphasis}")
+            )
+
 
 def _check_implementation_steps(text: str, result: LintResult) -> None:
     """W005 — Implementation Steps table format validation (STORY-055)."""
@@ -254,6 +301,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_acceptance_criteria(text, result)
     _check_optional_sections(text, result)
     _check_implementation_steps(text, result)
+    _check_req_ac_coverage(text, result)  # STORY-slim-024: W007
     return result
 
 

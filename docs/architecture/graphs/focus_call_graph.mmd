@@ -7,6 +7,7 @@ graph TD
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
     check_stale_graphs["check_stale_graphs"]
+    check_version_mismatch["check_version_mismatch"]
     classify_changes["classify_changes"]
     clean_artifacts["clean_artifacts"]
     deploy["deploy"]
@@ -24,12 +25,15 @@ graph TD
     refresh_test_count["refresh_test_count"]
     run_lint["run_lint"]
     run_visualize_graphs["run_visualize_graphs"]
+    run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
     should_visualize["should_visualize"]
     update_spec_status["update_spec_status"]
     main --> deploy
+    main --> load_config
     main --> _schema_command
     main --> check_init_markers
+    main --> check_version_mismatch
     main --> load_config
     main --> next_story_id
     main --> clean_artifacts
@@ -41,6 +45,7 @@ graph TD
     main --> lint_lessons
     main --> lint_testcase
     main --> should_visualize
+    main --> run_visualize_single
     main --> run_visualize_graphs
     main --> check_orphaned_specs
     main --> check_config_drift
