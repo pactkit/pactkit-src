@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.2] - 2026-03-23
+
+### Added
+- **E2E Testing Framework** (STORY-slim-022) — Config-driven E2E strategy in `pactkit.yaml` (`e2e.type`: none/cli/frontend/backend/fullstack). `/project-check` Phase 4 rewritten from hardcoded Strategy A/B to config-driven table. `env_file` field (default `.env.test`) for test credential isolation. Non-blocking by default (`e2e.blocking: false`).
+
+### Fixed
+- **Visualize CLI --mode** (HOTFIX-slim-023) — `pactkit visualize --mode class/call` previously failed with "unrecognized arguments". Added `--mode` parameter and wired non-lazy mode to execute graphs directly.
+- **Board Archive Section Headers** (HOTFIX-slim-021) — `archive_stories()` now preserves `## 🔄 In Progress` and `## ✅ Done` section headers when archiving removes all stories from a section.
+
 ## [2.3.1] - 2026-03-23
 
 ### Fixed
