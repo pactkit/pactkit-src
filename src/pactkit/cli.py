@@ -137,6 +137,13 @@ def main():
         default=False,
         help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
     )
+    # STORY-slim-023: Auto version sync
+    update_parser.add_argument(
+        "--if-needed",
+        action="store_true",
+        default=False,
+        help="Only redeploy if installed version differs from pactkit.yaml version",
+    )
 
     # pactkit upgrade (alias for init, migrates legacy scafpy files)
     upgrade_parser = subparsers.add_parser("upgrade", help="Upgrade PactKit (migrate legacy scafpy config)")
@@ -290,6 +297,23 @@ def main():
     args = parser.parse_args()
 
     if args.command in ("init", "update", "upgrade"):
+        # STORY-slim-023: --if-needed skips deploy when versions match
+        if args.command == "update" and getattr(args, "if_needed", False):
+            from pathlib import Path
+
+            from pactkit.config import load_config
+
+            yaml_path = Path.cwd() / ".claude" / "pactkit.yaml"
+            if yaml_path.exists():
+                cfg = load_config(yaml_path)
+                yaml_version = cfg.get("version", "")
+                if yaml_version == __version__:
+                    print(f"PactKit {__version__} up-to-date — skipping redeploy")
+                    raise SystemExit(0)
+                print(f"PactKit version mismatch: {yaml_version} → {__version__}. Updating...")
+            else:
+                print("No pactkit.yaml found. Running first-time setup...")
+
         from pactkit.generators.deployer import deploy
 
         deploy(

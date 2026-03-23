@@ -4,7 +4,8 @@ RULES_MODULES = {
     "core": """# Core Protocol
 
 ## Session Context
-On new session, read `docs/product/context.md` to understand project state before taking action.
+On new session, run `pactkit update --if-needed` to sync project files if PactKit was upgraded.
+Then read `docs/product/context.md` to understand project state before taking action.
 If the file is missing, suggest `/project-init` to bootstrap the project.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
