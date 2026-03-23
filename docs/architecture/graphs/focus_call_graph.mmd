@@ -1,0 +1,56 @@
+graph TD
+    _schema_command["_schema_command"]
+    append_lesson["append_lesson"]
+    check_config_drift["check_config_drift"]
+    check_coverage["check_coverage"]
+    check_hld_module_count["check_hld_module_count"]
+    check_init_markers["check_init_markers"]
+    check_orphaned_specs["check_orphaned_specs"]
+    check_stale_graphs["check_stale_graphs"]
+    classify_changes["classify_changes"]
+    clean_artifacts["clean_artifacts"]
+    deploy["deploy"]
+    detect_security_scope["detect_security_scope"]
+    format_markdown_table["format_markdown_table"]
+    generate_context["generate_context"]
+    issue_sync["issue_sync"]
+    lint_context["lint_context"]
+    lint_lessons["lint_lessons"]
+    lint_testcase["lint_testcase"]
+    load_config["load_config"]
+    main["main"]
+    map_to_tests["map_to_tests"]
+    next_story_id["next_story_id"]
+    refresh_test_count["refresh_test_count"]
+    run_lint["run_lint"]
+    run_visualize_graphs["run_visualize_graphs"]
+    scan_and_replace_tbd["scan_and_replace_tbd"]
+    should_visualize["should_visualize"]
+    update_spec_status["update_spec_status"]
+    main --> deploy
+    main --> _schema_command
+    main --> check_init_markers
+    main --> load_config
+    main --> next_story_id
+    main --> clean_artifacts
+    main --> classify_changes
+    main --> generate_context
+    main --> detect_security_scope
+    main --> format_markdown_table
+    main --> lint_context
+    main --> lint_lessons
+    main --> lint_testcase
+    main --> should_visualize
+    main --> run_visualize_graphs
+    main --> check_orphaned_specs
+    main --> check_config_drift
+    main --> check_stale_graphs
+    main --> check_hld_module_count
+    main --> scan_and_replace_tbd
+    main --> issue_sync
+    main --> map_to_tests
+    main --> run_lint
+    main --> append_lesson
+    main --> refresh_test_count
+    main --> check_coverage
+    main --> update_spec_status
