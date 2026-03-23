@@ -83,6 +83,8 @@ VALID_ISSUE_PROVIDERS = frozenset({"github", "none"})
 
 VALID_HOOK_TEMPLATES = frozenset({"pre_commit_lint", "post_test_coverage", "pre_push_check"})
 
+VALID_E2E_TYPES = frozenset({"none", "cli", "frontend", "backend", "fullstack"})
+
 # Commands deprecated in v1.2.0 — converted to skills (STORY-011)
 DEPRECATED_COMMANDS = frozenset(
     {
@@ -164,6 +166,12 @@ def get_default_config() -> dict:
         "check": {
             "security_checklist": True,
             "security_scope_override": "none",
+        },
+        "e2e": {
+            "type": "none",
+            "blocking": False,
+            "test_dir": "tests/e2e",
+            "env_file": ".env.test",
         },
         "done": {
             "lesson_quality_threshold": 15,
@@ -353,6 +361,7 @@ def load_config(path: Path | str | None = None) -> dict:
         "regression",
         "check",
         "done",
+        "e2e",
         "command_models",
     }
 
@@ -797,6 +806,30 @@ def validate_config(config: dict) -> None:
         if not isinstance(threshold, int) or threshold < 0 or threshold > 25:
             warnings.warn(f"done.lesson_quality_threshold should be an integer 0-25, got {threshold!r}")
 
+    # Validate e2e section (STORY-slim-022)
+    e2e = config.get("e2e", {})
+    if isinstance(e2e, dict):
+        e2e_type = e2e.get("type", "none")
+        if e2e_type not in VALID_E2E_TYPES:
+            warnings.warn(
+                f"e2e.type should be one of {', '.join(sorted(VALID_E2E_TYPES))}, got '{e2e_type}'"
+            )
+        e2e_blocking = e2e.get("blocking", False)
+        if not isinstance(e2e_blocking, bool):
+            warnings.warn(
+                f"e2e.blocking should be a boolean (true/false), got {type(e2e_blocking).__name__}"
+            )
+        e2e_test_dir = e2e.get("test_dir")
+        if e2e_test_dir is not None and not isinstance(e2e_test_dir, str):
+            warnings.warn(
+                f"e2e.test_dir should be a string, got {type(e2e_test_dir).__name__}"
+            )
+        e2e_env_file = e2e.get("env_file")
+        if e2e_env_file is not None and not isinstance(e2e_env_file, str):
+            warnings.warn(
+                f"e2e.env_file should be a string, got {type(e2e_env_file).__name__}"
+            )
+
     # enterprise section (STORY-047) — accepted without warnings
     # multi_agent field (STORY-046) — accepted without warnings
 
@@ -902,6 +935,15 @@ def generate_default_yaml() -> str:
     lines.extend(["", "# Done — configure commit and lesson quality behavior"])
     lines.append("done:")
     lines.append(f"  lesson_quality_threshold: {done_cfg.get('lesson_quality_threshold', 15)}")
+
+    # Write e2e section (STORY-slim-022)
+    e2e = cfg.get("e2e", {})
+    lines.extend(["", "# E2E Testing — configure end-to-end test strategy (none|cli|frontend|backend|fullstack)"])
+    lines.append("e2e:")
+    lines.append(f"  type: {e2e.get('type', 'none')}")
+    lines.append(f"  blocking: {'true' if e2e.get('blocking') else 'false'}")
+    lines.append(f"  test_dir: {e2e.get('test_dir', 'tests/e2e')}")
+    lines.append(f"  env_file: {e2e.get('env_file', '.env.test')}")
 
     # Write command_models section (STORY-073)
     cmd_models = cfg.get("command_models", {})

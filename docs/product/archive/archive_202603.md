@@ -369,3 +369,18 @@
   - [x] Write tests (RED)
   - [x] Implement prompt split (GREEN)
   - [x] Regression pass
+
+### [STORY-slim-022] E2E Testing Framework — Config-Driven Check Phase
+> Spec: docs/specs/STORY-slim-022.md
+
+- [x] Add VALID_E2E_TYPES to config.py
+- [x] Add e2e defaults to get_default_config
+- [x] Add e2e to DEEP_MERGE_KEYS
+- [x] Add e2e validation to validate_config
+- [x] Add e2e to generate_default_yaml
+- [x] Rewrite CHECK_PROMPT Phase 4 config-driven
+- [x] Write unit tests for R1-R8
+
+## 🔄 In Progress
+
+## ✅ Done

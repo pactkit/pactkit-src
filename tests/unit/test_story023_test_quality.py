@@ -18,7 +18,7 @@ class TestQualityGatePhase:
         prompt = self._get_check_prompt()
         spec_phase_pos = prompt.find("Spec Verification")
         quality_gate_pos = prompt.find("Test Quality")
-        execution_phase_pos = prompt.find("Layered Execution")
+        execution_phase_pos = prompt.find("E2E Execution")
         assert spec_phase_pos > 0
         assert quality_gate_pos > 0
         assert execution_phase_pos > 0
