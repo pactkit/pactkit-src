@@ -78,6 +78,7 @@ graph TD
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
     check_stale_graphs["check_stale_graphs"]
+    check_version_mismatch["check_version_mismatch"]
     classify_changes["classify_changes"]
     clean_artifacts["clean_artifacts"]
     deploy["deploy"]
@@ -128,6 +129,8 @@ graph TD
     append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml
+    check_version_mismatch --> find_pactkit_yaml
+    check_version_mismatch --> load_config
     detect_security_scope --> _is_docs_or_tests_only
     detect_security_scope --> _read_content
     detect_security_scope --> _path_ends_with_ext
@@ -148,8 +151,10 @@ graph TD
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
     main --> deploy
+    main --> load_config
     main --> _schema_command
     main --> check_init_markers
+    main --> check_version_mismatch
     main --> load_config
     main --> next_story_id
     main --> clean_artifacts

@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.3] - 2026-03-23
+
+### Added
+- **Auto Version Sync** (STORY-slim-023) — `pactkit update --if-needed` compares `pactkit.yaml` version vs installed `__version__`. If match, skips redeploy; if mismatch, proceeds with full deploy. Core Protocol prompt updated to run this at session start for zero-friction upgrades.
+
+### Fixed
+- **Guard Version Mismatch Detection** (HOTFIX-slim-024) — `pactkit guard` now checks version mismatch and prints warning with suggestion to run `pactkit update`. Also adds `e2e` to `_BACKFILL_KEYS` so new config section is auto-added during update.
+
 ## [2.3.2] - 2026-03-23
 
 ### Added
