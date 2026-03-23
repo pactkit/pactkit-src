@@ -80,6 +80,20 @@ def should_visualize(
     return (False, "Graph up-to-date — no source changes")
 
 
+def run_visualize_single(project_root: Path, mode: str) -> None:
+    """Execute visualize.py for a single graph mode (HOTFIX-slim-023)."""
+    import sys
+
+    viz_script = Path(__file__).resolve().parent / "skills" / "visualize.py"
+    if not viz_script.exists():
+        print(f"visualize.py not found: {viz_script}")
+        return
+    subprocess.run(
+        [sys.executable, str(viz_script), "visualize", "--mode", mode],
+        cwd=str(project_root),
+    )
+
+
 def run_visualize_graphs(project_root: Path) -> None:
     """Execute visualize.py to regenerate all graph files.
 

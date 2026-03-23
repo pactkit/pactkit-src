@@ -237,10 +237,14 @@ def main():
     lint_tc_parser = subparsers.add_parser("lint-testcase", help="Validate test case file structure")
     lint_tc_parser.add_argument("path", help="Path to test case file")
 
-    # pactkit visualize --lazy (STORY-slim-014 R7)
+    # pactkit visualize --lazy --mode (STORY-slim-014 R7, HOTFIX-slim-023)
     viz_parser = subparsers.add_parser("visualize", help="Visualize code dependency graph")
     viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
     viz_parser.add_argument("--stack", default="auto", help="Language stack (default: auto)")
+    viz_parser.add_argument(
+        "--mode", choices=["file", "class", "call"], default=None,
+        help="Graph mode (default: all three)",
+    )
 
     # pactkit doctor (STORY-slim-015 R1-R3)
     subparsers.add_parser("doctor", help="Diagnose project health")
@@ -429,23 +433,22 @@ def main():
             print(f"{args.path}\n  Result: PASS")
 
     elif args.command == "visualize":
+        from pathlib import Path
+
+        from pactkit.lazy_visualize import run_visualize_graphs, run_visualize_single, should_visualize
+
+        project_root = Path.cwd()
         if args.lazy:
-            from pathlib import Path
-
-            from pactkit.lazy_visualize import should_visualize
-
-            project_root = Path.cwd()
             should_run, reason = should_visualize(project_root, stack=args.stack)
             if not should_run:
                 print(reason)
                 raise SystemExit(0)
             print(f"Visualize needed: {reason}")
-            # Execute graph generation end-to-end (BUG-slim-006 R3)
-            from pactkit.lazy_visualize import run_visualize_graphs
+        # HOTFIX-slim-023: support --mode for single or all modes
+        if args.mode:
+            run_visualize_single(project_root, args.mode)
+        else:
             run_visualize_graphs(project_root)
-            raise SystemExit(0)
-        # Non-lazy: print guidance for manual run
-        print("Run visualize skill for full graph generation")
 
     elif args.command == "doctor":
         from pathlib import Path
