@@ -629,7 +629,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **Goal**: Create `docs/product/prd.md` — the single source of truth for the product.
 
 1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_prd "{ProductName}"`.
-2.  **Fill Sections** — Complete each section in the PRD. Work through 3 groups, outputting progress after each:
+2.  **Read Scaffolded File**: Read `docs/product/prd.md` before writing content (required — Write/Edit tools cannot modify unread files).
+3.  **Fill Sections** — Complete each section in the PRD. Work through 3 groups, outputting progress after each:
 
 ### Group A: Product Foundation (Sections 1.1-1.2)
 
@@ -728,6 +729,7 @@ Assign each Story to a horizon:
 2.  **Sort**: Order stories by horizon (Now → Next → Later), then by Priority Score (descending).
 3.  **For each Story**:
     - Run `{SCAFFOLD_CMD} create_spec "STORY-{NNN}" "{title}"`.
+    - **Read the scaffolded file** before writing content (required — Write/Edit tools cannot modify unread files).
     - Fill in the Spec:
       - `## Requirements` — using RFC 2119 keywords (MUST/SHOULD/MAY)
       - `## Acceptance Criteria` — Given/When/Then scenarios
