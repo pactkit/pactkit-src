@@ -172,6 +172,8 @@ def get_default_config() -> dict:
             "blocking": False,
             "test_dir": "tests/e2e",
             "env_file": ".env.test",
+            "api_spec": "",  # HOTFIX-slim-025: OpenAPI spec for frontend/backend E2E
+            "compose_file": "docker-compose.test.yml",  # HOTFIX-slim-025: for fullstack E2E
         },
         "done": {
             "lesson_quality_threshold": 15,
@@ -830,6 +832,17 @@ def validate_config(config: dict) -> None:
             warnings.warn(
                 f"e2e.env_file should be a string, got {type(e2e_env_file).__name__}"
             )
+        # HOTFIX-slim-025: validate api_spec and compose_file
+        e2e_api_spec = e2e.get("api_spec")
+        if e2e_api_spec is not None and not isinstance(e2e_api_spec, str):
+            warnings.warn(
+                f"e2e.api_spec should be a string, got {type(e2e_api_spec).__name__}"
+            )
+        e2e_compose_file = e2e.get("compose_file")
+        if e2e_compose_file is not None and not isinstance(e2e_compose_file, str):
+            warnings.warn(
+                f"e2e.compose_file should be a string, got {type(e2e_compose_file).__name__}"
+            )
 
     # enterprise section (STORY-047) — accepted without warnings
     # multi_agent field (STORY-046) — accepted without warnings
@@ -945,6 +958,8 @@ def generate_default_yaml() -> str:
     lines.append(f"  blocking: {'true' if e2e.get('blocking') else 'false'}")
     lines.append(f"  test_dir: {e2e.get('test_dir', 'tests/e2e')}")
     lines.append(f"  env_file: {e2e.get('env_file', '.env.test')}")
+    lines.append(f"  # api_spec: {e2e.get('api_spec', '')}  # OpenAPI spec path for frontend/backend")
+    lines.append(f"  # compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
 
     # Write command_models section (STORY-073)
     cmd_models = cfg.get("command_models", {})

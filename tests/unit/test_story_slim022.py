@@ -71,6 +71,8 @@ class TestR2DefaultConfig:
             "blocking": False,
             "test_dir": "tests/e2e",
             "env_file": ".env.test",
+            "api_spec": "",  # HOTFIX-slim-025
+            "compose_file": "docker-compose.test.yml",  # HOTFIX-slim-025
         }
 
 
