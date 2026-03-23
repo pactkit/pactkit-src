@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pactkit.config import find_pactkit_yaml
+from pactkit import __version__
+from pactkit.config import find_pactkit_yaml, load_config
 
 
 def check_init_markers(project_root: Path) -> tuple[bool, list[str]]:
@@ -65,3 +66,20 @@ def check_config_completeness(project_root: Path) -> list[str]:
         if key not in data:
             warnings.append(f"Missing config section: '{key}' in {yaml_path.name}")
     return warnings
+
+
+def check_version_mismatch(project_root: Path) -> str | None:
+    """Check if pactkit.yaml version differs from installed __version__.
+
+    Returns:
+        Warning message if mismatch, None if versions match or yaml not found.
+    """
+    yaml_path = find_pactkit_yaml(project_root)
+    if yaml_path is None:
+        return None
+
+    cfg = load_config(yaml_path)
+    yaml_version = cfg.get("version", "")
+    if yaml_version and yaml_version != __version__:
+        return f"Version mismatch: pactkit.yaml {yaml_version} vs installed {__version__}"
+    return None

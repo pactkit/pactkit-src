@@ -344,11 +344,17 @@ def main():
     elif args.command == "guard":
         from pathlib import Path
 
-        from pactkit.guards import check_init_markers
+        from pactkit.guards import check_init_markers, check_version_mismatch
 
-        ok, missing = check_init_markers(Path.cwd())
+        project_root = Path.cwd()
+        ok, missing = check_init_markers(project_root)
         if ok:
             print("Guard: PASS — all init markers present")
+            # HOTFIX-slim-024: check version mismatch
+            version_warn = check_version_mismatch(project_root)
+            if version_warn:
+                print(f"  ⚠️  {version_warn}")
+                print("     Run `pactkit update` to sync")
         else:
             for m in missing:
                 print(f"  ✗ {m}")

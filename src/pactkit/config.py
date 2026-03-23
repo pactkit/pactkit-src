@@ -457,6 +457,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
         "regression",
         "check",
         "done",
+        "e2e",  # STORY-slim-022
     )
     for key in _BACKFILL_KEYS:
         if key not in user_data:
