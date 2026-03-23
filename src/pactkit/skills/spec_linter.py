@@ -23,6 +23,7 @@ try:
         SPEC_REQUIRED_METADATA_FIELDS,
         SPEC_REQUIRED_SECTIONS,
         SPEC_REQUIREMENT_PATTERN,
+        SPEC_RFC_KEYWORDS,
         SPEC_RFC_PATTERN,
         SPEC_VALID_STATUSES,
     )
@@ -34,6 +35,7 @@ except ImportError:
     SPEC_REQUIREMENT_PATTERN = r"### R\d+[:\s]"
     SPEC_AC_PATTERN = r"### AC\d+[:\s]|### Scenario\s+\d+[:\s]"
     SPEC_GIVEN_WHEN_THEN = ("Given", "When", "Then")
+    SPEC_RFC_KEYWORDS = ("MUST", "SHOULD", "MAY", "SHALL", "REQUIRED", "RECOMMENDED", "OPTIONAL")
     SPEC_RFC_PATTERN = re.compile(r"\b(MUST|SHOULD|MAY|SHALL|REQUIRED|RECOMMENDED|OPTIONAL)\b")
     SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
 
@@ -237,9 +239,10 @@ def _check_req_ac_coverage(text: str, result: LintResult) -> None:
     for req_id, req_body in req_map.items():
         # Case-insensitive search for R{N} as word boundary
         if req_id.lower() not in ac_lower:
-            # Check if the requirement uses SHOULD keyword
-            has_should = "SHOULD" in req_body.upper()
-            emphasis = " (SHOULD)" if has_should else ""
+            # Detect RFC 2119 keyword in requirement body (use canonical list from schemas)
+            req_upper = req_body.upper()
+            found_keyword = next((kw for kw in SPEC_RFC_KEYWORDS if kw in req_upper), None)
+            emphasis = f" ({found_keyword})" if found_keyword else ""
             result.warnings.append(
                 LintIssue("W007", f"Requirement {req_id} has no corresponding AC reference{emphasis}")
             )

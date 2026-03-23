@@ -171,8 +171,8 @@ Then it passes
         assert result.passed is True
 
 
-class TestAC5ShouldEmphasis:
-    """AC5: W007 message should indicate when SHOULD keyword is in unreferenced req."""
+class TestAC5RFC2119Emphasis:
+    """AC5: W007 message should indicate RFC 2119 keyword in unreferenced req."""
 
     def test_should_indicator_in_message(self):
         """Uncovered SHOULD requirement should have (SHOULD) in warning message."""
@@ -211,3 +211,73 @@ Then it passes
         assert len(w007_warnings) == 1
         assert "R2" in w007_warnings[0].message
         assert "(SHOULD)" in w007_warnings[0].message
+
+    def test_must_indicator_in_message(self):
+        """Uncovered MUST requirement should have (MUST) in warning message."""
+        spec = """\
+| Field | Value |
+|-------|-------|
+| ID | TEST-006 |
+| Status | Draft |
+| Priority | P2 |
+| Release | 1.0.0 |
+
+## Background
+Test background.
+
+## Requirements
+
+### R1: First requirement
+Something MUST be implemented.
+
+## Acceptance Criteria
+
+### AC1: Test something else
+Given a condition
+When something unrelated is tested
+Then it passes
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(spec)
+            f.flush()
+            result = validate_spec(f.name)
+
+        w007_warnings = [w for w in result.warnings if w.rule_id == "W007"]
+        assert len(w007_warnings) == 1
+        assert "R1" in w007_warnings[0].message
+        assert "(MUST)" in w007_warnings[0].message
+
+    def test_may_indicator_in_message(self):
+        """Uncovered MAY requirement should have (MAY) in warning message."""
+        spec = """\
+| Field | Value |
+|-------|-------|
+| ID | TEST-007 |
+| Status | Draft |
+| Priority | P2 |
+| Release | 1.0.0 |
+
+## Background
+Test background.
+
+## Requirements
+
+### R1: Optional feature
+Something MAY be implemented optionally.
+
+## Acceptance Criteria
+
+### AC1: Test something else
+Given a condition
+When something unrelated is tested
+Then it passes
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(spec)
+            f.flush()
+            result = validate_spec(f.name)
+
+        w007_warnings = [w for w in result.warnings if w.rule_id == "W007"]
+        assert len(w007_warnings) == 1
+        assert "R1" in w007_warnings[0].message
+        assert "(MAY)" in w007_warnings[0].message
