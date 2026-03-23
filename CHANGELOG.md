@@ -4,6 +4,13 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.1] - 2026-03-23
+
+### Fixed
+- **Plan Phase 3.2 Stall** (STORY-slim-019) — Split monolithic Spec-writing phase into 4 sub-steps (3.2a Skeleton, 3.2b Acceptance Criteria, 3.2c Security Scope, 3.2d Spec Lint) with output checkpoints between each, eliminating AI buffering stall on large Spec generation.
+- **Explore Subagent Stall** (STORY-slim-020) — Added Bounded Delegation template to Plan Phase 1 (target/scope/limit/output constraints for Explore subagents), reduced `code-explorer` maxTurns from 50 to 15, and added scope-limiting instructions to prevent unbounded codebase exploration.
+- **CI Workflow** — Reverted `actions/checkout` and `actions/setup-python` from v6 back to v4/v5 for CI stability after Dependabot upgrades caused failures.
+
 ## [2.3.0] - 2026-03-22
 
 ### Added
