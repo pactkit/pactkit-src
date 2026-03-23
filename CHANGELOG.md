@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.5] - 2026-03-23
+
+### Fixed
+- **W007 RFC 2119 Detection** — W007 now detects all RFC 2119 keywords (MUST, SHOULD, MAY, SHALL, REQUIRED, RECOMMENDED, OPTIONAL) using canonical `SPEC_RFC_KEYWORDS` from schemas.py, instead of hardcoding only SHOULD.
+
 ## [2.3.4] - 2026-03-23
 
 ### Added
