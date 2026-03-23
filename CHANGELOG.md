@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.4] - 2026-03-23
+
+### Added
+- **Spec Lint W007 — Req-AC Coverage** (STORY-slim-024) — New warning rule fires when `### R{N}:` requirements are not referenced by any `### AC{M}:` body. Helps catch SHOULD requirements that get overlooked. Message includes `(SHOULD)` indicator for unreferenced SHOULD requirements.
+
+### Fixed
+- **E2E Config Fields** — `api_spec` and `compose_file` now included in `generate_default_yaml()` output (were commented out, breaking roundtrip tests).
+- **Test Fixtures** — Updated test fixtures to include `e2e` section after HOTFIX-slim-025 added new fields.
+
 ## [2.3.3] - 2026-03-23
 
 ### Added
