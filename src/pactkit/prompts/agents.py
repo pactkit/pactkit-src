@@ -248,7 +248,7 @@ Generate system architecture diagrams using Draw.io XML. Supports three diagram 
     "code-explorer": {
         "desc": "Deep code analysis and execution tracing.",
         "tools": "Read, Bash, Grep, Glob, Find",
-        "maxTurns": 50,
+        "maxTurns": 15,  # STORY-slim-020: reduced from 50 to prevent unbounded exploration stalls
         "memory": "user",
         "prompt": """You are the **Code Explorer** (aka System Archaeologist).
 **Motto**: "Read little, understand much."

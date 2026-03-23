@@ -69,12 +69,12 @@ class TestCodeExplorerLimits:
     def test_max_turns_in_data(self):
         from pactkit.prompts import AGENTS_EXPERT
         cfg = AGENTS_EXPERT['code-explorer']
-        assert cfg.get('maxTurns') == 50
+        assert cfg.get('maxTurns') == 15  # STORY-slim-020: reduced from 50
 
     def test_max_turns_in_deployed_file(self, tmp_path):
         content = _deploy_and_read_agent(tmp_path, 'code-explorer')
         fm = _parse_agent_frontmatter(content)
-        assert fm.get('maxTurns') == '50'
+        assert fm.get('maxTurns') == '15'  # STORY-slim-020: reduced from 50
 
     def test_memory_in_data(self):
         from pactkit.prompts import AGENTS_EXPERT

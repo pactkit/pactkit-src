@@ -150,7 +150,7 @@ class TestFrontmatterUnchanged:
 
     def test_code_explorer_max_turns(self):
         p = _prompts()
-        assert p.AGENTS_EXPERT['code-explorer']['maxTurns'] == 50
+        assert p.AGENTS_EXPERT['code-explorer']['maxTurns'] == 15  # STORY-slim-020
 
     def test_visual_architect_max_turns(self):
         p = _prompts()

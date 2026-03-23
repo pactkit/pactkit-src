@@ -86,7 +86,7 @@ class TestPromptGuidance:
     def test_plan_prompt_mentions_focus_heuristic(self):
         """S4: Plan prompt should have a heuristic for large codebases."""
         prompt = COMMANDS_CONTENT["project-plan.md"]
-        assert "50" in prompt or "large" in prompt.lower()
+        assert "--focus" in prompt  # STORY-slim-020: replaced "50+ files" with targeted --focus
 
     def test_act_prompt_mentions_depth(self):
         """Act prompt should also mention --depth."""

@@ -64,11 +64,18 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 6.  **Output**: The enriched_input (original + answers) is used as context for Phase 1 onwards.
 
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
-1.  **Visual Scan**: Run `visualize` to see the module dependency graph. Use `--mode class` for structure, `--mode call` for logic.
-    - For large codebases (50+ files), use `--focus <module> --depth 2` to limit scope.
+> **Subagent Scope Rule**: When delegating research to an Explore subagent, always provide a **bounded** prompt: target function/class, directory scope, file limit, and expected output. Never delegate open-ended "trace the whole codebase" tasks.
+
+1.  **Visual Scan**: Run `visualize --focus <module> --depth 2` to see the targeted dependency graph. Only expand to `--mode class` or `--mode call` if the focused scan is insufficient.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
     - If modifying existing logic, trace the current implementation.
     - *Goal*: Identify the exact function/class responsible for the logic.
+    - **Delegation Template**: When using an Explore subagent for trace, formulate the prompt with:
+      - **Target**: specific function or class name to trace
+      - **Scope**: specific directory (e.g., `src/pactkit/generators/`)
+      - **Limit**: read at most 8-10 files
+      - **Output**: what to return (entry file, call chain, key data transformations)
+      - Example: `Agent(subagent_type="Explore", prompt="Find the deploy() entry point in src/pactkit/generators/deployer.py. Trace the call chain to file writes. Read at most 8 files. Return: entry function, call chain list, key data transformations.")`
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
