@@ -69,6 +69,7 @@ VALID_RULES = frozenset(
         "06-mcp-integration",
         "07-shared-protocols",
         "08-architecture-principles",
+        "09-sectional-write",
     }
 )
 

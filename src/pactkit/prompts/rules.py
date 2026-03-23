@@ -345,12 +345,42 @@ Write `docs/product/context.md` using this format:
 | New spec rule | `schemas.py` + `spec_linter.py` | scaffold, playbooks |
 | New prompt placeholder | `profiles.py` (if env-specific) or `schemas.py` (if doc-specific) | `_render_prompt()` |
 """,
+    "sectional": """# Sectional Write Protocol
+
+## Rule
+When generating **any file** (code, document, test, HTML, etc.) that will exceed **300 lines**:
+
+1. **Write skeleton first**: Create the file with the structural framework (imports, class/function signatures, section headings) via a single Write call
+2. **Edit block-by-block**: Fill in one logical block at a time, using Edit after each block before starting the next
+3. **Checkpoint between blocks**: After each Edit, print a brief progress message (e.g., "Block 2/5 written.")
+4. **Never accumulate**: Do NOT compose the entire file in reasoning before writing — write as you go
+
+## Applies To — any file type over 150 lines
+- Documents: PRD, specs, README, architecture guides
+- Source code: large modules, multi-endpoint API files, data models
+- Tests: test files with many test classes or scenarios
+- HTML/templates: prototypes, page templates
+
+## Does NOT Apply To
+- Short files (< 300 lines): single Write is fine
+- Small config files (YAML, JSON, TOML)
+
+## Anti-Pattern (DO NOT)
+```
+Compose entire file in head → one Write call at the end
+```
+
+## Correct Pattern
+```
+Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint → ...
+```
+""",
 }
 
 # STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
 #
 # RULES_CORE_FILES: PactKit-managed rules injected every turn via instructions.
-#   Only PactKit-deployed files here — user files (09-*, 10-*) NOT included.
+#   Only PactKit-deployed files here — user files (10-*) NOT included.
 #
 # RULES_ONDEMAND_FILES: PactKit-managed files referenced via @rules/ in AGENTS.md.
 #
@@ -359,6 +389,7 @@ Write `docs/product/context.md` using this format:
 RULES_CORE_FILES = {
     "core": "01-core-protocol.md",  # Session context, visual-first, TDD — every task
     "hierarchy": "02-hierarchy-of-truth.md",  # Spec-is-Law — every PDCA task
+    "sectional": "09-sectional-write.md",  # Large doc safety — every task
 }
 
 RULES_ONDEMAND_FILES = {
@@ -393,24 +424,24 @@ CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
 # Keys: core=01, hierarchy=02, atlas=03, routing=04, workflow=05,
 #        mcp=06, shared=07, architecture=08, credential=09
 COMMAND_RULES_MAP = {
-    "project-init": ["core", "atlas", "shared", "credential"],
-    "project-plan": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-init": ["core", "sectional", "atlas", "shared", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],
     "project-pr": ["core", "workflow", "credential"],
     "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "atlas", "mcp", "architecture", "credential"],
+    "project-design": ["core", "sectional", "atlas", "mcp", "architecture", "credential"],
     "project-sprint": [
-        "core", "hierarchy", "atlas", "routing", "workflow",
+        "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
         "mcp", "shared", "architecture", "credential",
     ],
 }
 
 # Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-"]
+RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-"]
 
 # CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
 # Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)

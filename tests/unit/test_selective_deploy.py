@@ -241,7 +241,7 @@ class TestDeploymentSummary:
         assert "9/9 Agents" in output
         assert "11/11 Commands" in output
         assert "10/10 Skills" in output
-        assert "7/7 Rules" in output or "8/8 Rules" in output  # 8 rules after 08-architecture-principles
+        assert "8/8 Rules" in output or "9/9 Rules" in output  # 9 rules after 09-sectional-write
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-051: total commands is now 11

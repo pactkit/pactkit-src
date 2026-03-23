@@ -33,18 +33,18 @@ from pactkit.prompts.rules import (
 # 01=core, 02=hierarchy, 03=atlas, 04=routing, 05=workflow,
 # 06=mcp, 07=shared, 08=architecture, 09=credential
 SPEC_TABLE = {
-    "project-init": ["core", "atlas", "shared", "credential"],
-    "project-plan": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-init": ["core", "sectional", "atlas", "shared", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],
     "project-pr": ["core", "workflow", "credential"],
     "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "atlas", "mcp", "architecture", "credential"],
+    "project-design": ["core", "sectional", "atlas", "mcp", "architecture", "credential"],
     "project-sprint": [
-        "core", "hierarchy", "atlas", "routing", "workflow",
+        "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
         "mcp", "shared", "architecture", "credential",
     ],
 }

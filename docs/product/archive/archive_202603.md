@@ -346,3 +346,26 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+
+### [STORY-slim-021] Sectional Write for large document generation
+> Spec: docs/specs/STORY-slim-021.md
+
+- [x] 1. Modify DESIGN_PROMPT Phase 1: sectional Write per Group
+- [x] 2. Modify DESIGN_PROMPT Phase 3: batch checkpoint
+- [x] 3. Add unit tests
+- [x] 4. Deploy and verify
+
+## 🔄 In Progress
+
+
+## ✅ Done
+
+- **STORY-slim-020**: Fix Explore subagent stall during Plan Phase 1 Archaeology [P1]
+  - [x] Write tests (RED)
+  - [x] Implement Phase 1 scope-limiting + delegation template
+  - [x] Reduce code-explorer maxTurns 50 -> 15
+  - [x] Regression pass (2702)
+- **STORY-slim-019**: Split Plan Phase 3.2 into sub-steps to eliminate Spec-writing stall [P1]
+  - [x] Write tests (RED)
+  - [x] Implement prompt split (GREEN)
+  - [x] Regression pass
