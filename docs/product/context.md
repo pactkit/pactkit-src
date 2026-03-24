@@ -1,13 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T16:00:00+08:00 by /project-done
+> Last updated: 2026-03-24T17:00:00+08:00 by /project-done
 
 ## Sprint Status
-Backlog: 3 | In Progress: 0 | Done: 2 stories
+Backlog: 1 | In Progress: 0 | Done: 3 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
+- STORY-slim-033: Java LanguageAnalyzer adapter (2026-03-24)
 - STORY-slim-032: TreeSitterAnalyzer base class + Go adapter (2026-03-24)
 - STORY-slim-031: Unified impact test mapping via LANG_PROFILES (2026-03-24)
 
@@ -28,4 +29,4 @@ codex-integration
 - Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring
 
 ## Next Recommended Action
-`/project-plan`
+`/project-act STORY-slim-034`

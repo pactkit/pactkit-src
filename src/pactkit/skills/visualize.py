@@ -345,6 +345,75 @@ class GoAnalyzer(TreeSitterAnalyzer):
         return func_registry, call_edges
 
 
+# Java tree-sitter queries (STORY-slim-033)
+_JAVA_IMPORT_QUERY = '(import_declaration (scoped_identifier) @import)'
+
+_JAVA_FUNC_QUERY = '(method_declaration name: (identifier) @name body: (block) @body)'
+
+_JAVA_CONSTRUCTOR_QUERY = '(constructor_declaration name: (identifier) @name body: (constructor_body) @body)'
+
+_JAVA_CALL_QUERY = '''[
+  (method_invocation name: (identifier) @callee)
+  (method_invocation object: (_) @obj name: (identifier) @method)
+]'''
+
+
+def _find_enclosing_class(node):
+    """Walk up the tree to find the enclosing class_declaration name."""
+    current = node
+    while current:
+        if current.type == 'class_declaration':
+            name_node = current.child_by_field_name('name')
+            if name_node:
+                return name_node.text.decode()
+        current = current.parent
+    return None
+
+
+class JavaAnalyzer(TreeSitterAnalyzer):
+    """Java language analyzer using tree-sitter-java (STORY-slim-033)."""
+    def __init__(self):
+        import tree_sitter_java as _tsj
+        import re as _re
+        self._re = _re
+        self._lang = _TSLanguage(_tsj.language())
+        self._parser = _TSParser(self._lang)
+        self._import_query = _TSQuery(self._lang, _JAVA_IMPORT_QUERY)
+        self._func_query = _TSQuery(self._lang, _JAVA_FUNC_QUERY)
+        self._constructor_query = _TSQuery(self._lang, _JAVA_CONSTRUCTOR_QUERY)
+        self._call_query = _TSQuery(self._lang, _JAVA_CALL_QUERY)
+        self._method_query = None  # Java uses _func_query + _constructor_query
+
+    def _extract_funcs_and_calls(self, tree, stem):
+        func_registry = {}
+        call_edges = {}
+
+        # Extract instance and static methods
+        for _, match_dict in self._matches(self._func_query, tree.root_node):
+            names = match_dict.get('name', [])
+            bodies = match_dict.get('body', [])
+            if names and bodies:
+                name_node = names[0]
+                func_name = name_node.text.decode()
+                class_name = _find_enclosing_class(name_node)
+                qname = f'{class_name}.{func_name}' if class_name else func_name
+                func_registry[qname] = stem
+                call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        # Extract constructors (ClassName.ClassName pattern)
+        for _, match_dict in self._matches(self._constructor_query, tree.root_node):
+            names = match_dict.get('name', [])
+            bodies = match_dict.get('body', [])
+            if names and bodies:
+                name_node = names[0]
+                ctor_name = name_node.text.decode()
+                qname = f'{ctor_name}.{ctor_name}'
+                func_registry[qname] = stem
+                call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        return func_registry, call_edges
+
+
 def _select_analyzer(stack):
     """Return the appropriate LanguageAnalyzer for the given stack.
 
@@ -360,7 +429,9 @@ def _select_analyzer(stack):
     try:
         if stack == 'go':
             return GoAnalyzer()
-        # Future: java (STORY-slim-033), node (STORY-slim-034)
+        if stack == 'java':
+            return JavaAnalyzer()
+        # Future: node (STORY-slim-034)
     except ImportError:
         print(f"tree-sitter-{stack} not installed; falling back to PythonAnalyzer for {stack}", file=_sys.stderr)
     return PythonAnalyzer()

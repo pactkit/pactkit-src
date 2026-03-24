@@ -17,6 +17,7 @@ dependencies = [
 multilang = [
     "tree-sitter>=0.25",
     "tree-sitter-go>=0.25",
+    "tree-sitter-java>=0.23",
 ]
 authors = [
     { name = "Slim" },

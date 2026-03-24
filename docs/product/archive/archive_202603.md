@@ -458,3 +458,11 @@
 - [x] Pattern resolver for module and package
 - [x] Fallback to current hardcoded logic
 - [x] Unit tests for Python Go Java mapping
+
+### [STORY-slim-033] Java LanguageAnalyzer adapter
+> Spec: docs/specs/STORY-slim-033.md
+
+- [x] Add tree-sitter-java to optional deps
+- [x] Implement JavaAnalyzer with tree-sitter queries
+- [x] Register JavaAnalyzer in _select_analyzer
+- [x] Unit tests with Java source samples
