@@ -51,6 +51,14 @@ _LANG_FILE_EXT = {
     "java": ".java",
 }
 
+# Canonical: src/pactkit/prompts/workflows.py LANG_PROFILES[*].test_map_pattern
+_TEST_MAP_PATTERNS = {
+    "python": "tests/unit/test_{module}.py",
+    "node": "__tests__/{module}.test.ts",
+    "go": "{package}/{module}_test.go",
+    "java": "src/test/java/{package}/{module}Test.java",
+}
+
 
 def _load_scan_excludes(root):
     """Load scan_excludes from pactkit.yaml if present. Returns list or None.
@@ -78,13 +86,13 @@ def _load_scan_excludes(root):
     return None
 
 
-def _detect_file_ext(root):
-    """Detect the source file extension for the project at root.
+def _detect_stack(root):
+    """Detect the stack name for the project at root.
 
     Priority:
     1. pactkit.yaml 'stack' field (if not 'auto' and known in _LANG_FILE_EXT)
     2. Marker-file detection via _STACK_MARKERS
-    3. Default: '.py'
+    3. Default: 'python'
     """
     # 1. Try reading stack from pactkit.yaml
     candidates = [
@@ -99,17 +107,25 @@ def _detect_file_ext(root):
                 if isinstance(data, dict):
                     stack = data.get('stack', 'auto')
                     if stack and stack != 'auto' and stack in _LANG_FILE_EXT:
-                        return _LANG_FILE_EXT[stack]
+                        return stack
             except Exception:
                 pass
 
     # 2. Marker-file detection
     for marker, stack in _STACK_MARKERS:
         if (root / marker).exists():
-            return _LANG_FILE_EXT.get(stack, '.py')
+            return stack
 
     # 3. Default
-    return '.py'
+    return 'python'
+
+
+def _detect_file_ext(root):
+    """Detect the source file extension for the project at root.
+
+    Thin wrapper around _detect_stack() that returns the file extension.
+    """
+    return _LANG_FILE_EXT.get(_detect_stack(root), '.py')
 
 
 def _scan_files(root, scan_excludes=None, file_ext='.py'):
@@ -512,7 +528,20 @@ def _build_reverse_graph(func_registry, call_edges, entry):
     return visited, reverse_edges
 
 
-# --- impact() subcommand (STORY-053) ---
+def _resolve_test_path(root, stem, source_file, stack):
+    """Resolve the test file path for a given source file using _TEST_MAP_PATTERNS.
+
+    Returns a Path if the resolved test file exists, or None otherwise.
+    """
+    pattern = _TEST_MAP_PATTERNS.get(stack, "tests/unit/test_{module}.py")
+    module = stem
+    package = str(source_file.parent.relative_to(root)).replace(os.sep, '/')
+    resolved = pattern.replace("{module}", module).replace("{package}", package)
+    test_path = root / resolved
+    return test_path if test_path.exists() else None
+
+
+# --- impact() subcommand (STORY-053, STORY-slim-031) ---
 def impact(target='.', entry=None):
     """Find test files impacted by a changed function (reverse BFS + test mapping).
     Returns a space-separated list of test file paths, or empty string if none found.
@@ -525,17 +554,31 @@ def impact(target='.', entry=None):
     analyzer = PythonAnalyzer()  # TODO: select based on file_ext for Go/Java/TS (STORY-slim-032+)
     func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
 
+    stack = _detect_stack(root)
+    # Build stem → source_file index for {package} resolution
+    stem_to_file = {}
+    for f in all_files:
+        stem_to_file.setdefault(f.stem, f)
+
     visited, _ = _build_reverse_graph(func_registry, call_edges, entry)
     if not visited: return ''
 
     test_files = set()
     for func_name in visited:
         stem = func_registry.get(func_name)
-        if stem:
-            # Python pattern: src/pactkit/config.py → tests/unit/test_config.py
-            test_path = root / 'tests' / 'unit' / f'test_{stem}.py'
-            if test_path.exists():
+        if not stem:
+            continue
+        source_file = stem_to_file.get(stem)
+        if source_file:
+            # Try pattern-based resolution first
+            test_path = _resolve_test_path(root, stem, source_file, stack)
+            if test_path:
                 test_files.add(str(test_path.relative_to(root)))
+                continue
+        # Fallback: hardcoded Python convention
+        fallback_path = root / 'tests' / 'unit' / f'test_{stem}.py'
+        if fallback_path.exists():
+            test_files.add(str(fallback_path.relative_to(root)))
     return ' '.join(sorted(test_files))
 
 

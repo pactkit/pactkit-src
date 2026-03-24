@@ -41,6 +41,7 @@ graph TD
     _deploy_skills["_deploy_skills"]
     _detect_file_ext["_detect_file_ext"]
     _detect_ghe["_detect_ghe"]
+    _detect_stack["_detect_stack"]
     _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
     _extract_requirement_ids["_extract_requirement_ids"]
@@ -84,6 +85,7 @@ graph TD
     _render_skill_md["_render_skill_md"]
     _resolve_callee["_resolve_callee"]
     _resolve_opencode_model_id["_resolve_opencode_model_id"]
+    _resolve_test_path["_resolve_test_path"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
     _run_pytest_cov["_run_pytest_cov"]
@@ -244,6 +246,7 @@ graph TD
     archive_stories --> nl
     init_architecture --> nl
     init_architecture --> nl
+    _detect_file_ext --> _detect_stack
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     _build_file_graph --> nl
@@ -258,7 +261,9 @@ graph TD
     impact --> _detect_file_ext
     impact --> _scan_files
     impact --> _scan_call_edges
+    impact --> _detect_stack
     impact --> _build_reverse_graph
+    impact --> _resolve_test_path
     visualize --> _load_scan_excludes
     visualize --> _detect_file_ext
     visualize --> _scan_files

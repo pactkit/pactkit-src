@@ -2,11 +2,6 @@
 
 ## 📋 Backlog
 
-### [STORY-slim-031] Unified impact test mapping via LANG_PROFILES
-> Spec: docs/specs/STORY-slim-031.md
-
-- [ ] impact reads test_map_pattern from LANG_PROFILES,Pattern resolver for module and package,Fallback to current hardcoded logic,Unit tests for Python Go Java mapping
-
 ### [STORY-slim-032] Go LanguageAnalyzer adapter
 > Spec: docs/specs/STORY-slim-032.md
 
@@ -21,6 +16,15 @@
 > Spec: docs/specs/STORY-slim-034.md
 
 - [ ] Implement TSAnalyzer with regex,ES module and CommonJS import extraction,Function and arrow function extraction,Multi-extension support,Unit tests with TS/JS source samples
+
+
+### [STORY-slim-031] Unified impact test mapping via LANG_PROFILES
+> Spec: docs/specs/STORY-slim-031.md
+
+- [x] impact reads test_map_pattern from LANG_PROFILES
+- [x] Pattern resolver for module and package
+- [x] Fallback to current hardcoded logic
+- [x] Unit tests for Python Go Java mapping
 
 ## 🔄 In Progress
 
