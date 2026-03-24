@@ -33,12 +33,12 @@ except ImportError:
     # Fallback for standalone execution without pactkit installed
     # Keep in sync with src/pactkit/schemas.py
     SPEC_REQUIRED_METADATA_FIELDS = ("ID", "Status", "Priority", "Release")
-    SPEC_REQUIRED_SECTIONS = ("## Requirements", "## Acceptance Criteria")
+    SPEC_REQUIRED_SECTIONS = ("## Requirements", "## Acceptance Criteria", "## Security Scope")
     SPEC_REQUIREMENT_PATTERN = r"### R\d+[:\s]"
     SPEC_AC_PATTERN = r"### AC\d+[:\s]|### Scenario\s+\d+[:\s]"
     SPEC_GIVEN_WHEN_THEN = ("Given", "When", "Then")
     SPEC_RFC_KEYWORDS = ("MUST", "SHOULD", "MAY", "SHALL", "REQUIRED", "RECOMMENDED", "OPTIONAL")
-    SPEC_RFC_PATTERN = re.compile(r"\b(MUST|SHOULD|MAY|SHALL|REQUIRED|RECOMMENDED|OPTIONAL)\b")
+    SPEC_RFC_PATTERN = re.compile(r"\b(" + "|".join(SPEC_RFC_KEYWORDS) + r")\b")
     SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
     SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
     SPEC_SEC_PATTERN = r"\|\s*SEC-"
@@ -177,7 +177,7 @@ def _check_requirements_section(text: str, result: LintResult) -> None:
         result.warnings.append(LintIssue("W003", "No RFC 2119 keywords (MUST/SHOULD/MAY) found in Requirements"))
 
 
-def _check_acceptance_criteria(text: str, result: LintResult) -> None:
+def _check_acceptance_criteria(text: str, result: LintResult, raw_text: str | None = None) -> None:
     """E005, E006, E007 — Acceptance Criteria section."""
     body = _section_text(text, "Acceptance Criteria")
 
@@ -193,12 +193,29 @@ def _check_acceptance_criteria(text: str, result: LintResult) -> None:
         )
         return
 
-    # E007: the AC section must contain Given, When, Then keywords
-    body_lower = body.lower()
-    # E007: use SPEC_GIVEN_WHEN_THEN from schemas (single source of truth)
-    missing = [kw for kw in SPEC_GIVEN_WHEN_THEN if kw.lower() not in body_lower]
-    if missing:
-        result.errors.append(LintIssue("E007", f"Acceptance Criteria missing keyword(s): {', '.join(missing).upper()}"))
+    # E007: each AC subsection must contain Given, When, Then keywords (per-subsection check)
+    # Use raw_text (with code blocks) for GWT search — specs may wrap Gherkin in ```gherkin fences
+    raw_body = (_section_text(raw_text, "Acceptance Criteria") if raw_text else None) or body
+    ac_matches = list(_AC_SUBSECTION.finditer(body))
+    raw_ac_matches = list(_AC_SUBSECTION.finditer(raw_body)) if raw_body != body else ac_matches
+    for i, m in enumerate(ac_matches):
+        # Extract AC ID from the heading (e.g., "AC1" or "Scenario 1")
+        ac_heading = m.group(0).strip()
+        ac_id_match = re.search(r"(AC\d+|Scenario\s+\d+)", ac_heading, re.IGNORECASE)
+        ac_id = ac_id_match.group(0) if ac_id_match else ac_heading
+        # Get subsection text from raw (preserves code block content for GWT search)
+        if i < len(raw_ac_matches):
+            raw_start = raw_ac_matches[i].end()
+            raw_end = raw_ac_matches[i + 1].start() if i + 1 < len(raw_ac_matches) else len(raw_body)
+            subsection_lower = raw_body[raw_start:raw_end].lower()
+        else:
+            start = m.end()
+            end = ac_matches[i + 1].start() if i + 1 < len(ac_matches) else len(body)
+            subsection_lower = body[start:end].lower()
+        # Word-boundary match to prevent "whenever" matching "when"
+        missing = [kw for kw in SPEC_GIVEN_WHEN_THEN if not re.search(r"\b" + kw.lower() + r"\b", subsection_lower)]
+        if missing:
+            result.errors.append(LintIssue("E007", f"{ac_id} missing keyword(s): {', '.join(missing).upper()}"))
 
 
 _PIPE_TABLE_ROW = re.compile(r"^\|.+\|.+\|", re.MULTILINE)
@@ -268,13 +285,26 @@ def _check_implementation_steps(text: str, result: LintResult) -> None:
         )
 
 
-def _check_optional_sections(text: str, result: LintResult) -> None:
-    """W001, W002, W004 — recommended sections."""
-    if _section_text(text, "Background") is None:
-        result.warnings.append(LintIssue("W001", "Missing '## Background' section (recommended)"))
+# Canonical: src/pactkit/schemas.py SPEC_TEMPLATE
+_SCAFFOLD_PLACEHOLDERS = {
+    "Background": "(Description of the problem or feature)",
+    "Target Call Chain": "(Trace call chain here)",
+}
 
-    if _section_text(text, "Target Call Chain") is None:
+
+def _check_optional_sections(text: str, result: LintResult) -> None:
+    """W001, W002, W004, W008 — recommended sections and placeholder detection."""
+    bg = _section_text(text, "Background")
+    if bg is None:
+        result.warnings.append(LintIssue("W001", "Missing '## Background' section (recommended)"))
+    elif _SCAFFOLD_PLACEHOLDERS["Background"] in bg:
+        result.warnings.append(LintIssue("W008", "## Background still contains scaffold placeholder text"))
+
+    tcc = _section_text(text, "Target Call Chain")
+    if tcc is None:
         result.warnings.append(LintIssue("W002", "Missing '## Target Call Chain' section (recommended)"))
+    elif _SCAFFOLD_PLACEHOLDERS["Target Call Chain"] in tcc:
+        result.warnings.append(LintIssue("W008", "## Target Call Chain still contains scaffold placeholder text"))
 
     has_out_of_scope = _section_text(text, "Out of Scope") is not None or _section_text(text, "Non-Goals") is not None
     if not has_out_of_scope:
@@ -319,7 +349,7 @@ def validate_spec(spec_path: str) -> LintResult:
     result = LintResult()
     _check_metadata(text, result)
     _check_requirements_section(text, result)
-    _check_acceptance_criteria(text, result)
+    _check_acceptance_criteria(text, result, raw_text=raw)
     _check_optional_sections(text, result)
     _check_implementation_steps(text, result)
     _check_req_ac_coverage(text, result)  # STORY-slim-024: W007

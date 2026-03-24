@@ -18,14 +18,14 @@ When adding a new document type:
 
 SPEC_REQUIRED_METADATA_FIELDS = ("ID", "Status", "Priority", "Release")
 
-SPEC_REQUIRED_SECTIONS = ("## Requirements", "## Acceptance Criteria")
+SPEC_REQUIRED_SECTIONS = ("## Requirements", "## Acceptance Criteria", "## Security Scope")
 
 SPEC_OPTIONAL_SECTIONS = (
     "## Background",
     "## Target Call Chain",
     "## Implementation Steps",
-    "## Security Scope",
     "## Out of Scope",
+    "## Non-Goals",
 )
 
 # E004: requirement subsection pattern

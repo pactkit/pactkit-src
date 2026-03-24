@@ -5,6 +5,7 @@ Replaces prompt-based issue tracker verification from Done Phase 3.5.5/3.6.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -68,7 +69,8 @@ def _search_issue(item_id: str) -> dict | None:
             return None
         issues = json.loads(result.stdout)
         for issue in issues:
-            if item_id in issue.get("title", ""):
+            title = issue.get("title", "")
+            if re.search(rf"(?<!\w){re.escape(item_id)}(?!\w)", title):
                 return issue
         return None
     except Exception:

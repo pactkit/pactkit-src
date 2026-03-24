@@ -101,7 +101,7 @@ class TestAC3E009ValidSecurityScope:
 class TestAC4SpecTemplateSections:
 
     def test_template_passes_lint_except_e008(self, tmp_path):
-        """SPEC_TEMPLATE should only fail E008 (Release=TBD), nothing else."""
+        """SPEC_TEMPLATE should only fail E008 (Release=TBD) and W008 (placeholders)."""
         from pactkit.schemas import SPEC_TEMPLATE
         content = SPEC_TEMPLATE.format(id="TEST-TPL", title="Template Test")
         p = tmp_path / "TEST-TPL.md"
@@ -109,7 +109,9 @@ class TestAC4SpecTemplateSections:
         result = validate_spec(str(p))
         non_e008_errors = [e for e in result.errors if e.rule_id != "E008"]
         assert non_e008_errors == [], f"Unexpected errors: {non_e008_errors}"
-        assert result.warnings == [], f"Unexpected warnings: {result.warnings}"
+        # STORY-slim-027 R4: W008 placeholder warnings are expected for unfilled template
+        non_w008_warnings = [w for w in result.warnings if w.rule_id != "W008"]
+        assert non_w008_warnings == [], f"Unexpected warnings: {non_w008_warnings}"
 
     def test_template_has_security_scope(self):
         from pactkit.schemas import SPEC_TEMPLATE
