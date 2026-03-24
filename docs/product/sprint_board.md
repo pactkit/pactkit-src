@@ -18,6 +18,10 @@
 - [ ] Implement TSAnalyzer with regex,ES module and CommonJS import extraction,Function and arrow function extraction,Multi-extension support,Unit tests with TS/JS source samples
 
 
+## 🔄 In Progress
+
+## ✅ Done
+
 ### [STORY-slim-031] Unified impact test mapping via LANG_PROFILES
 > Spec: docs/specs/STORY-slim-031.md
 
@@ -25,8 +29,4 @@
 - [x] Pattern resolver for module and package
 - [x] Fallback to current hardcoded logic
 - [x] Unit tests for Python Go Java mapping
-
-## 🔄 In Progress
-
-## ✅ Done
 
