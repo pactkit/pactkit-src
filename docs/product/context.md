@@ -1,8 +1,8 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T17:46:14+08:00 by pactkit context
+> Last updated: 2026-03-24T18:18:10+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 3 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
@@ -37,4 +37,4 @@ codex-integration
 - Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section
 
 ## Next Recommended Action
-`/project-design`
+`/project-plan`
