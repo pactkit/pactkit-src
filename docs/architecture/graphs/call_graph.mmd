@@ -1,12 +1,24 @@
 graph TD
     _add_fix_flag["_add_fix_flag"]
+    _build_call_graph["_build_call_graph"]
+    _build_class_graph["_build_class_graph"]
     _build_command_rules_header["_build_command_rules_header"]
+    _build_file_graph["_build_file_graph"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
+    _build_reverse_graph["_build_reverse_graph"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
+    _check_acceptance_criteria["_check_acceptance_criteria"]
     _check_gh_available["_check_gh_available"]
+    _check_implementation_steps["_check_implementation_steps"]
+    _check_metadata["_check_metadata"]
+    _check_optional_sections["_check_optional_sections"]
+    _check_req_ac_coverage["_check_req_ac_coverage"]
+    _check_requirements_section["_check_requirements_section"]
+    _check_security_scope["_check_security_scope"]
     _classify_coverage["_classify_coverage"]
+    _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
@@ -27,7 +39,12 @@ graph TD
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
     _detect_ghe["_detect_ghe"]
+    _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
+    _extract_requirement_ids["_extract_requirement_ids"]
+    _find_entry_func["_find_entry_func"]
+    _find_section["_find_section"]
+    _format_result["_format_result"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
     _generate_project_agents_md["_generate_project_agents_md"]
@@ -37,6 +54,7 @@ graph TD
     _get_git_branches["_get_git_branches"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
+    _inject_developer_prefix["_inject_developer_prefix"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
@@ -45,6 +63,7 @@ graph TD
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
     _load_opencode_providers["_load_opencode_providers"]
+    _load_scan_excludes["_load_scan_excludes"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
@@ -52,65 +71,78 @@ graph TD
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
+    _parse_story_blocks["_parse_story_blocks"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _print_mcp_recommendations_opencode["_print_mcp_recommendations_opencode"]
     _read_content["_read_content"]
+    _read_developer_prefix["_read_developer_prefix"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
+    _resolve_callee["_resolve_callee"]
     _resolve_opencode_model_id["_resolve_opencode_model_id"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
     _run_pytest_cov["_run_pytest_cov"]
-    _schema_command["_schema_command"]
+    _scan_call_edges["_scan_call_edges"]
+    _scan_files["_scan_files"]
     _search_issue["_search_issue"]
+    _section_text["_section_text"]
+    _strip_code_blocks["_strip_code_blocks"]
     _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
+    add_story["add_story"]
     append_lesson["append_lesson"]
+    archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
     check_coverage["check_coverage"]
-    check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
-    check_orphaned_specs["check_orphaned_specs"]
     check_stale_graphs["check_stale_graphs"]
     check_version_mismatch["check_version_mismatch"]
     classify_changes["classify_changes"]
     clean_artifacts["clean_artifacts"]
+    create_board["create_board"]
+    create_e2e["create_e2e"]
+    create_prd["create_prd"]
+    create_skill["create_skill"]
+    create_spec["create_spec"]
+    create_test_file["create_test_file"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_stack["detect_stack"]
     detect_venv["detect_venv"]
     find_pactkit_yaml["find_pactkit_yaml"]
-    format_markdown_table["format_markdown_table"]
+    fix_board["fix_board"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     get_default_config["get_default_config"]
     get_profile["get_profile"]
+    git_start["git_start"]
+    impact["impact"]
+    init_architecture["init_architecture"]
     is_environment_format["is_environment_format"]
     issue_sync["issue_sync"]
-    lint_context["lint_context"]
-    lint_lessons["lint_lessons"]
-    lint_testcase["lint_testcase"]
+    list_stories["list_stories"]
     load_config["load_config"]
+    load_script["load_script"]
     main["main"]
     map_to_tests["map_to_tests"]
-    next_story_id["next_story_id"]
-    refresh_test_count["refresh_test_count"]
+    nl["nl"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_lint["run_lint"]
-    run_visualize_graphs["run_visualize_graphs"]
-    run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
     transform["transform"]
-    update_spec_status["update_spec_status"]
+    update_task["update_task"]
     validate_config["validate_config"]
+    validate_spec["validate_spec"]
+    visualize["visualize"]
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
     resolve_pactkit_yaml_dir --> is_environment_format
@@ -150,36 +182,10 @@ graph TD
     generate_context --> _parse_board
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
-    main --> deploy
-    main --> load_config
-    main --> _schema_command
-    main --> check_init_markers
-    main --> check_version_mismatch
-    main --> load_config
-    main --> next_story_id
-    main --> clean_artifacts
-    main --> classify_changes
-    main --> generate_context
-    main --> detect_security_scope
-    main --> format_markdown_table
-    main --> lint_context
-    main --> lint_lessons
-    main --> lint_testcase
-    main --> should_visualize
-    main --> run_visualize_single
-    main --> run_visualize_graphs
-    main --> check_orphaned_specs
-    main --> check_config_drift
-    main --> check_stale_graphs
-    main --> check_hld_module_count
-    main --> scan_and_replace_tbd
-    main --> issue_sync
-    main --> map_to_tests
-    main --> run_lint
-    main --> append_lesson
-    main --> refresh_test_count
-    main --> check_coverage
-    main --> update_spec_status
+    main --> validate_spec
+    main --> _format_result
+    main --> validate_spec
+    main --> _format_result
     scan_and_replace_tbd --> _get_done_ids
     clean_artifacts --> detect_stack
     _parse_coverage_output --> _classify_coverage
@@ -195,6 +201,102 @@ graph TD
     map_to_tests --> detect_stack
     check_config_drift --> find_pactkit_yaml
     check_stale_graphs --> load_config
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    fix_board --> _parse_story_blocks
+    fix_board --> _classify_story
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    update_task --> fix_board
+    list_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    init_architecture --> nl
+    init_architecture --> nl
+    _build_file_graph --> nl
+    _build_class_graph --> nl
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> nl
+    _build_call_graph --> _extract_calls
+    _build_call_graph --> nl
+    _build_call_graph --> _extract_calls
+    _scan_call_edges --> _extract_calls
+    _scan_call_edges --> _extract_calls
+    _build_reverse_graph --> _find_entry_func
+    _build_reverse_graph --> _resolve_callee
+    impact --> _load_scan_excludes
+    impact --> _scan_files
+    impact --> _scan_call_edges
+    impact --> _build_reverse_graph
+    visualize --> _load_scan_excludes
+    visualize --> _scan_files
+    visualize --> _build_class_graph
+    visualize --> _build_file_graph
+    visualize --> _scan_call_edges
+    visualize --> _build_reverse_graph
+    visualize --> _build_call_graph
+    visualize --> nl
+    _section_text --> _find_section
+    _check_requirements_section --> _section_text
+    _check_acceptance_criteria --> _section_text
+    _check_acceptance_criteria --> _section_text
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _extract_requirement_ids
+    _check_implementation_steps --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_security_scope --> _section_text
+    validate_spec --> _strip_code_blocks
+    validate_spec --> _check_metadata
+    validate_spec --> _check_requirements_section
+    validate_spec --> _check_acceptance_criteria
+    validate_spec --> _check_optional_sections
+    validate_spec --> _check_implementation_steps
+    validate_spec --> _check_req_ac_coverage
+    validate_spec --> _check_security_scope
+    git_start --> _inject_developer_prefix
+    create_test_file --> nl
+    create_e2e --> _inject_developer_prefix
+    create_e2e --> nl
+    _inject_developer_prefix --> _read_developer_prefix
+    create_spec --> _inject_developer_prefix
+    create_skill --> nl
+    create_skill --> nl
+    create_board --> nl
+    create_prd --> nl
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
@@ -250,6 +352,9 @@ graph TD
     _deploy_skills --> atomic_write
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
     _deploy_rules --> _build_rule_id_to_key
     _deploy_rules --> atomic_write
     _deploy_claude_md --> atomic_write

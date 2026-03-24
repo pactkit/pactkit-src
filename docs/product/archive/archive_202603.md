@@ -414,3 +414,10 @@
 - [x] Add _check_req_ac_coverage() function
 - [x] Call from validate_spec()
 - [x] Write unit tests AC1-AC5
+
+### [STORY-slim-028] Configurable scan_excludes via pactkit.yaml
+> Spec: docs/specs/STORY-slim-028.md
+
+- [x] Add visualize.scan_excludes to default config,_scan_files reads config param with fallback,pactkit init auto-generates visualize config,auto_merge backfills visualize section,Unit tests for backward compat
+
+## ✅ Done

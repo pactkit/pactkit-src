@@ -41,12 +41,15 @@ graph TD
     click src_pactkit_doctor_py href "src/pactkit/doctor.py"
     src_pactkit_invariants_py["invariants.py"]
     click src_pactkit_invariants_py href "src/pactkit/invariants.py"
+    src_pactkit_skills_spec_linter_py["spec_linter.py"]
+    click src_pactkit_skills_spec_linter_py href "src/pactkit/skills/spec_linter.py"
     src_pactkit_generators_deployer_py["deployer.py"]
     click src_pactkit_generators_deployer_py href "src/pactkit/generators/deployer.py"
     src_pactkit_cli_py --> src_pactkit___init___py
     src_pactkit_cli_py --> src_pactkit_schemas_py
     src_pactkit_cli_py --> src_pactkit_generators_deployer_py
     src_pactkit_cli_py --> src_pactkit_config_py
+    src_pactkit_cli_py --> src_pactkit_skills_spec_linter_py
     src_pactkit_cli_py --> src_pactkit_guards_py
     src_pactkit_cli_py --> src_pactkit_id_generator_py
     src_pactkit_cli_py --> src_pactkit_cleaners_py

@@ -288,6 +288,7 @@ class TestBackwardCompatibility:
             'regression': {'strategy': 'impact', 'max_impact_tests': 50},
             'check': {'security_checklist': True},
             'done': {'lesson_quality_threshold': 15},
+            'visualize': {'scan_excludes': ['venv', '.venv']},
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
@@ -411,6 +412,7 @@ class TestDeployerIntegration:
             'regression': {'strategy': 'impact', 'max_impact_tests': 50},
             'check': {'security_checklist': True},
             'done': {'lesson_quality_threshold': 15},
+            'visualize': {'scan_excludes': ['venv', '.venv']},
         })
 
         with patch.object(Path, 'home', return_value=tmp_path), \

@@ -32,9 +32,35 @@ SCAN_EXCLUDES = {
 MAX_SCAN_FILES = 500  # STORY-060: file count ceiling to prevent hangs on large repos
 
 
-def _scan_files(root):
+def _load_scan_excludes(root):
+    """Load scan_excludes from pactkit.yaml if present. Returns list or None.
+
+    Searches .claude/pactkit.yaml then .opencode/pactkit.yaml.
+    Guarded by try/except so standalone script fails gracefully if yaml unavailable.
+    """
+    candidates = [
+        root / '.claude' / 'pactkit.yaml',
+        root / '.opencode' / 'pactkit.yaml',
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    viz = data.get('visualize', {})
+                    if isinstance(viz, dict) and 'scan_excludes' in viz:
+                        excludes = viz['scan_excludes']
+                        if isinstance(excludes, list):
+                            return excludes
+            except Exception:
+                pass
+    return None
+
+
+def _scan_files(root, scan_excludes=None):
     import sys as _sys
-    excludes = SCAN_EXCLUDES
+    excludes = set(scan_excludes) if scan_excludes is not None else SCAN_EXCLUDES
     all_files = []
     module_index = {}
     file_to_node = {}
@@ -422,7 +448,8 @@ def impact(target='.', entry=None):
     """
     if not entry: return ''
     root = Path(target).resolve()
-    all_files, module_index, file_to_node = _scan_files(root)
+    scan_excludes = _load_scan_excludes(root)
+    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes)
     func_registry, call_edges = _scan_call_edges(root, all_files)
 
     visited, _ = _build_reverse_graph(func_registry, call_edges, entry)
@@ -442,7 +469,8 @@ def impact(target='.', entry=None):
 # --- MAIN VISUALIZE (v1.3.0 Multi-Mode) ---
 def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False):
     root = Path(target).resolve()
-    all_files, module_index, file_to_node = _scan_files(root)
+    scan_excludes = _load_scan_excludes(root)
+    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes)
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus)

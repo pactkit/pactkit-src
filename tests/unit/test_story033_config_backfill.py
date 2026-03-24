@@ -226,6 +226,7 @@ class TestAC4BackfillReport:
             'regression:\n  strategy: impact\n  max_impact_tests: 50\n'
             'check:\n  security_checklist: true\n'
             'done:\n  lesson_quality_threshold: 15\n'
+            'visualize:\n  scan_excludes:\n    - venv\n'
         )
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
@@ -237,8 +238,8 @@ class TestAC4BackfillReport:
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
-        # 4 list-type (agents, commands, skills, rules) + 11 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix, e2e, venv, release, regression, check, done)
-        assert len(section_reports) == 15
+        # 4 list-type (agents, commands, skills, rules) + 12 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix, e2e, venv, release, regression, check, done, visualize)
+        assert len(section_reports) == 16
 
 
 # ===========================================================================

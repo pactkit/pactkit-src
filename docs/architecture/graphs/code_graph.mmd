@@ -61,6 +61,16 @@ graph TD
     click src_pactkit_prompts_workflows_py href "src/pactkit/prompts/workflows.py"
     src_pactkit_prompts_commands_py["commands.py"]
     click src_pactkit_prompts_commands_py href "src/pactkit/prompts/commands.py"
+    src_pactkit_skills_board_py["board.py"]
+    click src_pactkit_skills_board_py href "src/pactkit/skills/board.py"
+    src_pactkit_skills___init___py["__init__.py"]
+    click src_pactkit_skills___init___py href "src/pactkit/skills/__init__.py"
+    src_pactkit_skills_visualize_py["visualize.py"]
+    click src_pactkit_skills_visualize_py href "src/pactkit/skills/visualize.py"
+    src_pactkit_skills_spec_linter_py["spec_linter.py"]
+    click src_pactkit_skills_spec_linter_py href "src/pactkit/skills/spec_linter.py"
+    src_pactkit_skills_scaffold_py["scaffold.py"]
+    click src_pactkit_skills_scaffold_py href "src/pactkit/skills/scaffold.py"
     src_pactkit_generators_deployer_py["deployer.py"]
     click src_pactkit_generators_deployer_py href "src/pactkit/generators/deployer.py"
     src_pactkit_generators_adapter_py["adapter.py"]
@@ -83,6 +93,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_schemas_py
     src_pactkit_cli_py --> src_pactkit_generators_deployer_py
     src_pactkit_cli_py --> src_pactkit_config_py
+    src_pactkit_cli_py --> src_pactkit_skills_spec_linter_py
     src_pactkit_cli_py --> src_pactkit_guards_py
     src_pactkit_cli_py --> src_pactkit_id_generator_py
     src_pactkit_cli_py --> src_pactkit_cleaners_py
@@ -107,12 +118,14 @@ graph TD
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py
     src_pactkit_doctor_py --> src_pactkit_config_py
     src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
-    src_pactkit_prompts_skills_py --> src_pactkit___init___py
+    src_pactkit_prompts_skills_py --> src_pactkit_skills___init___py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py
+    src_pactkit_skills_spec_linter_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_config_py
     src_pactkit_generators_deployer_py --> src_pactkit_profiles_py
+    src_pactkit_generators_deployer_py --> src_pactkit_skills___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_utils_py
     src_pactkit_generators_deployer_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py

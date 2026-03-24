@@ -114,6 +114,24 @@ agent_models:
   system-medic: haiku
   visual-architect: sonnet
 
+# Visualize — configure directory scan exclusions
+visualize:
+  scan_excludes:
+    - venv
+    - _venv
+    - .venv
+    - .env
+    - env
+    - __pycache__
+    - .git
+    - .claude
+    - tests
+    - docs
+    - node_modules
+    - site-packages
+    - dist
+    - build
+
 # Custom — user-defined keys (preserved by PactKit)
 e2e:
   blocking: false

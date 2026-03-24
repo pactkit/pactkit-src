@@ -178,6 +178,14 @@ def get_default_config() -> dict:
         "done": {
             "lesson_quality_threshold": 15,
         },
+        "visualize": {
+            "scan_excludes": [
+                "venv", "_venv", ".venv", ".env", "env",
+                "__pycache__", ".git", ".claude",
+                "tests", "docs",
+                "node_modules", "site-packages", "dist", "build",
+            ],
+        },
         "command_models": {
             "project-act": "sonnet",
             "project-check": "sonnet",
@@ -365,6 +373,7 @@ def load_config(path: Path | str | None = None) -> dict:
         "done",
         "e2e",
         "command_models",
+        "visualize",
     }
 
     # Merge: user keys override defaults; missing keys inherit
@@ -460,6 +469,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
         "check",
         "done",
         "e2e",  # STORY-slim-022
+        "visualize",  # STORY-slim-028
     )
     for key in _BACKFILL_KEYS:
         if key not in user_data:
@@ -506,6 +516,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         "agent_models",
         "command_models",
         "rule_scopes",
+        "visualize",
     }
 
     lines = [
@@ -670,6 +681,16 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
                     lines.append(f'    - "{p}"')
             else:
                 lines.append(f'  {rule_id}: "{pattern}"')
+        lines.append("")
+
+    # Write visualize section (STORY-slim-028)
+    visualize = data.get("visualize", {})
+    if isinstance(visualize, dict) and "scan_excludes" in visualize:
+        lines.append("# Visualize — configure directory scan exclusions")
+        lines.append("visualize:")
+        lines.append("  scan_excludes:")
+        for item in visualize["scan_excludes"]:
+            lines.append(f"    - {item}")
         lines.append("")
 
     # BUG-023: Preserve unknown user-defined keys
@@ -960,6 +981,15 @@ def generate_default_yaml() -> str:
     lines.append(f"  env_file: {e2e.get('env_file', '.env.test')}")
     lines.append(f"  api_spec: \"{e2e.get('api_spec', '')}\"  # OpenAPI spec path for frontend/backend")
     lines.append(f"  compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
+
+    # Write visualize section (STORY-slim-028)
+    visualize = cfg.get("visualize", {})
+    if isinstance(visualize, dict) and "scan_excludes" in visualize:
+        lines.extend(["", "# Visualize — configure directory scan exclusions"])
+        lines.append("visualize:")
+        lines.append("  scan_excludes:")
+        for item in visualize["scan_excludes"]:
+            lines.append(f"    - {item}")
 
     # Write command_models section (STORY-073)
     cmd_models = cfg.get("command_models", {})
