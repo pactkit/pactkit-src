@@ -99,7 +99,7 @@ impact(root, mode="workflow", entry="pactkit-board")
 
 ## Out of Scope
 
-- Code-level + workflow-level combined impact (PRD Epic 4, S14 Unified Graph)
+- Code-level + workflow-level combined impact (PRD Epic 4, STORY-slim-048 Unified Graph)
 - Automatic regression test selection based on workflow impact
-- Cross-service impact analysis (PRD Epic 2, S9)
+- Cross-service impact analysis (PRD Epic 2, STORY-slim-043)
 - Weighted or probabilistic impact scoring

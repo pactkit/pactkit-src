@@ -69,31 +69,31 @@
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S5 | PDCA Sequence Parser + 渲染: 解析 project-sprint.md 提取命令间 PDCA 流转顺序，虚线箭头渲染 | 4 | 2 | 2.0 | Now |
-| S6 | TopologyParser ABC + Auto-Detect: 抽象基类 `detect()` + `parse()` 接口，`detect_topology()` 调度器扫描 `_TOPOLOGY_MARKERS` 自动选择 Parser | 5 | 3 | 1.7 | Now |
-| S7 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | Now |
+| STORY-slim-039 | PDCA Sequence Parser + 渲染: 解析 project-sprint.md 提取命令间 PDCA 流转顺序，虚线箭头渲染 | 4 | 2 | 2.0 | Now |
+| STORY-slim-040 | TopologyParser ABC + Auto-Detect: 抽象基类 `detect()` + `parse()` 接口，`detect_topology()` 调度器扫描 `_TOPOLOGY_MARKERS` 自动选择 Parser | 5 | 3 | 1.7 | Now |
+| STORY-slim-041 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | Now |
 
 ### Epic 2: Service Dependency Graph（微服务场景）
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S8 | ServiceParser: 解析 docker-compose/OpenAPI/gRPC proto 提取服务间依赖 | 5 | 4 | 1.3 | Next |
-| S9 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | Next |
-| S10 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | Later |
+| STORY-slim-042 | ServiceParser: 解析 docker-compose/OpenAPI/gRPC proto 提取服务间依赖 | 5 | 4 | 1.3 | Next |
+| STORY-slim-043 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | Next |
+| STORY-slim-044 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | Later |
 
 ### Epic 3: Frontend Topology Graph（前端场景）
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S11 | FrontendParser — Route & Page: 解析路由配置 + page→component 依赖 | 4 | 3 | 1.3 | Next |
-| S12 | FrontendParser — Hook & Store: 解析 component→hook→store 全链路拓扑 | 3 | 3 | 1.0 | Next |
-| S13 | Frontend Impact: 变更 hook/store → 列出受影响的 page 和 route guard | 4 | 3 | 1.3 | Next |
+| STORY-slim-045 | FrontendParser — Route & Page: 解析路由配置 + page→component 依赖 | 4 | 3 | 1.3 | Next |
+| STORY-slim-046 | FrontendParser — Hook & Store: 解析 component→hook→store 全链路拓扑 | 3 | 3 | 1.0 | Next |
+| STORY-slim-047 | Frontend Impact: 变更 hook/store → 列出受影响的 page 和 route guard | 4 | 3 | 1.3 | Next |
 
 ### Epic 4: Unified Layered Graph
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S14 | Unified Graph: 代码维度 + 逻辑维度 + 多拓扑合并为一张分层依赖图 | 4 | 4 | 1.0 | Later |
+| STORY-slim-048 | Unified Graph: 代码维度 + 逻辑维度 + 多拓扑合并为一张分层依赖图 | 4 | 4 | 1.0 | Later |
 
 ---
 
@@ -175,9 +175,9 @@ class TopologyParser(abc.ABC):
 
 | Parser | detect() 条件 | parse() 产出 | Stories |
 |--------|--------------|-------------|---------|
-| `PdcaParser` | `.claude/commands/` 存在 | command→agent→skill→file + command→command sequence | S5, S7 |
-| `ServiceParser` | `docker-compose.yml` 或 `openapi.yaml` 存在 | service→api→service + topic→consumer | S8-S10 |
-| `FrontendParser` | `next.config.*` 或 `src/router/` 存在 | page→component→hook→store | S11-S13 |
+| `PdcaParser` | `.claude/commands/` 存在 | command→agent→skill→file + command→command sequence | 039, 041 |
+| `ServiceParser` | `docker-compose.yml` 或 `openapi.yaml` 存在 | service→api→service + topic→consumer | 042-044 |
+| `FrontendParser` | `next.config.*` 或 `src/router/` 存在 | page→component→hook→store | 045-047 |
 
 ### 4.4 Command→Command Sequence Edges
 
@@ -350,22 +350,22 @@ N/A — CLI 工具，无认证需求。
 
 ### Now: Epic 1.5 — PDCA Sequence + TopologyParser 抽象
 > 补充命令间流转关系 + 建立多拓扑自动检测框架。
-- [ ] S5: PDCA Sequence Parser + 渲染
-- [ ] S6: TopologyParser ABC + Auto-Detect
-- [ ] S7: PdcaParser 重构
+- [ ] STORY-slim-039: PDCA Sequence Parser + 渲染
+- [ ] STORY-slim-040: TopologyParser ABC + Auto-Detect
+- [ ] STORY-slim-041: PdcaParser 重构
 
 ### Next: Epic 2 — Service Graph + Epic 3 — Frontend Graph
 > 微服务和前端架构的逻辑依赖分析。
-- [ ] S8: ServiceParser — docker-compose/openapi/proto
-- [ ] S9: Cross-Service Impact
-- [ ] S11: FrontendParser — Route & Page
-- [ ] S12: FrontendParser — Hook & Store
-- [ ] S13: Frontend Impact
+- [ ] STORY-slim-042: ServiceParser — docker-compose/openapi/proto
+- [ ] STORY-slim-043: Cross-Service Impact
+- [ ] STORY-slim-045: FrontendParser — Route & Page
+- [ ] STORY-slim-046: FrontendParser — Hook & Store
+- [ ] STORY-slim-047: Frontend Impact
 
 ### Later: Epic 2 (cont.) + Epic 4 — Unified Graph
 > MQ 拓展 + 代码维度与逻辑维度合并。
-- [ ] S10: MQ Topic Dependency
-- [ ] S14: Unified Layered Graph
+- [ ] STORY-slim-044: MQ Topic Dependency
+- [ ] STORY-slim-048: Unified Layered Graph
 
 ---
 
@@ -374,30 +374,30 @@ N/A — CLI 工具，无认证需求。
 ```mermaid
 graph LR
     subgraph "Epic 1 ✅"
-        S1[S1-S4<br>Workflow Graph] --> S038((Done))
+        E1[035-038<br>Workflow Graph] --> Done038((Done))
     end
 
     subgraph "Epic 1.5"
-        S038 --> S5[S5<br>PDCA Sequence]
-        S038 --> S6[S6<br>TopologyParser ABC]
-        S6 --> S7[S7<br>PdcaParser]
+        Done038 --> S039[039<br>PDCA Sequence]
+        Done038 --> S040[040<br>TopologyParser ABC]
+        S040 --> S041[041<br>PdcaParser]
     end
 
     subgraph "Epic 2 — Service"
-        S6 --> S8[S8<br>ServiceParser]
-        S8 --> S9[S9<br>Cross-Service Impact]
-        S8 --> S10[S10<br>MQ Topic Dep]
+        S040 --> S042[042<br>ServiceParser]
+        S042 --> S043[043<br>Cross-Service Impact]
+        S042 --> S044[044<br>MQ Topic Dep]
     end
 
     subgraph "Epic 3 — Frontend"
-        S6 --> S11[S11<br>Route & Page]
-        S11 --> S12[S12<br>Hook & Store]
-        S12 --> S13[S13<br>Frontend Impact]
+        S040 --> S045[045<br>Route & Page]
+        S045 --> S046[046<br>Hook & Store]
+        S046 --> S047[047<br>Frontend Impact]
     end
 
     subgraph "Epic 4 — Unified"
-        S9 --> S14[S14<br>Unified Graph]
-        S10 --> S14
-        S13 --> S14
+        S043 --> S048[048<br>Unified Graph]
+        S044 --> S048
+        S047 --> S048
     end
 ```

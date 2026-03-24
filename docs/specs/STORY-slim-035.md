@@ -116,7 +116,7 @@ build_workflow_graph(root)
 
 ## Out of Scope
 
-- Microservice/OpenAPI/gRPC parsing (PRD Epic 2, S8)
+- Microservice/OpenAPI/gRPC parsing (PRD Epic 2, STORY-slim-042)
 - Mermaid visualization output integration (STORY-slim-036)
 - Impact analysis (STORY-slim-037)
 - Dynamic dependency detection from runtime logs

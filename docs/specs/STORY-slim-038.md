@@ -104,5 +104,5 @@ pactkit visualize --lazy
 
 - Blocking commits based on workflow impact (future enhancement)
 - Automatic PDCA re-execution when workflow breaks detected
-- Cross-service regression gate (PRD Epic 2, S9)
+- Cross-service regression gate (PRD Epic 2, STORY-slim-043)
 - Slack/email notifications for workflow impact
