@@ -1,5 +1,14 @@
 graph TD
+    JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
+    TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
+    TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
+    TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
+    TreeSitterAnalyzer__extract_funcs_and_calls["TreeSitterAnalyzer._extract_funcs_and_calls"]
+    TreeSitterAnalyzer_extract_functions_and_calls["TreeSitterAnalyzer.extract_functions_and_calls"]
+    TreeSitterAnalyzer_extract_imports["TreeSitterAnalyzer.extract_imports"]
+    WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
+    WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
     _add_fix_flag["_add_fix_flag"]
     _build_call_graph["_build_call_graph"]
     _build_class_graph["_build_class_graph"]
@@ -45,6 +54,7 @@ graph TD
     _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
     _extract_requirement_ids["_extract_requirement_ids"]
+    _find_enclosing_class["_find_enclosing_class"]
     _find_entry_func["_find_entry_func"]
     _find_section["_find_section"]
     _format_result["_format_result"]
@@ -70,10 +80,12 @@ graph TD
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
+    _parse_commands["_parse_commands"]
     _parse_coverage_output["_parse_coverage_output"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
+    _parse_routing_table["_parse_routing_table"]
     _parse_story_blocks["_parse_story_blocks"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
@@ -91,8 +103,10 @@ graph TD
     _run_pytest_cov["_run_pytest_cov"]
     _scan_call_edges["_scan_call_edges"]
     _scan_files["_scan_files"]
+    _scan_skill_files["_scan_skill_files"]
     _search_issue["_search_issue"]
     _section_text["_section_text"]
+    _select_analyzer["_select_analyzer"]
     _strip_code_blocks["_strip_code_blocks"]
     _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
@@ -102,6 +116,7 @@ graph TD
     archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
+    build_workflow_graph["build_workflow_graph"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
     check_coverage["check_coverage"]
@@ -137,6 +152,7 @@ graph TD
     main["main"]
     map_to_tests["map_to_tests"]
     nl["nl"]
+    regression_workflow_impact["regression_workflow_impact"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_lint["run_lint"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
@@ -147,6 +163,7 @@ graph TD
     validate_config["validate_config"]
     validate_spec["validate_spec"]
     visualize["visualize"]
+    workflow_impact["workflow_impact"]
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
     resolve_pactkit_yaml_dir --> is_environment_format
@@ -249,6 +266,11 @@ graph TD
     _detect_file_ext --> _detect_stack
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
+    JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     _build_file_graph --> nl
     _build_class_graph --> nl
     _build_call_graph --> _resolve_callee
@@ -258,13 +280,21 @@ graph TD
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
     impact --> _load_scan_excludes
+    impact --> _detect_stack
+    impact --> _select_analyzer
+    impact --> _scan_call_edges
+    impact --> _build_reverse_graph
+    impact --> _scan_files
+    impact --> _scan_files
     impact --> _detect_file_ext
     impact --> _scan_files
-    impact --> _scan_call_edges
-    impact --> _detect_stack
-    impact --> _build_reverse_graph
     impact --> _resolve_test_path
     visualize --> _load_scan_excludes
+    visualize --> _detect_stack
+    visualize --> _select_analyzer
+    visualize --> build_workflow_graph
+    visualize --> _scan_files
+    visualize --> _scan_files
     visualize --> _detect_file_ext
     visualize --> _scan_files
     visualize --> _build_class_graph
@@ -273,6 +303,16 @@ graph TD
     visualize --> _build_reverse_graph
     visualize --> _build_call_graph
     visualize --> nl
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> nl
+    regression_workflow_impact --> build_workflow_graph
+    workflow_impact --> build_workflow_graph
+    workflow_impact --> nl
+    build_workflow_graph --> _parse_commands
+    build_workflow_graph --> _parse_routing_table
+    build_workflow_graph --> _scan_skill_files
     _section_text --> _find_section
     _check_requirements_section --> _section_text
     _check_acceptance_criteria --> _section_text

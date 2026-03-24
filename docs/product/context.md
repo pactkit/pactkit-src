@@ -1,16 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T17:00:00+08:00 by /project-done
+> Last updated: 2026-03-24T17:46:14+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 1 | In Progress: 0 | Done: 3 stories
+Backlog: 0 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-- STORY-slim-033: Java LanguageAnalyzer adapter (2026-03-24)
-- STORY-slim-032: TreeSitterAnalyzer base class + Go adapter (2026-03-24)
-- STORY-slim-031: Unified impact test mapping via LANG_PROFILES (2026-03-24)
+None
 
 ## Active Branches
 codex-integration
@@ -20,13 +18,23 @@ codex-integration
   feature/cython-build
 * main
   opencode-test
+  worktree-agent-a1c545fc
+  worktree-agent-a2a614d9
+  worktree-agent-a2c72eb4
+  worktree-agent-a2d37818
+  worktree-agent-a31efa03
++ worktree-agent-a69e176d
+  worktree-agent-a8a58db3
+  worktree-agent-ace1a8fe
+  worktree-agent-aeb84ca4
+  worktree-agent-af6334c9
 
 ## Key Decisions
-- spec_linter.py _check_acceptance_criteria: per-subsection GWT check must use raw_text (with code blocks) not stripped text, because specs legitimately wrap Gherkin in fenced blocks
 - Standalone scripts (visualize.py) need try/except ImportError guards for yaml.safe_load when reading pactkit.yaml — they cannot import from pactkit library
 - Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1
 - Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers
 - Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring
+- Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section
 
 ## Next Recommended Action
-`/project-act STORY-slim-034`
+`/project-design`

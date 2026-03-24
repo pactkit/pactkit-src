@@ -1,0 +1,72 @@
+graph TD
+    subgraph Commands
+        project_act["project-act"]
+        project_check["project-check"]
+        project_clarify["project-clarify"]
+        project_design["project-design"]
+        project_done["project-done"]
+        project_hotfix["project-hotfix"]
+        project_init["project-init"]
+        project_plan["project-plan"]
+        project_pr["project-pr"]
+        project_release["project-release"]
+        project_sprint["project-sprint"]
+        ultra_think["ultra-think"]
+    end
+    subgraph Agents
+        product_designer["Product Designer"]
+        qa_engineer["QA Engineer"]
+        repo_maintainer["Repo Maintainer"]
+        senior_developer["Senior Developer"]
+        system_architect["System Architect"]
+        team_lead__current_session["Team Lead (current session)"]
+        team_lead__orchestrator["Team Lead (Orchestrator)"]
+    end
+    subgraph Skills
+        daily_retro["daily-retro"]
+        pactkit_analyze["pactkit-analyze"]
+        pactkit_board["pactkit-board"]
+        pactkit_doctor["pactkit-doctor"]
+        pactkit_draw["pactkit-draw"]
+        pactkit_release["pactkit-release"]
+        pactkit_review["pactkit-review"]
+        pactkit_scaffold["pactkit-scaffold"]
+        pactkit_status["pactkit-status"]
+        pactkit_trace["pactkit-trace"]
+        pactkit_visualize["pactkit-visualize"]
+    end
+    subgraph Files
+        daily_retro_retro_collector_py["retro_collector.py"]
+        pactkit_board_board_py["board.py"]
+        pactkit_scaffold_scaffold_py["scaffold.py"]
+        pactkit_visualize_visualize_py["visualize.py"]
+    end
+    project_act -->|invokes| senior_developer
+    project_act -->|depends_on| pactkit_trace
+    project_act -->|depends_on| pactkit_board
+    project_check -->|invokes| qa_engineer
+    project_clarify -->|invokes| system_architect
+    project_design -->|invokes| product_designer
+    project_design -->|depends_on| pactkit_scaffold
+    project_design -->|depends_on| pactkit_visualize
+    project_design -->|depends_on| pactkit_board
+    project_done -->|invokes| repo_maintainer
+    project_done -->|depends_on| pactkit_visualize
+    project_done -->|depends_on| pactkit_board
+    project_hotfix -->|invokes| senior_developer
+    project_hotfix -->|depends_on| pactkit_board
+    project_init -->|invokes| system_architect
+    project_init -->|depends_on| pactkit_visualize
+    project_init -->|depends_on| pactkit_scaffold
+    project_plan -->|invokes| system_architect
+    project_plan -->|depends_on| pactkit_trace
+    project_plan -->|depends_on| pactkit_scaffold
+    project_pr -->|invokes| repo_maintainer
+    project_release -->|invokes| repo_maintainer
+    project_release -->|depends_on| pactkit_release
+    project_sprint -->|invokes| team_lead__current_session
+    project_sprint -->|invokes| team_lead__orchestrator
+    daily_retro -->|contains| daily_retro_retro_collector_py
+    pactkit_board -->|contains| pactkit_board_board_py
+    pactkit_scaffold -->|contains| pactkit_scaffold_scaffold_py
+    pactkit_visualize -->|contains| pactkit_visualize_visualize_py

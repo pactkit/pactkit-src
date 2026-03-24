@@ -15,6 +15,43 @@ classDiagram
         +extract_functions_and_calls(file_path)
     }
     LanguageAnalyzer <|-- PythonAnalyzer
+    class TreeSitterAnalyzer {
+        -__init__(language, import_query, func_query, call_query, method_query)
+        -_captures(query, node)
+        -_matches(query, node)
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path)
+        -_extract_funcs_and_calls(tree, stem)
+        -_extract_calls_from_body(body_node)
+    }
+    LanguageAnalyzer <|-- TreeSitterAnalyzer
+    class GoAnalyzer {
+        -__init__()
+        -_extract_funcs_and_calls(tree, stem)
+    }
+    TreeSitterAnalyzer <|-- GoAnalyzer
+    class JavaAnalyzer {
+        -__init__()
+        -_extract_funcs_and_calls(tree, stem)
+    }
+    TreeSitterAnalyzer <|-- JavaAnalyzer
+    class TSAnalyzer {
+        -__init__()
+        -_extract_funcs_and_calls(tree, stem)
+    }
+    TreeSitterAnalyzer <|-- TSAnalyzer
+    class WorkflowNode {
+    }
+    class WorkflowEdge {
+    }
+    class WorkflowGraph {
+        -__init__()
+        +add_node(node)
+        +add_edge(edge)
+        -_sanitize_id(raw)
+        +to_mermaid()
+        +reverse_reach(entry_id)
+    }
     class LintIssue {
     }
     class LintResult {

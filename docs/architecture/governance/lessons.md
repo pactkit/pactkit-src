@@ -123,3 +123,4 @@
 | 2026-03-24 | Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1 | visualize.py:_STACK_MARKERS |
 | 2026-03-24 | Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers | visualize.py:_scan_files |
 | 2026-03-24 | Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring | visualize.py:_detect_stack |
+| 2026-03-24 | Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section | skills/__init__.py:_SHARED_HEADER |

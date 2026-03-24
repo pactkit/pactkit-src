@@ -399,6 +399,15 @@ def main():
             files = [f for f in result.stdout.strip().split("\n") if f]
         strategy, reason = classify_changes(files)
         print(f"{strategy.upper()} — {reason}")
+        # Workflow impact — informational only (STORY-slim-038)
+        try:
+            from pactkit.skills.visualize import regression_workflow_impact
+
+            wf_lines = regression_workflow_impact(".", files)
+            for line in wf_lines:
+                print(line)
+        except Exception:
+            pass  # Graceful degradation (R4)
         raise SystemExit(0 if strategy == "skip" else 0)
 
     elif args.command == "context":

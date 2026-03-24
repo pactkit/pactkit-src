@@ -466,3 +466,51 @@
 - [x] Implement JavaAnalyzer with tree-sitter queries
 - [x] Register JavaAnalyzer in _select_analyzer
 - [x] Unit tests with Java source samples
+
+### [STORY-slim-035] Workflow Parser
+> Spec: docs/specs/STORY-slim-035.md
+
+- [x] WorkflowNode/Edge/Graph dataclasses
+- [x] _parse_commands() regex extraction
+- [x] _parse_routing_table() table parser
+- [x] _scan_skill_files() directory scanner
+- [x] build_workflow_graph() combining all parsers
+- [x] Unit tests for all parsers
+
+### [STORY-slim-036] visualize --mode workflow
+> Spec: docs/specs/STORY-slim-036.md
+
+- [x] Add mode=workflow branch in visualize()
+- [x] Implement lazy check for workflow mode
+- [x] Ensure to_mermaid() produces subgraphs
+- [x] CLI skill script integration
+- [x] Unit tests
+
+### [STORY-slim-037] Workflow Impact Analysis
+> Spec: docs/specs/STORY-slim-037.md
+
+- [x] Implement WorkflowGraph.reverse_reach()
+- [x] Add mode=workflow branch in impact()
+- [x] Entry validation and error messaging
+- [x] Multiple entry points support
+- [x] Unit tests
+
+### [STORY-slim-038] Done Phase Workflow Integration
+> Spec: docs/specs/STORY-slim-038.md
+
+- [x] Add workflow graph to lazy staleness check
+- [x] Integrate workflow impact into regression output
+- [x] Graceful degradation when no workflow graph
+- [x] Update playbook documentation
+- [x] Unit tests
+
+## ✅ Done
+
+### [STORY-slim-034] TS/JS LanguageAnalyzer adapter
+> Spec: docs/specs/STORY-slim-034.md
+
+- [x] Add tree-sitter-typescript to optional deps
+- [x] Implement TSAnalyzer with tree-sitter queries
+- [x] Multi-extension scanning for Node projects
+- [x] Register TSAnalyzer in _select_analyzer
+- [x] Unit tests with TS/JS source samples

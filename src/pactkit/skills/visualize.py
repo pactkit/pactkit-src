@@ -4,6 +4,8 @@ import abc
 import argparse
 import ast
 import os
+import re
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -872,8 +874,35 @@ def impact(target='.', entry=None):
 
 
 # --- MAIN VISUALIZE (v1.3.0 Multi-Mode) ---
-def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False):
+def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False, lazy=False):
     root = Path(target).resolve()
+
+    # --- Workflow mode (STORY-slim-036) ---
+    if mode == 'workflow':
+        dest = root / 'docs' / 'architecture' / 'graphs' / 'workflow_graph.mmd'
+        if lazy and dest.exists():
+            # Check staleness: compare mmd mtime against command/skill/rule files
+            mmd_mtime = dest.stat().st_mtime
+            stale = False
+            for check_dir_name in ['.claude/commands', '.claude/skills', '.claude/rules',
+                                   'commands', 'skills', 'rules']:
+                check_dir = root / check_dir_name
+                if check_dir.is_dir():
+                    for f in check_dir.rglob('*'):
+                        if f.is_file() and f.stat().st_mtime > mmd_mtime:
+                            stale = True
+                            break
+                if stale:
+                    break
+            if not stale:
+                return f'Workflow graph up-to-date — skip regeneration: {dest}'
+        graph = build_workflow_graph(root=root)
+        content = graph.to_mermaid()
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding='utf-8')
+        return f'✅ Graph: {dest}'
+
     scan_excludes = _load_scan_excludes(root)
     stack = _detect_stack(root)
     # Multi-extension scanning for Node projects (STORY-slim-034 R5)
@@ -916,6 +945,290 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
 
 def list_rules(): return 'Rules defined in ~/.claude/CLAUDE.md'
 
+
+# --- WORKFLOW GRAPH (STORY-slim-035) ---
+
+
+@dataclass
+class WorkflowNode:
+    id: str
+    kind: str   # 'command', 'agent', 'skill', 'file'
+    label: str
+
+
+@dataclass
+class WorkflowEdge:
+    source: str
+    target: str
+    relation: str  # 'invokes', 'depends_on', 'reads', 'writes', 'contains'
+
+
+class WorkflowGraph:
+    def __init__(self):
+        self.nodes: dict[str, WorkflowNode] = {}
+        self.edges: list[WorkflowEdge] = []
+
+    def add_node(self, node: WorkflowNode):
+        if node.id not in self.nodes:
+            self.nodes[node.id] = node
+
+    def add_edge(self, edge: WorkflowEdge):
+        key = (edge.source, edge.target, edge.relation)
+        if not hasattr(self, '_edge_keys'):
+            self._edge_keys = set()
+        if key not in self._edge_keys:
+            self._edge_keys.add(key)
+            self.edges.append(edge)
+
+    @staticmethod
+    def _sanitize_id(raw: str) -> str:
+        """Sanitize a string for use as a Mermaid node ID."""
+        return re.sub(r'[^a-zA-Z0-9_]', '_', raw)
+
+    def to_mermaid(self) -> str:
+        lines = ['graph TD']
+        kind_order = ['command', 'agent', 'skill', 'file']
+        kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+        for kind in kind_order:
+            nodes_of_kind = [n for n in self.nodes.values() if n.kind == kind]
+            if not nodes_of_kind:
+                continue
+            lines.append(f'    subgraph {kind_labels[kind]}')
+            for n in sorted(nodes_of_kind, key=lambda x: x.id):
+                sid = self._sanitize_id(n.id)
+                lines.append(f'        {sid}["{n.label}"]')
+            lines.append('    end')
+        for e in self.edges:
+            src = self._sanitize_id(e.source)
+            dst = self._sanitize_id(e.target)
+            lines.append(f'    {src} -->|{e.relation}| {dst}')
+        return nl().join(lines)
+
+    def reverse_reach(self, entry_id: str) -> set[str]:
+        """Reverse BFS from entry_id — follow edges backward (target→source)."""
+        reverse_map: dict[str, list[str]] = {}
+        for e in self.edges:
+            reverse_map.setdefault(e.target, []).append(e.source)
+        visited: set[str] = set()
+        queue = [entry_id]
+        while queue:
+            current = queue.pop(0)
+            if current in visited:
+                continue
+            visited.add(current)
+            for src in reverse_map.get(current, []):
+                if src not in visited:
+                    queue.append(src)
+        return visited
+
+
+def _parse_commands(commands_dir, graph: WorkflowGraph):
+    """Parse command markdown files and extract command→agent, command→skill edges (R2)."""
+    if not commands_dir.is_dir():
+        return
+    agent_pattern = re.compile(r'\*\*Agent\*\*:\s*(.+)')
+    role_pattern = re.compile(r'\*\*Role\*\*:\s*(.+)')
+    skill_pattern = re.compile(r'pactkit-(\w+)')
+    for md in sorted(commands_dir.glob('*.md')):
+        cmd_name = md.stem  # e.g. 'project-act'
+        content = md.read_text(encoding='utf-8')
+        graph.add_node(WorkflowNode(id=cmd_name, kind='command', label=cmd_name))
+        # Extract agent role
+        for pat in (agent_pattern, role_pattern):
+            m = pat.search(content)
+            if m:
+                agent_label = m.group(1).strip()
+                agent_id = re.sub(r'[^a-zA-Z0-9]', '-', agent_label).strip('-').lower()
+                graph.add_node(WorkflowNode(id=agent_id, kind='agent', label=agent_label))
+                graph.add_edge(WorkflowEdge(source=cmd_name, target=agent_id, relation='invokes'))
+                break
+        # Extract skill references
+        seen_skills = set()
+        for m in skill_pattern.finditer(content):
+            skill_name = f'pactkit-{m.group(1)}'
+            if skill_name not in seen_skills:
+                seen_skills.add(skill_name)
+                graph.add_node(WorkflowNode(id=skill_name, kind='skill', label=skill_name))
+                graph.add_edge(WorkflowEdge(source=cmd_name, target=skill_name, relation='depends_on'))
+
+
+def _parse_routing_table(rules_dir, graph: WorkflowGraph):
+    """Parse rules/04-routing-table.md to extract command→agent→playbook mappings (R3)."""
+    rt_path = rules_dir / '04-routing-table.md' if rules_dir.is_dir() else None
+    if not rt_path or not rt_path.exists():
+        return
+    content = rt_path.read_text(encoding='utf-8')
+    # Pattern: ### Name (`/project-xxx`) \n - **Role**: Agent Role \n - **Playbook**: `path`
+    block_pattern = re.compile(
+        r'###\s+\w+[^(]*\(`/([^)]+)`\)\s*\n'
+        r'(?:.*?\n)*?'
+        r'-\s*\*\*Role\*\*:\s*(.+)',
+        re.MULTILINE
+    )
+    for m in block_pattern.finditer(content):
+        cmd_name = m.group(1).strip()
+        agent_label = m.group(2).strip()
+        agent_id = re.sub(r'[^a-zA-Z0-9]', '-', agent_label).strip('-').lower()
+        graph.add_node(WorkflowNode(id=cmd_name, kind='command', label=cmd_name))
+        graph.add_node(WorkflowNode(id=agent_id, kind='agent', label=agent_label))
+        graph.add_edge(WorkflowEdge(source=cmd_name, target=agent_id, relation='invokes'))
+
+
+def _scan_skill_files(skills_dir, graph: WorkflowGraph):
+    """Discover skill directories and their script files (R4)."""
+    if not skills_dir.is_dir():
+        return
+    for skill_dir in sorted(skills_dir.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        skill_name = skill_dir.name
+        graph.add_node(WorkflowNode(id=skill_name, kind='skill', label=skill_name))
+        scripts_dir = skill_dir / 'scripts'
+        if scripts_dir.is_dir():
+            for script in sorted(scripts_dir.iterdir()):
+                if script.is_file():
+                    file_id = f'{skill_name}/{script.name}'
+                    graph.add_node(WorkflowNode(id=file_id, kind='file', label=script.name))
+                    graph.add_edge(WorkflowEdge(source=skill_name, target=file_id, relation='contains'))
+
+
+def regression_workflow_impact(target='.', changed_files=None):
+    """Workflow impact for regression gate — informational only (STORY-slim-038 R1-R4).
+
+    Returns a list of impact description strings. Empty list if no matches or on failure.
+    """
+    if not changed_files:
+        return []
+    try:
+        root = Path(target).resolve()
+        graph = build_workflow_graph(root=root)
+        if not graph.nodes:
+            return []
+
+        # Match changed files against graph nodes (file nodes)
+        file_nodes = {n.id: n for n in graph.nodes.values() if n.kind == 'file'}
+        matched_entries = set()
+        for cf in changed_files:
+            cf_basename = cf.rsplit('/', 1)[-1] if '/' in cf else cf
+            for fid, fnode in file_nodes.items():
+                if cf_basename == fnode.label or cf_basename in fid:
+                    matched_entries.add(fid)
+            # Also check skill names
+            for nid, node in graph.nodes.items():
+                if node.kind == 'skill' and node.label in cf:
+                    matched_entries.add(nid)
+
+        if not matched_entries:
+            return []
+
+        lines = []
+        for entry_id in sorted(matched_entries):
+            reached = graph.reverse_reach(entry_id)
+            affected_cmds = sorted(
+                n.label for nid, n in graph.nodes.items()
+                if nid in reached and n.kind == 'command'
+            )
+            if affected_cmds:
+                entry_label = graph.nodes.get(entry_id, WorkflowNode(id=entry_id, kind='file', label=entry_id)).label
+                lines.append(f'Workflow Impact: {entry_label} changed → affects: {", ".join(affected_cmds)}')
+        return lines
+    except Exception:
+        return []
+
+
+def workflow_impact(target='.', entry=None, entries=None):
+    """Find workflow nodes affected by a changed skill/file (STORY-slim-037).
+
+    Returns a formatted string showing affected commands/agents/skills/files.
+    """
+    root = Path(target).resolve()
+    graph = build_workflow_graph(root=root)
+
+    # Collect all entry points
+    entry_ids = []
+    if entries:
+        entry_ids.extend(entries)
+    elif entry:
+        entry_ids.append(entry)
+    if not entry_ids:
+        return 'Error: no entry point specified'
+
+    # Validate entries
+    all_node_ids = set(graph.nodes.keys())
+    for eid in entry_ids:
+        if eid not in all_node_ids:
+            available = ', '.join(sorted(all_node_ids)[:20])
+            return f'Error: "{eid}" not found in workflow graph. Available nodes: {available}'
+
+    # Union of reverse reach for all entries
+    all_reached = set()
+    for eid in entry_ids:
+        all_reached |= graph.reverse_reach(eid)
+
+    # Group by kind
+    grouped: dict[str, list[str]] = {}
+    for nid in sorted(all_reached):
+        node = graph.nodes.get(nid)
+        if node:
+            grouped.setdefault(node.kind, []).append(node.label)
+
+    # Format output
+    lines = [f'Workflow Impact for "{", ".join(entry_ids)}":']
+    kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+    for kind in ['command', 'agent', 'skill', 'file']:
+        items = grouped.get(kind, [])
+        if items:
+            lines.append(f'  {kind_labels[kind]}: {", ".join(items)}')
+    return nl().join(lines)
+
+
+def build_workflow_graph(root=None, commands_dir=None, rules_dir=None, skills_dir=None):
+    """Build a complete WorkflowGraph from PactKit directory structure (R5).
+
+    Accepts explicit dirs for testing, or discovers from root via well-known paths.
+    """
+    if root is not None:
+        root = Path(root).resolve()
+        # Try pactkit.yaml for custom paths, else well-known locations
+        if commands_dir is None:
+            for candidate in [root / '.claude' / 'commands', root / 'commands']:
+                if candidate.is_dir():
+                    commands_dir = candidate
+                    break
+            if commands_dir is None:
+                # Try home-dir well-known path
+                home_cmd = Path.home() / '.claude' / 'commands'
+                if home_cmd.is_dir():
+                    commands_dir = home_cmd
+        if rules_dir is None:
+            for candidate in [root / '.claude' / 'rules', root / 'rules']:
+                if candidate.is_dir():
+                    rules_dir = candidate
+                    break
+            if rules_dir is None:
+                home_rules = Path.home() / '.claude' / 'rules'
+                if home_rules.is_dir():
+                    rules_dir = home_rules
+        if skills_dir is None:
+            for candidate in [root / '.claude' / 'skills', root / 'skills']:
+                if candidate.is_dir():
+                    skills_dir = candidate
+                    break
+            if skills_dir is None:
+                home_skills = Path.home() / '.claude' / 'skills'
+                if home_skills.is_dir():
+                    skills_dir = home_skills
+
+    graph = WorkflowGraph()
+    if commands_dir:
+        _parse_commands(commands_dir, graph)
+    if rules_dir:
+        _parse_routing_table(rules_dir, graph)
+    if skills_dir:
+        _scan_skill_files(skills_dir, graph)
+    return graph
+
+
 # --- CLI ---
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -924,16 +1237,17 @@ if __name__ == '__main__':
     sub.add_parser('list_rules')
     p_viz = sub.add_parser('visualize')
     p_viz.add_argument('--focus')
-    p_viz.add_argument('--mode', choices=['file', 'class', 'call'], default='file')
+    p_viz.add_argument('--mode', choices=['file', 'class', 'call', 'workflow'], default='file')
     p_viz.add_argument('--entry')
     p_viz.add_argument('--depth', type=int, default=0, help='Limit graph traversal to N levels (0=unlimited)')
     p_viz.add_argument('--max-nodes', type=int, default=0, help='Truncate graph to N nodes (0=unlimited)')
     p_viz.add_argument('--reverse', action='store_true', default=False, help='Reverse BFS: find callers of entry function (STORY-053)')
+    p_viz.add_argument('--lazy', action='store_true', default=False, help='Skip regeneration if graph is up-to-date')
     p_impact = sub.add_parser('impact', help='Find test files impacted by a changed function (STORY-053)')
     p_impact.add_argument('--entry', required=True, help='Changed function name')
 
     a = parser.parse_args()
     if a.cmd == 'init_arch': print(init_architecture())
-    elif a.cmd == 'visualize': print(visualize('.', a.focus, a.mode, a.entry, depth=a.depth, max_nodes=a.max_nodes, reverse=a.reverse))
+    elif a.cmd == 'visualize': print(visualize('.', a.focus, a.mode, a.entry, depth=a.depth, max_nodes=a.max_nodes, reverse=a.reverse, lazy=a.lazy))
     elif a.cmd == 'impact': print(impact('.', a.entry))
     elif a.cmd == 'list_rules': print(list_rules())
