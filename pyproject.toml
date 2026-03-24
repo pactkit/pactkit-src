@@ -12,6 +12,12 @@ requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0",
 ]
+
+[project.optional-dependencies]
+multilang = [
+    "tree-sitter>=0.25",
+    "tree-sitter-go>=0.25",
+]
 authors = [
     { name = "Slim" },
 ]
@@ -80,6 +86,6 @@ select = ["E", "F", "I", "W"]
 "src/pactkit/prompts/skills.py" = ["E501"]
 "src/pactkit/prompts/workflows.py" = ["E501"]
 "src/pactkit/generators/deployer.py" = ["E402"]
-"src/pactkit/skills/*.py" = ["E501", "E701", "E702", "E722", "E731"]
+"src/pactkit/skills/*.py" = ["E501", "E701", "E702", "E722", "E731", "I001"]
 "src/pactkit/scripts.py" = ["E501"]
-"tests/**/*.py" = ["E402", "E501", "E741", "F841"]
+"tests/**/*.py" = ["E402", "E501", "E741", "F841", "I001"]

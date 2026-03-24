@@ -440,3 +440,21 @@
 - [x] Refactor _build_call_graph to use analyzer
 - [x] Refactor _build_file_graph to use analyzer
 - [x] Snapshot test for identical output
+
+### [STORY-slim-032] TreeSitterAnalyzer base class + Go adapter
+> Spec: docs/specs/STORY-slim-032.md
+
+- [x] Add tree-sitter optional deps to pyproject.toml
+- [x] Implement TreeSitterAnalyzer base class
+- [x] Implement GoAnalyzer with tree-sitter queries
+- [x] Add _select_analyzer() function
+- [x] Update visualize() and impact() to use _select_analyzer
+- [x] Unit tests with Go source samples
+
+### [STORY-slim-031] Unified impact test mapping via LANG_PROFILES
+> Spec: docs/specs/STORY-slim-031.md
+
+- [x] impact reads test_map_pattern from LANG_PROFILES
+- [x] Pattern resolver for module and package
+- [x] Fallback to current hardcoded logic
+- [x] Unit tests for Python Go Java mapping

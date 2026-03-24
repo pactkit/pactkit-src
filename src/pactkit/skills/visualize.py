@@ -212,6 +212,160 @@ class PythonAnalyzer(LanguageAnalyzer):
             return {}, {}
 
 
+# --- TREE-SITTER ADAPTER (STORY-slim-032) ---
+# Guard imports: tree-sitter is optional (multilang extra)
+try:
+    from tree_sitter import Language as _TSLanguage, Parser as _TSParser, Query as _TSQuery, QueryCursor as _TSQueryCursor
+    _HAS_TREE_SITTER = True
+except ImportError:
+    _HAS_TREE_SITTER = False
+
+
+class TreeSitterAnalyzer(LanguageAnalyzer):
+    """Base class for tree-sitter-based language analyzers.
+
+    Subclasses provide language grammar and queries; this base class handles
+    parser init, file reading, error handling, and query execution.
+    """
+    def __init__(self, language, import_query, func_query, call_query, method_query=None):
+        import re as _re
+        self._re = _re
+        self._lang = _TSLanguage(language)
+        self._parser = _TSParser(self._lang)
+        self._import_query = _TSQuery(self._lang, import_query)
+        self._func_query = _TSQuery(self._lang, func_query)
+        self._call_query = _TSQuery(self._lang, call_query)
+        self._method_query = _TSQuery(self._lang, method_query) if method_query else None
+
+    def _captures(self, query, node):
+        """Run a query against a node, return dict[str, list[Node]]."""
+        cursor = _TSQueryCursor(query)
+        return cursor.captures(node)
+
+    def _matches(self, query, node):
+        """Run a query against a node, return list[tuple[int, dict[str, list[Node]]]]."""
+        cursor = _TSQueryCursor(query)
+        return cursor.matches(node)
+
+    def extract_imports(self, file_path):
+        try:
+            source = file_path.read_bytes()
+            tree = self._parser.parse(source)
+            captures = self._captures(self._import_query, tree.root_node)
+            return [n.text.decode().strip('"\'') for n in captures.get('import', [])]
+        except Exception:
+            return []
+
+    def extract_functions_and_calls(self, file_path):
+        try:
+            source = file_path.read_bytes()
+            tree = self._parser.parse(source)
+            return self._extract_funcs_and_calls(tree, file_path.stem)
+        except Exception:
+            return {}, {}
+
+    def _extract_funcs_and_calls(self, tree, stem):
+        """Override in subclasses for language-specific extraction logic."""
+        return {}, {}
+
+    def _extract_calls_from_body(self, body_node):
+        """Extract call targets from a function/method body node."""
+        calls = []
+        captures = self._captures(self._call_query, body_node)
+        callees = [n.text.decode() for n in captures.get('callee', [])]
+        calls.extend(callees)
+
+        objs = [n.text.decode() for n in captures.get('obj', [])]
+        methods = [n.text.decode() for n in captures.get('method', [])]
+        for obj, method in zip(objs, methods):
+            calls.append(f'{obj}.{method}')
+        return calls
+
+
+# Go tree-sitter queries
+_GO_IMPORT_QUERY = '(import_spec path: (interpreted_string_literal) @import)'
+
+_GO_FUNC_QUERY = '(function_declaration name: (identifier) @name body: (block) @body)'
+
+_GO_METHOD_QUERY = '''(method_declaration
+    receiver: (parameter_list (parameter_declaration type: (_) @receiver_type))
+    name: (field_identifier) @name
+    body: (block) @body)'''
+
+_GO_CALL_QUERY = '''[
+  (call_expression function: (identifier) @callee)
+  (call_expression function: (selector_expression
+    operand: (_) @obj
+    field: (field_identifier) @method))
+]'''
+
+
+class GoAnalyzer(TreeSitterAnalyzer):
+    """Go language analyzer using tree-sitter-go."""
+    def __init__(self):
+        import tree_sitter_go as _tsg
+        import re as _re
+        self._re = _re
+        self._lang = _TSLanguage(_tsg.language())
+        self._parser = _TSParser(self._lang)
+        self._import_query = _TSQuery(self._lang, _GO_IMPORT_QUERY)
+        self._func_query = _TSQuery(self._lang, _GO_FUNC_QUERY)
+        self._method_query = _TSQuery(self._lang, _GO_METHOD_QUERY)
+        self._call_query = _TSQuery(self._lang, _GO_CALL_QUERY)
+
+    def _extract_funcs_and_calls(self, tree, stem):
+        func_registry = {}
+        call_edges = {}
+
+        # Extract top-level functions
+        for _, match_dict in self._matches(self._func_query, tree.root_node):
+            names = match_dict.get('name', [])
+            bodies = match_dict.get('body', [])
+            if names and bodies:
+                qname = names[0].text.decode()
+                func_registry[qname] = stem
+                call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        # Extract method declarations
+        for _, match_dict in self._matches(self._method_query, tree.root_node):
+            names = match_dict.get('name', [])
+            receivers = match_dict.get('receiver_type', [])
+            bodies = match_dict.get('body', [])
+            if names and bodies:
+                receiver_type = ''
+                if receivers:
+                    raw = receivers[0].text.decode()
+                    # Strip pointer (*), spaces, interface {}
+                    receiver_type = self._re.sub(r'[*& \[\]]', '', raw).strip()
+                func_name = names[0].text.decode()
+                qname = f'{receiver_type}.{func_name}' if receiver_type else func_name
+                func_registry[qname] = stem
+                call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        return func_registry, call_edges
+
+
+def _select_analyzer(stack):
+    """Return the appropriate LanguageAnalyzer for the given stack.
+
+    Falls back to PythonAnalyzer if tree-sitter is not installed or
+    the language-specific grammar package is missing.
+    """
+    import sys as _sys
+    if stack == 'python':
+        return PythonAnalyzer()
+    if not _HAS_TREE_SITTER:
+        print(f"tree-sitter not installed; falling back to PythonAnalyzer for {stack}", file=_sys.stderr)
+        return PythonAnalyzer()
+    try:
+        if stack == 'go':
+            return GoAnalyzer()
+        # Future: java (STORY-slim-033), node (STORY-slim-034)
+    except ImportError:
+        print(f"tree-sitter-{stack} not installed; falling back to PythonAnalyzer for {stack}", file=_sys.stderr)
+    return PythonAnalyzer()
+
+
 # --- MODE: FILE (v1.3.0) ---
 def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0, analyzer=None):
     if analyzer is None:
@@ -551,10 +705,10 @@ def impact(target='.', entry=None):
     scan_excludes = _load_scan_excludes(root)
     file_ext = _detect_file_ext(root)
     all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    analyzer = PythonAnalyzer()  # TODO: select based on file_ext for Go/Java/TS (STORY-slim-032+)
+    stack = _detect_stack(root)
+    analyzer = _select_analyzer(stack)
     func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
 
-    stack = _detect_stack(root)
     # Build stem → source_file index for {package} resolution
     stem_to_file = {}
     for f in all_files:
@@ -588,7 +742,7 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
     scan_excludes = _load_scan_excludes(root)
     file_ext = _detect_file_ext(root)
     all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    analyzer = PythonAnalyzer()  # TODO: select based on file_ext for Go/Java/TS (STORY-slim-032+)
+    analyzer = _select_analyzer(_detect_stack(root))
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus)

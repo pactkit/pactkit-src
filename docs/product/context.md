@@ -1,14 +1,15 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T15:10:49+08:00 by pactkit context
+> Last updated: 2026-03-24T16:00:00+08:00 by /project-done
 
 ## Sprint Status
-Backlog: 4 | In Progress: 0 | Done: 0 stories
+Backlog: 3 | In Progress: 0 | Done: 2 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- STORY-slim-032: TreeSitterAnalyzer base class + Go adapter (2026-03-24)
+- STORY-slim-031: Unified impact test mapping via LANG_PROFILES (2026-03-24)
 
 ## Active Branches
 codex-integration
@@ -18,11 +19,6 @@ codex-integration
   feature/cython-build
 * main
   opencode-test
-+ worktree-agent-a1c545fc
-  worktree-agent-a2d37818
-  worktree-agent-a31efa03
-  worktree-agent-a8a58db3
-  worktree-agent-af6334c9
 
 ## Key Decisions
 - spec_linter.py _check_acceptance_criteria: per-subsection GWT check must use raw_text (with code blocks) not stripped text, because specs legitimately wrap Gherkin in fenced blocks
