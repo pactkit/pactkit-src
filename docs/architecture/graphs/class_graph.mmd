@@ -66,6 +66,10 @@ classDiagram
         +parse(root)
     }
     TopologyParser <|-- ServiceParser
+    class FrontendParser {
+        +parse(root)
+    }
+    TopologyParser <|-- FrontendParser
     class LintIssue {
     }
     class LintResult {

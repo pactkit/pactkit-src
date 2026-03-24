@@ -7,6 +7,24 @@
 ## ✅ Done
 
 
+### [STORY-slim-045] FrontendParser — Route & Page
+> Spec: docs/specs/STORY-slim-045.md
+
+- [x] TDD tests,_detect_frontend_framework,_parse_app_router_pages,_parse_pages_router,_parse_vue_routes,_parse_component_imports,FrontendParser class,Register in _TOPOLOGY_PARSERS
+
+
+### [STORY-slim-046] FrontendParser — Hook & Store
+> Spec: docs/specs/STORY-slim-046.md
+
+- [x] TDD tests,_scan_hooks,_scan_stores,_parse_hook_store_imports
+
+
+### [STORY-slim-047] Frontend Impact
+> Spec: docs/specs/STORY-slim-047.md
+
+- [x] TDD tests,Frontend kind labels,hooks/store regression matching
+
+
 ### [STORY-slim-042] ServiceParser
 > Spec: docs/specs/STORY-slim-042.md
 

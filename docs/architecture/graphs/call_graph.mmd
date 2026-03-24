@@ -1,4 +1,5 @@
 graph TD
+    FrontendParser_parse["FrontendParser.parse"]
     JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
     PdcaParser_parse["PdcaParser.parse"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
@@ -73,6 +74,7 @@ graph TD
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
+    _is_local_import["_is_local_import"]
     _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
@@ -81,19 +83,24 @@ graph TD
     _load_scan_excludes["_load_scan_excludes"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
+    _parse_app_router_pages["_parse_app_router_pages"]
     _parse_board["_parse_board"]
     _parse_commands["_parse_commands"]
+    _parse_component_imports["_parse_component_imports"]
     _parse_coverage_output["_parse_coverage_output"]
     _parse_docker_compose["_parse_docker_compose"]
+    _parse_hook_store_imports["_parse_hook_store_imports"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_mq_config["_parse_mq_config"]
     _parse_openapi["_parse_openapi"]
+    _parse_pages_router["_parse_pages_router"]
     _parse_pdca_sequence["_parse_pdca_sequence"]
     _parse_proto_files["_parse_proto_files"]
     _parse_recent_completions["_parse_recent_completions"]
     _parse_routing_table["_parse_routing_table"]
     _parse_story_blocks["_parse_story_blocks"]
+    _parse_vue_routes["_parse_vue_routes"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
@@ -110,8 +117,10 @@ graph TD
     _run_pytest_cov["_run_pytest_cov"]
     _scan_call_edges["_scan_call_edges"]
     _scan_files["_scan_files"]
+    _scan_hooks["_scan_hooks"]
     _scan_mq_source_patterns["_scan_mq_source_patterns"]
     _scan_skill_files["_scan_skill_files"]
+    _scan_stores["_scan_stores"]
     _search_issue["_search_issue"]
     _section_text["_section_text"]
     _select_analyzer["_select_analyzer"]
@@ -325,6 +334,17 @@ graph TD
     ServiceParser_parse --> _parse_proto_files
     ServiceParser_parse --> _parse_mq_config
     ServiceParser_parse --> _scan_mq_source_patterns
+    _parse_component_imports --> _is_local_import
+    _parse_component_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    FrontendParser_parse --> _parse_component_imports
+    FrontendParser_parse --> _scan_hooks
+    FrontendParser_parse --> _scan_stores
+    FrontendParser_parse --> _parse_hook_store_imports
+    FrontendParser_parse --> _parse_app_router_pages
+    FrontendParser_parse --> _parse_pages_router
+    FrontendParser_parse --> _parse_vue_routes
     regression_workflow_impact --> build_workflow_graph
     workflow_impact --> build_workflow_graph
     workflow_impact --> nl

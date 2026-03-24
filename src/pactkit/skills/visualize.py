@@ -1366,6 +1366,250 @@ class ServiceParser(TopologyParser):
 _TOPOLOGY_PARSERS['service'] = ServiceParser()
 
 
+# --- Frontend Topology (STORY-slim-045, 046) ---
+
+def _is_local_import(src: str) -> bool:
+    """Returns True if the import source is a local project path (not an npm package)."""
+    return src.startswith('./') or src.startswith('../') or src.startswith('@/')
+
+
+def _parse_app_router_pages(root, graph: WorkflowGraph) -> list:
+    """Parse Next.js App Router pages (app/**/page.tsx|jsx) (STORY-slim-045 R2).
+
+    Returns list of (route_id, file_path) tuples for downstream import analysis.
+    """
+    root = Path(root)
+    app_dir = root / 'app'
+    if not app_dir.is_dir():
+        return []
+    page_files = []
+    for ext in ('page.tsx', 'page.jsx'):
+        for p in sorted(app_dir.rglob(ext)):
+            rel = p.parent.relative_to(app_dir)
+            route = '/' + rel.as_posix() if rel.parts else '/'
+            graph.add_node(WorkflowNode(id=route, kind='page', label=route))
+            page_files.append((route, p))
+    return page_files
+
+
+def _parse_pages_router(root, graph: WorkflowGraph) -> list:
+    """Parse Next.js Pages Router (pages/**/*.tsx) (STORY-slim-045 R3).
+
+    Returns list of (route_id, file_path) tuples.
+    Excludes _app.tsx and _document.tsx.
+    """
+    root = Path(root)
+    pages_dir = root / 'pages'
+    if not pages_dir.is_dir():
+        return []
+    page_files = []
+    for p in sorted(pages_dir.rglob('*.tsx')):
+        if p.name.startswith('_'):
+            continue
+        rel = p.relative_to(pages_dir)
+        route_name = rel.with_suffix('').as_posix()
+        if route_name == 'index':
+            route = '/'
+        elif route_name.endswith('/index'):
+            route = '/' + route_name[:-len('/index')]
+        else:
+            route = '/' + route_name
+        graph.add_node(WorkflowNode(id=route, kind='page', label=route))
+        page_files.append((route, p))
+    return page_files
+
+
+def _parse_vue_routes(root, graph: WorkflowGraph) -> list:
+    """Parse Vue Router route definitions from src/router/index.ts (STORY-slim-045 R4).
+
+    Returns list of (route_id, None) tuples (no file_path since imports are inline).
+    """
+    root = Path(root)
+    router_path = None
+    for candidate in [root / 'src/router/index.ts', root / 'src/router/index.js']:
+        if candidate.exists():
+            router_path = candidate
+            break
+    if router_path is None:
+        return []
+    try:
+        content = router_path.read_text(encoding='utf-8')
+    except Exception:
+        return []
+    _skip_keywords = {'createRouter', 'createWebHistory', 'createWebHashHistory', 'Vue', 'defineComponent'}
+    path_pattern = re.compile(r"path:\s*['\"]([^'\"]+)['\"]")
+    comp_pattern = re.compile(r"component:\s*(\w+)")
+    path_matches = list(path_pattern.finditer(content))
+    comp_matches = list(comp_pattern.finditer(content))
+    page_files = []
+    for pm in path_matches:
+        route = pm.group(1)
+        graph.add_node(WorkflowNode(id=route, kind='page', label=route))
+        for cm in comp_matches:
+            if cm.start() > pm.start():
+                comp_name = cm.group(1)
+                if comp_name not in _skip_keywords:
+                    graph.add_node(WorkflowNode(id=comp_name, kind='component', label=comp_name))
+                    graph.add_edge(WorkflowEdge(source=route, target=comp_name, relation='renders'))
+                break
+        page_files.append((route, None))
+    return page_files
+
+
+def _parse_component_imports(page_files: list, graph: WorkflowGraph) -> None:
+    """Parse import statements from page files to create component nodes and renders edges (STORY-slim-045 R5).
+
+    Only tracks local project imports (not npm packages).
+    page_files: list of (page_id, file_path) tuples.
+    """
+    default_import = re.compile(r"import\s+(\w+)\s+from\s+['\"]([^'\"]+)['\"]")
+    named_import = re.compile(r"import\s+\{([^}]+)\}\s+from\s+['\"]([^'\"]+)['\"]")
+    for page_id, file_path in page_files:
+        if file_path is None:
+            continue
+        try:
+            content = Path(file_path).read_text(encoding='utf-8', errors='replace')
+        except Exception:
+            continue
+        # Default imports: import ComponentName from './path'
+        for m in default_import.finditer(content):
+            name, src = m.group(1), m.group(2)
+            if _is_local_import(src):
+                graph.add_node(WorkflowNode(id=name, kind='component', label=name))
+                graph.add_edge(WorkflowEdge(source=page_id, target=name, relation='renders'))
+        # Named imports: import { Button, Card } from './path'
+        for m in named_import.finditer(content):
+            names_str, src = m.group(1), m.group(2)
+            if _is_local_import(src):
+                for n in names_str.split(','):
+                    n = n.strip().split(' as ')[0].strip()
+                    if n and n[0].isupper():  # convention: components are PascalCase
+                        graph.add_node(WorkflowNode(id=n, kind='component', label=n))
+                        graph.add_edge(WorkflowEdge(source=page_id, target=n, relation='renders'))
+
+
+def _scan_hooks(root, graph: WorkflowGraph) -> list:
+    """Scan hook directories and add hook nodes to the graph (STORY-slim-046 R1, R3).
+
+    Returns list of (hook_id, file_path) tuples for downstream import analysis.
+    Scans: src/hooks/, composables/, src/composables/.
+    Only files with 'use' prefix are treated as hooks.
+    """
+    root = Path(root)
+    hook_dirs = [root / 'src/hooks', root / 'composables', root / 'src/composables']
+    result = []
+    for hook_dir in hook_dirs:
+        if not hook_dir.is_dir():
+            continue
+        for f in sorted(list(hook_dir.glob('*.ts')) + list(hook_dir.glob('*.js'))):
+            stem = f.stem
+            if stem.startswith('use'):
+                graph.add_node(WorkflowNode(id=stem, kind='hook', label=stem))
+                result.append((stem, f))
+    return result
+
+
+def _scan_stores(root, graph: WorkflowGraph) -> list:
+    """Scan store directories and add store nodes to the graph (STORY-slim-046 R2, R4).
+
+    Returns list of (store_id, file_path) tuples for downstream import analysis.
+    Scans: src/store/, src/stores/, src/slices/.
+    Files using createSlice/create/defineStore are treated as stores.
+    """
+    root = Path(root)
+    store_dirs = [root / 'src/store', root / 'src/stores', root / 'src/slices']
+    store_patterns = [
+        re.compile(r'createSlice\('),   # Redux
+        re.compile(r'\bcreate\('),      # Zustand
+        re.compile(r'defineStore\('),   # Pinia
+    ]
+    result = []
+    for store_dir in store_dirs:
+        if not store_dir.is_dir():
+            continue
+        for f in sorted(list(store_dir.glob('*.ts')) + list(store_dir.glob('*.js'))):
+            try:
+                content = f.read_text(encoding='utf-8', errors='replace')
+            except Exception:
+                continue
+            stem = f.stem
+            if any(pat.search(content) for pat in store_patterns):
+                graph.add_node(WorkflowNode(id=stem, kind='store', label=stem))
+                result.append((stem, f))
+    return result
+
+
+def _parse_hook_store_imports(node_files: list, graph: WorkflowGraph) -> None:
+    """Parse imports to create uses_hook and reads_store edges (STORY-slim-046 R3-R5).
+
+    node_files: list of (any, node_id, file_path) tuples.
+    Creates:
+    - component/page → hook: uses_hook edge
+    - hook → store: reads_store edge
+    """
+    default_import = re.compile(r"import\s+\{?(\w+)\}?\s+from\s+['\"]([^'\"]+)['\"]")
+    named_import = re.compile(r"import\s+\{([^}]+)\}\s+from\s+['\"]([^'\"]+)['\"]")
+    hook_ids = {nid for nid, n in graph.nodes.items() if n.kind == 'hook'}
+    store_ids = {nid for nid, n in graph.nodes.items() if n.kind == 'store'}
+    for _, node_id, file_path in node_files:
+        if file_path is None:
+            continue
+        try:
+            content = Path(file_path).read_text(encoding='utf-8', errors='replace')
+        except Exception:
+            continue
+        imported = set()
+        for m in default_import.finditer(content):
+            name, src = m.group(1), m.group(2)
+            if _is_local_import(src):
+                imported.add(name)
+        for m in named_import.finditer(content):
+            names_str, src = m.group(1), m.group(2)
+            if _is_local_import(src):
+                for n in names_str.split(','):
+                    imported.add(n.strip().split(' as ')[0].strip())
+        for imported_name in imported:
+            if imported_name in hook_ids:
+                graph.add_edge(WorkflowEdge(source=node_id, target=imported_name, relation='uses_hook'))
+            elif imported_name in store_ids:
+                graph.add_edge(WorkflowEdge(source=node_id, target=imported_name, relation='reads_store'))
+
+
+class FrontendParser(TopologyParser):
+    """Frontend topology parser for Next.js/Nuxt/Vue projects (STORY-slim-045 R1).
+
+    Phase 1 (STORY-slim-045): page nodes, component nodes, renders edges.
+    Phase 2 (STORY-slim-046): hook nodes, store nodes, uses_hook/reads_store edges.
+    """
+    markers = [
+        'next.config.js', 'next.config.ts', 'nuxt.config.ts', 'vite.config.ts',
+        'app/layout.tsx', 'pages/_app.tsx', 'src/router/',
+    ]
+
+    def parse(self, root) -> WorkflowGraph:
+        graph = WorkflowGraph()
+        root = Path(root)
+        # Phase 1: pages, routes, and component import edges (STORY-slim-045)
+        page_files = []
+        page_files.extend(_parse_app_router_pages(root, graph))
+        page_files.extend(_parse_pages_router(root, graph))
+        page_files.extend(_parse_vue_routes(root, graph))
+        _parse_component_imports(page_files, graph)
+        # Phase 2: hooks and stores (STORY-slim-046)
+        hook_files = _scan_hooks(root, graph)
+        _scan_stores(root, graph)
+        # Phase 3: hook→store import edges
+        _parse_hook_store_imports(
+            [(None, hid, fp) for hid, fp in hook_files],
+            graph,
+        )
+        return graph
+
+
+# STORY-slim-045 R6: Register FrontendParser
+_TOPOLOGY_PARSERS['frontend'] = FrontendParser()
+
+
 def _parse_commands(commands_dir, graph: WorkflowGraph):
     """Parse command markdown files and extract command→agent, command→skill edges (R2)."""
     if not commands_dir.is_dir():
@@ -1494,13 +1738,18 @@ def regression_workflow_impact(target='.', changed_files=None):
             for nid, node in graph.nodes.items():
                 if node.kind == 'service' and node.id in cf:
                     matched_entries.add(nid)
+            # STORY-slim-047 R4: Match hook/store nodes by name in file path
+            for nid, node in graph.nodes.items():
+                if node.kind in ('hook', 'store') and node.id in cf:
+                    matched_entries.add(nid)
 
         if not matched_entries:
             return []
 
         lines = []
-        # Determine which kinds to report as "affected" (commands for PDCA, services for microservice)
-        report_kinds = {'command', 'service'}
+        # Determine which kinds to report as "affected"
+        # (commands for PDCA, services for microservice, pages for frontend)
+        report_kinds = {'command', 'service', 'page'}
         for entry_id in sorted(matched_entries):
             reached = graph.reverse_reach(entry_id)
             affected = sorted(
