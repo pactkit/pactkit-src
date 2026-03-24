@@ -109,5 +109,5 @@ visualize(root, mode="workflow")
 
 - Workflow impact analysis (STORY-slim-037)
 - Interactive filtering or focus on specific nodes
-- Service dependency graph (STORY-slim-039)
+- Service dependency graph (PRD Epic 2, S8)
 - HTML/SVG rendering of the Mermaid diagram

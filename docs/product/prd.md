@@ -65,42 +65,35 @@
 | S3 | Workflow Impact: `impact --mode workflow --entry <skill>` 反向追踪受影响命令 | 5 | 3 | 1.7 | ✅ Done (STORY-slim-037) |
 | S4 | Done Phase 集成: regression gate 检测 workflow 级影响 | 4 | 2 | 2.0 | ✅ Done (STORY-slim-038) |
 
-### Epic 1.5: PDCA Sequence Edges（命令间流转关系）
+### Epic 1.5: PDCA Sequence Edges + TopologyParser 抽象
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S4.1 | Command→Command Sequence Parser: 解析 project-sprint.md 提取 PDCA 流转顺序（Plan→Act→Check→Done）| 4 | 2 | 2.0 | Now |
-| S4.2 | Sequence Edge 渲染: workflow_graph.mmd 中用虚线箭头表示命令间流转（`-.->` dashed edge）| 3 | 1 | 3.0 | Now |
+| S5 | PDCA Sequence Parser + 渲染: 解析 project-sprint.md 提取命令间 PDCA 流转顺序，虚线箭头渲染 | 4 | 2 | 2.0 | Now |
+| S6 | TopologyParser ABC + Auto-Detect: 抽象基类 `detect()` + `parse()` 接口，`detect_topology()` 调度器扫描 `_TOPOLOGY_MARKERS` 自动选择 Parser | 5 | 3 | 1.7 | Now |
+| S7 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | Now |
 
-### Epic 2: TopologyParser 抽象层 + 自动检测
-
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S5 | TopologyParser 抽象基类: 定义 `detect()` + `parse()` → `WorkflowGraph` 接口 | 5 | 2 | 2.5 | Now |
-| S5.1 | Topology Auto-Detect: 扫描项目标记文件自动选择 Parser（零配置） | 5 | 3 | 1.7 | Now |
-| S5.2 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | Now |
-
-### Epic 3: Service Dependency Graph（微服务场景）
+### Epic 2: Service Dependency Graph（微服务场景）
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S6 | ServiceParser: 解析 OpenAPI/gRPC proto/docker-compose 提取服务间依赖 | 5 | 4 | 1.3 | Next |
-| S7 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | Next |
-| S8 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | Later |
+| S8 | ServiceParser: 解析 docker-compose/OpenAPI/gRPC proto 提取服务间依赖 | 5 | 4 | 1.3 | Next |
+| S9 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | Next |
+| S10 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | Later |
 
-### Epic 4: Frontend Topology Graph（前端场景）
-
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S9 | FrontendParser: 解析路由配置 + 页面→组件→hook→store 依赖 | 4 | 4 | 1.0 | Next |
-| S10 | Route Guard Impact: 变更 auth hook → 列出受影响的 page 和 middleware | 4 | 3 | 1.3 | Next |
-| S11 | State Store Topology: 解析 Redux/Zustand/Pinia store 的 slice 依赖关系 | 3 | 3 | 1.0 | Later |
-
-### Epic 5: Unified Layered Graph
+### Epic 3: Frontend Topology Graph（前端场景）
 
 | Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
 |-------|-------------|:------------:|:------------:|:--------------:|---------|
-| S12 | Unified Graph: 代码维度 + 逻辑维度合并为一张分层依赖图 | 4 | 4 | 1.0 | Later |
+| S11 | FrontendParser — Route & Page: 解析路由配置 + page→component 依赖 | 4 | 3 | 1.3 | Next |
+| S12 | FrontendParser — Hook & Store: 解析 component→hook→store 全链路拓扑 | 3 | 3 | 1.0 | Next |
+| S13 | Frontend Impact: 变更 hook/store → 列出受影响的 page 和 route guard | 4 | 3 | 1.3 | Next |
+
+### Epic 4: Unified Layered Graph
+
+| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
+|-------|-------------|:------------:|:------------:|:--------------:|---------|
+| S14 | Unified Graph: 代码维度 + 逻辑维度 + 多拓扑合并为一张分层依赖图 | 4 | 4 | 1.0 | Later |
 
 ---
 
@@ -180,11 +173,11 @@ class TopologyParser(abc.ABC):
         """解析项目，返回 WorkflowGraph。"""
 ```
 
-| Parser | detect() 条件 | parse() 产出 |
-|--------|--------------|-------------|
-| `PdcaParser` | `.claude/commands/` 存在 | command→agent→skill→file + command→command sequence |
-| `ServiceParser` | `docker-compose.yml` 或 `openapi.yaml` 存在 | service→api→service + topic→consumer |
-| `FrontendParser` | `next.config.*` 或 `src/router/` 存在 | page→component→hook→store |
+| Parser | detect() 条件 | parse() 产出 | Stories |
+|--------|--------------|-------------|---------|
+| `PdcaParser` | `.claude/commands/` 存在 | command→agent→skill→file + command→command sequence | S5, S7 |
+| `ServiceParser` | `docker-compose.yml` 或 `openapi.yaml` 存在 | service→api→service + topic→consumer | S8-S10 |
+| `FrontendParser` | `next.config.*` 或 `src/router/` 存在 | page→component→hook→store | S11-S13 |
 
 ### 4.4 Command→Command Sequence Edges
 
@@ -339,10 +332,10 @@ N/A — CLI 工具，无认证需求。
 |------|--------|--------|----------------|
 | Epic 1 ✅ | PDCA 命令依赖完整度 | 12/12 commands 出现在 workflow graph | `grep -c "project-" workflow_graph.mmd` |
 | Epic 1 ✅ | Workflow impact 准确率 | 改 skill → 正确列出受影响 commands | 手动验证 3 个 skill 变更场景 |
-| Epic 2 | Auto-detect 准确率 | 3 种拓扑类型零配置正确识别 | 在 pactkit/示例微服务/示例前端项目上测试 |
-| Epic 3 | 服务间依赖发现率 | docker-compose/openapi → 正确识别服务间边 | 对比人工梳理的依赖矩阵 |
-| Epic 4 | 前端组件影响追踪率 | 改 hook → 正确列出受影响 page | 对比 IDE 全局搜索结果 |
-| Epic 5 | Cross-topology impact | 代码变更 → 同时列出函数级和逻辑级影响 | 对比单维度分析 vs 合并分析 |
+| Epic 1.5 | Auto-detect 准确率 | 3 种拓扑类型零配置正确识别 | 在 pactkit/示例微服务/示例前端项目上测试 |
+| Epic 2 | 服务间依赖发现率 | docker-compose/openapi → 正确识别服务间边 | 对比人工梳理的依赖矩阵 |
+| Epic 3 | 前端组件影响追踪率 | 改 hook → 正确列出受影响 page | 对比 IDE 全局搜索结果 |
+| Epic 4 | Cross-topology impact | 代码变更 → 同时列出函数级和逻辑级影响 | 对比单维度分析 vs 合并分析 |
 
 ---
 
@@ -355,26 +348,24 @@ N/A — CLI 工具，无认证需求。
 - [x] STORY-slim-037: Workflow Impact — `impact --mode workflow --entry <skill>`
 - [x] STORY-slim-038: Done Phase 集成 — regression gate 检测 workflow 变更
 
-### Now: Epic 1.5 — PDCA Sequence Edges + Epic 2 — TopologyParser 抽象
+### Now: Epic 1.5 — PDCA Sequence + TopologyParser 抽象
 > 补充命令间流转关系 + 建立多拓扑自动检测框架。
-- [ ] S4.1: Command→Command Sequence Parser — 解析 sprint 编排顺序
-- [ ] S4.2: Sequence Edge 渲染 — 虚线箭头表示命令间流转
-- [ ] S5: TopologyParser 抽象基类 — detect() + parse() 接口
-- [ ] S5.1: Topology Auto-Detect — 扫描标记文件零配置识别拓扑类型
-- [ ] S5.2: PdcaParser — 将 Epic 1 逻辑重构为 TopologyParser 实现
+- [ ] S5: PDCA Sequence Parser + 渲染
+- [ ] S6: TopologyParser ABC + Auto-Detect
+- [ ] S7: PdcaParser 重构
 
-### Next: Epic 3 — Service Graph + Epic 4 — Frontend Graph
+### Next: Epic 2 — Service Graph + Epic 3 — Frontend Graph
 > 微服务和前端架构的逻辑依赖分析。
-- [ ] S6: ServiceParser — docker-compose/openapi/proto 解析
-- [ ] S7: Cross-Service Impact — 变更 API → 列出下游服务
-- [ ] S9: FrontendParser — page→component→hook→store 拓扑
-- [ ] S10: Route Guard Impact — 变更 hook → 列出受影响 page
+- [ ] S8: ServiceParser — docker-compose/openapi/proto
+- [ ] S9: Cross-Service Impact
+- [ ] S11: FrontendParser — Route & Page
+- [ ] S12: FrontendParser — Hook & Store
+- [ ] S13: Frontend Impact
 
-### Later: Epic 5 — Unified Graph
-> 代码维度 + 逻辑维度 + 多拓扑合并。
-- [ ] S8: MQ Topic Dependency — producer/consumer 关系
-- [ ] S11: State Store Topology — Redux/Zustand/Pinia slice 依赖
-- [ ] S12: Unified Layered Graph — 分层依赖图合并
+### Later: Epic 2 (cont.) + Epic 4 — Unified Graph
+> MQ 拓展 + 代码维度与逻辑维度合并。
+- [ ] S10: MQ Topic Dependency
+- [ ] S14: Unified Layered Graph
 
 ---
 
@@ -383,34 +374,30 @@ N/A — CLI 工具，无认证需求。
 ```mermaid
 graph LR
     subgraph "Epic 1 ✅"
-        S035[S035<br>Workflow Parser] --> S036[S036<br>--mode workflow]
-        S035 --> S037[S037<br>Workflow Impact]
-        S036 --> S038[S038<br>Done Integration]
-        S037 --> S038
+        S1[S1-S4<br>Workflow Graph] --> S038((Done))
     end
 
-    subgraph "Epic 1.5 + 2"
-        S038 --> S4_1[S4.1<br>Sequence Parser]
-        S4_1 --> S4_2[S4.2<br>Sequence Render]
-        S038 --> S5[S5<br>TopologyParser ABC]
-        S5 --> S5_1[S5.1<br>Auto-Detect]
-        S5 --> S5_2[S5.2<br>PdcaParser Refactor]
+    subgraph "Epic 1.5"
+        S038 --> S5[S5<br>PDCA Sequence]
+        S038 --> S6[S6<br>TopologyParser ABC]
+        S6 --> S7[S7<br>PdcaParser]
     end
 
-    subgraph "Epic 3 — Service"
-        S5_1 --> S6[S6<br>ServiceParser]
-        S6 --> S7[S7<br>Cross-Service Impact]
+    subgraph "Epic 2 — Service"
+        S6 --> S8[S8<br>ServiceParser]
+        S8 --> S9[S9<br>Cross-Service Impact]
+        S8 --> S10[S10<br>MQ Topic Dep]
     end
 
-    subgraph "Epic 4 — Frontend"
-        S5_1 --> S9[S9<br>FrontendParser]
-        S9 --> S10[S10<br>Route Guard Impact]
+    subgraph "Epic 3 — Frontend"
+        S6 --> S11[S11<br>Route & Page]
+        S11 --> S12[S12<br>Hook & Store]
+        S12 --> S13[S13<br>Frontend Impact]
     end
 
-    subgraph "Epic 5 — Unified"
-        S7 --> S8[S8<br>MQ Topic Dep]
-        S10 --> S11[S11<br>State Store Topology]
-        S8 --> S12[S12<br>Unified Graph]
-        S11 --> S12
+    subgraph "Epic 4 — Unified"
+        S9 --> S14[S14<br>Unified Graph]
+        S10 --> S14
+        S13 --> S14
     end
 ```
