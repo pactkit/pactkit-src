@@ -13,6 +13,7 @@ graph TD
     WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
     WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
     _add_fix_flag["_add_fix_flag"]
+    _build_bridge_edges["_build_bridge_edges"]
     _build_call_graph["_build_call_graph"]
     _build_class_graph["_build_class_graph"]
     _build_command_rules_header["_build_command_rules_header"]
@@ -79,6 +80,7 @@ graph TD
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
+    _load_code_graph["_load_code_graph"]
     _load_opencode_providers["_load_opencode_providers"]
     _load_scan_excludes["_load_scan_excludes"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
@@ -133,6 +135,7 @@ graph TD
     archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
+    build_unified_graph["build_unified_graph"]
     build_workflow_graph["build_workflow_graph"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
@@ -323,8 +326,9 @@ graph TD
     visualize --> nl
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
-    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> nl
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     PdcaParser_parse --> _parse_commands
     PdcaParser_parse --> _parse_routing_table
     PdcaParser_parse --> _scan_skill_files
@@ -349,6 +353,14 @@ graph TD
     workflow_impact --> build_workflow_graph
     workflow_impact --> nl
     build_workflow_graph --> detect_topology
+    _load_code_graph --> _detect_stack
+    _load_code_graph --> _select_analyzer
+    _load_code_graph --> _load_scan_excludes
+    _load_code_graph --> _scan_files
+    _load_code_graph --> _resolve_callee
+    build_unified_graph --> build_workflow_graph
+    build_unified_graph --> _load_code_graph
+    build_unified_graph --> _build_bridge_edges
     _section_text --> _find_section
     _check_requirements_section --> _section_text
     _check_acceptance_criteria --> _section_text

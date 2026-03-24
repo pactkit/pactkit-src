@@ -32,7 +32,8 @@ SCAN_EXCLUDES = {
     'skills', 'commands', 'rules', 'agents',  # PactKit marketplace dirs (BUG-006)
 }
 
-MAX_SCAN_FILES = 500  # STORY-060: file count ceiling to prevent hangs on large repos
+MAX_SCAN_FILES = 500   # STORY-060: file count ceiling to prevent hangs on large repos
+MAX_WORKFLOW_NODES = 500  # STORY-slim-048: unified graph node ceiling
 
 # Canonical: src/pactkit/cleaners.py _STACK_MARKERS
 _STACK_MARKERS = [
@@ -963,10 +964,30 @@ class WorkflowEdge:
     relation: str  # 'invokes', 'depends_on', 'reads', 'writes', 'contains'
 
 
+
+# STORY-slim-048: Map node kind to display dimension for layered to_mermaid()
+_KIND_TO_DIMENSION: dict[str, str] = {
+    'function': 'Code Dimension',
+    'class': 'Code Dimension',
+    'command': 'PDCA Topology',
+    'agent': 'PDCA Topology',
+    'skill': 'PDCA Topology',
+    'file': 'PDCA Topology',
+    'service': 'Service Topology',
+    'api': 'Service Topology',
+    'topic': 'Service Topology',
+    'page': 'Frontend Topology',
+    'component': 'Frontend Topology',
+    'hook': 'Frontend Topology',
+    'store': 'Frontend Topology',
+}
+
+
 class WorkflowGraph:
     def __init__(self):
         self.nodes: dict[str, WorkflowNode] = {}
         self.edges: list[WorkflowEdge] = []
+        self.layered: bool = False  # STORY-slim-048: set True by build_unified_graph
 
     def add_node(self, node: WorkflowNode):
         if node.id not in self.nodes:
@@ -987,21 +1008,42 @@ class WorkflowGraph:
 
     def to_mermaid(self) -> str:
         lines = ['graph TD']
-        # STORY-slim-041 R6: Dynamic kind discovery — known PDCA kinds first, then any new kinds
-        _known_order = ['command', 'agent', 'skill', 'file']
-        _known_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
-        all_kinds = sorted({n.kind for n in self.nodes.values()})
-        kind_order = [k for k in _known_order if k in all_kinds] + [k for k in all_kinds if k not in _known_order]
-        kind_labels = {**_known_labels, **{k: k.title() + 's' for k in all_kinds if k not in _known_labels}}
-        for kind in kind_order:
-            nodes_of_kind = [n for n in self.nodes.values() if n.kind == kind]
-            if not nodes_of_kind:
-                continue
-            lines.append(f'    subgraph {kind_labels[kind]}')
-            for n in sorted(nodes_of_kind, key=lambda x: x.id):
-                sid = self._sanitize_id(n.id)
-                lines.append(f'        {sid}["{n.label}"]')
-            lines.append('    end')
+        if self.layered:
+            # STORY-slim-048 R3: Group by dimension for unified/layered graphs
+            _dim_order = ['Code Dimension', 'PDCA Topology', 'Service Topology', 'Frontend Topology']
+            dimension_nodes: dict[str, list[WorkflowNode]] = {}
+            for n in self.nodes.values():
+                dim = _KIND_TO_DIMENSION.get(n.kind, n.kind.title() + ' Topology')
+                dimension_nodes.setdefault(dim, []).append(n)
+            all_dims = sorted(dimension_nodes.keys())
+            dim_order = [d for d in _dim_order if d in dimension_nodes] + [
+                d for d in all_dims if d not in _dim_order
+            ]
+            for dim in dim_order:
+                nodes = dimension_nodes.get(dim, [])
+                if not nodes:
+                    continue
+                lines.append(f'    subgraph "{dim}"')
+                for n in sorted(nodes, key=lambda x: x.id):
+                    sid = self._sanitize_id(n.id)
+                    lines.append(f'        {sid}["{n.label}"]')
+                lines.append('    end')
+        else:
+            # STORY-slim-041 R6: Dynamic kind discovery — known PDCA kinds first, then any new kinds
+            _known_order = ['command', 'agent', 'skill', 'file']
+            _known_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+            all_kinds = sorted({n.kind for n in self.nodes.values()})
+            kind_order = [k for k in _known_order if k in all_kinds] + [k for k in all_kinds if k not in _known_order]
+            kind_labels = {**_known_labels, **{k: k.title() + 's' for k in all_kinds if k not in _known_labels}}
+            for kind in kind_order:
+                nodes_of_kind = [n for n in self.nodes.values() if n.kind == kind]
+                if not nodes_of_kind:
+                    continue
+                lines.append(f'    subgraph {kind_labels[kind]}')
+                for n in sorted(nodes_of_kind, key=lambda x: x.id):
+                    sid = self._sanitize_id(n.id)
+                    lines.append(f'        {sid}["{n.label}"]')
+                lines.append('    end')
         for e in self.edges:
             src = self._sanitize_id(e.source)
             dst = self._sanitize_id(e.target)
@@ -1840,6 +1882,109 @@ def build_workflow_graph(root=None, commands_dir=None, rules_dir=None, skills_di
             for edge in sub.edges:
                 merged.add_edge(edge)
     return merged
+
+
+# --- Unified Layered Graph (STORY-slim-048) ---
+
+def _load_code_graph(root) -> tuple:
+    """Build a code-level WorkflowGraph from source files (STORY-slim-048 R1).
+
+    Uses the existing LanguageAnalyzer pipeline to extract function-level nodes.
+    Returns (WorkflowGraph with 'function' kind nodes, func_registry dict).
+    func_registry: {func_name: file_path_string}
+    """
+    root = Path(root)
+    graph = WorkflowGraph()
+    func_registry: dict[str, str] = {}
+
+    stack = _detect_stack(root)
+    analyzer = _select_analyzer(stack)
+    scan_excludes = _load_scan_excludes(root)
+    file_ext = _LANG_FILE_EXT.get(stack, '.py')
+
+    try:
+        all_files, _, _ = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
+    except Exception:
+        return graph, func_registry
+
+    call_edges_all: dict[str, list] = {}
+    for f in all_files:
+        fr, ce = analyzer.extract_functions_and_calls(f)
+        for fname, fpath in fr.items():
+            func_registry[fname] = str(fpath)
+        call_edges_all.update(ce)
+
+    all_funcs = set(func_registry.keys())
+    for func_name in all_funcs:
+        graph.add_node(WorkflowNode(id=func_name, kind='function', label=func_name))
+    for caller, callees in call_edges_all.items():
+        if caller not in all_funcs:
+            continue
+        for callee in callees:
+            resolved = _resolve_callee(callee, all_funcs)
+            if resolved:
+                graph.add_edge(WorkflowEdge(source=caller, target=resolved, relation='calls'))
+
+    return graph, func_registry
+
+
+def _build_bridge_edges(func_registry: dict, topology_graph: 'WorkflowGraph', unified_graph: 'WorkflowGraph') -> None:
+    """Create cross-dimension bridge edges linking code-level to topology-level nodes (STORY-slim-048 R2).
+
+    - function → skill: function's file path contains the skill directory name
+    - function → service: function's file path contains the service node ID
+    """
+    skill_nodes = {nid for nid, n in topology_graph.nodes.items() if n.kind == 'skill'}
+    service_nodes = {nid for nid, n in topology_graph.nodes.items() if n.kind == 'service'}
+
+    for func_name, file_path_str in func_registry.items():
+        for skill_id in skill_nodes:
+            if skill_id in file_path_str:
+                unified_graph.add_edge(WorkflowEdge(source=func_name, target=skill_id, relation='implements'))
+        for svc_id in service_nodes:
+            if svc_id in file_path_str:
+                unified_graph.add_edge(WorkflowEdge(source=func_name, target=svc_id, relation='belongs_to'))
+
+
+def build_unified_graph(root) -> 'WorkflowGraph':
+    """Build a unified layered graph merging all topology dimensions with code-level graph (STORY-slim-048 R1).
+
+    Returns WorkflowGraph with layered=True.
+    Enforces MAX_WORKFLOW_NODES — truncates with warning if exceeded.
+    """
+    import warnings as _warnings
+    root = Path(root).resolve()
+    unified = WorkflowGraph()
+    unified.layered = True
+
+    # Topology graph (PDCA + Service + Frontend)
+    topology_graph = build_workflow_graph(root=root)
+    for node in topology_graph.nodes.values():
+        unified.add_node(node)
+    for edge in topology_graph.edges:
+        unified.add_edge(edge)
+
+    # Code graph (function/calls)
+    code_graph, func_registry = _load_code_graph(root)
+    for node in code_graph.nodes.values():
+        unified.add_node(node)
+    for edge in code_graph.edges:
+        unified.add_edge(edge)
+
+    # Bridge edges across dimensions
+    _build_bridge_edges(func_registry, topology_graph, unified)
+
+    # Enforce MAX_WORKFLOW_NODES
+    if len(unified.nodes) > MAX_WORKFLOW_NODES:
+        _warnings.warn(
+            f'Unified graph has {len(unified.nodes)} nodes, truncating to {MAX_WORKFLOW_NODES}',
+            stacklevel=2,
+        )
+        keep_ids = set(list(unified.nodes.keys())[:MAX_WORKFLOW_NODES])
+        unified.nodes = {k: v for k, v in unified.nodes.items() if k in keep_ids}
+        unified.edges = [e for e in unified.edges if e.source in keep_ids and e.target in keep_ids]
+
+    return unified
 
 
 # --- CLI ---

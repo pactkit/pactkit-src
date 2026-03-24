@@ -7,6 +7,12 @@
 ## ✅ Done
 
 
+### [STORY-slim-048] Unified Layered Graph
+> Spec: docs/specs/STORY-slim-048.md
+
+- [x] TDD tests,MAX_WORKFLOW_NODES constant,_load_code_graph,_build_bridge_edges,build_unified_graph,layered to_mermaid
+
+
 ### [STORY-slim-045] FrontendParser — Route & Page
 > Spec: docs/specs/STORY-slim-045.md
 

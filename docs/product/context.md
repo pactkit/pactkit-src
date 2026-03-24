@@ -2,15 +2,15 @@
 > Last updated: 2026-03-24T21:30:00+08:00 by project-act
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 9 stories
+Backlog: 0 | In Progress: 0 | Done: 10 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-- STORY-slim-045: FrontendParser — Route & Page
 - STORY-slim-046: FrontendParser — Hook & Store
 - STORY-slim-047: Frontend Impact
+- STORY-slim-048: Unified Layered Graph
 
 ## Active Branches
 codex-integration
@@ -39,4 +39,4 @@ codex-integration
 - Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section
 
 ## Next Recommended Action
-`/project-act STORY-slim-048`
+`/project-done` (archive sprint 039-048) or `/project-release` (v2.4.0/v2.5.0)
