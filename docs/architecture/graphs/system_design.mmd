@@ -15,7 +15,7 @@ graph TD
 
     subgraph "Runtime Skills"
         Board["board.py<br/>Sprint Board ops"]
-        Visualize["visualize.py<br/>Code graphs<br/>(reads pactkit.yaml scan_excludes)"]
+        Visualize["visualize.py<br/>Code graphs<br/>(reads pactkit.yaml scan_excludes + stack)"]
         Scaffold["scaffold.py<br/>File scaffolding"]
         SpecLinter["spec_linter.py<br/>Spec validation"]
     end
@@ -64,7 +64,7 @@ graph TD
     Deployer --> Commands
     Deployer --> Agents
     Deployer --> Skills
-    Config -->|"visualize.scan_excludes"| Visualize
+    Config -->|"visualize.scan_excludes<br/>stack (file_ext detection)"| Visualize
 
     Commands -->|"Done/Plan/Init<br/>generate"| Context
     Commands -->|"Done<br/>auto-append"| Lessons

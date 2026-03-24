@@ -31,6 +31,25 @@ SCAN_EXCLUDES = {
 
 MAX_SCAN_FILES = 500  # STORY-060: file count ceiling to prevent hangs on large repos
 
+# Canonical: src/pactkit/cleaners.py _STACK_MARKERS
+_STACK_MARKERS = [
+    ("pyproject.toml", "python"),
+    ("setup.py", "python"),
+    ("setup.cfg", "python"),
+    ("package.json", "node"),
+    ("go.mod", "go"),
+    ("pom.xml", "java"),
+    ("build.gradle", "java"),
+]
+
+# Canonical: src/pactkit/prompts/workflows.py LANG_PROFILES[*].file_ext
+_LANG_FILE_EXT = {
+    "python": ".py",
+    "node": ".ts",
+    "go": ".go",
+    "java": ".java",
+}
+
 
 def _load_scan_excludes(root):
     """Load scan_excludes from pactkit.yaml if present. Returns list or None.
@@ -58,14 +77,48 @@ def _load_scan_excludes(root):
     return None
 
 
-def _scan_files(root, scan_excludes=None):
+def _detect_file_ext(root):
+    """Detect the source file extension for the project at root.
+
+    Priority:
+    1. pactkit.yaml 'stack' field (if not 'auto' and known in _LANG_FILE_EXT)
+    2. Marker-file detection via _STACK_MARKERS
+    3. Default: '.py'
+    """
+    # 1. Try reading stack from pactkit.yaml
+    candidates = [
+        root / '.claude' / 'pactkit.yaml',
+        root / '.opencode' / 'pactkit.yaml',
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    stack = data.get('stack', 'auto')
+                    if stack and stack != 'auto' and stack in _LANG_FILE_EXT:
+                        return _LANG_FILE_EXT[stack]
+            except Exception:
+                pass
+
+    # 2. Marker-file detection
+    for marker, stack in _STACK_MARKERS:
+        if (root / marker).exists():
+            return _LANG_FILE_EXT.get(stack, '.py')
+
+    # 3. Default
+    return '.py'
+
+
+def _scan_files(root, scan_excludes=None, file_ext='.py'):
     import sys as _sys
     excludes = set(scan_excludes) if scan_excludes is not None else SCAN_EXCLUDES
     all_files = []
     module_index = {}
     file_to_node = {}
 
-    for p in root.rglob('*.py'):
+    for p in root.rglob(f'*{file_ext}'):
         if any(part in excludes for part in p.parts): continue
         if len(all_files) >= MAX_SCAN_FILES:
             print(f"⚠️ Scan truncated at {MAX_SCAN_FILES} files. Use --focus <module> to narrow scope.", file=_sys.stderr)
@@ -449,7 +502,8 @@ def impact(target='.', entry=None):
     if not entry: return ''
     root = Path(target).resolve()
     scan_excludes = _load_scan_excludes(root)
-    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes)
+    file_ext = _detect_file_ext(root)
+    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
     func_registry, call_edges = _scan_call_edges(root, all_files)
 
     visited, _ = _build_reverse_graph(func_registry, call_edges, entry)
@@ -470,7 +524,8 @@ def impact(target='.', entry=None):
 def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False):
     root = Path(target).resolve()
     scan_excludes = _load_scan_excludes(root)
-    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes)
+    file_ext = _detect_file_ext(root)
+    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus)

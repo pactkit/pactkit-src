@@ -38,6 +38,7 @@ graph TD
     _deploy_plugin_json["_deploy_plugin_json"]
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
+    _detect_file_ext["_detect_file_ext"]
     _detect_ghe["_detect_ghe"]
     _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
@@ -255,10 +256,12 @@ graph TD
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
     impact --> _load_scan_excludes
+    impact --> _detect_file_ext
     impact --> _scan_files
     impact --> _scan_call_edges
     impact --> _build_reverse_graph
     visualize --> _load_scan_excludes
+    visualize --> _detect_file_ext
     visualize --> _scan_files
     visualize --> _build_class_graph
     visualize --> _build_file_graph

@@ -2,11 +2,6 @@
 
 ## 📋 Backlog
 
-### [STORY-slim-029] Multi-language file discovery via LANG_PROFILES
-> Spec: docs/specs/STORY-slim-029.md
-
-- [ ] _scan_files accepts file_ext param,visualize reads stack and passes file_ext,Fallback to *.py for unknown stacks,Unit tests for Python Go Java detection
-
 ### [STORY-slim-030] LanguageAnalyzer interface + Python adapter
 > Spec: docs/specs/STORY-slim-030.md
 
@@ -35,3 +30,4 @@
 ## 🔄 In Progress
 
 ## ✅ Done
+

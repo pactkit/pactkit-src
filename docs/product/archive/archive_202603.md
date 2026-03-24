@@ -421,3 +421,13 @@
 - [x] Add visualize.scan_excludes to default config,_scan_files reads config param with fallback,pactkit init auto-generates visualize config,auto_merge backfills visualize section,Unit tests for backward compat
 
 ## ✅ Done
+
+### [STORY-slim-029] Multi-language file discovery via LANG_PROFILES
+> Spec: docs/specs/STORY-slim-029.md
+
+- [x] RED: Unit tests for _detect_file_ext and _scan_files file_ext param
+- [x] Add _STACK_MARKERS + _LANG_FILE_EXT inline data
+- [x] Add _detect_file_ext(root) function
+- [x] Modify _scan_files() to accept file_ext param
+- [x] Wire file_ext through visualize() and impact() callers
+- [x] GREEN: All tests pass (2864 passed, 0 regressions)
