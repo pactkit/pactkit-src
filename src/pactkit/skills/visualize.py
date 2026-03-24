@@ -987,8 +987,12 @@ class WorkflowGraph:
 
     def to_mermaid(self) -> str:
         lines = ['graph TD']
-        kind_order = ['command', 'agent', 'skill', 'file']
-        kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+        # STORY-slim-041 R6: Dynamic kind discovery — known PDCA kinds first, then any new kinds
+        _known_order = ['command', 'agent', 'skill', 'file']
+        _known_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+        all_kinds = sorted({n.kind for n in self.nodes.values()})
+        kind_order = [k for k in _known_order if k in all_kinds] + [k for k in all_kinds if k not in _known_order]
+        kind_labels = {**_known_labels, **{k: k.title() + 's' for k in all_kinds if k not in _known_labels}}
         for kind in kind_order:
             nodes_of_kind = [n for n in self.nodes.values() if n.kind == kind]
             if not nodes_of_kind:
@@ -1001,7 +1005,8 @@ class WorkflowGraph:
         for e in self.edges:
             src = self._sanitize_id(e.source)
             dst = self._sanitize_id(e.target)
-            lines.append(f'    {src} -->|{e.relation}| {dst}')
+            arrow = '-.->' if e.relation == 'sequence' else '-->'
+            lines.append(f'    {src} {arrow}|{e.relation}| {dst}')
         return nl().join(lines)
 
     def reverse_reach(self, entry_id: str) -> set[str]:
@@ -1020,6 +1025,345 @@ class WorkflowGraph:
                 if src not in visited:
                     queue.append(src)
         return visited
+
+
+class TopologyParser(abc.ABC):
+    """Abstract base class for topology-specific workflow parsers (STORY-slim-040 R1).
+
+    Subclasses declare `markers` and implement `parse()`.
+    The default `detect()` checks if any marker file/dir exists under root.
+    """
+    markers: list[str] = []
+
+    def detect(self, root) -> bool:
+        root = Path(root)
+        for marker in self.markers:
+            if (root / marker).exists():
+                return True
+        return False
+
+    @abc.abstractmethod
+    def parse(self, root) -> WorkflowGraph:
+        ...
+
+
+# STORY-slim-040 R2: Topology marker lists for auto-detection
+_TOPOLOGY_MARKERS: dict[str, list[str]] = {
+    'pdca': ['.claude/commands/', 'pactkit.yaml'],
+    'service': ['docker-compose.yml', 'docker-compose.yaml', 'kubernetes/', 'k8s/', 'openapi.yaml', 'swagger.json'],
+    'frontend': ['next.config.js', 'next.config.ts', 'nuxt.config.ts', 'vite.config.ts', 'app/layout.tsx', 'pages/_app.tsx', 'src/router/', 'src/store/'],
+}
+
+
+def detect_topology(root) -> list[str]:
+    """Scan project root against _TOPOLOGY_MARKERS and return matching topology names (STORY-slim-040 R3)."""
+    root = Path(root)
+    matched = []
+    for name, markers in _TOPOLOGY_MARKERS.items():
+        for marker in markers:
+            if (root / marker).exists():
+                matched.append(name)
+                break
+    return matched
+
+
+# STORY-slim-040 R4: Registry — populated by subclass stories (041, 042, 045)
+_TOPOLOGY_PARSERS: dict[str, TopologyParser] = {}
+
+
+class PdcaParser(TopologyParser):
+    """PDCA topology parser — wraps existing command/routing/skill parsers (STORY-slim-041 R1).
+
+    Declared kind_order and kind_labels for PDCA topology.
+    """
+    markers = ['.claude/commands/', 'commands/', '.claude/pactkit.yaml', '.opencode/pactkit.yaml']
+    kind_order = ['command', 'agent', 'skill', 'file']
+    kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+
+    def detect(self, root) -> bool:
+        root = Path(root)
+        for marker in self.markers:
+            if (root / marker).exists():
+                return True
+        return False
+
+    def parse(self, root, commands_dir=None, rules_dir=None, skills_dir=None) -> WorkflowGraph:
+        root = Path(root)
+        # Directory discovery (moved from build_workflow_graph per R3)
+        if commands_dir is None:
+            for candidate in [root / '.claude' / 'commands', root / 'commands']:
+                if candidate.is_dir():
+                    commands_dir = candidate
+                    break
+            if commands_dir is None:
+                home_cmd = Path.home() / '.claude' / 'commands'
+                if home_cmd.is_dir():
+                    commands_dir = home_cmd
+        if rules_dir is None:
+            for candidate in [root / '.claude' / 'rules', root / 'rules']:
+                if candidate.is_dir():
+                    rules_dir = candidate
+                    break
+            if rules_dir is None:
+                home_rules = Path.home() / '.claude' / 'rules'
+                if home_rules.is_dir():
+                    rules_dir = home_rules
+        if skills_dir is None:
+            for candidate in [root / '.claude' / 'skills', root / 'skills']:
+                if candidate.is_dir():
+                    skills_dir = candidate
+                    break
+            if skills_dir is None:
+                home_skills = Path.home() / '.claude' / 'skills'
+                if home_skills.is_dir():
+                    skills_dir = home_skills
+
+        graph = WorkflowGraph()
+        if commands_dir:
+            _parse_commands(commands_dir, graph)
+        if rules_dir:
+            _parse_routing_table(rules_dir, graph)
+        if skills_dir:
+            _scan_skill_files(skills_dir, graph)
+        if commands_dir:
+            _parse_pdca_sequence(commands_dir, graph)
+        return graph
+
+
+# STORY-slim-041 R2: Register PdcaParser
+_TOPOLOGY_PARSERS['pdca'] = PdcaParser()
+
+
+def _parse_docker_compose(root, graph: WorkflowGraph):
+    """Parse docker-compose.yml/yaml for service nodes and depends_on/links edges (STORY-slim-042 R2)."""
+    try:
+        import yaml
+    except ImportError:
+        return
+    for name in ('docker-compose.yml', 'docker-compose.yaml'):
+        dc_path = Path(root) / name
+        if dc_path.exists():
+            try:
+                data = yaml.safe_load(dc_path.read_text(encoding='utf-8'))
+            except Exception:
+                return
+            if not isinstance(data, dict):
+                return
+            services = data.get('services') or {}
+            for svc_name, svc_conf in services.items():
+                graph.add_node(WorkflowNode(id=svc_name, kind='service', label=svc_name))
+                if not isinstance(svc_conf, dict):
+                    continue
+                # depends_on — list or dict form
+                deps = svc_conf.get('depends_on', [])
+                if isinstance(deps, dict):
+                    deps = list(deps.keys())
+                for dep in deps:
+                    graph.add_node(WorkflowNode(id=dep, kind='service', label=dep))
+                    graph.add_edge(WorkflowEdge(source=svc_name, target=dep, relation='depends_on'))
+                # links
+                for link in svc_conf.get('links', []):
+                    link_name = link.split(':')[0]
+                    graph.add_node(WorkflowNode(id=link_name, kind='service', label=link_name))
+                    graph.add_edge(WorkflowEdge(source=svc_name, target=link_name, relation='depends_on'))
+            return  # only parse first found
+
+
+def _parse_openapi(root, graph: WorkflowGraph):
+    """Parse openapi.yaml or swagger.json for API path nodes (STORY-slim-042 R3)."""
+    root = Path(root)
+    data = None
+    for name in ('openapi.yaml', 'openapi.yml'):
+        p = root / name
+        if p.exists():
+            try:
+                import yaml
+                data = yaml.safe_load(p.read_text(encoding='utf-8'))
+            except Exception:
+                pass
+            break
+    if data is None:
+        swagger_path = root / 'swagger.json'
+        if swagger_path.exists():
+            try:
+                import json as _json
+                data = _json.loads(swagger_path.read_text(encoding='utf-8'))
+            except Exception:
+                pass
+    if not isinstance(data, dict):
+        return
+    # Extract service name from info.title
+    info = data.get('info', {})
+    svc_title = info.get('title', 'UnknownService')
+    svc_id = re.sub(r'[^a-zA-Z0-9]', '-', svc_title).strip('-').lower()
+    graph.add_node(WorkflowNode(id=svc_id, kind='service', label=svc_title))
+    # Extract paths
+    for path_str, methods in (data.get('paths') or {}).items():
+        if not isinstance(methods, dict):
+            continue
+        for method in methods:
+            if method.lower() in ('get', 'post', 'put', 'patch', 'delete', 'head', 'options'):
+                api_label = f'{method.upper()} {path_str}'
+                api_id = re.sub(r'[^a-zA-Z0-9]', '_', api_label).strip('_').lower()
+                graph.add_node(WorkflowNode(id=api_id, kind='api', label=api_label))
+                graph.add_edge(WorkflowEdge(source=svc_id, target=api_id, relation='calls_api'))
+
+
+def _parse_proto_files(root, graph: WorkflowGraph):
+    """Scan *.proto files for service/rpc declarations (STORY-slim-042 R4)."""
+    root = Path(root)
+    svc_pattern = re.compile(r'service\s+(\w+)\s*\{')
+    rpc_pattern = re.compile(r'rpc\s+(\w+)\s*\(')
+    for proto in sorted(root.glob('**/*.proto')):
+        content = proto.read_text(encoding='utf-8')
+        current_svc = None
+        for line in content.split('\n'):
+            svc_m = svc_pattern.search(line)
+            if svc_m:
+                current_svc = svc_m.group(1)
+                graph.add_node(WorkflowNode(id=current_svc, kind='service', label=current_svc))
+            rpc_m = rpc_pattern.search(line)
+            if rpc_m and current_svc:
+                rpc_name = rpc_m.group(1)
+                rpc_id = f'{current_svc}/{rpc_name}'
+                graph.add_node(WorkflowNode(id=rpc_id, kind='api', label=rpc_name))
+                graph.add_edge(WorkflowEdge(source=current_svc, target=rpc_id, relation='calls_api'))
+
+
+def _parse_mq_config(root, graph: WorkflowGraph):
+    """Detect MQ topics from docker-compose environment variables (STORY-slim-044 R3).
+
+    Scans for KAFKA_TOPIC, *_QUEUE_URL, *_TOPIC_ARN patterns in service environment blocks.
+    Services with KAFKA_CONSUMER_GROUP are treated as subscribers; others as publishers.
+    """
+    try:
+        import yaml
+    except ImportError:
+        return
+    root = Path(root)
+    for name in ('docker-compose.yml', 'docker-compose.yaml'):
+        dc_path = root / name
+        if dc_path.exists():
+            try:
+                data = yaml.safe_load(dc_path.read_text(encoding='utf-8'))
+            except Exception:
+                return
+            if not isinstance(data, dict):
+                return
+            services = data.get('services') or {}
+            topic_env_pattern = re.compile(r'(?:KAFKA_TOPIC|(\w+)_QUEUE_URL|(\w+)_TOPIC_ARN)')
+            for svc_name, svc_conf in services.items():
+                if not isinstance(svc_conf, dict):
+                    continue
+                env = svc_conf.get('environment', [])
+                # Normalize env: list of "K=V" or dict
+                env_pairs = {}
+                if isinstance(env, list):
+                    for item in env:
+                        if '=' in str(item):
+                            k, v = str(item).split('=', 1)
+                            env_pairs[k.strip()] = v.strip()
+                elif isinstance(env, dict):
+                    env_pairs = {str(k): str(v) for k, v in env.items()}
+                has_consumer_group = any('CONSUMER_GROUP' in k for k in env_pairs)
+                for key, val in env_pairs.items():
+                    if 'CONSUMER_GROUP' in key:
+                        continue
+                    m = topic_env_pattern.match(key)
+                    if m:
+                        if key == 'KAFKA_TOPIC':
+                            topic_name = val
+                        elif m.group(1):  # _QUEUE_URL
+                            topic_name = key.rsplit('_QUEUE_URL', 1)[0].lower().replace('_', '-')
+                        elif m.group(2):  # _TOPIC_ARN
+                            topic_name = key.rsplit('_TOPIC_ARN', 1)[0].lower().replace('_', '-')
+                        else:
+                            continue
+                        graph.add_node(WorkflowNode(id=topic_name, kind='topic', label=topic_name))
+                        graph.add_node(WorkflowNode(id=svc_name, kind='service', label=svc_name))
+                        if has_consumer_group:
+                            graph.add_edge(WorkflowEdge(source=topic_name, target=svc_name, relation='subscribes'))
+                        else:
+                            graph.add_edge(WorkflowEdge(source=svc_name, target=topic_name, relation='publishes'))
+            return
+
+
+def _scan_mq_source_patterns(root, graph: WorkflowGraph):
+    """Scan source code for MQ producer/consumer patterns (STORY-slim-044 R4).
+
+    Detects: producer.send("topic"), @KafkaListener(topics="topic"),
+    channel.publish/consume, KafkaTemplate.send().
+    """
+    root = Path(root)
+    patterns = [
+        re.compile(r'producer\.send\(\s*["\']([^"\']+)["\']\s*'),          # Python/generic
+        re.compile(r'KafkaTemplate\.send\(\s*["\']([^"\']+)["\']\s*'),     # Java Spring
+        re.compile(r'@KafkaListener\(\s*topics\s*=\s*["\']([^"\']+)["\']\s*'),  # Java Spring
+        re.compile(r'channel\.publish\(\s*["\']([^"\']+)["\']\s*'),        # Node.js
+        re.compile(r'channel\.consume\(\s*["\']([^"\']+)["\']\s*'),        # Node.js
+        re.compile(r'@app\.task\(\s*name\s*=\s*["\']([^"\']+)["\']\s*'),   # Celery
+    ]
+    consumer_keywords = {'KafkaListener', 'consume', 'subscribe'}
+    # Find service dirs by looking at docker-compose build contexts
+    service_dirs = {}
+    try:
+        import yaml
+        for name in ('docker-compose.yml', 'docker-compose.yaml'):
+            dc_path = root / name
+            if dc_path.exists():
+                data = yaml.safe_load(dc_path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    for svc_name, svc_conf in (data.get('services') or {}).items():
+                        if isinstance(svc_conf, dict) and svc_conf.get('build'):
+                            build_ctx = svc_conf['build']
+                            if isinstance(build_ctx, dict):
+                                build_ctx = build_ctx.get('context', '.')
+                            service_dirs[str(root / build_ctx)] = svc_name
+                break
+    except Exception:
+        pass
+    if not service_dirs:
+        return
+    for svc_dir_str, svc_name in service_dirs.items():
+        svc_dir = Path(svc_dir_str)
+        if not svc_dir.is_dir():
+            continue
+        for ext in ('**/*.py', '**/*.java', '**/*.js', '**/*.ts', '**/*.go'):
+            for src_file in svc_dir.glob(ext):
+                try:
+                    content = src_file.read_text(encoding='utf-8', errors='replace')
+                except Exception:
+                    continue
+                for pat in patterns:
+                    for m in pat.finditer(content):
+                        topic_name = m.group(1)
+                        graph.add_node(WorkflowNode(id=topic_name, kind='topic', label=topic_name))
+                        graph.add_node(WorkflowNode(id=svc_name, kind='service', label=svc_name))
+                        is_consumer = any(kw in pat.pattern for kw in consumer_keywords)
+                        if is_consumer:
+                            graph.add_edge(WorkflowEdge(source=topic_name, target=svc_name, relation='subscribes'))
+                        else:
+                            graph.add_edge(WorkflowEdge(source=svc_name, target=topic_name, relation='publishes'))
+
+
+class ServiceParser(TopologyParser):
+    """Service topology parser for microservice architectures (STORY-slim-042 R1)."""
+    markers = ['docker-compose.yml', 'docker-compose.yaml', 'openapi.yaml', 'swagger.json']
+    kind_order = ['service', 'api', 'topic']
+    kind_labels = {'service': 'Services', 'api': 'APIs', 'topic': 'Topics'}
+
+    def parse(self, root) -> WorkflowGraph:
+        graph = WorkflowGraph()
+        _parse_docker_compose(root, graph)
+        _parse_openapi(root, graph)
+        _parse_proto_files(root, graph)
+        _parse_mq_config(root, graph)
+        _scan_mq_source_patterns(root, graph)
+        return graph
+
+
+# STORY-slim-042 R5: Register ServiceParser
+_TOPOLOGY_PARSERS['service'] = ServiceParser()
 
 
 def _parse_commands(commands_dir, graph: WorkflowGraph):
@@ -1092,6 +1436,35 @@ def _scan_skill_files(skills_dir, graph: WorkflowGraph):
                     graph.add_edge(WorkflowEdge(source=skill_name, target=file_id, relation='contains'))
 
 
+def _parse_pdca_sequence(commands_dir, graph: WorkflowGraph):
+    """Parse project-sprint.md to extract PDCA command→command sequence edges (STORY-slim-039 R1).
+
+    Looks for 'commands/project-*.md' references in execution order and creates
+    'sequence' edges between consecutive commands that exist in the graph.
+    """
+    commands_dir = Path(commands_dir)
+    if not commands_dir.is_dir():
+        return
+    sprint_path = commands_dir / 'project-sprint.md'
+    if not sprint_path.exists():
+        return
+    content = sprint_path.read_text(encoding='utf-8')
+    # Extract ordered command references: commands/project-xxx.md
+    cmd_ref_pattern = re.compile(r'commands/(project-\w+)\.md')
+    ordered_cmds = []
+    seen = set()
+    for m in cmd_ref_pattern.finditer(content):
+        cmd_name = m.group(1)
+        if cmd_name != 'project-sprint' and cmd_name not in seen:
+            seen.add(cmd_name)
+            ordered_cmds.append(cmd_name)
+    # Create sequence edges between consecutive commands that exist in the graph
+    for i in range(len(ordered_cmds) - 1):
+        src, dst = ordered_cmds[i], ordered_cmds[i + 1]
+        if src in graph.nodes and dst in graph.nodes:
+            graph.add_edge(WorkflowEdge(source=src, target=dst, relation='sequence'))
+
+
 def regression_workflow_impact(target='.', changed_files=None):
     """Workflow impact for regression gate — informational only (STORY-slim-038 R1-R4).
 
@@ -1105,7 +1478,7 @@ def regression_workflow_impact(target='.', changed_files=None):
         if not graph.nodes:
             return []
 
-        # Match changed files against graph nodes (file nodes)
+        # Match changed files against graph nodes (file, skill, service nodes)
         file_nodes = {n.id: n for n in graph.nodes.values() if n.kind == 'file'}
         matched_entries = set()
         for cf in changed_files:
@@ -1117,20 +1490,26 @@ def regression_workflow_impact(target='.', changed_files=None):
             for nid, node in graph.nodes.items():
                 if node.kind == 'skill' and node.label in cf:
                     matched_entries.add(nid)
+            # STORY-slim-043 R3: Match service nodes by name in file path
+            for nid, node in graph.nodes.items():
+                if node.kind == 'service' and node.id in cf:
+                    matched_entries.add(nid)
 
         if not matched_entries:
             return []
 
         lines = []
+        # Determine which kinds to report as "affected" (commands for PDCA, services for microservice)
+        report_kinds = {'command', 'service'}
         for entry_id in sorted(matched_entries):
             reached = graph.reverse_reach(entry_id)
-            affected_cmds = sorted(
+            affected = sorted(
                 n.label for nid, n in graph.nodes.items()
-                if nid in reached and n.kind == 'command'
+                if nid in reached and n.kind in report_kinds and nid != entry_id
             )
-            if affected_cmds:
+            if affected:
                 entry_label = graph.nodes.get(entry_id, WorkflowNode(id=entry_id, kind='file', label=entry_id)).label
-                lines.append(f'Workflow Impact: {entry_label} changed → affects: {", ".join(affected_cmds)}')
+                lines.append(f'Workflow Impact: {entry_label} changed → affects: {", ".join(affected)}')
         return lines
     except Exception:
         return []
@@ -1172,10 +1551,14 @@ def workflow_impact(target='.', entry=None, entries=None):
         if node:
             grouped.setdefault(node.kind, []).append(node.label)
 
-    # Format output
+    # Format output — STORY-slim-041 R6: dynamic kind_labels
     lines = [f'Workflow Impact for "{", ".join(entry_ids)}":']
-    kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
-    for kind in ['command', 'agent', 'skill', 'file']:
+    _known_order = ['command', 'agent', 'skill', 'file']
+    _known_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
+    all_kinds = sorted(grouped.keys())
+    kind_order = [k for k in _known_order if k in all_kinds] + [k for k in all_kinds if k not in _known_order]
+    kind_labels = {**_known_labels, **{k: k.title() + 's' for k in all_kinds if k not in _known_labels}}
+    for kind in kind_order:
         items = grouped.get(kind, [])
         if items:
             lines.append(f'  {kind_labels[kind]}: {", ".join(items)}')
@@ -1183,50 +1566,31 @@ def workflow_impact(target='.', entry=None, entries=None):
 
 
 def build_workflow_graph(root=None, commands_dir=None, rules_dir=None, skills_dir=None):
-    """Build a complete WorkflowGraph from PactKit directory structure (R5).
+    """Build a complete WorkflowGraph via topology detection + parser registry (STORY-slim-041 R3).
 
-    Accepts explicit dirs for testing, or discovers from root via well-known paths.
+    Accepts explicit dirs for testing (bypasses auto-detect, uses PdcaParser directly).
     """
-    if root is not None:
-        root = Path(root).resolve()
-        # Try pactkit.yaml for custom paths, else well-known locations
-        if commands_dir is None:
-            for candidate in [root / '.claude' / 'commands', root / 'commands']:
-                if candidate.is_dir():
-                    commands_dir = candidate
-                    break
-            if commands_dir is None:
-                # Try home-dir well-known path
-                home_cmd = Path.home() / '.claude' / 'commands'
-                if home_cmd.is_dir():
-                    commands_dir = home_cmd
-        if rules_dir is None:
-            for candidate in [root / '.claude' / 'rules', root / 'rules']:
-                if candidate.is_dir():
-                    rules_dir = candidate
-                    break
-            if rules_dir is None:
-                home_rules = Path.home() / '.claude' / 'rules'
-                if home_rules.is_dir():
-                    rules_dir = home_rules
-        if skills_dir is None:
-            for candidate in [root / '.claude' / 'skills', root / 'skills']:
-                if candidate.is_dir():
-                    skills_dir = candidate
-                    break
-            if skills_dir is None:
-                home_skills = Path.home() / '.claude' / 'skills'
-                if home_skills.is_dir():
-                    skills_dir = home_skills
+    # R4: Explicit dirs bypass auto-detection — delegate directly to PdcaParser
+    if commands_dir is not None or rules_dir is not None or skills_dir is not None:
+        pdca = PdcaParser()
+        return pdca.parse(root or '.', commands_dir=commands_dir, rules_dir=rules_dir, skills_dir=skills_dir)
 
-    graph = WorkflowGraph()
-    if commands_dir:
-        _parse_commands(commands_dir, graph)
-    if rules_dir:
-        _parse_routing_table(rules_dir, graph)
-    if skills_dir:
-        _scan_skill_files(skills_dir, graph)
-    return graph
+    if root is None:
+        return WorkflowGraph()
+
+    root = Path(root).resolve()
+    # Auto-detect topologies and merge results (STORY-slim-040 R3, R6)
+    detected = detect_topology(root)
+    merged = WorkflowGraph()
+    for topo_name in detected:
+        parser = _TOPOLOGY_PARSERS.get(topo_name)
+        if parser:
+            sub = parser.parse(root)
+            for node in sub.nodes.values():
+                merged.add_node(node)
+            for edge in sub.edges:
+                merged.add_edge(edge)
+    return merged
 
 
 # --- CLI ---

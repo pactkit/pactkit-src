@@ -41,6 +41,8 @@ graph TD
     click src_pactkit_doctor_py href "src/pactkit/doctor.py"
     src_pactkit_invariants_py["invariants.py"]
     click src_pactkit_invariants_py href "src/pactkit/invariants.py"
+    src_pactkit_skills_visualize_py["visualize.py"]
+    click src_pactkit_skills_visualize_py href "src/pactkit/skills/visualize.py"
     src_pactkit_skills_spec_linter_py["spec_linter.py"]
     click src_pactkit_skills_spec_linter_py href "src/pactkit/skills/spec_linter.py"
     src_pactkit_generators_deployer_py["deployer.py"]
@@ -54,6 +56,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_id_generator_py
     src_pactkit_cli_py --> src_pactkit_cleaners_py
     src_pactkit_cli_py --> src_pactkit_regression_py
+    src_pactkit_cli_py --> src_pactkit_skills_visualize_py
     src_pactkit_cli_py --> src_pactkit_context_gen_py
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py

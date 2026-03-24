@@ -52,6 +52,20 @@ classDiagram
         +to_mermaid()
         +reverse_reach(entry_id)
     }
+    class TopologyParser {
+        +detect(root)
+        +parse(root)
+    }
+    ABC <|-- TopologyParser
+    class PdcaParser {
+        +detect(root)
+        +parse(root, commands_dir, rules_dir, skills_dir)
+    }
+    TopologyParser <|-- PdcaParser
+    class ServiceParser {
+        +parse(root)
+    }
+    TopologyParser <|-- ServiceParser
     class LintIssue {
     }
     class LintResult {

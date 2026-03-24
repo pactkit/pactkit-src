@@ -1,6 +1,8 @@
 graph TD
     JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
+    PdcaParser_parse["PdcaParser.parse"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
+    ServiceParser_parse["ServiceParser.parse"]
     TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
     TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
     TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
@@ -82,8 +84,13 @@ graph TD
     _parse_board["_parse_board"]
     _parse_commands["_parse_commands"]
     _parse_coverage_output["_parse_coverage_output"]
+    _parse_docker_compose["_parse_docker_compose"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
+    _parse_mq_config["_parse_mq_config"]
+    _parse_openapi["_parse_openapi"]
+    _parse_pdca_sequence["_parse_pdca_sequence"]
+    _parse_proto_files["_parse_proto_files"]
     _parse_recent_completions["_parse_recent_completions"]
     _parse_routing_table["_parse_routing_table"]
     _parse_story_blocks["_parse_story_blocks"]
@@ -103,6 +110,7 @@ graph TD
     _run_pytest_cov["_run_pytest_cov"]
     _scan_call_edges["_scan_call_edges"]
     _scan_files["_scan_files"]
+    _scan_mq_source_patterns["_scan_mq_source_patterns"]
     _scan_skill_files["_scan_skill_files"]
     _search_issue["_search_issue"]
     _section_text["_section_text"]
@@ -134,6 +142,7 @@ graph TD
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_stack["detect_stack"]
+    detect_topology["detect_topology"]
     detect_venv["detect_venv"]
     find_pactkit_yaml["find_pactkit_yaml"]
     fix_board["fix_board"]
@@ -307,12 +316,19 @@ graph TD
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> nl
+    PdcaParser_parse --> _parse_commands
+    PdcaParser_parse --> _parse_routing_table
+    PdcaParser_parse --> _scan_skill_files
+    PdcaParser_parse --> _parse_pdca_sequence
+    ServiceParser_parse --> _parse_docker_compose
+    ServiceParser_parse --> _parse_openapi
+    ServiceParser_parse --> _parse_proto_files
+    ServiceParser_parse --> _parse_mq_config
+    ServiceParser_parse --> _scan_mq_source_patterns
     regression_workflow_impact --> build_workflow_graph
     workflow_impact --> build_workflow_graph
     workflow_impact --> nl
-    build_workflow_graph --> _parse_commands
-    build_workflow_graph --> _parse_routing_table
-    build_workflow_graph --> _scan_skill_files
+    build_workflow_graph --> detect_topology
     _section_text --> _find_section
     _check_requirements_section --> _section_text
     _check_acceptance_criteria --> _section_text
