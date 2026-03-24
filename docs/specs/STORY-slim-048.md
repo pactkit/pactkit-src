@@ -57,7 +57,7 @@ graph TD
 
 ### R5: Performance constraint (MUST)
 
-The unified graph MUST respect `MAX_WORKFLOW_NODES = 500`. If total nodes across all dimensions exceed this limit, the graph MUST be truncated with a warning.
+A new constant `MAX_WORKFLOW_NODES = 500` MUST be defined in `visualize.py` (alongside existing `MAX_SCAN_FILES`). The unified graph MUST enforce this limit. If total nodes across all dimensions exceed this limit, the graph MUST be truncated with a warning.
 
 ## Acceptance Criteria
 
@@ -96,7 +96,7 @@ The unified graph MUST respect `MAX_WORKFLOW_NODES = 500`. If total nodes across
 ```
 build_unified_graph(root)
   → build_workflow_graph(root)              # all TopologyParsers
-  → _load_code_graph(root)                  # parse existing call_graph.mmd
+  → _load_code_graph(root)                  # reuse tree-sitter/LanguageAnalyzer pipeline
   → _build_bridge_edges(code_graph, workflow_graph)  # cross-dimension links
   → merge all into single WorkflowGraph
   → enforce MAX_WORKFLOW_NODES
@@ -108,7 +108,7 @@ build_unified_graph(root)
 | Step | File | Action | Dependencies | Risk |
 |------|------|--------|-------------|------|
 | 1 | `tests/unit/test_story_slim048.py` | TDD: tests for unified graph construction and bridge edges | STORY-slim-042, 045 | Low |
-| 2 | `src/pactkit/skills/visualize.py` | Implement `_load_code_graph()` — parse existing mmd | None | Medium |
+| 2 | `src/pactkit/skills/visualize.py` | Implement `_load_code_graph()` — reuse existing tree-sitter/LanguageAnalyzer pipeline to build function-level WorkflowGraph (not parse mmd text) | None | Medium |
 | 3 | `src/pactkit/skills/visualize.py` | Implement `_build_bridge_edges()` — heuristic matching | Step 2 | High |
 | 4 | `src/pactkit/skills/visualize.py` | Implement `build_unified_graph()` orchestrator | Steps 2-3 | Medium |
 | 5 | `src/pactkit/skills/visualize.py` | Extend `to_mermaid()` for layered subgraphs | Step 4 | Medium |

@@ -37,6 +37,10 @@ The commands/rules/skills directory discovery logic currently in `build_workflow
 
 For any PactKit project root, `build_workflow_graph(root)` MUST produce a graph with identical nodes and edges as the pre-refactor implementation (minus any new sequence edges from STORY-slim-039). All existing tests for STORY-slim-035~038 MUST pass.
 
+### R6: Dynamic kind_order and kind_labels in to_mermaid() and workflow_impact() (MUST)
+
+The hardcoded `kind_order` and `kind_labels` in `to_mermaid()` and `workflow_impact()` MUST be replaced with a dynamic mechanism. Each `TopologyParser` subclass MUST declare its supported node kinds and labels via class attributes (e.g., `kind_order = ['command', 'agent', 'skill', 'file']` and `kind_labels = {'command': 'Commands', ...}`). `to_mermaid()` and `workflow_impact()` MUST discover kinds from the graph's actual node kinds, falling back to parser-declared labels when available.
+
 ## Acceptance Criteria
 
 ### AC1: PdcaParser detects PDCA projects (R1)
@@ -74,6 +78,12 @@ For any PactKit project root, `build_workflow_graph(root)` MUST produce a graph 
 - **Given** a PactKit project root
 - **When** comparing pre-refactor and post-refactor `build_workflow_graph(root)` output
 - **Then** the same command/agent/skill/file nodes and invokes/depends_on/contains edges exist
+
+### AC7: Dynamic kind_order in to_mermaid (R6)
+
+- **Given** a WorkflowGraph containing nodes with kinds `service` and `api` (not in PDCA's kind_order)
+- **When** calling `to_mermaid()`
+- **Then** the output contains subgraph sections for "Services" and "APIs" (auto-discovered from node kinds)
 
 ## Target Call Chain
 

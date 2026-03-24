@@ -21,7 +21,7 @@ The existing `workflow_impact(target, entry)` function (from STORY-slim-037) MUS
 
 ### R2: Service-specific output format (MUST)
 
-When running impact analysis on a service graph, the output MUST group results by service-specific node kinds:
+When running impact analysis on a service graph, the output MUST group results by service-specific node kinds (leveraging dynamic kind_labels from STORY-slim-041 R6):
 ```
 Workflow Impact for "user-service":
   Services: order-service, notification-service

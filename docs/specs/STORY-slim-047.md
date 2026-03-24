@@ -19,7 +19,7 @@ The existing `reverse_reach()` algorithm MUST work on frontend topology graphs. 
 
 ### R2: Frontend-specific kind labels (MUST)
 
-The `workflow_impact()` output MUST include frontend-specific kind labels:
+The `workflow_impact()` output MUST include frontend-specific kind labels (leveraging dynamic kind_labels from STORY-slim-041 R6):
 ```
 Workflow Impact for "useAuth":
   Pages: /login, /dashboard, /settings

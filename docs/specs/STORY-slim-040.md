@@ -17,9 +17,10 @@ The key design constraint (per user requirement): topology type MUST be auto-det
 
 ### R1: TopologyParser abstract base class (MUST)
 
-A `TopologyParser` ABC MUST be defined in `visualize.py` with two abstract methods:
-- `detect(root: Path) -> bool` — returns True if the project matches this parser's topology
-- `parse(root: Path) -> WorkflowGraph` — parses the project and returns a WorkflowGraph
+A `TopologyParser` ABC MUST be defined in `visualize.py` with:
+- A `markers` class attribute (`list[str]`) — file/directory markers for this topology (default empty)
+- `detect(root: Path) -> bool` — **concrete default** that returns True if any `markers` entry exists under root. Subclasses MAY override for custom logic.
+- `parse(root: Path) -> WorkflowGraph` — **abstract method** that parses the project and returns a WorkflowGraph
 
 ### R2: _TOPOLOGY_MARKERS constant (MUST)
 
@@ -38,7 +39,7 @@ A `_TOPOLOGY_PARSERS` dict MUST map topology names to `TopologyParser` subclass 
 
 ### R5: Backward-compatible build_workflow_graph() (MUST)
 
-The refactored `build_workflow_graph()` MUST produce identical output for PactKit projects as the current implementation. Existing tests for STORY-slim-035~038 MUST pass without modification.
+After STORY-slim-041 refactors `build_workflow_graph()` to use this registry, the output MUST remain identical for PactKit projects (excluding new sequence edges from STORY-slim-039). Existing tests for STORY-slim-035~038 MUST pass without modification.
 
 ### R6: Multi-topology merge (SHOULD)
 
@@ -89,8 +90,8 @@ Topology detection MUST NOT require any manual entries in `pactkit.yaml`. The `_
 ### AC7: build_workflow_graph backward compat (R4, R5)
 
 - **Given** a PactKit project with commands, skills, rules
-- **When** running `build_workflow_graph(root)` with the refactored code
-- **Then** the output graph has the same nodes and edges as the pre-refactor version
+- **When** running `build_workflow_graph(root)` after STORY-slim-041 refactors it to use the registry
+- **Then** the output graph has the same nodes and edges as the pre-refactor version (excluding sequence edges from STORY-slim-039)
 
 ### AC8: No pactkit.yaml required (R7)
 
@@ -123,7 +124,7 @@ detect_topology(root)
 | 2 | `src/pactkit/skills/visualize.py` | Define `TopologyParser` ABC with `detect()` + `parse()` | None | Low |
 | 3 | `src/pactkit/skills/visualize.py` | Add `_TOPOLOGY_MARKERS` constant | None | Low |
 | 4 | `src/pactkit/skills/visualize.py` | Implement `detect_topology()` function | Step 3 | Low |
-| 5 | `src/pactkit/skills/visualize.py` | Add `_TOPOLOGY_PARSERS` registry + refactor `build_workflow_graph()` | Steps 2-4 + STORY-slim-041 | Medium |
+| 5 | `src/pactkit/skills/visualize.py` | Add `_TOPOLOGY_PARSERS` registry (empty dict, populated by subclass stories) | Steps 2-4 | Low |
 
 ## Security Scope
 

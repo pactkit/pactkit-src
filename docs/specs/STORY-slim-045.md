@@ -16,7 +16,7 @@ STORY-slim-040 introduces the `TopologyParser` ABC. This story implements `Front
 ### R1: FrontendParser class (MUST)
 
 A `FrontendParser(TopologyParser)` class MUST be defined with:
-- `detect(root) -> bool`: Returns True if any frontend marker exists (`next.config.js`, `next.config.ts`, `nuxt.config.ts`, `vite.config.ts`, `app/layout.tsx`, `pages/_app.tsx`, `src/router/`)
+- `markers = ['next.config.js', 'next.config.ts', 'nuxt.config.ts', 'vite.config.ts', 'app/layout.tsx', 'pages/_app.tsx', 'src/router/']` — inherits default `detect()` from `TopologyParser` (STORY-slim-040 R1)
 - `parse(root) -> WorkflowGraph`: Parses route config and component imports, returns WorkflowGraph with `page` and `component` node kinds
 
 ### R2: Next.js App Router detection (MUST)
