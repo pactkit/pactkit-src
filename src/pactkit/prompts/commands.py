@@ -130,9 +130,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 3.2d: Spec Lint Self-Check
 1.  Run `pactkit spec-lint docs/specs/{ID}.md`.
-2.  If ERROR rules fail, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until clean.
+2.  If any ERROR or WARNING rules fire, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until `pactkit spec-lint` reports 0 errors AND 0 warnings.
 3.  This prevents the Spec from being rejected at Act Phase 0.5.
-4.  **Output checkpoint**: Print "Spec lint passed."
+4.  **Output checkpoint**: Print "Spec lint passed (0 errors AND 0 warnings)."
 
 ## 🎬 Phase 3.3: Board, Memory & Handover
 1.  **Board**: Add Story using `add_story`.

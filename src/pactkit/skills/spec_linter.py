@@ -25,6 +25,8 @@ try:
         SPEC_REQUIREMENT_PATTERN,
         SPEC_RFC_KEYWORDS,
         SPEC_RFC_PATTERN,
+        SPEC_SEC_PATTERN,
+        SPEC_SECURITY_SCOPE_SECTION,
         SPEC_VALID_STATUSES,
     )
 except ImportError:
@@ -38,6 +40,8 @@ except ImportError:
     SPEC_RFC_KEYWORDS = ("MUST", "SHOULD", "MAY", "SHALL", "REQUIRED", "RECOMMENDED", "OPTIONAL")
     SPEC_RFC_PATTERN = re.compile(r"\b(MUST|SHOULD|MAY|SHALL|REQUIRED|RECOMMENDED|OPTIONAL)\b")
     SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
+    SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
+    SPEC_SEC_PATTERN = r"\|\s*SEC-"
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -200,6 +204,9 @@ def _check_acceptance_criteria(text: str, result: LintResult) -> None:
 _PIPE_TABLE_ROW = re.compile(r"^\|.+\|.+\|", re.MULTILINE)
 
 # STORY-slim-024: R{N} ID extraction pattern
+# Uses \s+ instead of SPEC_REQUIREMENT_PATTERN's literal space to tolerate minor
+# whitespace variations in hand-written specs (e.g., tab or double-space after ###).
+# Adds capture group (R\d+) for ID extraction — SPEC_REQUIREMENT_PATTERN is match-only.
 _REQ_ID_PATTERN = re.compile(r"###\s+(R\d+)[:\s]", re.MULTILINE)
 
 
@@ -234,15 +241,13 @@ def _check_req_ac_coverage(text: str, result: LintResult) -> None:
     if not req_map:
         return  # No requirements found (handled by E004)
 
-    # Check each R{N} for coverage in AC section
-    ac_lower = ac_section.lower()
+    # Check each R{N} for coverage in AC section (word-boundary match)
     for req_id, req_body in req_map.items():
-        # Case-insensitive search for R{N} as word boundary
-        if req_id.lower() not in ac_lower:
-            # Detect RFC 2119 keyword in requirement body (use canonical list from schemas)
-            req_upper = req_body.upper()
-            found_keyword = next((kw for kw in SPEC_RFC_KEYWORDS if kw in req_upper), None)
-            emphasis = f" ({found_keyword})" if found_keyword else ""
+        # STORY-slim-025 R4: use \b word boundary to prevent R1 matching R10/CR1/ERROR1
+        if not re.search(rf"\b{re.escape(req_id)}\b", ac_section, re.IGNORECASE):
+            # STORY-slim-025 R5: use SPEC_RFC_PATTERN (same as W003) for word-boundary keyword match
+            rfc_match = _RFC2119.search(req_body)
+            emphasis = f" ({rfc_match.group(0)})" if rfc_match else ""
             result.warnings.append(
                 LintIssue("W007", f"Requirement {req_id} has no corresponding AC reference{emphasis}")
             )
@@ -276,6 +281,19 @@ def _check_optional_sections(text: str, result: LintResult) -> None:
         result.warnings.append(LintIssue("W004", "Missing '## Out of Scope' or '## Non-Goals' section (recommended)"))
 
 
+_SEC_ROW = re.compile(SPEC_SEC_PATTERN, re.MULTILINE)
+
+
+def _check_security_scope(text: str, result: LintResult) -> None:
+    """E009 — Security Scope section must exist with SEC-* entries."""
+    body = _section_text(text, SPEC_SECURITY_SCOPE_SECTION)
+    if body is None:
+        result.errors.append(LintIssue("E009", f"Missing '## {SPEC_SECURITY_SCOPE_SECTION}' section"))
+        return
+    if not _SEC_ROW.search(body):
+        result.errors.append(LintIssue("E009", f"{SPEC_SECURITY_SCOPE_SECTION} section has no SEC-* entries"))
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -305,6 +323,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_optional_sections(text, result)
     _check_implementation_steps(text, result)
     _check_req_ac_coverage(text, result)  # STORY-slim-024: W007
+    _check_security_scope(text, result)  # STORY-slim-025: E009
     return result
 
 

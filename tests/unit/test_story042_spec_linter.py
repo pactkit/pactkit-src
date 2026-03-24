@@ -40,6 +40,12 @@ This requirement MUST be satisfied.
 **When** R1 action is taken
 **Then** the result is correct
 
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | Test only |
+
 ## Out of Scope
 
 - Not in scope.

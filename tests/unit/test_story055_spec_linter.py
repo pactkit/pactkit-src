@@ -41,10 +41,16 @@ This MUST be satisfied.
 
 ## Acceptance Criteria
 
-### AC1: Happy Path
+### AC1: Happy Path (R1)
 **Given** a valid input
-**When** the action is taken
+**When** R1 action is taken
 **Then** the result is correct
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | Test only |
 
 ## Out of Scope
 

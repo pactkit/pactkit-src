@@ -39,10 +39,16 @@ This MUST work.
 
 ## Acceptance Criteria
 
-### AC1: Happy Path
+### AC1: Happy Path (R1)
 **Given** a valid spec
-**When** linted
+**When** R1 is linted
 **Then** passes
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | Test only |
 
 ## Out of Scope
 

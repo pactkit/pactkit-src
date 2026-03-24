@@ -158,6 +158,12 @@ Something MUST happen.
 Given a condition
 When something is tested
 Then it passes
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | Test only |
 """
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(spec)

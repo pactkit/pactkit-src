@@ -45,6 +45,10 @@ import re as _re  # noqa: E402
 
 SPEC_RFC_PATTERN = _re.compile(r"\b(" + "|".join(SPEC_RFC_KEYWORDS) + r")\b")
 
+# E009: Security Scope section name and SEC-* entry pattern
+SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
+SPEC_SEC_PATTERN = r"\|\s*SEC-"
+
 # ─── Spec Template ──────────────────────────────────────────────────────────
 # Used by scaffold.py create_spec(). Must be consistent with spec_linter rules.
 # IMPORTANT: scaffold.py (deployed as standalone script) inlines a copy of this
@@ -72,11 +76,27 @@ SPEC_TEMPLATE = """\
 
 ## Acceptance Criteria
 
-### AC1: (Scenario Name)
+### AC1: (Scenario Name) (R1)
 
 - **Given** (precondition)
 - **When** (action)
 - **Then** (expected result)
+
+## Target Call Chain
+
+(Trace call chain here)
+
+## Implementation Steps
+
+| Step | File | Action | Dependencies | Risk |
+|------|------|--------|-------------|------|
+| 1 | `src/example.py` | (Description) | None | Low |
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | (Reason) |
 
 ## Out of Scope
 

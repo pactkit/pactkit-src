@@ -133,11 +133,27 @@ _SPEC_TEMPLATE = """\
 
 ## Acceptance Criteria
 
-### AC1: (Scenario Name)
+### AC1: (Scenario Name) (R1)
 
 - **Given** (precondition)
 - **When** (action)
 - **Then** (expected result)
+
+## Target Call Chain
+
+(Trace call chain here)
+
+## Implementation Steps
+
+| Step | File | Action | Dependencies | Risk |
+|------|------|--------|-------------|------|
+| 1 | `src/example.py` | (Description) | None | Low |
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | (Reason) |
 
 ## Out of Scope
 
