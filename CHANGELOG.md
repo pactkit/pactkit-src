@@ -4,6 +4,20 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.6] - 2026-03-24
+
+### Fixed
+- **Issue Sync Substring Matching** (STORY-slim-027 R1) — `issue_sync.py` now uses word-boundary regex instead of `in` substring check, preventing `STORY-1` from matching `STORY-10`.
+- **E007 Per-Subsection GWT Check** (R3) — Spec linter E007 now validates Given/When/Then keywords per AC subsection instead of flat-scanning the entire Acceptance Criteria section. Uses raw text (with code fences) to avoid false positives on specs wrapping Gherkin in ` ```gherkin ` blocks.
+- **W008 Scaffold Placeholder Detection** (R4) — New warning W008 fires when `## Background` or `## Target Call Chain` still contains default scaffold placeholder text.
+- **Schema-Linter Alignment** (R2/R10) — `## Security Scope` moved from OPTIONAL to REQUIRED in `schemas.py` to match E009 enforcement; `## Non-Goals` added to OPTIONAL.
+- **RFC Pattern Consistency** (R11) — Spec linter fallback RFC pattern now derived from `SPEC_RFC_KEYWORDS` tuple instead of a separate hardcoded regex.
+- **Scaffold Skill Path** (R8) — `scaffold.py` usage hint now uses resolved `root` path instead of hardcoded `~/.claude/skills/`.
+
+### Changed
+- **Design Prompt** (R5) — Phase 3 now includes `pactkit sec-scope` step after filling each Spec.
+- **Act Prompt** (R6/R7) — Phase 0.6 adds "Move to In Progress" board step; Phase 3 adds lint gate before regression.
+
 ## [2.3.5] - 2026-03-23
 
 ### Fixed
