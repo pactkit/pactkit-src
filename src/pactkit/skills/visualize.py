@@ -414,6 +414,61 @@ class JavaAnalyzer(TreeSitterAnalyzer):
         return func_registry, call_edges
 
 
+# TS/JS tree-sitter queries (STORY-slim-034)
+_TS_IMPORT_QUERY = '''[
+  (import_statement source: (string) @import)
+  (export_statement source: (string) @import)
+  (call_expression
+    function: (identifier) @_func (#eq? @_func "require")
+    arguments: (arguments (string) @import))
+]'''
+
+_TS_FUNC_QUERY = '''[
+  (function_declaration name: (identifier) @name body: (statement_block) @body)
+  (method_definition name: (property_identifier) @name body: (statement_block) @body)
+  (lexical_declaration
+    (variable_declarator
+      name: (identifier) @name
+      value: [(arrow_function body: (_) @body) (function_expression body: (statement_block) @body)]))
+]'''
+
+_TS_CALL_QUERY = '''[
+  (call_expression function: (identifier) @callee)
+  (call_expression function: (member_expression
+    object: (_) @obj
+    property: (property_identifier) @method))
+]'''
+
+
+class TSAnalyzer(TreeSitterAnalyzer):
+    """TypeScript/JavaScript language analyzer using tree-sitter-typescript (STORY-slim-034)."""
+    def __init__(self):
+        import tree_sitter_typescript as _tsts
+        self._lang = _TSLanguage(_tsts.language_typescript())
+        self._parser = _TSParser(self._lang)
+        self._import_query = _TSQuery(self._lang, _TS_IMPORT_QUERY)
+        self._func_query = _TSQuery(self._lang, _TS_FUNC_QUERY)
+        self._call_query = _TSQuery(self._lang, _TS_CALL_QUERY)
+        self._method_query = None
+
+    def _extract_funcs_and_calls(self, tree, stem):
+        func_registry = {}
+        call_edges = {}
+
+        for _, match_dict in self._matches(self._func_query, tree.root_node):
+            names = match_dict.get('name', [])
+            bodies = match_dict.get('body', [])
+            if names and bodies:
+                name_node = names[0]
+                func_name = name_node.text.decode()
+                class_name = _find_enclosing_class(name_node)
+                qname = f'{class_name}.{func_name}' if class_name else func_name
+                func_registry[qname] = stem
+                call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        return func_registry, call_edges
+
+
 def _select_analyzer(stack):
     """Return the appropriate LanguageAnalyzer for the given stack.
 
@@ -431,7 +486,8 @@ def _select_analyzer(stack):
             return GoAnalyzer()
         if stack == 'java':
             return JavaAnalyzer()
-        # Future: node (STORY-slim-034)
+        if stack == 'node':
+            return TSAnalyzer()
     except ImportError:
         print(f"tree-sitter-{stack} not installed; falling back to PythonAnalyzer for {stack}", file=_sys.stderr)
     return PythonAnalyzer()
@@ -774,9 +830,17 @@ def impact(target='.', entry=None):
     if not entry: return ''
     root = Path(target).resolve()
     scan_excludes = _load_scan_excludes(root)
-    file_ext = _detect_file_ext(root)
-    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
     stack = _detect_stack(root)
+    # Multi-extension scanning for Node projects (STORY-slim-034 R5)
+    if stack == 'node':
+        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts')
+        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js')
+        all_files = files_ts + files_js
+        module_index = {**mi_ts, **mi_js}
+        file_to_node = {**ftn_ts, **ftn_js}
+    else:
+        file_ext = _detect_file_ext(root)
+        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
     analyzer = _select_analyzer(stack)
     func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
 
@@ -811,9 +875,18 @@ def impact(target='.', entry=None):
 def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False):
     root = Path(target).resolve()
     scan_excludes = _load_scan_excludes(root)
-    file_ext = _detect_file_ext(root)
-    all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    analyzer = _select_analyzer(_detect_stack(root))
+    stack = _detect_stack(root)
+    # Multi-extension scanning for Node projects (STORY-slim-034 R5)
+    if stack == 'node':
+        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts')
+        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js')
+        all_files = files_ts + files_js
+        module_index = {**mi_ts, **mi_js}
+        file_to_node = {**ftn_ts, **ftn_js}
+    else:
+        file_ext = _detect_file_ext(root)
+        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
+    analyzer = _select_analyzer(stack)
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus)
