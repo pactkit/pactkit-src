@@ -70,3 +70,6 @@ graph TD
     pactkit_board -->|contains| pactkit_board_board_py
     pactkit_scaffold -->|contains| pactkit_scaffold_scaffold_py
     pactkit_visualize -->|contains| pactkit_visualize_visualize_py
+    project_plan -.->|sequence| project_act
+    project_act -.->|sequence| project_check
+    project_check -.->|sequence| project_done

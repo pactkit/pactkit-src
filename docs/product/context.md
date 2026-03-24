@@ -1,16 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T21:30:00+08:00 by project-act
+> Last updated: 2026-03-24T20:32:40+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 10 stories
+Backlog: 0 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-- STORY-slim-046: FrontendParser — Hook & Store
-- STORY-slim-047: Frontend Impact
-- STORY-slim-048: Unified Layered Graph
+None
 
 ## Active Branches
 codex-integration
@@ -32,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- Standalone scripts (visualize.py) need try/except ImportError guards for yaml.safe_load when reading pactkit.yaml — they cannot import from pactkit library
-- Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1
-- Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers
 - Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring
 - Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section
+- detect_topology() must delegate to _TOPOLOGY_PARSERS parser.detect() first, not _TOPOLOGY_MARKERS alone — parsers and markers can diverge silently causing empty graphs
+- _scan_hooks() only accepts files with 'use' prefix in hook dirs (src/hooks/, composables/) to prevent utility files from becoming hook nodes
+- regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts'
 
 ## Next Recommended Action
-`/project-done` (archive sprint 039-048) or `/project-release` (v2.4.0/v2.5.0)
+`/project-design`

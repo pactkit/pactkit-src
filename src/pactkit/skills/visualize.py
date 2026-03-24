@@ -1091,17 +1091,30 @@ class TopologyParser(abc.ABC):
 
 # STORY-slim-040 R2: Topology marker lists for auto-detection
 _TOPOLOGY_MARKERS: dict[str, list[str]] = {
-    'pdca': ['.claude/commands/', 'pactkit.yaml'],
+    'pdca': ['.claude/commands/', 'commands/', '.claude/pactkit.yaml', 'pactkit.yaml'],
     'service': ['docker-compose.yml', 'docker-compose.yaml', 'kubernetes/', 'k8s/', 'openapi.yaml', 'swagger.json'],
     'frontend': ['next.config.js', 'next.config.ts', 'nuxt.config.ts', 'vite.config.ts', 'app/layout.tsx', 'pages/_app.tsx', 'src/router/', 'src/store/'],
 }
 
 
 def detect_topology(root) -> list[str]:
-    """Scan project root against _TOPOLOGY_MARKERS and return matching topology names (STORY-slim-040 R3)."""
+    """Scan project root using registered parser detect() methods (STORY-slim-040 R3).
+
+    Delegates to _TOPOLOGY_PARSERS registry so each parser uses its own canonical markers.
+    Falls back to _TOPOLOGY_MARKERS for any topology not yet registered.
+    """
     root = Path(root)
     matched = []
+    checked = set()
+    # First pass: use registered parsers (most accurate — uses each parser's own markers)
+    for name, parser in _TOPOLOGY_PARSERS.items():
+        if parser.detect(root):
+            matched.append(name)
+        checked.add(name)
+    # Second pass: fall back to _TOPOLOGY_MARKERS for unregistered topologies
     for name, markers in _TOPOLOGY_MARKERS.items():
+        if name in checked:
+            continue
         for marker in markers:
             if (root / marker).exists():
                 matched.append(name)

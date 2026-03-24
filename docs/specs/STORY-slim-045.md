@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-045 |
-| Status | Draft |
+| Status | Done |
 | Priority | P2 — Impact 4, Effort 3 |
 | Release | 2.4.0 |
 
