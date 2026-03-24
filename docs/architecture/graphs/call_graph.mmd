@@ -1,4 +1,5 @@
 graph TD
+    PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
     _add_fix_flag["_add_fix_flag"]
     _build_call_graph["_build_call_graph"]
     _build_class_graph["_build_class_graph"]
@@ -243,16 +244,14 @@ graph TD
     archive_stories --> nl
     init_architecture --> nl
     init_architecture --> nl
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     _build_file_graph --> nl
     _build_class_graph --> nl
     _build_call_graph --> _resolve_callee
     _build_call_graph --> _resolve_callee
     _build_call_graph --> nl
-    _build_call_graph --> _extract_calls
     _build_call_graph --> nl
-    _build_call_graph --> _extract_calls
-    _scan_call_edges --> _extract_calls
-    _scan_call_edges --> _extract_calls
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
     impact --> _load_scan_excludes

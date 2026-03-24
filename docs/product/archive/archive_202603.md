@@ -431,3 +431,12 @@
 - [x] Modify _scan_files() to accept file_ext param
 - [x] Wire file_ext through visualize() and impact() callers
 - [x] GREEN: All tests pass (2864 passed, 0 regressions)
+
+### [STORY-slim-030] LanguageAnalyzer interface + Python adapter
+> Spec: docs/specs/STORY-slim-030.md
+
+- [x] Define LanguageAnalyzer base class
+- [x] Implement PythonAnalyzer wrapping ast logic
+- [x] Refactor _build_call_graph to use analyzer
+- [x] Refactor _build_file_graph to use analyzer
+- [x] Snapshot test for identical output

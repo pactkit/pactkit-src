@@ -2,11 +2,6 @@
 
 ## 📋 Backlog
 
-### [STORY-slim-030] LanguageAnalyzer interface + Python adapter
-> Spec: docs/specs/STORY-slim-030.md
-
-- [ ] Define LanguageAnalyzer base class,Implement PythonAnalyzer wrapping ast logic,Refactor _build_call_graph to use analyzer,Refactor _build_file_graph to use analyzer,Snapshot test for identical output
-
 ### [STORY-slim-031] Unified impact test mapping via LANG_PROFILES
 > Spec: docs/specs/STORY-slim-031.md
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Standalone version for IDE support. Deployed with _SHARED_HEADER."""
+import abc
 import argparse
 import ast
 import os
@@ -142,8 +143,63 @@ def _scan_files(root, scan_excludes=None, file_ext='.py'):
         except (SyntaxError, UnicodeDecodeError, ValueError): pass
     return all_files, module_index, file_to_node
 
+# --- LANGUAGE ADAPTER (STORY-slim-030) ---
+class LanguageAnalyzer(abc.ABC):
+    @abc.abstractmethod
+    def extract_imports(self, file_path) -> list:
+        """Return list of imported module name strings."""
+        ...
+
+    @abc.abstractmethod
+    def extract_functions_and_calls(self, file_path) -> tuple:
+        """Return (func_registry, call_edges) for one file."""
+        ...
+
+
+class PythonAnalyzer(LanguageAnalyzer):
+    def extract_imports(self, file_path):
+        """Parse a Python file and return a list of imported module name strings."""
+        try:
+            tree = ast.parse(file_path.read_text(encoding='utf-8'))
+            imported_modules = []
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Import):
+                    for alias in n.names:
+                        imported_modules.append(alias.name)
+                elif isinstance(n, ast.ImportFrom):
+                    if n.module:
+                        imported_modules.append(n.module)
+            return imported_modules
+        except (SyntaxError, UnicodeDecodeError, ValueError):
+            return []
+
+    def extract_functions_and_calls(self, file_path):
+        """Parse a Python file and return (func_registry, call_edges) for that file."""
+        try:
+            tree = ast.parse(file_path.read_text(encoding='utf-8'))
+            rel = file_path.stem
+            func_registry = {}
+            call_edges = {}
+            for node in ast.iter_child_nodes(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    qname = node.name
+                    func_registry[qname] = rel
+                    call_edges[qname] = _extract_calls(node, current_class=None)
+                elif isinstance(node, ast.ClassDef):
+                    for item in node.body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            qname = f'{node.name}.{item.name}'
+                            func_registry[qname] = rel
+                            call_edges[qname] = _extract_calls(item, current_class=node.name)
+            return func_registry, call_edges
+        except (SyntaxError, UnicodeDecodeError, ValueError):
+            return {}, {}
+
+
 # --- MODE: FILE (v1.3.0) ---
-def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0):
+def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0, analyzer=None):
+    if analyzer is None:
+        analyzer = PythonAnalyzer()
     nodes = []
     edges = []
     for f in all_files:
@@ -155,32 +211,22 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
     adjacency = {}  # node -> set of neighbor nodes (for depth limiting)
     for p in all_files:
         consumer_id = file_to_node[p]
-        try:
-            tree = ast.parse(p.read_text(encoding='utf-8'))
-            for n in ast.walk(tree):
-                imported_modules = []
-                if isinstance(n, ast.Import):
-                    for alias in n.names:
-                        imported_modules.append(alias.name)
-                elif isinstance(n, ast.ImportFrom):
-                    if n.module: imported_modules.append(n.module)
-                for imported_module in imported_modules:
-                    tf = module_index.get(imported_module)
-                    if not tf:
-                        parts = imported_module.split('.')
-                        for i in range(len(parts), 0, -1):
-                            sub = '.'.join(parts[:i])
-                            if sub in module_index: tf = module_index[sub]; break
-                    if tf and tf != p:
-                        pid = file_to_node.get(tf)
-                        if pid:
-                            edge = (consumer_id, pid)
-                            if edge not in seen_edges:
-                                seen_edges.add(edge)
-                                edges.append(edge)
-                            adjacency.setdefault(consumer_id, set()).add(pid)
-                            adjacency.setdefault(pid, set()).add(consumer_id)
-        except (SyntaxError, UnicodeDecodeError, ValueError): pass
+        for imported_module in analyzer.extract_imports(p):
+            tf = module_index.get(imported_module)
+            if not tf:
+                parts = imported_module.split('.')
+                for i in range(len(parts), 0, -1):
+                    sub = '.'.join(parts[:i])
+                    if sub in module_index: tf = module_index[sub]; break
+            if tf and tf != p:
+                pid = file_to_node.get(tf)
+                if pid:
+                    edge = (consumer_id, pid)
+                    if edge not in seen_edges:
+                        seen_edges.add(edge)
+                        edges.append(edge)
+                    adjacency.setdefault(consumer_id, set()).add(pid)
+                    adjacency.setdefault(pid, set()).add(consumer_id)
 
     final_lines = ['graph TD']
     if focus:
@@ -306,34 +352,16 @@ def _build_class_graph(root, all_files, focus):
     return dest, nl().join(lines)
 
 # --- MODE: CALL (function-level call graph) ---
-def _build_call_graph(root, all_files, focus, entry):
-    # Pass 1: Register all functions/methods
+def _build_call_graph(root, all_files, focus, entry, analyzer=None):
+    if analyzer is None:
+        analyzer = PythonAnalyzer()
     func_registry = {}  # {qualified_name: file}
-    # Pass 2: Build call edges
     call_edges = {}  # {caller_qualified: [callee_qualified]}
 
     for p in all_files:
-        try:
-            tree = ast.parse(p.read_text(encoding='utf-8'))
-            rel = p.stem
-
-            for node in ast.iter_child_nodes(tree):
-                # Top-level functions
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    qname = node.name
-                    func_registry[qname] = rel
-                    callees = _extract_calls(node, current_class=None)
-                    call_edges[qname] = callees
-
-                # Class methods
-                elif isinstance(node, ast.ClassDef):
-                    for item in node.body:
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            qname = f'{node.name}.{item.name}'
-                            func_registry[qname] = rel
-                            callees = _extract_calls(item, current_class=node.name)
-                            call_edges[qname] = callees
-        except (SyntaxError, UnicodeDecodeError, ValueError): pass
+        fr, ce = analyzer.extract_functions_and_calls(p)
+        func_registry.update(fr)
+        call_edges.update(ce)
 
     # Pass 3: Resolve short names to qualified names where possible
     all_func_names = set(func_registry.keys())
@@ -434,26 +462,16 @@ def _resolve_callee(callee, all_func_names):
     return None
 
 # --- MODE: REVERSE CALLER BFS (STORY-053) ---
-def _scan_call_edges(root, all_files):
+def _scan_call_edges(root, all_files, analyzer=None):
     """Shared helper: build func_registry and call_edges from source. Used by forward and reverse BFS."""
+    if analyzer is None:
+        analyzer = PythonAnalyzer()
     func_registry = {}  # {qualified_name: stem}
     call_edges = {}  # {caller: [callees]}
     for p in all_files:
-        try:
-            tree = ast.parse(p.read_text(encoding='utf-8'))
-            rel = p.stem
-            for node in ast.iter_child_nodes(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    qname = node.name
-                    func_registry[qname] = rel
-                    call_edges[qname] = _extract_calls(node, current_class=None)
-                elif isinstance(node, ast.ClassDef):
-                    for item in node.body:
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            qname = f'{node.name}.{item.name}'
-                            func_registry[qname] = rel
-                            call_edges[qname] = _extract_calls(item, current_class=node.name)
-        except (SyntaxError, UnicodeDecodeError, ValueError): pass
+        fr, ce = analyzer.extract_functions_and_calls(p)
+        func_registry.update(fr)
+        call_edges.update(ce)
     return func_registry, call_edges
 
 
@@ -504,7 +522,8 @@ def impact(target='.', entry=None):
     scan_excludes = _load_scan_excludes(root)
     file_ext = _detect_file_ext(root)
     all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    func_registry, call_edges = _scan_call_edges(root, all_files)
+    analyzer = PythonAnalyzer()  # TODO: select based on file_ext for Go/Java/TS (STORY-slim-032+)
+    func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
 
     visited, _ = _build_reverse_graph(func_registry, call_edges, entry)
     if not visited: return ''
@@ -526,13 +545,14 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
     scan_excludes = _load_scan_excludes(root)
     file_ext = _detect_file_ext(root)
     all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
+    analyzer = PythonAnalyzer()  # TODO: select based on file_ext for Go/Java/TS (STORY-slim-032+)
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus)
     elif mode == 'call':
         if entry and reverse:
             # Reverse BFS: find all callers of the entry function
-            func_registry, call_edges = _scan_call_edges(root, all_files)
+            func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
             visited, reverse_edges = _build_reverse_graph(func_registry, call_edges, entry)
             lines = ['graph TD']
             safe = lambda s: s.replace('.', '_')
@@ -544,9 +564,9 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
             if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
             content = nl().join(lines)
         else:
-            dest, content = _build_call_graph(root, all_files, focus, entry)
+            dest, content = _build_call_graph(root, all_files, focus, entry, analyzer=analyzer)
     else:
-        dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes)
+        dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes, analyzer=analyzer)
         if dest is None: return content  # error message
 
     if not dest.parent.exists(): dest.parent.mkdir(parents=True, exist_ok=True)
