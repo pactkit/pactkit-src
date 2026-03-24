@@ -36,13 +36,13 @@ class TestOutputCheckpoints:
     """R1: Each sub-phase must have an output checkpoint."""
 
     def test_3_2a_checkpoint(self):
-        assert "Spec skeleton written" in PLAN
+        assert "Spec skeleton filled" in PLAN or "Spec skeleton written" in PLAN
 
     def test_3_2b_checkpoint(self):
         assert "Acceptance criteria written" in PLAN
 
     def test_3_2c_checkpoint(self):
-        assert "Security scope appended" in PLAN
+        assert "Security scope filled" in PLAN or "Security scope appended" in PLAN
 
     def test_3_2d_checkpoint(self):
         assert "Spec lint passed" in PLAN

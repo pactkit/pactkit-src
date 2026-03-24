@@ -15,7 +15,7 @@
 
 ## Invariants
 
-1. All 2773+ tests must pass before any commit to `main`.
+1. All 2814+ tests must pass before any commit to `main`.
 2. Specs (`docs/specs/`) are the source of truth — code conforms to specs, not the reverse.
 3. CLI entry point is `pactkit` via `src/pactkit/cli.py:main`.
 4. No runtime dependencies beyond `pyyaml`.

@@ -38,11 +38,12 @@ class TestPlanImplementationStepsTemplate:
         assert 'Implementation Steps' in plan, \
             "project-plan.md must mention 'Implementation Steps' section"
 
-    def test_plan_implementation_steps_has_table_columns(self):
-        """Spec table must include Dependencies and Risk columns."""
+    def test_plan_implementation_steps_has_table_guidance(self):
+        """Plan must guide agent about Implementation Steps table (inline or via scaffold)."""
         plan = self._plan()
-        assert 'Dependencies' in plan or 'Risk' in plan, \
-            "Implementation Steps template must include Dependencies and/or Risk columns"
+        # STORY-slim-026: table format moved to SPEC_TEMPLATE; prompt references skeleton
+        assert 'table' in plan.lower() or 'skeleton' in plan.lower() or 'Dependencies' in plan, \
+            "Implementation Steps guidance must mention table format (inline or via scaffold)"
 
 
 # ===========================================================================
