@@ -4,6 +4,24 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.0] - 2026-03-25
+
+### Added
+- **Multi-Architecture Topology System** (STORY-slim-039~048) — 10 stories implementing a complete topology analysis framework:
+  - **TopologyParser ABC** — Abstract base class with `detect()` + `parse()` and zero-config auto-detection via `_TOPOLOGY_MARKERS`
+  - **PdcaParser** — Refactored Epic 1 logic into TopologyParser; added PDCA sequence edges (Plan→Act→Check→Done dashed arrows)
+  - **ServiceParser** — Parses `docker-compose.yml`, `openapi.yaml`, `*.proto`; extracts service→api→service dependency graph with MQ topic support
+  - **FrontendParser** — Parses Next.js (App/Pages Router), Vue Router routes; extracts page→component→hook→store dependency chain
+  - **Cross-topology Impact** — `reverse_reach()` works across all topologies; `regression_workflow_impact()` detects service/hook/store changes
+  - **Unified Layered Graph** — `build_unified_graph()` merges code + topology dimensions with bridge edges; `to_mermaid()` renders dimension-based subgraphs
+  - **MAX_WORKFLOW_NODES=500** — Performance ceiling for unified graph node count
+
+### Fixed
+- **detect_topology() DRY fix** — Now delegates to parser's own `detect()` method first, falling back to `_TOPOLOGY_MARKERS` for unregistered topologies only. Fixes empty workflow graph on pactkit's own project.
+- **pyproject.toml metadata** — Moved `authors/keywords/classifiers` from `[project.optional-dependencies]` back to `[project]` (caused CI hatchling validation failure)
+- **CI multilang deps** — Both CI workflows now install `[multilang]` extras for tree-sitter test coverage
+- **Spec/PRD consistency** (HOTFIX-slim-049) — Fixed 040 AC1 wording, 042 markers, PRD database/reads_db removal, PRD roadmap checkboxes
+
 ## [2.3.6] - 2026-03-24
 
 ### Fixed
