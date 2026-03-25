@@ -55,7 +55,7 @@ Topology detection MUST NOT require any manual entries in `pactkit.yaml`. The `_
 
 - **Given** the `TopologyParser` class
 - **When** attempting to instantiate it directly
-- **Then** a `TypeError` is raised because `detect()` and `parse()` are abstract
+- **Then** a `TypeError` is raised because `parse()` is abstract (note: `detect()` has a concrete default implementation based on `markers`)
 
 ### AC2: detect_topology identifies PDCA (R2, R3)
 

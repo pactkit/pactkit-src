@@ -1,8 +1,8 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-24T20:32:40+08:00 by pactkit context
+> Last updated: 2026-03-25T09:40:37+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 1 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
@@ -37,4 +37,4 @@ codex-integration
 - regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts'
 
 ## Next Recommended Action
-`/project-design`
+`/project-plan`

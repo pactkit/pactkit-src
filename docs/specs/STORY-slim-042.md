@@ -18,7 +18,7 @@ This enables developers to run `visualize --mode workflow` on a microservice pro
 ### R1: ServiceParser class (MUST)
 
 A `ServiceParser(TopologyParser)` class MUST be defined with:
-- `markers = ['docker-compose.yml', 'docker-compose.yaml', 'openapi.yaml', 'swagger.json']` — inherits default `detect()` from `TopologyParser` (STORY-slim-040 R1)
+- `markers = ['docker-compose.yml', 'docker-compose.yaml', 'kubernetes/', 'k8s/', 'openapi.yaml', 'swagger.json']` — inherits default `detect()` from `TopologyParser` (STORY-slim-040 R1)
 - `parse(root) -> WorkflowGraph`: Parses service manifests and returns a WorkflowGraph with `service`, `api` node kinds and `calls_api`, `depends_on` edge relations
 
 ### R2: docker-compose parsing (MUST)

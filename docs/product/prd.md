@@ -65,35 +65,35 @@
 | S3 | Workflow Impact: `impact --mode workflow --entry <skill>` 反向追踪受影响命令 | 5 | 3 | 1.7 | ✅ Done (STORY-slim-037) |
 | S4 | Done Phase 集成: regression gate 检测 workflow 级影响 | 4 | 2 | 2.0 | ✅ Done (STORY-slim-038) |
 
-### Epic 1.5: PDCA Sequence Edges + TopologyParser 抽象
+### Epic 1.5: PDCA Sequence Edges + TopologyParser 抽象 ✅ Done
 
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| STORY-slim-039 | PDCA Sequence Parser + 渲染: 解析 project-sprint.md 提取命令间 PDCA 流转顺序，虚线箭头渲染 | 4 | 2 | 2.0 | Now |
-| STORY-slim-040 | TopologyParser ABC + Auto-Detect: 抽象基类 `detect()` + `parse()` 接口，`detect_topology()` 调度器扫描 `_TOPOLOGY_MARKERS` 自动选择 Parser | 5 | 3 | 1.7 | Now |
-| STORY-slim-041 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | Now |
+| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Status |
+|-------|-------------|:------------:|:------------:|:--------------:|--------|
+| STORY-slim-039 | PDCA Sequence Parser + 渲染: 解析 project-sprint.md 提取命令间 PDCA 流转顺序，虚线箭头渲染 | 4 | 2 | 2.0 | ✅ Done |
+| STORY-slim-040 | TopologyParser ABC + Auto-Detect: 抽象基类 `detect()` + `parse()` 接口，`detect_topology()` 调度器扫描 `_TOPOLOGY_MARKERS` 自动选择 Parser | 5 | 3 | 1.7 | ✅ Done |
+| STORY-slim-041 | PdcaParser: 将现有 Epic 1 解析逻辑重构为 TopologyParser 实现 | 3 | 2 | 1.5 | ✅ Done |
 
-### Epic 2: Service Dependency Graph（微服务场景）
+### Epic 2: Service Dependency Graph（微服务场景） ✅ Done
 
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| STORY-slim-042 | ServiceParser: 解析 docker-compose/OpenAPI/gRPC proto 提取服务间依赖 | 5 | 4 | 1.3 | Next |
-| STORY-slim-043 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | Next |
-| STORY-slim-044 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | Later |
+| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Status |
+|-------|-------------|:------------:|:------------:|:--------------:|--------|
+| STORY-slim-042 | ServiceParser: 解析 docker-compose/OpenAPI/gRPC proto 提取服务间依赖 | 5 | 4 | 1.3 | ✅ Done |
+| STORY-slim-043 | Cross-Service Impact: 变更一个 API → 列出所有依赖该 API 的下游服务 | 5 | 4 | 1.3 | ✅ Done |
+| STORY-slim-044 | MQ Topic Dependency: 解析消息队列 producer/consumer 关系 | 3 | 3 | 1.0 | ✅ Done |
 
-### Epic 3: Frontend Topology Graph（前端场景）
+### Epic 3: Frontend Topology Graph（前端场景） ✅ Done
 
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| STORY-slim-045 | FrontendParser — Route & Page: 解析路由配置 + page→component 依赖 | 4 | 3 | 1.3 | Next |
-| STORY-slim-046 | FrontendParser — Hook & Store: 解析 component→hook→store 全链路拓扑 | 3 | 3 | 1.0 | Next |
-| STORY-slim-047 | Frontend Impact: 变更 hook/store → 列出受影响的 page 和 route guard | 4 | 3 | 1.3 | Next |
+| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Status |
+|-------|-------------|:------------:|:------------:|:--------------:|--------|
+| STORY-slim-045 | FrontendParser — Route & Page: 解析路由配置 + page→component 依赖 | 4 | 3 | 1.3 | ✅ Done |
+| STORY-slim-046 | FrontendParser — Hook & Store: 解析 component→hook→store 全链路拓扑 | 3 | 3 | 1.0 | ✅ Done |
+| STORY-slim-047 | Frontend Impact: 变更 hook/store → 列出受影响的 page 和 route guard | 4 | 3 | 1.3 | ✅ Done |
 
-### Epic 4: Unified Layered Graph
+### Epic 4: Unified Layered Graph ✅ Done
 
-| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Horizon |
-|-------|-------------|:------------:|:------------:|:--------------:|---------|
-| STORY-slim-048 | Unified Graph: 代码维度 + 逻辑维度 + 多拓扑合并为一张分层依赖图 | 4 | 4 | 1.0 | Later |
+| Story | Description | Impact (1-5) | Effort (1-5) | Priority (I/E) | Status |
+|-------|-------------|:------------:|:------------:|:--------------:|--------|
+| STORY-slim-048 | Unified Graph: 代码维度 + 逻辑维度 + 多拓扑合并为一张分层依赖图 | 4 | 4 | 1.0 | ✅ Done |
 
 ---
 
@@ -200,7 +200,7 @@ Plan -.-> Act -.-> Check -.-> Done
 | 拓扑 | Node kinds | Edge relations | 数据来源 |
 |------|-----------|---------------|---------|
 | **PDCA** | command, agent, skill, file | invokes, depends_on, contains, sequence | commands/*.md, routing-table, skill dirs |
-| **Service** | service, api, topic, database | calls_api, publishes, subscribes, reads_db | docker-compose, openapi.yaml, *.proto, source code |
+| **Service** | service, api, topic | calls_api, depends_on, publishes, subscribes | docker-compose, openapi.yaml, *.proto, source code |
 | **Frontend** | page, component, hook, store | renders, uses_hook, reads_store, guards | route config, component imports, store definitions |
 
 ### Tech Stack
@@ -272,7 +272,7 @@ class WorkflowGraph:
 | Topology | Node kinds |
 |----------|-----------|
 | PDCA | `command`, `agent`, `skill`, `file` |
-| Service | `service`, `api`, `topic`, `database` |
+| Service | `service`, `api`, `topic` |
 | Frontend | `page`, `component`, `hook`, `store` |
 
 ### Edge Relations（按拓扑分组）
@@ -280,7 +280,7 @@ class WorkflowGraph:
 | Topology | Edge relations |
 |----------|---------------|
 | PDCA | `invokes`, `depends_on`, `contains`, `sequence` |
-| Service | `calls_api`, `publishes`, `subscribes`, `reads_db` |
+| Service | `calls_api`, `depends_on`, `publishes`, `subscribes` |
 | Frontend | `renders`, `uses_hook`, `reads_store`, `guards` |
 
 ### PactKit (PdcaParser) 数据来源映射 — ✅ 已实现
@@ -348,24 +348,24 @@ N/A — CLI 工具，无认证需求。
 - [x] STORY-slim-037: Workflow Impact — `impact --mode workflow --entry <skill>`
 - [x] STORY-slim-038: Done Phase 集成 — regression gate 检测 workflow 变更
 
-### Now: Epic 1.5 — PDCA Sequence + TopologyParser 抽象
+### Done: Epic 1.5 — PDCA Sequence + TopologyParser 抽象 ✅
 > 补充命令间流转关系 + 建立多拓扑自动检测框架。
-- [ ] STORY-slim-039: PDCA Sequence Parser + 渲染
-- [ ] STORY-slim-040: TopologyParser ABC + Auto-Detect
-- [ ] STORY-slim-041: PdcaParser 重构
+- [x] STORY-slim-039: PDCA Sequence Parser + 渲染
+- [x] STORY-slim-040: TopologyParser ABC + Auto-Detect
+- [x] STORY-slim-041: PdcaParser 重构
 
-### Next: Epic 2 — Service Graph + Epic 3 — Frontend Graph
+### Done: Epic 2 — Service Graph + Epic 3 — Frontend Graph ✅
 > 微服务和前端架构的逻辑依赖分析。
-- [ ] STORY-slim-042: ServiceParser — docker-compose/openapi/proto
-- [ ] STORY-slim-043: Cross-Service Impact
-- [ ] STORY-slim-045: FrontendParser — Route & Page
-- [ ] STORY-slim-046: FrontendParser — Hook & Store
-- [ ] STORY-slim-047: Frontend Impact
+- [x] STORY-slim-042: ServiceParser — docker-compose/openapi/proto
+- [x] STORY-slim-043: Cross-Service Impact
+- [x] STORY-slim-045: FrontendParser — Route & Page
+- [x] STORY-slim-046: FrontendParser — Hook & Store
+- [x] STORY-slim-047: Frontend Impact
 
-### Later: Epic 2 (cont.) + Epic 4 — Unified Graph
+### Done: Epic 2 (cont.) + Epic 4 — Unified Graph ✅
 > MQ 拓展 + 代码维度与逻辑维度合并。
-- [ ] STORY-slim-044: MQ Topic Dependency
-- [ ] STORY-slim-048: Unified Layered Graph
+- [x] STORY-slim-044: MQ Topic Dependency
+- [x] STORY-slim-048: Unified Layered Graph
 
 ---
 
