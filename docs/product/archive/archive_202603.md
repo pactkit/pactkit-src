@@ -564,3 +564,10 @@
 > Spec: docs/specs/STORY-slim-041.md
 
 - [x] TDD tests,PdcaParser class,Register in _TOPOLOGY_PARSERS,Refactor build_workflow_graph
+
+### [STORY-slim-049] Split unified graph: full for AI + focused sub-graphs for humans
+> Spec: docs/specs/STORY-slim-049.md
+
+- [x] Remove MAX_WORKFLOW_NODES truncation, add export_focus_graphs per entry point, add CLI --mode unified --split
+
+## ✅ Done

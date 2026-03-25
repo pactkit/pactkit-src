@@ -2,7 +2,6 @@
 
 ## 📋 Backlog
 
-
 ### [HOTFIX-slim-049] Fix spec/PRD consistency
 > Spec: docs/specs/HOTFIX-slim-049.md
 
@@ -11,4 +10,3 @@
 ## 🔄 In Progress
 
 ## ✅ Done
-

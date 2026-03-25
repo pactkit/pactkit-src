@@ -156,6 +156,7 @@ graph TD
     detect_stack["detect_stack"]
     detect_topology["detect_topology"]
     detect_venv["detect_venv"]
+    export_focus_graphs["export_focus_graphs"]
     find_pactkit_yaml["find_pactkit_yaml"]
     fix_board["fix_board"]
     generate_context["generate_context"]
@@ -313,12 +314,14 @@ graph TD
     visualize --> _load_scan_excludes
     visualize --> _detect_stack
     visualize --> _select_analyzer
+    visualize --> build_unified_graph
     visualize --> build_workflow_graph
     visualize --> _scan_files
     visualize --> _scan_files
     visualize --> _detect_file_ext
     visualize --> _scan_files
     visualize --> _build_class_graph
+    visualize --> export_focus_graphs
     visualize --> _build_file_graph
     visualize --> _scan_call_edges
     visualize --> _build_reverse_graph

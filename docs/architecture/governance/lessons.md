@@ -127,3 +127,4 @@
 | 2026-03-24 | detect_topology() must delegate to _TOPOLOGY_PARSERS parser.detect() first, not _TOPOLOGY_MARKERS alone — parsers and markers can diverge silently causing empty graphs | visualize.py:detect_topology |
 | 2026-03-24 | _scan_hooks() only accepts files with 'use' prefix in hook dirs (src/hooks/, composables/) to prevent utility files from becoming hook nodes | visualize.py:_scan_hooks |
 | 2026-03-24 | regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts' | visualize.py:regression_workflow_impact |
+| 2026-03-25 | export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree | src/pactkit/skills/visualize.py:export_focus_graphs |

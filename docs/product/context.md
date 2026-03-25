@@ -1,5 +1,5 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-25T09:40:37+08:00 by pactkit context
+> Last updated: 2026-03-25T10:11:47+08:00 by pactkit context
 
 ## Sprint Status
 Backlog: 1 | In Progress: 0 | Done: 0 stories
@@ -30,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring
 - Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section
 - detect_topology() must delegate to _TOPOLOGY_PARSERS parser.detect() first, not _TOPOLOGY_MARKERS alone — parsers and markers can diverge silently causing empty graphs
 - _scan_hooks() only accepts files with 'use' prefix in hook dirs (src/hooks/, composables/) to prevent utility files from becoming hook nodes
 - regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts'
+- export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree
 
 ## Next Recommended Action
 `/project-plan`

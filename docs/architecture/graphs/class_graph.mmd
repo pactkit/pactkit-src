@@ -49,7 +49,8 @@ classDiagram
         +add_node(node)
         +add_edge(edge)
         -_sanitize_id(raw)
-        +to_mermaid()
+        +to_mermaid(max_render_nodes)
+        +forward_reach(entry_id)
         +reverse_reach(entry_id)
     }
     class TopologyParser {
