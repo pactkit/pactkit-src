@@ -996,9 +996,10 @@ def _build_github_workflow(stack, ci_config, lang_profile, is_ghe=False):
         for key, val in ci_prof["extra_setup"].items():
             lines.append(f"          {key}: {val}")
     lines.append("")
+    install_cmd = ci_config.get("install_cmd", ci_prof["install_cmd"])
     lines.append("      - name: Install dependencies")
     lines.append("        run: |")
-    lines.append(f"          {ci_prof['install_cmd']}")
+    lines.append(f"          {install_cmd}")
     lines.append("")
     lines.append("      - name: Lint")
     lines.append(f"        run: {lint_command}")
