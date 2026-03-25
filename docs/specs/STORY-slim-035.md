@@ -5,7 +5,7 @@
 | ID | STORY-slim-035 |
 | Status | Done |
 | Priority | P1 — Impact 5, Effort 3 |
-| Release | TBD |
+| Release | 2.4.0 |
 
 ## Background
 
