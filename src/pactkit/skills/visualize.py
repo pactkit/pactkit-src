@@ -886,7 +886,8 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         dest = graphs_dir / 'unified_graph.mmd'
         dest.write_text(graph.to_mermaid(), encoding='utf-8')
         result = f'✅ Graph: {dest}'
-        if split:
+        # HOTFIX-slim-050: auto-split only for large graphs; --split forces it
+        if split or len(graph.nodes) > MAX_WORKFLOW_NODES:
             focus_dir = graphs_dir / 'focus'
             written = export_focus_graphs(graph, focus_dir)
             result += f' + {len(written)} focus graphs in {focus_dir}'
