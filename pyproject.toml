@@ -13,13 +13,6 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
-[project.optional-dependencies]
-multilang = [
-    "tree-sitter>=0.25",
-    "tree-sitter-go>=0.25",
-    "tree-sitter-java>=0.23",
-    "tree-sitter-typescript>=0.23",
-]
 authors = [
     { name = "Slim" },
 ]
@@ -50,6 +43,14 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.optional-dependencies]
+multilang = [
+    "tree-sitter>=0.25",
+    "tree-sitter-go>=0.25",
+    "tree-sitter-java>=0.23",
+    "tree-sitter-typescript>=0.23",
 ]
 
 [project.urls]
