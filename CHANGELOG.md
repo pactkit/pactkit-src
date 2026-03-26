@@ -4,6 +4,19 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.1] - 2026-03-26
+
+### Fixed
+- **CI Template Override** (HOTFIX-slim-051) — `_build_github_workflow()` now reads `ci.install_cmd` from `pactkit.yaml` before falling back to `CI_PROFILES` default, preventing `pactkit update` from reverting custom install commands.
+- **Board ITEM_ID_RE** (HOTFIX-slim-052) — Regex now supports developer-prefixed IDs (`HOTFIX-slim-052`, `STORY-alice-001`), matching the pattern already used by `backfill.py` and `doctor.py`.
+
+### Added
+- **Board `move_story` Command** (HOTFIX-slim-052) — New `board.py move_story <ID> <target>` CLI subcommand moves stories between Backlog/In Progress/Done sections regardless of checkbox state.
+- **Automated PyPI Publish** — New `publish.yml` GitHub Actions workflow triggers on `v*` tags; runs full test matrix (Python 3.10-3.13) then publishes via PyPI trusted publisher (OIDC).
+
+### Changed
+- **Closed-Source Migration** — Source repo moved to `pactkit/pactkit-src` (private); public entry point at `pactkit/pactkit-public` (README, issues, install guide). PyPI distribution unchanged.
+
 ## [2.4.0] - 2026-03-25
 
 ### Added

@@ -2,7 +2,7 @@
 # Edit this file to customize which components are deployed.
 # Remove items from a list to disable them. Default: all enabled.
 
-version: 2.4.0
+version: 2.4.1
 stack: python
 root: .
 developer: "slim"
@@ -62,7 +62,7 @@ ci:
   provider: github
   install_cmd: "python -m pip install --upgrade pip\n          pip install -e \".[multilang]\"\n          pip install pytest ruff\n          pactkit init"
   # runner: ubuntu-latest
-  # language_version: 2.4.0
+  # language_version: 2.4.1
   # github_host: ""  # GHE server (empty = github.com)
   # actions_ref: ""  # GHE actions prefix
 
