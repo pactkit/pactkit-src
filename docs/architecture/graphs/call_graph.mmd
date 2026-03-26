@@ -80,6 +80,7 @@ graph TD
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
+    _line_number["_line_number"]
     _load_code_graph["_load_code_graph"]
     _load_opencode_providers["_load_opencode_providers"]
     _load_scan_excludes["_load_scan_excludes"]
@@ -247,6 +248,7 @@ graph TD
     map_to_tests --> detect_stack
     check_config_drift --> find_pactkit_yaml
     check_stale_graphs --> load_config
+    add_story --> _parse_story_blocks
     add_story --> nl
     add_story --> nl
     add_story --> nl
@@ -277,15 +279,9 @@ graph TD
     fix_board --> nl
     fix_board --> nl
     fix_board --> nl
-    _write_board --> fix_board
     update_task --> _mark_done
     update_task --> _write_board
-    update_task --> _mark_done
-    update_task --> _write_board
-    update_task --> _mark_done
-    update_task --> _write_board
-    update_task --> _mark_done
-    update_task --> _write_board
+    update_task --> fix_board
     move_story --> _parse_story_blocks
     move_story --> nl
     move_story --> nl
@@ -383,6 +379,7 @@ graph TD
     build_unified_graph --> build_workflow_graph
     build_unified_graph --> _load_code_graph
     build_unified_graph --> _build_bridge_edges
+    _find_section --> _line_number
     _section_text --> _find_section
     _check_requirements_section --> _section_text
     _check_acceptance_criteria --> _section_text

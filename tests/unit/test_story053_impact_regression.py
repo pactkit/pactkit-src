@@ -92,7 +92,7 @@ class TestReverseCallerAnalysis:
         proj = _create_reverse_test_project(tmp_path)
         g = _exec_visualize()
         result = g['visualize'](str(proj), mode='call', entry='validate_config', reverse=True)
-        output = (proj / 'docs/architecture/graphs/call_graph.mmd').read_text()
+        output = (proj / 'docs/architecture/graphs/reverse_call_graph.mmd').read_text()
         assert '_deploy_classic' in output, f"Expected _deploy_classic in output: {output}"
 
     def test_reverse_caller_finds_transitive_callers(self, tmp_path):
@@ -100,7 +100,7 @@ class TestReverseCallerAnalysis:
         proj = _create_reverse_test_project(tmp_path)
         g = _exec_visualize()
         result = g['visualize'](str(proj), mode='call', entry='validate_config', reverse=True)
-        output = (proj / 'docs/architecture/graphs/call_graph.mmd').read_text()
+        output = (proj / 'docs/architecture/graphs/reverse_call_graph.mmd').read_text()
         assert 'deploy' in output, f"Expected deploy in output: {output}"
 
     def test_reverse_caller_entry_included(self, tmp_path):
@@ -108,7 +108,7 @@ class TestReverseCallerAnalysis:
         proj = _create_reverse_test_project(tmp_path)
         g = _exec_visualize()
         g['visualize'](str(proj), mode='call', entry='validate_config', reverse=True)
-        output = (proj / 'docs/architecture/graphs/call_graph.mmd').read_text()
+        output = (proj / 'docs/architecture/graphs/reverse_call_graph.mmd').read_text()
         assert 'validate_config' in output
 
     def test_reverse_caller_writes_graph_file(self, tmp_path):
@@ -117,14 +117,14 @@ class TestReverseCallerAnalysis:
         g = _exec_visualize()
         result = g['visualize'](str(proj), mode='call', entry='validate_config', reverse=True)
         assert 'call_graph.mmd' in result
-        assert (proj / 'docs/architecture/graphs/call_graph.mmd').exists()
+        assert (proj / 'docs/architecture/graphs/reverse_call_graph.mmd').exists()
 
     def test_reverse_caller_output_format(self, tmp_path):
         """Reverse call graph output starts with 'graph TD'."""
         proj = _create_reverse_test_project(tmp_path)
         g = _exec_visualize()
         g['visualize'](str(proj), mode='call', entry='validate_config', reverse=True)
-        output = (proj / 'docs/architecture/graphs/call_graph.mmd').read_text()
+        output = (proj / 'docs/architecture/graphs/reverse_call_graph.mmd').read_text()
         assert output.startswith('graph TD')
 
     def test_reverse_not_in_forward_mode(self, tmp_path):

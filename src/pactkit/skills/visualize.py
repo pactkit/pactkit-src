@@ -67,8 +67,9 @@ def _load_scan_excludes(root):
     """Load scan_excludes from pactkit.yaml if present. Returns list or None.
 
     Searches .claude/pactkit.yaml then .opencode/pactkit.yaml.
-    Guarded by try/except so standalone script fails gracefully if yaml unavailable.
+    R16: Logs visible warning on YAML parse failure instead of silent pass.
     """
+    import sys as _sys
     candidates = [
         root / '.claude' / 'pactkit.yaml',
         root / '.opencode' / 'pactkit.yaml',
@@ -84,8 +85,10 @@ def _load_scan_excludes(root):
                         excludes = viz['scan_excludes']
                         if isinstance(excludes, list):
                             return excludes
-            except Exception:
-                pass
+            except ImportError:
+                print(f"⚠️ Warning: pyyaml not installed, cannot read {path}", file=_sys.stderr)
+            except Exception as e:
+                print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
     return None
 
 
@@ -97,6 +100,7 @@ def _detect_stack(root):
     2. Marker-file detection via _STACK_MARKERS
     3. Default: 'python'
     """
+    import sys as _sys
     # 1. Try reading stack from pactkit.yaml
     candidates = [
         root / '.claude' / 'pactkit.yaml',
@@ -111,8 +115,10 @@ def _detect_stack(root):
                     stack = data.get('stack', 'auto')
                     if stack and stack != 'auto' and stack in _LANG_FILE_EXT:
                         return stack
-            except Exception:
-                pass
+            except ImportError:
+                print(f"⚠️ Warning: pyyaml not installed, cannot read {path}", file=_sys.stderr)
+            except Exception as e:
+                print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
 
     # 2. Marker-file detection
     for marker, stack in _STACK_MARKERS:
@@ -946,8 +952,9 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
                 lines.append(f'    {safe(fn)}["{fn}"]')
             for src, dst in reverse_edges:
                 lines.append(f'    {safe(src)} --> {safe(dst)}')
-            dest = root / 'docs/architecture/graphs/call_graph.mmd'
-            if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
+            # R14: Write to reverse_call_graph.mmd to avoid overwriting call_graph.mmd
+            dest = root / 'docs/architecture/graphs/reverse_call_graph.mmd'
+            if focus: dest = root / 'docs/architecture/graphs/focus_reverse_call_graph.mmd'
             content = nl().join(lines)
         else:
             dest, content = _build_call_graph(root, all_files, focus, entry, analyzer=analyzer)
@@ -1896,7 +1903,8 @@ def workflow_impact(target='.', entry=None, entries=None):
     all_node_ids = set(graph.nodes.keys())
     for eid in entry_ids:
         if eid not in all_node_ids:
-            available = ', '.join(sorted(all_node_ids)[:20])
+            # R15: Show all available nodes (not truncated to 20)
+            available = ', '.join(sorted(all_node_ids))
             return f'Error: "{eid}" not found in workflow graph. Available nodes: {available}'
 
     # Union of reverse reach for all entries
@@ -2000,18 +2008,22 @@ def _load_code_graph(root) -> tuple:
 def _build_bridge_edges(func_registry: dict, topology_graph: 'WorkflowGraph', unified_graph: 'WorkflowGraph') -> None:
     """Create cross-dimension bridge edges linking code-level to topology-level nodes (STORY-slim-048 R2).
 
-    - function → skill: function's file path contains the skill directory name
-    - function → service: function's file path contains the service node ID
+    R13: Uses exact node-ID matching (word-boundary or path-suffix) instead of
+    substring to prevent false positives (e.g., "auth" matching "oauth2_client").
     """
     skill_nodes = {nid for nid, n in topology_graph.nodes.items() if n.kind == 'skill'}
     service_nodes = {nid for nid, n in topology_graph.nodes.items() if n.kind == 'service'}
 
+    # Pre-compile word-boundary patterns for exact matching
+    _skill_patterns = {sid: re.compile(r'(?:^|[_/\\])' + re.escape(sid) + r'(?:$|[_/\\])') for sid in skill_nodes}
+    _svc_patterns = {sid: re.compile(r'(?:^|[_/\\])' + re.escape(sid) + r'(?:$|[_/\\])') for sid in service_nodes}
+
     for func_name, file_path_str in func_registry.items():
-        for skill_id in skill_nodes:
-            if skill_id in file_path_str:
+        for skill_id, pat in _skill_patterns.items():
+            if pat.search(file_path_str):
                 unified_graph.add_edge(WorkflowEdge(source=func_name, target=skill_id, relation='implements'))
-        for svc_id in service_nodes:
-            if svc_id in file_path_str:
+        for svc_id, pat in _svc_patterns.items():
+            if pat.search(file_path_str):
                 unified_graph.add_edge(WorkflowEdge(source=func_name, target=svc_id, relation='belongs_to'))
 
 

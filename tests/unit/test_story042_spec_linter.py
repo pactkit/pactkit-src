@@ -394,14 +394,14 @@ class TestCLI:
         assert "E005" in result.stdout or "E005" in result.stderr
 
     def test_cli_all_flag(self, tmp_path):
-        # Create two spec files in tmp_path
-        (tmp_path / "STORY-A.md").write_text(MINIMAL_VALID_SPEC, encoding="utf-8")
+        # STORY-slim-051 R11: --all filters to ITEM_ID_RE filenames only
+        (tmp_path / "STORY-001.md").write_text(MINIMAL_VALID_SPEC, encoding="utf-8")
         bad = MINIMAL_VALID_SPEC.replace("## Acceptance Criteria\n", "## Acceptance\n")
-        (tmp_path / "STORY-B.md").write_text(bad, encoding="utf-8")
+        (tmp_path / "STORY-002.md").write_text(bad, encoding="utf-8")
         cmd = [sys.executable, _LINTER_PATH, "--all", "--specs-dir", str(tmp_path)]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        # Should exit non-zero because STORY-B has errors
+        # Should exit non-zero because STORY-002 has errors
         assert result.returncode != 0
         output = result.stdout + result.stderr
-        assert "STORY-B" in output
+        assert "STORY-002" in output
         assert "E005" in output

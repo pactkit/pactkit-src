@@ -120,14 +120,16 @@ class TestSpecLintSingleFile:
 
 class TestSpecLintAll:
     def test_all_pass_exits_zero(self, tmp_path):
-        (tmp_path / "A.md").write_text(MINIMAL_VALID_SPEC)
-        (tmp_path / "B.md").write_text(MINIMAL_VALID_SPEC)
+        # STORY-slim-051 R11: --all filters to ITEM_ID_RE filenames only
+        (tmp_path / "STORY-001.md").write_text(MINIMAL_VALID_SPEC)
+        (tmp_path / "BUG-002.md").write_text(MINIMAL_VALID_SPEC)
         stdout, stderr, code = run_cli("spec-lint", "--all", "--specs-dir", str(tmp_path))
         assert code == 0, f"Expected exit 0, got {code}. stdout={stdout}"
 
     def test_any_fail_exits_nonzero(self, tmp_path):
-        (tmp_path / "valid.md").write_text(MINIMAL_VALID_SPEC)
-        (tmp_path / "invalid.md").write_text(INVALID_SPEC)
+        # STORY-slim-051 R11: --all filters to ITEM_ID_RE filenames only
+        (tmp_path / "STORY-001.md").write_text(MINIMAL_VALID_SPEC)
+        (tmp_path / "BUG-002.md").write_text(INVALID_SPEC)
         stdout, stderr, code = run_cli("spec-lint", "--all", "--specs-dir", str(tmp_path))
         assert code != 0
 
@@ -144,7 +146,8 @@ class TestSpecLintAll:
         monkeypatch.chdir(tmp_path)
         specs_dir = tmp_path / "docs" / "specs"
         specs_dir.mkdir(parents=True)
-        (specs_dir / "A.md").write_text(MINIMAL_VALID_SPEC)
+        # STORY-slim-051 R11: --all filters to ITEM_ID_RE filenames only
+        (specs_dir / "STORY-001.md").write_text(MINIMAL_VALID_SPEC)
         stdout, stderr, code = run_cli("spec-lint", "--all")
         assert code == 0
 

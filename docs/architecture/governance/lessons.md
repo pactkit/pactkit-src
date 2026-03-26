@@ -129,3 +129,4 @@
 | 2026-03-24 | regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts' | visualize.py:regression_workflow_impact |
 | 2026-03-25 | export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree | src/pactkit/skills/visualize.py:export_focus_graphs |
 | 2026-03-26 | board.py update_task: added 3-tier fuzzy fallback (single-task auto-mark, substring match, numeric index) to handle real-world callers that don't know exact task names on the board | src/pactkit/skills/board.py:update_task |
+| 2026-03-26 | Position-based block removal (start, end tuples) is safer than str.find() for board operations — prevents substring false matches on similar story IDs | board.py:_parse_story_blocks |

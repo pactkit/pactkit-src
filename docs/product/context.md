@@ -1,5 +1,5 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-26T11:37:04+08:00 by pactkit context
+> Last updated: 2026-03-26T13:41:49+08:00 by pactkit context
 
 ## Sprint Status
 Backlog: 0 | In Progress: 0 | Done: 0 stories
@@ -30,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- detect_topology() must delegate to _TOPOLOGY_PARSERS parser.detect() first, not _TOPOLOGY_MARKERS alone — parsers and markers can diverge silently causing empty graphs
 - _scan_hooks() only accepts files with 'use' prefix in hook dirs (src/hooks/, composables/) to prevent utility files from becoming hook nodes
 - regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts'
 - export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree
 - board.py update_task: added 3-tier fuzzy fallback (single-task auto-mark, substring match, numeric index) to handle real-world callers that don't know exact task names on the board
+- Position-based block removal (start, end tuples) is safer than str.find() for board operations — prevents substring false matches on similar story IDs
 
 ## Next Recommended Action
 `/project-design`

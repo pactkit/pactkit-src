@@ -88,15 +88,26 @@ def _strip_code_blocks(text: str) -> str:
     return _FENCED_BLOCK.sub(_blank, text)
 
 
-def _find_section(text: str, heading: str) -> tuple[int, int] | None:
+def _find_section(text: str, heading: str, result: LintResult | None = None) -> tuple[int, int] | None:
     """Return (start_idx, end_idx) of a ## heading block, or None if absent.
 
     ``text`` should already have code blocks stripped via ``_strip_code_blocks``
     so that headings inside examples don't confuse parsing.
+
+    R10: If ``## Heading`` is not found but ``### Heading`` exists, report a
+    specific warning about wrong heading level (when ``result`` is provided).
     """
     pattern = re.compile(rf"^##\s+{re.escape(heading)}\s*$", re.MULTILINE | re.IGNORECASE)
     m = pattern.search(text)
     if not m:
+        # R10: Check if heading exists at wrong level (### instead of ##)
+        wrong_level = re.compile(rf"^###\s+{re.escape(heading)}\s*$", re.MULTILINE | re.IGNORECASE)
+        wm = wrong_level.search(text)
+        if wm and result is not None:
+            line = _line_number(text, wm.start())
+            result.warnings.append(
+                LintIssue("W009", f"Section '{heading}' found at wrong heading level (### instead of ##)", line=line)
+            )
         return None
     start = m.start()
     next_h2 = re.search(r"^##\s+", text[m.end() :], re.MULTILINE)
@@ -104,12 +115,12 @@ def _find_section(text: str, heading: str) -> tuple[int, int] | None:
     return start, end
 
 
-def _section_text(text: str, heading: str) -> str | None:
+def _section_text(text: str, heading: str, result: LintResult | None = None) -> str | None:
     """Return the body text of a ## heading block, or None if absent.
 
     ``text`` should already have code blocks stripped.
     """
-    bounds = _find_section(text, heading)
+    bounds = _find_section(text, heading, result=result)
     if bounds is None:
         return None
     return text[bounds[0] : bounds[1]]
@@ -137,8 +148,10 @@ def _check_metadata(text: str, result: LintResult) -> dict[str, str]:
     for m in _METADATA_ROW.finditer(text):
         key = m.group(1).strip()
         val = m.group(2).strip()
-        if key.lower() not in ("field", "-"):
-            fields[key] = val
+        # R12: Filter out separator rows (|---|---| patterns) and header row
+        if key.lower() in ("field",) or re.match(r"^-+$", key):
+            continue
+        fields[key] = val
 
     # E002: required fields must be present and non-empty (from schemas.SPEC_REQUIRED_METADATA_FIELDS)
     for req in SPEC_REQUIRED_METADATA_FIELDS:
@@ -161,7 +174,7 @@ def _check_metadata(text: str, result: LintResult) -> dict[str, str]:
 
 def _check_requirements_section(text: str, result: LintResult) -> None:
     """E003, E004, W003 — Requirements section."""
-    body = _section_text(text, "Requirements")
+    body = _section_text(text, "Requirements", result=result)
 
     # E003: section must exist
     if body is None:
@@ -179,7 +192,7 @@ def _check_requirements_section(text: str, result: LintResult) -> None:
 
 def _check_acceptance_criteria(text: str, result: LintResult, raw_text: str | None = None) -> None:
     """E005, E006, E007 — Acceptance Criteria section."""
-    body = _section_text(text, "Acceptance Criteria")
+    body = _section_text(text, "Acceptance Criteria", result=result)
 
     # E005: section must exist
     if body is None:
@@ -316,7 +329,7 @@ _SEC_ROW = re.compile(SPEC_SEC_PATTERN, re.MULTILINE)
 
 def _check_security_scope(text: str, result: LintResult) -> None:
     """E009 — Security Scope section must exist with SEC-* entries."""
-    body = _section_text(text, SPEC_SECURITY_SCOPE_SECTION)
+    body = _section_text(text, SPEC_SECURITY_SCOPE_SECTION, result=result)
     if body is None:
         result.errors.append(LintIssue("E009", f"Missing '## {SPEC_SECURITY_SCOPE_SECTION}' section"))
         return
@@ -342,7 +355,12 @@ def validate_spec(spec_path: str) -> LintResult:
     LintResult
         ``.passed`` is ``True`` iff there are zero ERROR-level issues.
     """
-    raw = Path(spec_path).read_text(encoding="utf-8")
+    try:
+        raw = Path(spec_path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        result = LintResult()
+        result.errors.append(LintIssue("E000", f"File not found: {spec_path}"))
+        return result
     # Strip fenced code blocks once so all checks operate on the same clean text.
     # This prevents headings inside code examples from confusing section detection.
     text = _strip_code_blocks(raw)
@@ -391,9 +409,11 @@ def main(argv: list[str] | None = None) -> int:
         if not specs_dir.exists():
             print(f"Error: specs directory '{specs_dir}' not found", file=sys.stderr)
             return 1
-        spec_files = sorted(specs_dir.glob("*.md"))
+        # R11: Filter to files matching ITEM_ID_RE pattern (skip TEMPLATE.md, README.md, etc.)
+        _item_id_pattern = re.compile(r"^(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+\.md$")
+        spec_files = sorted(f for f in specs_dir.glob("*.md") if _item_id_pattern.match(f.name))
         if not spec_files:
-            print(f"No .md files found in '{specs_dir}'")
+            print(f"No spec files found in '{specs_dir}'")
             return 0
         any_failure = False
         for spec_file in spec_files:

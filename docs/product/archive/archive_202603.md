@@ -596,3 +596,12 @@
 > Spec: docs/specs/HOTFIX-slim-051.md
 
 - [x] Fix _build_github_workflow to read ci_config install_cmd override
+
+### [STORY-slim-051] Skill scripts robustness hardening
+> Spec: docs/specs/STORY-slim-051.md
+
+- [x] R1-R3 scaffold guards
+- [x] R4-R9 board robustness
+- [x] R10-R12 spec_linter
+- [x] R13-R16 visualize
+- [x] R17 prefix validation
