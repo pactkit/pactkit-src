@@ -4,6 +4,21 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.6.0] - 2026-03-26
+
+### Added
+- **DeployerProtocol & DeployerBase** (STORY-slim-057) — Extracted deployer interface (`typing.Protocol`) and shared base class with registry pattern (`register_deployer()`, `get_deployer()`), enabling adapter-based plugin architecture.
+- **pactkit-opencode Adapter Package** (STORY-slim-058) — Extracted all 8 OpenCode-specific functions into standalone `pactkit-opencode` package with `entry_points`-based auto-registration. `pip install pactkit-opencode` activates OpenCode format automatically.
+- **Entry Point Auto-Discovery** — `_load_entry_point_deployers()` scans `pactkit.deployers` entry_point group at import time for zero-config adapter registration.
+
+### Removed
+- **Codex Profile** (STORY-slim-059) — Removed dead `codex` FormatProfile, YAML candidates, and all codex references from source. VALID_FORMATS auto-shrinks via `FORMAT_PROFILES.keys()`.
+- **OpenCode Functions from Core** — 8 OpenCode-specific functions (~300 lines) moved to `pactkit-opencode` adapter. `deployer.py` reduced from 1754 to 1448 lines (-17%).
+
+### Changed
+- **deployer.py Dispatch** — `deploy()` now dispatches via `_DEPLOYER_REGISTRY` instead of if/elif chain. New formats only need to call `register_deployer()`.
+- **Architecture Principles** — Updated rule templates to reflect adapter pattern (class-based deployers, no codex references).
+
 ## [2.5.0] - 2026-03-26
 
 ### Added
