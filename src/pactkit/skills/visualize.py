@@ -1009,6 +1009,7 @@ class WorkflowGraph:
     def __init__(self):
         self.nodes: dict[str, WorkflowNode] = {}
         self.edges: list[WorkflowEdge] = []
+        self._edge_keys: set[tuple] = set()  # R18 (STORY-slim-052): init in __init__, not lazily
         self.layered: bool = False  # STORY-slim-048: set True by build_unified_graph
 
     def add_node(self, node: WorkflowNode):
@@ -1017,8 +1018,6 @@ class WorkflowGraph:
 
     def add_edge(self, edge: WorkflowEdge):
         key = (edge.source, edge.target, edge.relation)
-        if not hasattr(self, '_edge_keys'):
-            self._edge_keys = set()
         if key not in self._edge_keys:
             self._edge_keys.add(key)
             self.edges.append(edge)
@@ -1878,7 +1877,10 @@ def regression_workflow_impact(target='.', changed_files=None):
                 entry_label = graph.nodes.get(entry_id, WorkflowNode(id=entry_id, kind='file', label=entry_id)).label
                 lines.append(f'Workflow Impact: {entry_label} changed → affects: {", ".join(affected)}')
         return lines
-    except Exception:
+    except Exception as exc:
+        # R19 (STORY-slim-052): Log unexpected errors instead of silently swallowing
+        import sys as _sys
+        print(f"⚠️ regression_workflow_impact failed: {type(exc).__name__}: {exc}", file=_sys.stderr)
         return []
 
 

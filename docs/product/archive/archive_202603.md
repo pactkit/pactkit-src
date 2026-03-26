@@ -605,3 +605,12 @@
 - [x] R10-R12 spec_linter
 - [x] R13-R16 visualize
 - [x] R17 prefix validation
+
+### [STORY-slim-052] Skill scripts call-chain robustness hardening round 2
+> Spec: docs/specs/STORY-slim-052.md
+
+- [x] Fix board.py position/offset bugs (R1-R6)
+- [x] Fix scaffold.py template injection and error handling (R7-R9)
+- [x] Fix spec_linter.py code fence and regex issues (R10-R13)
+- [x] Fix visualize.py Mermaid safety, perf, and init bugs (R14-R20)
+- [x] Unit tests for all 20 requirements

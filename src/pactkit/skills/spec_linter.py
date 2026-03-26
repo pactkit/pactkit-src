@@ -77,6 +77,8 @@ _AC_SUBSECTION = re.compile(SPEC_AC_PATTERN, re.MULTILINE | re.IGNORECASE)
 
 
 _FENCED_BLOCK = re.compile(r"^```[^\n]*\n.*?^```", re.MULTILINE | re.DOTALL)
+# R10 (STORY-slim-052): Fallback for unclosed code fences — strip from opening fence to EOF
+_UNCLOSED_FENCE = re.compile(r"^```[^\n]*\n.*", re.MULTILINE | re.DOTALL)
 
 
 def _strip_code_blocks(text: str) -> str:
@@ -85,7 +87,10 @@ def _strip_code_blocks(text: str) -> str:
     def _blank(m: re.Match) -> str:
         return "\n" * m.group(0).count("\n")
 
-    return _FENCED_BLOCK.sub(_blank, text)
+    result = _FENCED_BLOCK.sub(_blank, text)
+    # R10: If there's still an unclosed fence, strip it to EOF
+    result = _UNCLOSED_FENCE.sub(_blank, result)
+    return result
 
 
 def _find_section(text: str, heading: str, result: LintResult | None = None) -> tuple[int, int] | None:
@@ -100,14 +105,16 @@ def _find_section(text: str, heading: str, result: LintResult | None = None) -> 
     pattern = re.compile(rf"^##\s+{re.escape(heading)}\s*$", re.MULTILINE | re.IGNORECASE)
     m = pattern.search(text)
     if not m:
-        # R10: Check if heading exists at wrong level (### instead of ##)
-        wrong_level = re.compile(rf"^###\s+{re.escape(heading)}\s*$", re.MULTILINE | re.IGNORECASE)
-        wm = wrong_level.search(text)
-        if wm and result is not None:
-            line = _line_number(text, wm.start())
-            result.warnings.append(
-                LintIssue("W009", f"Section '{heading}' found at wrong heading level (### instead of ##)", line=line)
-            )
+        # R13 (STORY-slim-052): Check all heading levels (#, ###, ####) — not just ###
+        for _, hashes in [("#", 1), ("###", 3), ("####", 4)]:
+            wrong_level = re.compile(rf"^{re.escape(hashes * '#')}\s+{re.escape(heading)}\s*$", re.MULTILINE | re.IGNORECASE)
+            wm = wrong_level.search(text)
+            if wm and result is not None:
+                line = _line_number(text, wm.start())
+                result.warnings.append(
+                    LintIssue("W009", f"Section '{heading}' found at wrong heading level ({hashes * '#'} instead of ##)", line=line)
+                )
+                break  # Report the first wrong-level match only
         return None
     start = m.start()
     next_h2 = re.search(r"^##\s+", text[m.end() :], re.MULTILINE)

@@ -182,7 +182,10 @@ def create_spec(i, t):
         return f"❌ Spec already exists: {p}"
     if not p.parent.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
-    c = _SPEC_TEMPLATE.format(id=i, title=t)
+    # R7 (STORY-slim-052): Use sequential str.replace() instead of .format()
+    # to avoid KeyError/ValueError when title contains { or } characters.
+    # Follows Architecture Principle 7 (template rendering safety).
+    c = _SPEC_TEMPLATE.replace("{id}", i).replace("{title}", t)
     p.write_text(c, encoding="utf-8")
     return "✅ Spec Created"
 
@@ -282,6 +285,9 @@ def create_board():
 # --- PRD ---
 def create_prd(product_name):
     p = Path.cwd() / "docs" / "product" / "prd.md"
+    # R9 (STORY-slim-052): Guard against overwriting existing PRD
+    if p.exists():
+        return f"⚠️ PRD already exists: {p}"
     if not p.parent.exists():
         p.parent.mkdir(parents=True, exist_ok=True)
     c = nl().join(

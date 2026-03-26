@@ -79,7 +79,12 @@ def _parse_story_blocks(content):
                 next_section = sp
                 break
         end = min(next_story, next_section)
-        blocks.append((m.group(1), content[start:end].rstrip(), start, end))
+        # R4 (STORY-slim-052): Trim trailing whitespace and adjust end to match,
+        # so that len(block_text) == end - start for all callers.
+        raw = content[start:end]
+        trimmed = raw.rstrip()
+        adjusted_end = start + len(trimmed)
+        blocks.append((m.group(1), trimmed, start, adjusted_end))
     return blocks
 
 
@@ -114,10 +119,12 @@ def fix_board():
     clean = content
     offset = 0
     for _, block_text, start, end in blocks:
+        span = end - start
         adj_start = start - offset
-        adj_end = adj_start + len(block_text)
-        clean = clean[:adj_start] + clean[adj_end:]
-        offset += len(block_text)
+        clean = clean[:adj_start] + clean[adj_start + span:]
+        offset += span
+    # R2 (STORY-slim-052): Clean up trailing whitespace on otherwise-empty lines
+    clean = nl().join(line.rstrip() for line in clean.split(nl()))
     # Clean up excessive blank lines
     clean = re.sub(r"\n{3,}", nl() + nl(), clean)
     # Classify stories into buckets
@@ -238,7 +245,10 @@ def update_version(version):
     content = yaml_path.read_text(encoding="utf-8")
     # R8: Only replace the first/top-level version: key, not nested ones
     content = re.sub(r"version:\s*\S+", f"version: {version}", content, count=1)
-    yaml_path.write_text(content, encoding="utf-8")
+    # R5 (STORY-slim-052): Atomic write via tmp+rename
+    tmp = yaml_path.with_suffix(".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, yaml_path)
     return f"✅ Version updated to {version}"
 
 
@@ -274,7 +284,7 @@ def move_story(sid, target):
         if block_sid == sid:
             story_block = block_text
             block_start = start
-            block_end = block_start + len(block_text)
+            block_end = end
             break
     if story_block is None:
         return f"❌ Story {sid} not found on board"
