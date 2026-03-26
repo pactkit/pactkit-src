@@ -6,6 +6,7 @@ import ast
 import os
 import re
 from dataclasses import dataclass
+from collections import deque
 from pathlib import Path
 
 
@@ -13,6 +14,54 @@ def nl(): return chr(10)
 
 
 # === SCRIPT BODY ===
+
+
+def _atomic_mmd_write(dest, content):
+    """Write .mmd file atomically via tmp+rename to prevent partial writes."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix('.tmp')
+    try:
+        tmp.write_text(content, encoding='utf-8')
+        os.replace(tmp, dest)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise
+
+
+def _mermaid_escape(label: str) -> str:
+    """Escape double quotes in Mermaid node labels using HTML entity."""
+    return label.replace('"', '#quot;')
+
+
+def _extract_node_id(line: str) -> str | None:
+    """Extract node ID from a Mermaid node or click line. Returns None if not a node/click line."""
+    stripped = line.strip()
+    if stripped.startswith('click '):
+        parts = stripped.split()
+        return parts[1] if len(parts) >= 2 else None
+    if '[' in stripped:
+        return stripped.split('[')[0].strip()
+    return None
+
+
+def _best_match(candidates: list, consumer: 'Path') -> 'Path | None':
+    """Pick the candidate closest to consumer's directory (same-package preference)."""
+    if not candidates:
+        return None
+    consumer_parent = consumer.parent
+    for c in candidates:
+        if c.parent == consumer_parent:
+            return c
+    # Fallback: longest common prefix
+    best = candidates[0]
+    best_len = 0
+    for c in candidates:
+        common = len(os.path.commonpath([str(c), str(consumer)]))
+        if common > best_len:
+            best_len = common
+            best = c
+    return best
 
 # --- ARCH ---
 def init_architecture():
@@ -34,6 +83,7 @@ SCAN_EXCLUDES = {
 
 MAX_SCAN_FILES = 500   # STORY-060: file count ceiling to prevent hangs on large repos
 MAX_WORKFLOW_NODES = 500  # STORY-slim-048: unified graph node ceiling
+MAX_FILE_BYTES = 1_048_576  # STORY-slim-055: per-file size ceiling (1 MB) to prevent OOM
 
 # Canonical: src/pactkit/cleaners.py _STACK_MARKERS
 _STACK_MARKERS = [
@@ -155,16 +205,16 @@ def _scan_files(root, scan_excludes=None, file_ext='.py'):
         try:
             rel_path = p.relative_to(root)
             module_name = str(rel_path.with_suffix('')).replace(os.sep, '.')
-            module_index[module_name] = p
+            module_index.setdefault(module_name, []).append(p)
             if len(rel_path.parts) > 1 and rel_path.parts[0] == 'src':
                 short_name = '.'.join(rel_path.parts[1:]).replace('.py', '')
-                module_index[short_name] = p
+                module_index.setdefault(short_name, []).append(p)
             if p.name == '__init__.py':
                 pkg_name = str(rel_path.parent).replace(os.sep, '.')
-                module_index[pkg_name] = p
+                module_index.setdefault(pkg_name, []).append(p)
                 if len(rel_path.parts) > 2 and rel_path.parts[0] == 'src':
                      short_pkg = '.'.join(rel_path.parts[1:-1])
-                     module_index[short_pkg] = p
+                     module_index.setdefault(short_pkg, []).append(p)
         except (SyntaxError, UnicodeDecodeError, ValueError): pass
     return all_files, module_index, file_to_node
 
@@ -185,6 +235,10 @@ class PythonAnalyzer(LanguageAnalyzer):
     def extract_imports(self, file_path):
         """Parse a Python file and return a list of imported module name strings."""
         try:
+            if file_path.stat().st_size > MAX_FILE_BYTES:
+                import sys as _sys
+                print(f"⚠️ Skipping large file: {file_path} ({file_path.stat().st_size} bytes)", file=_sys.stderr)
+                return []
             tree = ast.parse(file_path.read_text(encoding='utf-8'))
             imported_modules = []
             for n in ast.walk(tree):
@@ -201,6 +255,10 @@ class PythonAnalyzer(LanguageAnalyzer):
     def extract_functions_and_calls(self, file_path):
         """Parse a Python file and return (func_registry, call_edges) for that file."""
         try:
+            if file_path.stat().st_size > MAX_FILE_BYTES:
+                import sys as _sys
+                print(f"⚠️ Skipping large file: {file_path} ({file_path.stat().st_size} bytes)", file=_sys.stderr)
+                return {}, {}
             tree = ast.parse(file_path.read_text(encoding='utf-8'))
             rel = file_path.stem
             func_registry = {}
@@ -511,19 +569,22 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
     for f in all_files:
         nid = file_to_node[f]
         rel_str = str(f.relative_to(root))
-        nodes.append(f'    {nid}["{f.name}"]')
+        nodes.append(f'    {nid}["{_mermaid_escape(f.name)}"]')
         nodes.append(f'    click {nid} href "{rel_str}"')
     seen_edges = set()
     adjacency = {}  # node -> set of neighbor nodes (for depth limiting)
     for p in all_files:
         consumer_id = file_to_node[p]
         for imported_module in analyzer.extract_imports(p):
-            tf = module_index.get(imported_module)
-            if not tf:
+            candidates = module_index.get(imported_module, [])
+            if not candidates:
                 parts = imported_module.split('.')
                 for i in range(len(parts), 0, -1):
                     sub = '.'.join(parts[:i])
-                    if sub in module_index: tf = module_index[sub]; break
+                    if sub in module_index:
+                        candidates = module_index[sub]
+                        break
+            tf = _best_match(candidates, p) if len(candidates) > 1 else (candidates[0] if candidates else None)
             if tf and tf != p:
                 pid = file_to_node.get(tf)
                 if pid:
@@ -538,7 +599,9 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
     if focus:
         target_ids = set()
         for f, nid in file_to_node.items():
-            if focus in str(f.relative_to(root)): target_ids.add(nid)
+            rel = str(f.relative_to(root))
+            if rel == focus or rel.endswith('/' + focus):
+                target_ids.add(nid)
         if not target_ids:
             return None, f"❌ Focus target '{focus}' not found. (Scanned {len(all_files)} files)"
         relevant_ids = set(target_ids)
@@ -548,7 +611,9 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
                 relevant_edges.append(f'    {src} --> {dst}')
                 relevant_ids.add(src); relevant_ids.add(dst)
         for line in nodes:
-            if any(rid in line for rid in relevant_ids): final_lines.append(line)
+            nid_in_line = _extract_node_id(line)
+            if nid_in_line in relevant_ids:
+                final_lines.append(line)
         final_lines.extend(relevant_edges)
         dest = root / 'docs/architecture/graphs/focus_file_graph.mmd'
     else:
@@ -577,7 +642,8 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
 
             # Filter nodes and edges
             for line in nodes:
-                if any(nid in line for nid in allowed):
+                nid_in_line = _extract_node_id(line)
+                if nid_in_line in allowed:
                     final_lines.append(line)
             for src, dst in edges:
                 if src in allowed and dst in allowed:
@@ -600,7 +666,8 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
                 filtered = ['graph TD']
                 for line in final_lines[1:]:
                     if '[' in line or 'click' in line:
-                        if any(nid in line for nid in keep_ids):
+                        nid_in_line = _extract_node_id(line)
+                        if nid_in_line in keep_ids:
                             filtered.append(line)
                     elif '-->' in line:
                         parts = line.strip().split('-->')
@@ -620,6 +687,8 @@ def _build_class_graph(root, all_files, focus):
 
     for p in all_files:
         try:
+            if p.stat().st_size > MAX_FILE_BYTES:
+                continue
             tree = ast.parse(p.read_text(encoding='utf-8'))
             rel = str(p.relative_to(root))
             for node in ast.walk(tree):
@@ -671,6 +740,7 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
 
     # Pass 3: Resolve short names to qualified names where possible
     all_func_names = set(func_registry.keys())
+    suffix_index = _build_suffix_index(all_func_names)
 
     # Pass 4: If --entry, do BFS for transitive closure
     if entry:
@@ -686,14 +756,14 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
 
         # BFS — only follow edges to project-defined functions (BUG-012)
         visited = set()
-        queue = [start]
+        queue = deque([start])
         reachable_edges = []
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()
             if current in visited: continue
             visited.add(current)
             for callee in call_edges.get(current, []):
-                resolved = _resolve_callee(callee, all_func_names)
+                resolved = _resolve_callee(callee, all_func_names, suffix_index)
                 if resolved:
                     reachable_edges.append((current, resolved))
                     if resolved not in visited: queue.append(resolved)
@@ -701,7 +771,7 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         lines = ['graph TD']
         safe = lambda s: s.replace('.', '_')
         for fn in visited:
-            lines.append(f'    {safe(fn)}["{fn}"]')
+            lines.append(f'    {safe(fn)}["{_mermaid_escape(fn)}"]')
         for src, dst in reachable_edges:
             lines.append(f'    {safe(src)} --> {safe(dst)}')
     else:
@@ -714,13 +784,13 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         for caller, callees in call_edges.items():
             if focus and focus not in func_registry.get(caller, ''): continue
             for callee in callees:
-                resolved = _resolve_callee(callee, all_func_names)
+                resolved = _resolve_callee(callee, all_func_names, suffix_index)
                 if resolved:
                     relevant.add(caller)
                     relevant.add(resolved)
                     rel_edges.append((caller, resolved))
 
-        for fn in sorted(relevant): lines.append(f'    {safe(fn)}["{fn}"]')
+        for fn in sorted(relevant): lines.append(f'    {safe(fn)}["{_mermaid_escape(fn)}"]')
         for src, dst in rel_edges: lines.append(f'    {safe(src)} --> {safe(dst)}')
 
     dest = root / 'docs/architecture/graphs/call_graph.mmd'
@@ -759,12 +829,26 @@ def _extract_calls(func_node, current_class=None):
                     # Skip non-self local variable method calls (e.g., lines.append)
     return callees
 
-def _resolve_callee(callee, all_func_names):
-    # Try to resolve a callee string to a known qualified function name.
-    if callee in all_func_names: return callee
-    # Try matching by suffix
+def _build_suffix_index(all_func_names):
+    """Build a suffix index for O(1) callee resolution."""
+    suffix_index = {}
     for fn in all_func_names:
-        if fn.endswith(f'.{callee}') or fn == callee: return fn
+        short = fn.rsplit('.', 1)[-1]
+        suffix_index.setdefault(short, []).append(fn)
+    return suffix_index
+
+
+def _resolve_callee(callee, all_func_names, suffix_index=None):
+    """Resolve a callee string to a known qualified function name. O(1) with suffix_index."""
+    if callee in all_func_names:
+        return callee
+    if suffix_index is not None:
+        candidates = suffix_index.get(callee, [])
+        return candidates[0] if candidates else None
+    # Fallback: linear scan (legacy, only if suffix_index not provided)
+    for fn in all_func_names:
+        if fn.endswith(f'.{callee}') or fn == callee:
+            return fn
     return None
 
 # --- MODE: REVERSE CALLER BFS (STORY-053) ---
@@ -794,11 +878,12 @@ def _find_entry_func(entry, all_func_names):
 def _build_reverse_graph(func_registry, call_edges, entry):
     """BFS backwards through caller graph from entry. Returns (visited_funcs, reverse_edges)."""
     all_func_names = set(func_registry.keys())
+    suffix_index = _build_suffix_index(all_func_names)
     # Build reverse map: {callee: [callers]}
     reverse_map = {}
     for caller, callees in call_edges.items():
         for callee in callees:
-            resolved = _resolve_callee(callee, all_func_names)
+            resolved = _resolve_callee(callee, all_func_names, suffix_index)
             if resolved:
                 reverse_map.setdefault(resolved, []).append(caller)
 
@@ -806,10 +891,10 @@ def _build_reverse_graph(func_registry, call_edges, entry):
     if not start: return set(), []
 
     visited = set()
-    queue = [start]
+    queue = deque([start])
     reverse_edges = []
     while queue:
-        current = queue.pop(0)
+        current = queue.popleft()
         if current in visited: continue
         visited.add(current)
         for caller in reverse_map.get(current, []):
@@ -890,7 +975,7 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         graphs_dir = root / 'docs' / 'architecture' / 'graphs'
         graphs_dir.mkdir(parents=True, exist_ok=True)
         dest = graphs_dir / 'unified_graph.mmd'
-        dest.write_text(graph.to_mermaid(), encoding='utf-8')
+        _atomic_mmd_write(dest, graph.to_mermaid())
         result = f'✅ Graph: {dest}'
         # HOTFIX-slim-050: auto-split only for large graphs; --split forces it
         if split or len(graph.nodes) > MAX_WORKFLOW_NODES:
@@ -922,7 +1007,7 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         content = graph.to_mermaid()
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(content, encoding='utf-8')
+        _atomic_mmd_write(dest, content)
         return f'✅ Graph: {dest}'
 
     scan_excludes = _load_scan_excludes(root)
@@ -963,7 +1048,7 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         if dest is None: return content  # error message
 
     if not dest.parent.exists(): dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(content, encoding='utf-8')
+    _atomic_mmd_write(dest, content)
     return f'✅ Graph: {dest}'
 
 def list_rules(): return 'Rules defined in ~/.claude/CLAUDE.md'
@@ -1047,7 +1132,7 @@ class WorkflowGraph:
                 lines.append(f'    subgraph "{dim}"')
                 for n in sorted(nodes, key=lambda x: x.id):
                     sid = self._sanitize_id(n.id)
-                    lines.append(f'        {sid}["{n.label}"]')
+                    lines.append(f'        {sid}["{_mermaid_escape(n.label)}"]')
                 lines.append('    end')
         else:
             # STORY-slim-041 R6: Dynamic kind discovery — known PDCA kinds first, then any new kinds
@@ -1063,7 +1148,7 @@ class WorkflowGraph:
                 lines.append(f'    subgraph {kind_labels[kind]}')
                 for n in sorted(nodes_of_kind, key=lambda x: x.id):
                     sid = self._sanitize_id(n.id)
-                    lines.append(f'        {sid}["{n.label}"]')
+                    lines.append(f'        {sid}["{_mermaid_escape(n.label)}"]')
                 lines.append('    end')
         # STORY-slim-049 R3: max_render_nodes truncation for human-readable output
         if max_render_nodes > 0:
@@ -1102,9 +1187,9 @@ class WorkflowGraph:
         for e in self.edges:
             forward_map.setdefault(e.source, []).append(e.target)
         visited: set[str] = set()
-        queue = [entry_id]
+        queue = deque([entry_id])
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()
             if current in visited:
                 continue
             visited.add(current)
@@ -1119,9 +1204,9 @@ class WorkflowGraph:
         for e in self.edges:
             reverse_map.setdefault(e.target, []).append(e.source)
         visited: set[str] = set()
-        queue = [entry_id]
+        queue = deque([entry_id])
         while queue:
-            current = queue.pop(0)
+            current = queue.popleft()
             if current in visited:
                 continue
             visited.add(current)
@@ -1994,13 +2079,14 @@ def _load_code_graph(root) -> tuple:
         call_edges_all.update(ce)
 
     all_funcs = set(func_registry.keys())
+    suffix_idx = _build_suffix_index(all_funcs)
     for func_name in all_funcs:
         graph.add_node(WorkflowNode(id=func_name, kind='function', label=func_name))
     for caller, callees in call_edges_all.items():
         if caller not in all_funcs:
             continue
         for callee in callees:
-            resolved = _resolve_callee(callee, all_funcs)
+            resolved = _resolve_callee(callee, all_funcs, suffix_idx)
             if resolved:
                 graph.add_edge(WorkflowEdge(source=caller, target=resolved, relation='calls'))
 
@@ -2094,7 +2180,7 @@ def export_focus_graphs(graph: WorkflowGraph, output_dir) -> list:
         # Write .mmd
         sanitized = WorkflowGraph._sanitize_id(entry.id)
         dest = output_dir / f'focus_{sanitized}.mmd'
-        dest.write_text(sub.to_mermaid(), encoding='utf-8')
+        _atomic_mmd_write(dest, sub.to_mermaid())
         written.append(dest)
     return written
 

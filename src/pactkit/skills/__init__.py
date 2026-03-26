@@ -9,6 +9,7 @@ from pathlib import Path
 _SCRIPTS_DIR = Path(__file__).parent
 
 _SHARED_HEADER = r"""import abc, re, os, sys, json, datetime, argparse, subprocess, shutil, ast
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 

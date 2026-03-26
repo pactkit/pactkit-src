@@ -614,3 +614,34 @@
 - [x] Fix spec_linter.py code fence and regex issues (R10-R13)
 - [x] Fix visualize.py Mermaid safety, perf, and init bugs (R14-R20)
 - [x] Unit tests for all 20 requirements
+
+### [STORY-slim-056] E2E test coverage expansion: 21 untested CLI subcommands, error paths, integration scenarios
+> Spec: docs/specs/STORY-slim-056.md
+
+- [x] R1 high-freq 8 subcommands
+- [x] R2 validation 7 subcommands
+- [x] R3 error paths
+- [x] R4 low-freq 6 subcommands
+
+### [STORY-slim-055] File I/O safety: atomic writes in visualize.py, encoding utf-8, large file guard
+> Spec: docs/specs/STORY-slim-055.md
+
+- [x] R1 visualize atomic writes
+- [x] R2 deployer encoding utf-8
+- [x] R3 file size guard
+
+### [STORY-slim-054] Core library robustness: _rewrite_yaml atomic write, _deploy_ci dict mutation, atomic_write tmp cleanup
+> Spec: docs/specs/STORY-slim-054.md
+
+- [x] R1 _rewrite_yaml atomic
+- [x] R2 _deploy_ci pop→get
+- [x] R3 atomic_write tmp cleanup
+
+### [STORY-slim-053] Fix visualize.py latent bugs: Mermaid injection, O(N*E) perf, module collision, substring match
+> Spec: docs/specs/STORY-slim-053.md
+
+- [x] R1 Mermaid escape
+- [x] R2 suffix_index perf
+- [x] R3 module_index collision
+- [x] R4 focus exact match
+- [x] R5 deque BFS

@@ -13,6 +13,8 @@ graph TD
     WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
     WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
     _add_fix_flag["_add_fix_flag"]
+    _atomic_mmd_write["_atomic_mmd_write"]
+    _best_match["_best_match"]
     _build_bridge_edges["_build_bridge_edges"]
     _build_call_graph["_build_call_graph"]
     _build_class_graph["_build_class_graph"]
@@ -23,6 +25,7 @@ graph TD
     _build_reverse_graph["_build_reverse_graph"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
+    _build_suffix_index["_build_suffix_index"]
     _check_acceptance_criteria["_check_acceptance_criteria"]
     _check_gh_available["_check_gh_available"]
     _check_implementation_steps["_check_implementation_steps"]
@@ -57,6 +60,7 @@ graph TD
     _detect_stack["_detect_stack"]
     _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
+    _extract_node_id["_extract_node_id"]
     _extract_requirement_ids["_extract_requirement_ids"]
     _find_enclosing_class["_find_enclosing_class"]
     _find_entry_func["_find_entry_func"]
@@ -85,6 +89,7 @@ graph TD
     _load_opencode_providers["_load_opencode_providers"]
     _load_scan_excludes["_load_scan_excludes"]
     _mark_done["_mark_done"]
+    _mermaid_escape["_mermaid_escape"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_app_router_pages["_parse_app_router_pages"]
@@ -310,12 +315,21 @@ graph TD
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    _build_file_graph --> _extract_node_id
+    _build_file_graph --> _best_match
+    _build_file_graph --> _extract_node_id
     _build_file_graph --> nl
+    _build_file_graph --> _mermaid_escape
+    _build_file_graph --> _extract_node_id
     _build_class_graph --> nl
+    _build_call_graph --> _build_suffix_index
     _build_call_graph --> _resolve_callee
     _build_call_graph --> _resolve_callee
     _build_call_graph --> nl
     _build_call_graph --> nl
+    _build_call_graph --> _mermaid_escape
+    _build_call_graph --> _mermaid_escape
+    _build_reverse_graph --> _build_suffix_index
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
     impact --> _load_scan_excludes
@@ -331,8 +345,11 @@ graph TD
     visualize --> _load_scan_excludes
     visualize --> _detect_stack
     visualize --> _select_analyzer
+    visualize --> _atomic_mmd_write
     visualize --> build_unified_graph
+    visualize --> _atomic_mmd_write
     visualize --> build_workflow_graph
+    visualize --> _atomic_mmd_write
     visualize --> _scan_files
     visualize --> _scan_files
     visualize --> _detect_file_ext
@@ -349,6 +366,8 @@ graph TD
     WorkflowGraph_to_mermaid --> nl
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> _mermaid_escape
+    WorkflowGraph_to_mermaid --> _mermaid_escape
     PdcaParser_parse --> _parse_commands
     PdcaParser_parse --> _parse_routing_table
     PdcaParser_parse --> _scan_skill_files
@@ -376,11 +395,13 @@ graph TD
     _load_code_graph --> _detect_stack
     _load_code_graph --> _select_analyzer
     _load_code_graph --> _load_scan_excludes
+    _load_code_graph --> _build_suffix_index
     _load_code_graph --> _scan_files
     _load_code_graph --> _resolve_callee
     build_unified_graph --> build_workflow_graph
     build_unified_graph --> _load_code_graph
     build_unified_graph --> _build_bridge_edges
+    export_focus_graphs --> _atomic_mmd_write
     _find_section --> _line_number
     _section_text --> _find_section
     _check_requirements_section --> _section_text

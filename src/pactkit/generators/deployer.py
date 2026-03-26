@@ -891,7 +891,7 @@ def _load_opencode_providers(opencode_root):
     json_path = opencode_root / "opencode.json"
     if json_path.is_file():
         try:
-            data = json.loads(json_path.read_text())
+            data = json.loads(json_path.read_text(encoding='utf-8'))
             return data.get("provider", {})
         except (json.JSONDecodeError, OSError):
             pass
@@ -1064,7 +1064,7 @@ def _deploy_ci(provider, project_root, config):
         ci_config = {}
 
     # GHE detection priority: _ghe_override (testing) > github_host (explicit) > auto-detect
-    is_ghe = ci_config.pop("_ghe_override", None)
+    is_ghe = ci_config.get("_ghe_override")
     if is_ghe is None:
         github_host = ci_config.get("github_host", "")
         if github_host:
@@ -1313,7 +1313,7 @@ def _generate_project_claude_md(config):
     # STORY-040 R4: Migration heuristic
     # If CLAUDE.md exists but CLAUDE.local.md doesn't, check for user modifications
     if claude_md_path.exists() and not claude_local_path.exists():
-        existing_content = claude_md_path.read_text()
+        existing_content = claude_md_path.read_text(encoding='utf-8')
         if _is_user_modified_claude_md(existing_content, project_name):
             # Migrate user content to CLAUDE.local.md
             atomic_write(claude_local_path, existing_content)
@@ -1636,7 +1636,7 @@ def _update_global_opencode_json(opencode_root, command_models=None, providers=N
     # Read existing config if present
     if json_path.is_file():
         try:
-            config = json.loads(json_path.read_text())
+            config = json.loads(json_path.read_text(encoding='utf-8'))
         except (json.JSONDecodeError, OSError):
             config = {}
 

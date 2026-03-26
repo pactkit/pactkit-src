@@ -1,5 +1,6 @@
 """PactKit configuration — load, validate, and generate pactkit.yaml."""
 
+import os
 import re
 import warnings
 from dataclasses import dataclass, field
@@ -704,7 +705,14 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
             lines.append(serialized.rstrip())
         lines.append("")
 
-    path.write_text("\n".join(lines), encoding="utf-8")
+    tmp = path.with_suffix(".tmp")
+    try:
+        tmp.write_text("\n".join(lines), encoding="utf-8")
+        os.replace(tmp, path)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise
 
 
 # ---------------------------------------------------------------------------

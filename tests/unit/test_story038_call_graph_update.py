@@ -72,7 +72,8 @@ class TestAC3FocusGraphModeSpecific:
         root = Path('/fake/root')
         fake_file = root / 'src' / 'auth.py'
         file_to_node = {fake_file: 'auth_py'}
-        dest, _ = _build_file_graph(root, [], {}, file_to_node, focus='auth')
+        # STORY-slim-053 R4: focus must use exact path-tail match (not substring)
+        dest, _ = _build_file_graph(root, [], {}, file_to_node, focus='auth.py')
         assert 'focus_file_graph.mmd' in str(dest)
 
     def test_class_mode_focus_output(self):
@@ -99,7 +100,8 @@ class TestAC3FocusGraphModeSpecific:
         root = Path('/fake/root')
         fake_file = root / 'src' / 'auth.py'
         file_to_node = {fake_file: 'auth_py'}
-        d1, _ = _build_file_graph(root, [], {}, file_to_node, focus='auth')
+        # STORY-slim-053 R4: focus must use exact path-tail match (not substring)
+        d1, _ = _build_file_graph(root, [], {}, file_to_node, focus='auth.py')
         d2, _ = _build_class_graph(root, [], focus='auth')
         d3, _ = _build_call_graph(root, [], focus='auth', entry=None)
         names = {d1.name, d2.name, d3.name}
