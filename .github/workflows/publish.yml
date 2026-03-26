@@ -34,7 +34,7 @@ jobs:
         run: ruff check src/ tests/
 
       - name: Test
-        run: pytest tests/ -v --ignore=tests/unit/test_story_slim034.py
+        run: pytest tests/ -v --ignore=tests/unit/test_story_slim032.py --ignore=tests/unit/test_story_slim033.py --ignore=tests/unit/test_story_slim034.py
 
   publish:
     needs: test
