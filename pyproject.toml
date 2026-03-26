@@ -4,13 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pactkit"
-version = "2.6.0"
+version = "2.6.1"
 description = "Spec-driven agentic DevOps toolkit for AI coding assistants"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0",
+    "pactkit-opencode>=2.6.0",
 ]
 
 authors = [

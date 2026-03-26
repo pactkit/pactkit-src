@@ -4,6 +4,12 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.6.1] - 2026-03-26
+
+### Fixed
+- **OpenCode backward compatibility** — `pactkit-opencode` added as core dependency so `pip install pactkit` automatically includes OpenCode deployment support. Users upgrading from 2.5.0 no longer lose `--format opencode`.
+- **Version sync** — `pactkit-opencode` version aligned to 2.6.0 to match core versioning.
+
 ## [2.6.0] - 2026-03-26
 
 ### Added
