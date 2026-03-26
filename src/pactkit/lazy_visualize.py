@@ -110,11 +110,5 @@ def run_visualize_graphs(project_root: Path) -> None:
         subprocess.run([sys.executable, str(viz_script), "visualize", mode_flag, mode],
                        cwd=str(project_root))
 
-    # Refresh focus graphs if they exist
-    graph_dir = project_root / "docs" / "architecture" / "graphs"
-    if (graph_dir / "focus_file_graph.mmd").exists():
-        subprocess.run([sys.executable, str(viz_script), "visualize", "--focus", "cli"],
-                       cwd=str(project_root))
-    if (graph_dir / "focus_call_graph.mmd").exists():
-        subprocess.run([sys.executable, str(viz_script), "visualize", "--focus", "cli", mode_flag, "call"],
-                       cwd=str(project_root))
+    # Focus graphs are user-generated on demand (--focus <target>), not auto-refreshed.
+    # Removed hardcoded --focus cli refresh (HOTFIX-slim-062).
