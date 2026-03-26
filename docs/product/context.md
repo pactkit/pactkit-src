@@ -1,14 +1,16 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-25T10:11:47+08:00 by pactkit context
+> Last updated: 2026-03-26T10:12:01+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 1 | In Progress: 0 | Done: 0 stories
+Backlog: 0 | In Progress: 0 | Done: 4 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- HOTFIX-slim-049: Fix spec/PRD consistency
+- HOTFIX-slim-050: Auto-split unified graph only for large projects
+- HOTFIX-slim-051: CI template respects ci.install_cmd
 
 ## Active Branches
 codex-integration
@@ -37,4 +39,4 @@ codex-integration
 - export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree
 
 ## Next Recommended Action
-`/project-plan`
+`/project-design`
