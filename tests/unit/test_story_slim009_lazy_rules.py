@@ -10,6 +10,15 @@ Covers:
 """
 
 import json
+import pytest
+
+try:
+    import pactkit_opencode  # noqa: F401
+    _has_opencode = True
+except ImportError:
+    _has_opencode = False
+
+_skip_no_opencode = pytest.mark.skipif(not _has_opencode, reason="pactkit-opencode not installed")
 
 # ---------------------------------------------------------------------------
 # R1: RULES_CORE_FILES + RULES_ONDEMAND_FILES constants exist
@@ -76,6 +85,7 @@ class TestRulesFilesSplit:
 # ---------------------------------------------------------------------------
 
 
+@_skip_no_opencode
 class TestInstructionsCoreOnly:
     def test_opencode_json_has_credential_only_instructions(self, tmp_path):
         """STORY-slim-011: _update_global_opencode_json writes only credential safety, not core rules."""
@@ -227,6 +237,7 @@ class TestClassicUnchanged:
 # ---------------------------------------------------------------------------
 
 
+@_skip_no_opencode
 class TestTokenOverhead:
     def test_core_instructions_under_10kb(self, tmp_path):
         """Core rules + AGENTS.md must be under 10KB total."""

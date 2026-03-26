@@ -15,7 +15,16 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 import yaml
+
+try:
+    import pactkit_opencode  # noqa: F401
+    _has_opencode = True
+except ImportError:
+    _has_opencode = False
+
+_skip_no_opencode = pytest.mark.skipif(not _has_opencode, reason="pactkit-opencode not installed")
 
 project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
@@ -347,6 +356,7 @@ class TestCIProfiles:
 # AC11: OpenCode CI deployment (R7)
 # ===========================================================================
 
+@_skip_no_opencode
 class TestAC11OpenCodeCI:
 
     def test_opencode_deploy_creates_github_workflow(self, tmp_path):

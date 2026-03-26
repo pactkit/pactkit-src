@@ -19,6 +19,14 @@ import json
 
 import pytest
 
+try:
+    import pactkit_opencode  # noqa: F401
+    _has_opencode = True
+except ImportError:
+    _has_opencode = False
+
+_skip_no_opencode = pytest.mark.skipif(not _has_opencode, reason="pactkit-opencode not installed")
+
 from pactkit.prompts import COMMANDS_CONTENT
 from pactkit.prompts.rules import (
     COMMAND_RULES_MAP,
@@ -289,6 +297,7 @@ class TestAC11ClassicClaudeMd:
 # AC12: OpenCode instructions — only 09 in instructions
 # ---------------------------------------------------------------------------
 
+@_skip_no_opencode
 class TestAC12OpenCodeInstructions:
     """AC12: opencode.json instructions should only keep 09-credential-safety."""
 
