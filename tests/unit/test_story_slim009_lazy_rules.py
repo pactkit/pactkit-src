@@ -156,6 +156,7 @@ class TestInstructionsCoreOnly:
 # ---------------------------------------------------------------------------
 
 
+@_skip_no_opencode
 class TestAgentsMdOnDemandRefs:
     def _get_agents_md(self, tmp_path):
         from pactkit_opencode.deployer import OpenCodeDeployer
