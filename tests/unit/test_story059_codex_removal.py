@@ -1,63 +1,43 @@
-"""Tests for STORY-slim-059: Remove dead codex profile and slim down core package.
+"""Tests for STORY-slim-059/060: Codex profile management.
 
-Verifies codex profile, references, and branch code are fully removed.
+STORY-059 originally removed codex from core. STORY-060 re-added the codex
+FormatProfile to core so the thin adapter (pactkit-codex) can use
+get_profile("codex") without bundling its own FormatProfile definition.
 """
 
 from pathlib import Path
 
-import pytest
-
 _SRC_ROOT = Path(__file__).resolve().parent.parent.parent / "src" / "pactkit"
 
 
-class TestCodexProfileRemoved:
-    """AC1: codex profile does not exist."""
+class TestCodexProfileRegistered:
+    """STORY-slim-060: codex profile exists for thin adapter."""
 
-    def test_codex_not_in_format_profiles(self):
+    def test_codex_in_format_profiles(self):
         from pactkit.profiles import FORMAT_PROFILES
 
-        assert "codex" not in FORMAT_PROFILES
+        assert "codex" in FORMAT_PROFILES
 
-    def test_codex_not_in_valid_formats(self):
+    def test_codex_in_valid_formats(self):
         from pactkit.config import VALID_FORMATS
 
-        assert "codex" not in VALID_FORMATS
+        assert "codex" in VALID_FORMATS
 
-    def test_get_profile_codex_raises(self):
+    def test_get_profile_codex_works(self):
         from pactkit.profiles import get_profile
 
-        with pytest.raises((KeyError, ValueError)):
-            get_profile("codex")
+        p = get_profile("codex")
+        assert p.name == "codex"
+        assert p.global_config_dir == "~/.codex"
 
 
-class TestCodexYamlCandidatesRemoved:
-    """R1: codex path removed from PACTKIT_YAML_CANDIDATES."""
+class TestCodexYamlCandidates:
+    """STORY-slim-060: codex path in PACTKIT_YAML_CANDIDATES."""
 
-    def test_no_codex_yaml_candidate(self):
+    def test_codex_yaml_candidate_present(self):
         from pactkit.profiles import PACTKIT_YAML_CANDIDATES
 
-        for path in PACTKIT_YAML_CANDIDATES:
-            assert "codex" not in path, f"codex path still in PACTKIT_YAML_CANDIDATES: {path}"
-
-
-class TestZeroCodexInSource:
-    """AC3: zero codex references in src/pactkit/ (excluding comments about history)."""
-
-    def test_no_codex_in_profiles(self):
-        content = (_SRC_ROOT / "profiles.py").read_text()
-        assert "codex" not in content.lower(), "codex reference still in profiles.py"
-
-    def test_no_codex_in_deployer(self):
-        content = (_SRC_ROOT / "generators" / "deployer.py").read_text()
-        assert "codex" not in content.lower(), "codex reference still in deployer.py"
-
-    def test_no_codex_in_config(self):
-        content = (_SRC_ROOT / "config.py").read_text()
-        assert "codex" not in content.lower(), "codex reference still in config.py"
-
-    def test_no_codex_in_scaffold(self):
-        content = (_SRC_ROOT / "skills" / "scaffold.py").read_text()
-        assert ".codex" not in content, "codex path still in scaffold.py"
+        assert ".codex/pactkit.yaml" in PACTKIT_YAML_CANDIDATES
 
 
 class TestPluginMarketplaceUnaffected:
@@ -85,6 +65,4 @@ class TestDeployerLineCount:
     def test_deployer_reduced_from_original(self):
         """deployer.py should be < 1500 lines (was 1754 before extraction)."""
         lines = (_SRC_ROOT / "generators" / "deployer.py").read_text().splitlines()
-        # R5 is SHOULD ≤ 900. Actual: 1754 → ~1448 after OpenCode extraction.
-        # Further reduction requires extracting plugin/marketplace (future work).
         assert len(lines) < 1500, f"deployer.py has {len(lines)} lines, should be < 1500"

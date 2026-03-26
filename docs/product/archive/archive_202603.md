@@ -645,3 +645,8 @@
 - [x] R3 module_index collision
 - [x] R4 focus exact match
 - [x] R5 deque BFS
+
+### [STORY-slim-060] Convert pactkit-codex from full fork to thin adapter
+> Spec: docs/specs/STORY-slim-060.md
+
+- [x] Add codex FormatProfile to core profiles.py,Create CodexDeployer(DeployerBase) in pactkit-codex,Delete duplicated core modules from pactkit-codex,Update pyproject.toml deps and entry points,Migrate test imports to pactkit core,Create CI/CD workflows,Run full test suite and fix

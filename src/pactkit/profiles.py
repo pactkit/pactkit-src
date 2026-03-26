@@ -146,6 +146,26 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_mcp=True,
         skills_path_var="~/.config/opencode/skills",
     ),
+    "codex": FormatProfile(
+        name="codex",
+        display_name="Codex CLI",
+        global_config_dir="~/.codex",
+        project_config_dir=".codex",
+        skills_dir="~/.codex/skills",
+        agents_dir="~/.codex/agents",
+        commands_dir="~/.codex/prompts",
+        rules_dir="~/.codex/rules",
+        project_instructions_file="AGENTS.md",
+        global_instructions_file="AGENTS.md",
+        pactkit_yaml_path=".codex/pactkit.yaml",
+        agent_format="md",
+        rules_import_style="inline",
+        excluded_agent_fields=frozenset({"permissionMode", "memory", "skills", "hooks"}),
+        has_custom_commands=True,
+        supports_model_routing=False,
+        supports_mcp=True,
+        skills_path_var="~/.codex/skills",
+    ),
 }
 
 # Deployment modes that are not environment formats
@@ -155,9 +175,10 @@ _DEPLOYMENT_MODES: frozenset[str] = frozenset({"plugin", "marketplace"})
 VALID_FORMATS: frozenset[str] = frozenset(FORMAT_PROFILES.keys()) | _DEPLOYMENT_MODES
 
 # Ordered candidate paths for pactkit.yaml discovery (first existing wins)
-# Order = preference: OpenCode > Classic
+# Order = preference: OpenCode > Codex > Classic
 PACTKIT_YAML_CANDIDATES: list[str] = [
     FORMAT_PROFILES["opencode"].pactkit_yaml_path,
+    FORMAT_PROFILES["codex"].pactkit_yaml_path,
     FORMAT_PROFILES["classic"].pactkit_yaml_path,
 ]
 

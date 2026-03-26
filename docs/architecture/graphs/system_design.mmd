@@ -8,6 +8,7 @@ graph TD
 
     subgraph "Adapter Packages (External)"
         OpenCodePkg["pactkit-opencode<br/>OpenCodeDeployer<br/>(separate repo)"]
+        CodexPkg["pactkit-codex<br/>CodexDeployer<br/>(separate repo)"]
         TraePkg["pactkit-trae<br/>TraeDeployer<br/>(future, separate repo)"]
     end
 
@@ -62,6 +63,7 @@ graph TD
     CLI --> Config
     Deployer --> DeployBase
     OpenCodePkg -.->|"depends on"| DeployBase
+    CodexPkg -.->|"depends on"| DeployBase
     TraePkg -.->|"depends on"| DeployBase
     CLI -->|"pactkit subcommands"| Doctor
     CLI -->|"pactkit subcommands"| Guards

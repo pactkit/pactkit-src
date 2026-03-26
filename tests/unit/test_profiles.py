@@ -109,11 +109,15 @@ class TestFormatProfilesRegistry:
         assert p.supports_model_routing is True
         assert p.pactkit_yaml_path == ".opencode/pactkit.yaml"
 
-    def test_codex_profile_removed(self):
-        """STORY-slim-059: codex profile no longer exists."""
+    def test_codex_profile_exists(self):
+        """STORY-slim-060: codex profile registered for thin adapter."""
         from pactkit.profiles import FORMAT_PROFILES
 
-        assert "codex" not in FORMAT_PROFILES
+        assert "codex" in FORMAT_PROFILES
+        p = FORMAT_PROFILES["codex"]
+        assert p.name == "codex"
+        assert p.display_name == "Codex CLI"
+        assert p.global_config_dir == "~/.codex"
 
     def test_classic_excluded_fields(self):
         from pactkit.profiles import FORMAT_PROFILES
