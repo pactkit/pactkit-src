@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pactkit"
-version = "2.4.1"
+version = "2.5.0"
 description = "Spec-driven agentic DevOps toolkit for AI coding assistants"
 readme = "README.md"
 license = "MIT"

@@ -5,7 +5,7 @@
 | ID | STORY-slim-056 |
 | Status | Done |
 | Priority | P2 |
-| Release | 2.4.1 |
+| Release | 2.5.0 |
 
 ## Background
 

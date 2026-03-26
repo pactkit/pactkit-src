@@ -4,6 +4,27 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.5.0] - 2026-03-26
+
+### Added
+- **E2E CLI Coverage 100%** (STORY-slim-056) — 60 subprocess-based E2E tests covering all 25 CLI subcommands, including parametrized `--help` consistency check, error path validation, and Unicode project path support.
+- **`__main__.py`** — `python -m pactkit` now works as an alternative to the `pactkit` entry point.
+
+### Fixed
+- **Mermaid Quote Injection** (STORY-slim-053 R1) — File/function names containing `"` no longer break `.mmd` graph rendering; escaped via `#quot;` HTML entity at 4 label sites.
+- **O(N×E) Callee Resolution** (STORY-slim-053 R2) — `_resolve_callee()` now uses a pre-built `suffix_index` dict for O(1) lookup instead of linear scan.
+- **Module Index Collision** (STORY-slim-053 R3) — `module_index` changed from `dict[str, Path]` to `dict[str, list[Path]]` with `_best_match()` same-package preference, fixing silent node loss for same-name files in different directories.
+- **Focus Substring False Positives** (STORY-slim-053 R4) — `--focus auth.py` no longer matches `oauth.py`; changed to exact path-tail matching with `_extract_node_id()` set lookup.
+- **BFS O(N²) Pop** (STORY-slim-053 R5) — All 4 BFS sites now use `collections.deque.popleft()` instead of `list.pop(0)`.
+- **`_rewrite_yaml` Non-Atomic Write** (STORY-slim-054 R1) — `config.py` now uses tmp+rename pattern, preventing `pactkit.yaml` corruption on crash/disk-full.
+- **`_deploy_ci` Dict Mutation** (STORY-slim-054 R2) — Changed `.pop("_ghe_override")` to `.get()`, preventing caller dict mutation across multi-call scenarios.
+- **`atomic_write` .tmp Residual** (STORY-slim-054 R3) — Added try/except cleanup so `.tmp` files are removed on `os.replace()` failure.
+- **Visualize Non-Atomic .mmd Writes** (STORY-slim-055 R1) — All 4 `.mmd` output sites now use `_atomic_mmd_write()` (tmp+rename).
+- **Deployer Bare `read_text()`** (STORY-slim-055 R2) — 3 sites in `deployer.py` now specify `encoding='utf-8'` for Windows compatibility.
+- **Large File OOM** (STORY-slim-055 R3) — Added `MAX_FILE_BYTES=1MB` guard to `PythonAnalyzer` and `_build_class_graph()`, skipping auto-generated mega-files.
+- **Sprint Redundant Operations** (STORY-slim-050) — Eliminated duplicate visualize/clean/context runs in sprint orchestration.
+- **Skill Script Robustness** (STORY-slim-051, 052) — Hardened board.py, scaffold.py, spec_linter.py, visualize.py with encoding, error handling, and call-chain fixes.
+
 ## [2.4.1] - 2026-03-26
 
 ### Fixed
