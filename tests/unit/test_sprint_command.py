@@ -95,11 +95,10 @@ class TestSprintPlaybookContent:
             assert phase in SPRINT_PROMPT, f'缺少 {phase} 阶段'
 
     def test_contains_parallel_check(self):
-        """R2: Check 阶段 MUST 并行启动 QA + Security"""
+        """Check 阶段 MUST 包含 QA"""
         from pactkit.prompts import SPRINT_PROMPT
         content_lower = SPRINT_PROMPT.lower()
-        assert 'qa' in content_lower and 'security' in content_lower, \
-            '缺少 QA + Security 并行检查描述'
+        assert 'qa' in content_lower, '缺少 QA 检查描述'
 
     def test_contains_file_driven_context(self):
         """R3: 文件驱动 Context 核心约束"""
@@ -107,9 +106,9 @@ class TestSprintPlaybookContent:
         assert 'docs/specs/' in SPRINT_PROMPT, '缺少 Spec 文件路径引用'
 
     def test_contains_subagent_types(self):
-        """R2: v22.0 Slim Team uses system-architect as Builder (no senior-developer)"""
+        """STORY-slim-050: security-auditor removed (R1), remaining 4 agents present"""
         from pactkit.prompts import SPRINT_PROMPT
-        for agent_type in ['system-architect', 'qa-engineer', 'security-auditor', 'repo-maintainer']:
+        for agent_type in ['system-architect', 'senior-developer', 'qa-engineer', 'repo-maintainer']:
             assert agent_type in SPRINT_PROMPT, f'缺少 subagent_type: {agent_type}'
 
 
@@ -193,3 +192,76 @@ class TestBackwardCompatibility:
         ]
         for cmd in expected:
             assert (commands_dir / cmd).exists(), f'部署后 {cmd} 丢失'
+
+
+# =============================================================================
+# Scenario 7: STORY-slim-050 — Sprint Performance Optimization
+# =============================================================================
+class TestSprintPerformanceOptimization:
+    """STORY-slim-050: Eliminate redundant operations in sprint"""
+
+    # AC1: Security Auditor removed from Stage B (R1)
+    def test_no_security_auditor_in_sprint(self):
+        """AC1: security-auditor subagent MUST NOT appear in SPRINT_PROMPT"""
+        from pactkit.prompts import SPRINT_PROMPT
+        assert 'security-auditor' not in SPRINT_PROMPT, \
+            'SPRINT_PROMPT still contains security-auditor (should be removed per R1)'
+
+    def test_stage_b_only_qa(self):
+        """AC1: Stage B should only launch qa-engineer, not security-auditor"""
+        from pactkit.prompts import SPRINT_PROMPT
+        assert 'qa-engineer' in SPRINT_PROMPT, 'Stage B missing qa-engineer'
+
+    # AC2: Done regression auto-skips when no code changed (R2)
+    def test_done_regression_has_pre_check(self):
+        """AC2: Done playbook Phase 2.5 must have a pre-check step that
+        compares source/test changes before running full regression"""
+        from pactkit.prompts import COMMANDS_CONTENT
+        done_text = COMMANDS_CONTENT['project-done.md']
+        # Must mention checking for source/test file changes as a gate
+        assert 'no source' in done_text.lower() or 'no src' in done_text.lower(), \
+            'Done Phase 2.5 missing source change pre-check before regression'
+
+    def test_done_regression_skip_message(self):
+        """AC2: Done playbook must log skip reason when no changes detected"""
+        from pactkit.prompts import COMMANDS_CONTENT
+        done_text = COMMANDS_CONTENT['project-done.md']
+        assert 'Regression: SKIP' in done_text, \
+            'Done Phase 2.5 missing "Regression: SKIP" log for no-change case'
+
+    # AC3: Clarify Gate suppressed in sprint (R3)
+    def test_sprint_suppresses_clarify_gate(self):
+        """AC3: SPRINT_PROMPT must instruct Plan to skip Clarify Gate"""
+        from pactkit.prompts import SPRINT_PROMPT
+        lower = SPRINT_PROMPT.lower()
+        assert 'clarify' in lower and 'skip' in lower, \
+            'SPRINT_PROMPT missing Clarify Gate suppression for Plan'
+
+    # AC4: pactkit update skipped in sprint Done (R4)
+    def test_sprint_skips_pactkit_update(self):
+        """AC4: SPRINT_PROMPT must instruct Done to skip pactkit update"""
+        from pactkit.prompts import SPRINT_PROMPT
+        lower = SPRINT_PROMPT.lower()
+        assert 'update' in lower and 'skip' in lower, \
+            'SPRINT_PROMPT missing pactkit update skip for Done'
+
+    # AC5: Double visualize and next-id eliminated (R5)
+    def test_sprint_skips_done_visualize(self):
+        """AC5: SPRINT_PROMPT must instruct Done to skip visualize"""
+        from pactkit.prompts import SPRINT_PROMPT
+        lower = SPRINT_PROMPT.lower()
+        assert 'visualize' in lower and 'skip' in lower, \
+            'SPRINT_PROMPT missing visualize skip for Done'
+
+    def test_sprint_passes_story_id_to_plan(self):
+        """AC5: SPRINT_PROMPT must pass pre-determined STORY-ID to Plan"""
+        from pactkit.prompts import SPRINT_PROMPT
+        assert 'STORY-ID' in SPRINT_PROMPT or 'story-id' in SPRINT_PROMPT.lower(), \
+            'SPRINT_PROMPT missing STORY-ID pass-through to Plan'
+
+    # AC6: Prompt size within limit (R6)
+    def test_sprint_prompt_under_3000_chars(self):
+        """AC6: SPRINT_PROMPT must stay under 3000 chars"""
+        from pactkit.prompts import SPRINT_PROMPT
+        assert len(SPRINT_PROMPT) < 3000, \
+            f'SPRINT_PROMPT is {len(SPRINT_PROMPT)} chars, exceeds 3000 limit'

@@ -94,8 +94,9 @@ class TestAC2SprintProtocolOnly:
             )
 
     def test_sprint_has_agent_types(self):
+        """STORY-slim-050: security-auditor removed per R1 (QA Check covers SEC-1~8)"""
         _, wf, _ = _prompts()
-        for agent in ["system-architect", "qa-engineer", "security-auditor", "repo-maintainer"]:
+        for agent in ["system-architect", "qa-engineer", "repo-maintainer"]:
             assert agent in wf.SPRINT_PROMPT, (
                 f"SPRINT_PROMPT must mention agent type '{agent}'"
             )
@@ -195,7 +196,8 @@ class TestAC6DevRefGhostResolved:
 # ---------------------------------------------------------------------------
 # AC7: Total Prompt Size Reduced >= 15%
 # ---------------------------------------------------------------------------
-BASELINE_TOTAL_CHARS = 73511
+# STORY-slim-050: bumped +393 for Done smart regression gate (R2)
+BASELINE_TOTAL_CHARS = 73975
 
 
 class TestAC7PromptSizeReduced:

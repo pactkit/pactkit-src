@@ -149,6 +149,20 @@ def fix_board():
     return f"✅ Board fixed: {moved} stories relocated."
 
 
+def _write_board(p, content):
+    """Atomic write to board file."""
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, p)
+    fix_board()
+
+
+def _mark_done(content, story_match, story_block, old_task):
+    """Replace one unchecked task with checked, return new content."""
+    new_block = story_block.replace(f"- [ ] {old_task}", f"- [x] {old_task}", 1)
+    return content[: story_match.start()] + new_block + content[story_match.end() :]
+
+
 def update_task(sid, tasks_list):
     task_name = " ".join(tasks_list)
     p = Path.cwd() / "docs/product/sprint_board.md"
@@ -161,20 +175,47 @@ def update_task(sid, tasks_list):
     if not story_match:
         return f"❌ Story {sid} not found"
     story_block = story_match.group(1)
-    # Check if task exists as unchecked
+
+    # Strategy 1: Exact match
     task_pat = rf"(- \[ \] {re.escape(task_name)})"
     if re.search(task_pat, story_block):
-        new_block = re.sub(task_pat, f"- [x] {task_name}", story_block, count=1)
-        new_content = content[: story_match.start()] + new_block + content[story_match.end() :]
-        tmp = p.with_suffix(".tmp")
-        tmp.write_text(new_content, encoding="utf-8")
-        os.replace(tmp, p)
-        fix_board()
+        content = _mark_done(content, story_match, story_block, task_name)
+        _write_board(p, content)
         return f"✅ Task {sid} updated: {task_name}"
-    # Check if already done
+
+    # Check if already done (exact)
     if re.search(rf"- \[x\] {re.escape(task_name)}", story_block):
         return f"✅ Already done: {task_name}"
-    return f"❌ Task not found in {sid}: {task_name}"
+
+    # Strategy 2: Fuzzy fallback — collect all unchecked tasks
+    unchecked = re.findall(r"- \[ \] (.+)", story_block)
+    if not unchecked:
+        return f"✅ All tasks in {sid} already done"
+
+    # 2a: Only one unchecked task — mark it done (most common case)
+    if len(unchecked) == 1:
+        content = _mark_done(content, story_match, story_block, unchecked[0])
+        _write_board(p, content)
+        return f"✅ Task {sid} updated: {unchecked[0]}"
+
+    # 2b: Substring match
+    matches = [t for t in unchecked
+               if task_name.lower() in t.lower() or t.lower() in task_name.lower()]
+    if len(matches) == 1:
+        content = _mark_done(content, story_match, story_block, matches[0])
+        _write_board(p, content)
+        return f"✅ Task {sid} updated: {matches[0]}"
+
+    # 2c: Numeric index (1-based)
+    if task_name.isdigit():
+        idx = int(task_name) - 1
+        if 0 <= idx < len(unchecked):
+            content = _mark_done(content, story_match, story_block, unchecked[idx])
+            _write_board(p, content)
+            return f"✅ Task {sid} updated: {unchecked[idx]}"
+
+    remaining = ", ".join(unchecked)
+    return f"❌ Task not found in {sid}: {task_name}. Unchecked: [{remaining}]"
 
 
 def update_version(version):

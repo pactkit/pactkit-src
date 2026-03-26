@@ -147,8 +147,9 @@ class TestNoRegression:
                 f'现有关键词 {keyword} 在修改后丢失'
 
     def test_existing_subagent_types_preserved(self):
+        """STORY-slim-050: security-auditor removed per R1 (QA Check covers SEC-1~8)"""
         from pactkit.prompts import SPRINT_PROMPT
-        for agent in ['system-architect', 'qa-engineer', 'security-auditor', 'repo-maintainer']:
+        for agent in ['system-architect', 'qa-engineer', 'repo-maintainer']:
             assert agent in SPRINT_PROMPT, \
                 f'现有 subagent_type {agent} 在修改后丢失'
 

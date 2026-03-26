@@ -83,6 +83,7 @@ graph TD
     _load_code_graph["_load_code_graph"]
     _load_opencode_providers["_load_opencode_providers"]
     _load_scan_excludes["_load_scan_excludes"]
+    _mark_done["_mark_done"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
     _parse_app_router_pages["_parse_app_router_pages"]
@@ -130,6 +131,7 @@ graph TD
     _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
+    _write_board["_write_board"]
     add_story["add_story"]
     append_lesson["append_lesson"]
     archive_stories["archive_stories"]
@@ -173,6 +175,7 @@ graph TD
     load_script["load_script"]
     main["main"]
     map_to_tests["map_to_tests"]
+    move_story["move_story"]
     nl["nl"]
     regression_workflow_impact["regression_workflow_impact"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
@@ -274,7 +277,23 @@ graph TD
     fix_board --> nl
     fix_board --> nl
     fix_board --> nl
-    update_task --> fix_board
+    _write_board --> fix_board
+    update_task --> _mark_done
+    update_task --> _write_board
+    update_task --> _mark_done
+    update_task --> _write_board
+    update_task --> _mark_done
+    update_task --> _write_board
+    update_task --> _mark_done
+    update_task --> _write_board
+    move_story --> _parse_story_blocks
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
     list_stories --> nl
     archive_stories --> nl
     archive_stories --> nl
