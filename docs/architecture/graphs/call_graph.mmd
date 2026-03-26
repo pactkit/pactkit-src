@@ -1,7 +1,15 @@
 graph TD
+    ClassicDeployer_deploy["ClassicDeployer.deploy"]
+    DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
+    DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
+    DeployerBase_deploy_commands["DeployerBase.deploy_commands"]
+    DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
+    DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
+    DeployerBase_render_prompt["DeployerBase.render_prompt"]
     FrontendParser_parse["FrontendParser.parse"]
     JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
     PdcaParser_parse["PdcaParser.parse"]
+    PluginDeployer_deploy["PluginDeployer.deploy"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
     ServiceParser_parse["ServiceParser.parse"]
     TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
@@ -40,7 +48,6 @@ graph TD
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
-    _deploy_agents_md_inline["_deploy_agents_md_inline"]
     _deploy_ci["_deploy_ci"]
     _deploy_classic["_deploy_classic"]
     _deploy_claude_md["_deploy_claude_md"]
@@ -49,8 +56,6 @@ graph TD
     _deploy_hooks["_deploy_hooks"]
     _deploy_marketplace["_deploy_marketplace"]
     _deploy_marketplace_json["_deploy_marketplace_json"]
-    _deploy_opencode["_deploy_opencode"]
-    _deploy_opencode_json["_deploy_opencode_json"]
     _deploy_plugin["_deploy_plugin"]
     _deploy_plugin_json["_deploy_plugin_json"]
     _deploy_rules["_deploy_rules"]
@@ -68,7 +73,6 @@ graph TD
     _format_result["_format_result"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
-    _generate_project_agents_md["_generate_project_agents_md"]
     _generate_project_claude_md["_generate_project_claude_md"]
     _get_command_rules["_get_command_rules"]
     _get_done_ids["_get_done_ids"]
@@ -86,7 +90,7 @@ graph TD
     _jaccard_similarity["_jaccard_similarity"]
     _line_number["_line_number"]
     _load_code_graph["_load_code_graph"]
-    _load_opencode_providers["_load_opencode_providers"]
+    _load_entry_point_deployers["_load_entry_point_deployers"]
     _load_scan_excludes["_load_scan_excludes"]
     _mark_done["_mark_done"]
     _mermaid_escape["_mermaid_escape"]
@@ -113,13 +117,11 @@ graph TD
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
-    _print_mcp_recommendations_opencode["_print_mcp_recommendations_opencode"]
     _read_content["_read_content"]
     _read_developer_prefix["_read_developer_prefix"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _resolve_callee["_resolve_callee"]
-    _resolve_opencode_model_id["_resolve_opencode_model_id"]
     _resolve_test_path["_resolve_test_path"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
@@ -134,7 +136,6 @@ graph TD
     _section_text["_section_text"]
     _select_analyzer["_select_analyzer"]
     _strip_code_blocks["_strip_code_blocks"]
-    _update_global_opencode_json["_update_global_opencode_json"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _write_board["_write_board"]
@@ -183,6 +184,7 @@ graph TD
     map_to_tests["map_to_tests"]
     move_story["move_story"]
     nl["nl"]
+    register_deployer["register_deployer"]
     regression_workflow_impact["regression_workflow_impact"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_lint["run_lint"]
@@ -438,10 +440,10 @@ graph TD
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
     _render_skill_md --> get_profile
-    deploy --> _deploy_plugin
+    ClassicDeployer_deploy --> _deploy_classic
+    PluginDeployer_deploy --> _deploy_plugin
+    _load_entry_point_deployers --> register_deployer
     deploy --> _deploy_marketplace
-    deploy --> _deploy_opencode
-    deploy --> _deploy_classic
     _deploy_classic --> _migrate_from_scafpy
     _deploy_classic --> validate_config
     _deploy_classic --> get_profile
@@ -467,23 +469,6 @@ graph TD
     _deploy_plugin --> _print_mcp_recommendations
     _deploy_marketplace --> _deploy_plugin
     _deploy_marketplace --> _deploy_marketplace_json
-    _generate_project_agents_md --> atomic_write
-    _deploy_opencode --> get_profile
-    _deploy_opencode --> find_pactkit_yaml
-    _deploy_opencode --> _deploy_skills
-    _deploy_opencode --> _cleanup_legacy
-    _deploy_opencode --> _deploy_rules
-    _deploy_opencode --> _deploy_agents_md_inline
-    _deploy_opencode --> _load_opencode_providers
-    _deploy_opencode --> _update_global_opencode_json
-    _deploy_opencode --> _deploy_agents
-    _deploy_opencode --> _deploy_commands
-    _deploy_opencode --> _deploy_ci
-    _deploy_opencode --> _print_mcp_recommendations_opencode
-    _deploy_opencode --> auto_merge_config_file
-    _deploy_opencode --> load_config
-    _deploy_opencode --> _load_opencode_providers
-    _deploy_opencode --> _generate_project_agents_md
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
     _deploy_skills --> atomic_write
@@ -532,8 +517,10 @@ graph TD
     _deploy_claude_md_inline --> _rewrite_skills_prefix
     _deploy_claude_md_inline --> atomic_write
     _deploy_marketplace_json --> atomic_write
-    _deploy_agents_md_inline --> atomic_write
-    _deploy_opencode_json --> atomic_write
-    _update_global_opencode_json --> atomic_write
-    _update_global_opencode_json --> _resolve_opencode_model_id
     transform --> strip_frontmatter
+    DeployerBase_render_prompt --> _render_prompt
+    DeployerBase_deploy_skills --> _deploy_skills
+    DeployerBase_deploy_rules --> _deploy_rules
+    DeployerBase_deploy_agents --> _deploy_agents
+    DeployerBase_deploy_commands --> _deploy_commands
+    DeployerBase_deploy_ci --> _deploy_ci

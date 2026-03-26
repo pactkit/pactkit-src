@@ -352,22 +352,22 @@ class TestAC11OpenCodeCI:
     def test_opencode_deploy_creates_github_workflow(self, tmp_path):
         """OpenCode deployment with ci.provider=github generates workflow file."""
         from pactkit.config import get_default_config
-        from pactkit.generators.deployer import _deploy_opencode
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
         config = get_default_config()
         config["ci"] = {"provider": "github"}
         config["stack"] = "python"
 
-        # Write a pactkit.yaml so _deploy_opencode picks up the ci config
+        # Write a pactkit.yaml so OpenCodeDeployer picks up the ci config
         yaml_path = tmp_path / ".opencode" / "pactkit.yaml"
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
         import yaml
         yaml_path.write_text(yaml.dump(config))
 
         oc_target = tmp_path / ".config" / "opencode"
-        with patch("pactkit.generators.deployer.Path.cwd", return_value=tmp_path):
+        with patch("pactkit_opencode.deployer.Path.cwd", return_value=tmp_path):
             with patch("pactkit.config.find_pactkit_yaml", return_value=yaml_path):
-                _deploy_opencode(target=str(oc_target))
+                OpenCodeDeployer().deploy(target=str(oc_target))
 
         workflow = tmp_path / ".github" / "workflows" / "pactkit.yml"
         assert workflow.exists(), "OpenCode deploy should create .github/workflows/pactkit.yml"
@@ -377,7 +377,7 @@ class TestAC11OpenCodeCI:
     def test_opencode_deploy_no_ci_when_provider_none(self, tmp_path):
         """OpenCode deployment with ci.provider=none creates no workflow."""
         from pactkit.config import get_default_config
-        from pactkit.generators.deployer import _deploy_opencode
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
         config = get_default_config()
         config["ci"] = {"provider": "none"}
@@ -388,9 +388,9 @@ class TestAC11OpenCodeCI:
         yaml_path.write_text(yaml.dump(config))
 
         oc_target = tmp_path / ".config" / "opencode"
-        with patch("pactkit.generators.deployer.Path.cwd", return_value=tmp_path):
+        with patch("pactkit_opencode.deployer.Path.cwd", return_value=tmp_path):
             with patch("pactkit.config.find_pactkit_yaml", return_value=yaml_path):
-                _deploy_opencode(target=str(oc_target))
+                OpenCodeDeployer().deploy(target=str(oc_target))
 
         assert not (tmp_path / ".github").exists()
 

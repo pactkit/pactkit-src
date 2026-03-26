@@ -23,6 +23,11 @@ from pactkit.config import (
     load_config,
     validate_config,
 )
+from pactkit.generators.deploy_base import (
+    _DEPLOYER_REGISTRY,
+    DeployerBase,
+    register_deployer,
+)
 from pactkit.profiles import (
     VALID_FORMATS,
     FormatProfile,
@@ -32,7 +37,7 @@ from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
 # Path prefix constants — kept for plugin/marketplace modes only
-# For classic/opencode/codex: use profile.skills_path_var instead
+# For classic/opencode: use profile.skills_path_var instead
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
 
@@ -85,7 +90,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
 def _rewrite_skills_prefix(content, profile_or_prefix):
     """Rewrite ~/.claude/skills references to the target skills_prefix.
 
-    DEPRECATED for environment formats (classic/opencode/codex): use _render_prompt() instead.
+    DEPRECATED for environment formats (classic/opencode): use _render_prompt() instead.
     This function is retained for plugin/marketplace legacy mode only (_legacy_prefix parameter).
 
     Accepts either a FormatProfile or a raw string prefix (plugin/marketplace mode).
@@ -157,6 +162,60 @@ def _print_mcp_recommendations():
     print("   Configure in Claude Code settings.json → mcpServers")
 
 
+# ---------------------------------------------------------------------------
+# Deployer classes (STORY-slim-057)
+# ---------------------------------------------------------------------------
+
+
+class ClassicDeployer(DeployerBase):
+    """Claude Code (classic) deployer — writes files to ~/.claude/."""
+
+    profile = get_profile("classic")
+
+    def deploy(self, config=None, target=None):
+        _deploy_classic(config, target)
+
+
+class PluginDeployer(DeployerBase):
+    """Plugin deployer — generates a self-contained Claude Code plugin directory."""
+
+    profile = get_profile("classic")  # Plugin uses classic profile as base
+
+    def deploy(self, config=None, target=None):
+        _deploy_plugin(target)
+
+
+# Register built-in deployers
+register_deployer("classic", ClassicDeployer)
+register_deployer("plugin", PluginDeployer)
+
+
+def _load_entry_point_deployers():
+    """Discover and register deployers from entry_points (STORY-slim-058).
+
+    Scans the 'pactkit.deployers' entry_point group. Each entry point should
+    reference a DeployerBase subclass. Already-registered formats are skipped.
+    """
+    try:
+        from importlib.metadata import entry_points
+    except ImportError:
+        return  # Python < 3.9 fallback (shouldn't happen with >=3.10)
+
+    eps = entry_points(group="pactkit.deployers")
+    for ep in eps:
+        if ep.name in _DEPLOYER_REGISTRY:
+            continue  # built-in or already registered
+        try:
+            deployer_cls = ep.load()
+            register_deployer(ep.name, deployer_cls)
+        except Exception:
+            pass  # graceful degradation — adapter package may be broken
+
+
+# Auto-discover adapter packages at import time
+_load_entry_point_deployers()
+
+
 def deploy(
     config=None, target=None, format="classic", agent="claude",
     no_git=False, no_external=False, non_interactive=False, mode=None
@@ -177,14 +236,24 @@ def deploy(
     if format not in VALID_FORMATS:
         raise ValueError(f"Unknown format: {format!r}. Valid: {', '.join(VALID_FORMATS)}")
 
-    if format == "plugin":
-        _deploy_plugin(target)
-    elif format == "marketplace":
+    # Marketplace is a meta-mode that wraps plugin
+    if format == "marketplace":
         _deploy_marketplace(target)
-    elif format == "opencode":
-        _deploy_opencode(target)
-    else:
-        _deploy_classic(config, target)
+        return
+
+    # STORY-slim-057: Registry-based dispatch for environment formats
+    if format in _DEPLOYER_REGISTRY:
+        deployer_cls = _DEPLOYER_REGISTRY[format]
+        deployer_instance = deployer_cls()
+        deployer_instance.deploy(config=config, target=target)
+        return
+
+    # Fallback: format is in VALID_FORMATS but no deployer registered
+    # (e.g., "opencode" without pactkit-opencode installed)
+    raise ValueError(
+        f"No deployer registered for format '{format}'. "
+        f"Install the adapter package: pip install pactkit-{format}"
+    )
 
 
 def _deploy_classic(config=None, target=None):
@@ -328,118 +397,6 @@ def _deploy_marketplace(target=None):
 
     print(f"\n✅ Marketplace → {marketplace_root}")
 
-
-def _generate_project_agents_md() -> None:
-    """Generate project-level AGENTS.md if it does not exist (STORY-slim-008 R4).
-
-    Equivalent to _generate_project_claude_md() for the OpenCode environment.
-    - Called only when target is None (real deployment, not preview mode)
-    - Never overwrites an existing AGENTS.md
-    - Skips if cwd is the home directory (safety guard)
-    """
-    project_root = Path.cwd()
-
-    # Safety guard: never create AGENTS.md in home directory
-    if project_root.resolve() == Path.home().resolve():
-        return
-
-    agents_md_path = project_root / "AGENTS.md"
-    if agents_md_path.exists():
-        return  # Never overwrite user-owned AGENTS.md
-
-    project_name = project_root.name
-    content = f"# {project_name}\n\n@./docs/product/context.md\noutput MUST use Chinese\n"
-    atomic_write(agents_md_path, content)
-
-
-def _deploy_opencode(target=None):
-    """OpenCode deployment — generate OpenCode-native configuration (STORY-069).
-
-    OpenCode (anomalyco/opencode) is an open-source AI coding assistant that supports
-    multiple LLM providers. This deployment mode generates OpenCode-native files:
-    - AGENTS.md (slim header — rules loaded via instructions)
-    - rules/ directory with modular rule files (STORY-071 R6)
-    - opencode.json (global config with instructions: ["rules/*.md"])
-    - agents/, commands/, skills/ directories
-
-    STORY-slim-008: Aligned with _deploy_classic() feature set:
-    - Reads pactkit.yaml for selective deployment (R1)
-    - Calls auto_merge_config_file() for automatic config updates (R2)
-    - Calls _cleanup_legacy() to remove stale skill files (R3)
-    - Generates project-level AGENTS.md when not in preview mode (R4)
-    - Prints MCP server recommendations (R5)
-    """
-    opencode_root = Path(target) if target else Path.home() / ".config" / "opencode"
-    oc_profile = get_profile("opencode")
-
-    print("🚀 PactKit OpenCode Deployment")
-
-    # Prepare directories
-    agents_dir = opencode_root / "agents"
-    commands_dir = opencode_root / "commands"
-    skills_dir = opencode_root / "skills"
-    rules_dir = opencode_root / "rules"
-
-    for d in [opencode_root, agents_dir, commands_dir, skills_dir, rules_dir]:
-        d.mkdir(parents=True, exist_ok=True)
-
-    # STORY-slim-008 R1+R2: Load config from project-level pactkit.yaml (selective deployment)
-    from pactkit.config import find_pactkit_yaml
-
-    project_yaml = find_pactkit_yaml()
-
-    if project_yaml is not None:
-        # R2: Auto-merge new components before loading (same as classic)
-        auto_added = auto_merge_config_file(project_yaml)
-        for item in auto_added:
-            print(f"  -> Auto-added: {item}")
-        config = load_config(project_yaml)
-    else:
-        config = {}
-
-    # R1: Selective deployment — fall back to all components if not configured
-    enabled_agents = config.get("agents", sorted(VALID_AGENTS))
-    enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
-    enabled_skills = config.get("skills", sorted(VALID_SKILLS))
-    enabled_rules = config.get("rules", sorted(VALID_RULES))
-
-    # Deploy components with OpenCode profile
-    n_skills = _deploy_skills(skills_dir, enabled_skills, profile=oc_profile)
-
-    # STORY-slim-008 R3: Clean up stale skill files (same as classic)
-    _cleanup_legacy(skills_dir)
-
-    # STORY-071 R6: Deploy rules as separate files (like Claude Code)
-    n_rules = _deploy_rules(opencode_root, enabled_rules)
-    # STORY-071 R6: Slim AGENTS.md (header only, rules in rules/*.md)
-    _deploy_agents_md_inline(opencode_root)
-    # STORY-073 R1: Load providers and command_models for model routing in opencode.json
-    providers = _load_opencode_providers(opencode_root)
-    if not providers:
-        # Fallback: try global config (when deploying to target != real global dir)
-        providers = _load_opencode_providers(Path(oc_profile.global_config_dir).expanduser())
-    command_models = config.get("command_models", {})
-    # STORY-071 R7 + STORY-073 R1: Update global opencode.json (instructions + command model routing)
-    _update_global_opencode_json(opencode_root, command_models=command_models, providers=providers)
-    n_agents = _deploy_agents(agents_dir, enabled_agents, profile=oc_profile)
-    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=oc_profile, config=config)
-
-    # STORY-slim-012 R7: Deploy CI pipeline (same as classic — CI files are project-level)
-    ci_config = config.get("ci", {})
-    ci_provider = ci_config.get("provider", "none") if isinstance(ci_config, dict) else "none"
-    project_root = Path.cwd()
-    _deploy_ci(ci_provider, project_root, config)
-
-    print(
-        f"\n✅ OpenCode: {n_agents} Agents, {n_commands} Commands, {n_skills} Skills, {n_rules} Rules → {opencode_root}"
-    )
-
-    # STORY-slim-008 R4: Generate project-level AGENTS.md if not in preview mode
-    if target is None:
-        _generate_project_agents_md()
-
-    # STORY-slim-008 R5: Print MCP server recommendations (same as classic)
-    _print_mcp_recommendations_opencode()
 
 
 def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None):
@@ -869,35 +826,6 @@ def _deploy_commands(
     return deployed
 
 
-def _resolve_opencode_model_id(short_name, providers):
-    """Resolve a short model name (sonnet/opus/haiku) to a full provider/model-id (STORY-073).
-
-    Searches all provider model IDs for one containing the short_name keyword.
-    Returns 'provider-name/model-id' or None if not found.
-    """
-    if not short_name or not providers:
-        return None
-    keyword = short_name.lower()
-    for provider_name, provider_data in providers.items():
-        models = provider_data.get("models", {})
-        for model_id in models:
-            if keyword in model_id.lower():
-                return f"{provider_name}/{model_id}"
-    return None
-
-
-def _load_opencode_providers(opencode_root):
-    """Load provider config from opencode.json for model resolution."""
-    json_path = opencode_root / "opencode.json"
-    if json_path.is_file():
-        try:
-            data = json.loads(json_path.read_text(encoding='utf-8'))
-            return data.get("provider", {})
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {}
-
-
 def _convert_command_frontmatter_opencode(content, cmd_name=None, command_models=None, providers=None):
     """Convert Claude Code command frontmatter to OpenCode format (STORY-070 R1).
 
@@ -1180,7 +1108,7 @@ def _generate_config_if_missing(format: str | None = None):
     """Generate pactkit.yaml if it doesn't exist (STORY-072: env-aware path, STORY-slim-008 R7: format-aware).
 
     Args:
-        format: Optional format string ('classic', 'opencode', 'codex').
+        format: Optional format string ('classic', 'opencode').
                 When provided, writes to the format-specific directory.
                 When None, auto-detects from existing directories.
 
@@ -1518,168 +1446,3 @@ def _deploy_marketplace_json(marketplace_root):
     }
     content = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     atomic_write(marketplace_root / "marketplace.json", content)
-
-
-# ---------------------------------------------------------------------------
-# OpenCode-format helpers (STORY-069)
-# ---------------------------------------------------------------------------
-
-
-def _deploy_agents_md_inline(opencode_root):
-    """Generate AGENTS.md with on-demand @reference index (STORY-slim-009 R3).
-
-    Core rules are loaded via opencode.json instructions (always in context).
-    On-demand rules are listed as @refs — AI reads them with Read tool as needed.
-    This mirrors Claude Code's @import lazy-loading in OpenCode's architecture.
-    """
-    # Build on-demand @reference list from RULES_ONDEMAND_FILES (DRY)
-    ref_lines = []
-    ondemand_descriptions = {
-        "08-architecture-principles.md": "Architecture decisions, SOLID/DRY patterns",
-        "04-routing-table.md": "Agent/command routing table",
-        "06-mcp-integration.md": "MCP server integration guide",
-        "05-workflow-conventions.md": "PDCA workflow conventions",
-        "07-shared-protocols.md": "PDCA shared protocols (test mapping, visualize, context.md format)",
-        "03-file-atlas.md": "File atlas (project file locations)",
-    }
-    for filename in sorted(prompts.RULES_ONDEMAND_FILES.values()):
-        desc = ondemand_descriptions.get(filename, filename)
-        ref_lines.append(f"- {desc}: @rules/{filename}")
-
-    core_names = ", ".join(f.replace(".md", "") for f in sorted(prompts.RULES_CORE_FILES.values()))
-
-    lines = [
-        f"# PactKit Global Constitution (v{__version__} Modular)",
-        "",
-        f"Core rules ({core_names}) are always loaded via `instructions`.",
-        "",
-        "## On-Demand Rules",
-        "",
-        "CRITICAL: When you encounter a file reference below (e.g., @rules/xxx.md), "
-        "use your Read tool to load it on a need-to-know basis. "
-        "Do NOT preemptively load all references — use lazy loading based on actual need.",
-        "",
-        *ref_lines,
-        "",
-        "## Quick Reference",
-        "",
-        "- **Specs** (`docs/specs/`) are the source of truth",
-        "- **Sprint Board**: `docs/product/sprint_board.md`",
-        "- **Architecture**: `docs/architecture/graphs/`",
-        "- **Commands**: Type `/` followed by command name (e.g., `/project-plan`)",
-        "",
-        "> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.",
-        "",
-    ]
-    atomic_write(opencode_root / "AGENTS.md", "\n".join(lines))
-
-
-def _deploy_opencode_json(opencode_root):
-    """Generate opencode.json project configuration (STORY-071 R1/R2).
-
-    Note: provider/apiKey are intentionally excluded — user-managed.
-    Note: This function is NOT called by _deploy_opencode() (global deployment).
-    It exists as a utility for /project-init playbook to generate project-level config.
-    See BUG-035 for the dual-layer architecture decision.
-    """
-    config = {
-        "$schema": "https://opencode.ai/config.json",
-        "instructions": ["AGENTS.md", "docs/product/context.md"],
-        "agent": {
-            "build": {"model": "inherit"},
-            "plan": {"model": "inherit"},
-        },
-        # STORY-071 R1: Permission config (maps Claude Code settings.json safety rules)
-        "permission": {
-            "edit": "allow",
-            "bash": {
-                "*": "allow",
-                "rm -rf /*": "deny",
-                "rm -rf /Users/*": "deny",
-                "rm -rf /System/*": "deny",
-                "sudo rm *": "deny",
-                "sudo mkfs *": "deny",
-                "curl * | sh": "deny",
-                "wget * | sh": "deny",
-            },
-            "read": {
-                "*": "allow",
-                "*.env": "deny",
-                "*.env.*": "deny",
-                "*.env.example": "allow",
-            },
-        },
-        # STORY-071 R2: MCP template (public servers only)
-        "mcp": {
-            "context7": {
-                "type": "remote",
-                "url": "https://mcp.context7.com/mcp",
-            },
-        },
-    }
-    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    atomic_write(opencode_root / "opencode.json", content)
-
-
-def _update_global_opencode_json(opencode_root, command_models=None, providers=None):
-    """Update global opencode.json with instructions and command model routing.
-
-    STORY-071 R7: Add instructions for modular rule loading.
-    STORY-073 R1: Add command model routing (in opencode.json, not in command files).
-
-    Merge strategy: preserve existing user config (provider, permission, mcp),
-    only add/update 'instructions' and 'command' fields.
-    """
-    json_path = opencode_root / "opencode.json"
-    config = {}
-
-    # Read existing config if present
-    if json_path.is_file():
-        try:
-            config = json.loads(json_path.read_text(encoding='utf-8'))
-        except (json.JSONDecodeError, OSError):
-            config = {}
-
-    # Ensure $schema
-    config.setdefault("$schema", "https://opencode.ai/config.json")
-
-    # STORY-slim-011: Only credential safety in instructions (rules now loaded per-command)
-    # Remove old glob pattern and core rules that moved to command-level injection.
-    # Keep 09-credential-safety.md (SEC-1) and any user-added non-rule entries.
-    credential_path = f"rules/{prompts.CREDENTIAL_SAFETY_FILE}"
-    existing = [
-        i for i in config.get("instructions", [])
-        if i != "rules/*.md" and not (i.startswith("rules/") and i != credential_path)
-    ]
-    if credential_path not in existing:
-        existing.append(credential_path)
-    config["instructions"] = existing
-
-    # STORY-073 R1: Add command model routing
-    # Only write commands that have a model AND can be resolved to a provider model ID
-    if command_models and providers:
-        cmd_config = config.get("command", {})
-        for cmd_name, model_short in command_models.items():
-            model_id = _resolve_opencode_model_id(model_short, providers)
-            if model_id:
-                if cmd_name not in cmd_config:
-                    cmd_config[cmd_name] = {}
-                cmd_config[cmd_name]["model"] = model_id
-        if cmd_config:
-            config["command"] = cmd_config
-
-    content = json.dumps(config, indent=2, ensure_ascii=False) + "\n"
-    atomic_write(json_path, content)
-
-
-def _print_mcp_recommendations_opencode():
-    """Print MCP server recommendations for OpenCode deployment (STORY-071 R4)."""
-    print("\n📦 MCP Server Configuration (add to opencode.json):")
-    print()
-    print("  Remote MCP (no install needed):")
-    print('    "context7": { "type": "remote", "url": "https://mcp.context7.com/mcp" }')
-    print()
-    print("  Local MCP (requires npx):")
-    print('    "memory":     { "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-memory"] }')
-    print('    "playwright":  { "type": "local", "command": ["npx", "-y", "@playwright/mcp"] }')
-    print('    "puppeteer":   { "type": "local", "command": ["npx", "-y", "@anthropic/mcp-puppeteer"] }')

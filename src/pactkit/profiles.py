@@ -54,15 +54,15 @@ class FormatProfile:
 
     # Identity
     name: str
-    """Canonical format name: 'classic', 'opencode', 'codex'."""
+    """Canonical format name: 'classic', 'opencode'."""
     display_name: str
-    """Human-readable tool name: 'Claude Code', 'OpenCode', 'Codex CLI'."""
+    """Human-readable tool name: 'Claude Code', 'OpenCode'."""
 
     # Directory Structure
     global_config_dir: str
-    """Global config root. e.g. '~/.claude', '~/.config/opencode', '~/.codex'."""
+    """Global config root. e.g. '~/.claude', '~/.config/opencode'."""
     project_config_dir: str
-    """Project config dir name. e.g. '.claude', '.opencode', '.codex'."""
+    """Project config dir name. e.g. '.claude', '.opencode'."""
     skills_dir: str
     """Where skills are deployed globally. e.g. '~/.claude/skills'."""
     agents_dir: str
@@ -82,9 +82,9 @@ class FormatProfile:
 
     # Format & Serialization
     agent_format: Literal["md", "toml"]
-    """Agent definition format: 'md' (Claude/OpenCode) or 'toml' (Codex)."""
+    """Agent definition format: 'md' (Claude/OpenCode)."""
     rules_import_style: Literal["@import", "instructions", "inline"]
-    """How rules are loaded: '@import' (classic), 'instructions' glob (OpenCode), 'inline' (Codex)."""
+    """How rules are loaded: '@import' (classic), 'instructions' glob (OpenCode)."""
     excluded_agent_fields: frozenset
     """Agent YAML fields to exclude for this format. Replaces CLAUDE_ONLY_FIELDS."""
 
@@ -146,26 +146,6 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_mcp=True,
         skills_path_var="~/.config/opencode/skills",
     ),
-    "codex": FormatProfile(
-        name="codex",
-        display_name="Codex CLI",
-        global_config_dir="~/.codex",
-        project_config_dir=".codex",
-        skills_dir="$HOME/.agents/skills",
-        agents_dir="~/.codex/agents",
-        commands_dir=None,  # Codex has no custom commands — Skills replace them
-        rules_dir=None,  # Codex uses inline rules in AGENTS.md
-        project_instructions_file="AGENTS.md",
-        global_instructions_file="AGENTS.md",
-        pactkit_yaml_path=".codex/pactkit.yaml",
-        agent_format="toml",
-        rules_import_style="inline",
-        excluded_agent_fields=frozenset({"permissionMode", "memory", "skills", "hooks"}),
-        has_custom_commands=False,
-        supports_model_routing=True,
-        supports_mcp=True,
-        skills_path_var="$SKILLS_PATH",
-    ),
 }
 
 # Deployment modes that are not environment formats
@@ -175,11 +155,10 @@ _DEPLOYMENT_MODES: frozenset[str] = frozenset({"plugin", "marketplace"})
 VALID_FORMATS: frozenset[str] = frozenset(FORMAT_PROFILES.keys()) | _DEPLOYMENT_MODES
 
 # Ordered candidate paths for pactkit.yaml discovery (first existing wins)
-# Order = preference: OpenCode > Classic > Codex
+# Order = preference: OpenCode > Classic
 PACTKIT_YAML_CANDIDATES: list[str] = [
     FORMAT_PROFILES["opencode"].pactkit_yaml_path,
     FORMAT_PROFILES["classic"].pactkit_yaml_path,
-    FORMAT_PROFILES["codex"].pactkit_yaml_path,
 ]
 
 

@@ -76,3 +76,24 @@ classDiagram
     class LintResult {
         +passed()
     }
+    class ClassicDeployer {
+        +deploy(config, target)
+    }
+    DeployerBase <|-- ClassicDeployer
+    class PluginDeployer {
+        +deploy(config, target)
+    }
+    DeployerBase <|-- PluginDeployer
+    class DeployerProtocol {
+        +deploy(config, target)
+    }
+    Protocol <|-- DeployerProtocol
+    class DeployerBase {
+        +deploy(config, target)
+        +render_prompt(template, profile)
+        +deploy_skills(skills_dir, enabled_skills, profile, _legacy_prefix)
+        +deploy_rules(claude_root, enabled_rules, rule_scopes)
+        +deploy_agents(agents_dir, enabled_agents, profile, agent_models, _legacy_prefix)
+        +deploy_commands(commands_dir, enabled_commands, profile, config, _legacy_prefix)
+        +deploy_ci(provider, project_root, config)
+    }

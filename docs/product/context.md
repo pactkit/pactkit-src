@@ -1,5 +1,5 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-26T15:33:31+08:00 by pactkit context
+> Last updated: 2026-03-26T20:43:04+08:00 by pactkit context
 
 ## Sprint Status
 Backlog: 0 | In Progress: 0 | Done: 0 stories
@@ -30,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- Fixing _parse_story_blocks to return adjusted_end (len match) inherently fixed fix_board offset compensation — root cause fix in board.py:_parse_story_blocks eliminated downstream R2 symptom in board.py:fix_board
-- Helpers added to visualize.py standalone header get stripped by load_script(); always place new functions below the SCRIPT BODY marker
-- dict.pop() in shared config references causes caller mutation; use .get() for read-only access to avoid breaking multi-call scenarios
 - _atomic_mmd_write() in visualize.py prevents truncated .mmd on crash via tmp+rename; all 4 write sites converted
 - test_story_slim056.py _init_project() helper creates realistic pactkit project fixture for subprocess E2E tests; 60 tests cover all 25 subcommands
+- entry_points auto-discovery with _load_entry_point_deployers() enables pip install pactkit-opencode to self-register; pre-existing tests referencing extracted functions must be updated to import from adapter package
+- VALID_FORMATS auto-derives from FORMAT_PROFILES.keys() — removing a profile cascades to config, CLI, and deployer with zero manual sync
+- DeployerBase static methods use lazy imports to avoid circular dependencies between deploy_base.py and deployer.py
 
 ## Next Recommended Action
 `/project-design`

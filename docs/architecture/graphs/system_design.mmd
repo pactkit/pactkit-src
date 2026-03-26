@@ -1,8 +1,14 @@
 graph TD
     subgraph "Deployment Layer"
         CLI["cli.py<br/>pactkit init/update"]
-        Deployer["deployer.py<br/>classic/plugin/marketplace"]
+        Deployer["deployer.py<br/>DeployerProtocol + ClassicDeployer"]
         Config["config.py<br/>pactkit.yaml"]
+        DeployBase["deploy_base.py<br/>DeployerBase<br/>(skills/rules/agents/commands/ci)"]
+    end
+
+    subgraph "Adapter Packages (External)"
+        OpenCodePkg["pactkit-opencode<br/>OpenCodeDeployer<br/>(separate repo)"]
+        TraePkg["pactkit-trae<br/>TraeDeployer<br/>(future, separate repo)"]
     end
 
     subgraph "Prompt Layer (Constitution)"
@@ -54,6 +60,9 @@ graph TD
 
     CLI --> Deployer
     CLI --> Config
+    Deployer --> DeployBase
+    OpenCodePkg -.->|"depends on"| DeployBase
+    TraePkg -.->|"depends on"| DeployBase
     CLI -->|"pactkit subcommands"| Doctor
     CLI -->|"pactkit subcommands"| Guards
     CLI -->|"pactkit subcommands"| Lessons

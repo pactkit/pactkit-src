@@ -293,7 +293,7 @@ class TestAC12OpenCodeInstructions:
     """AC12: opencode.json instructions should only keep 09-credential-safety."""
 
     def test_opencode_json_instructions_only_09(self, tmp_path):
-        from pactkit.generators.deployer import _update_global_opencode_json
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
         # Pre-existing opencode.json with old instructions
         old_config = {
@@ -307,7 +307,7 @@ class TestAC12OpenCodeInstructions:
         json_path = tmp_path / "opencode.json"
         json_path.write_text(json.dumps(old_config))
 
-        _update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
 
         result = json.loads(json_path.read_text())
         instructions = result["instructions"]

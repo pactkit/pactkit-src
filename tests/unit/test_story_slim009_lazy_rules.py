@@ -79,10 +79,10 @@ class TestRulesFilesSplit:
 class TestInstructionsCoreOnly:
     def test_opencode_json_has_credential_only_instructions(self, tmp_path):
         """STORY-slim-011: _update_global_opencode_json writes only credential safety, not core rules."""
-        from pactkit.generators.deployer import _update_global_opencode_json
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
         json_path = tmp_path / "opencode.json"
-        _update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
 
         config = json.loads(json_path.read_text())
         instructions = config.get("instructions", [])
@@ -97,10 +97,10 @@ class TestInstructionsCoreOnly:
 
     def test_non_core_rules_not_in_instructions(self, tmp_path):
         """On-demand rules must not appear in instructions."""
-        from pactkit.generators.deployer import _update_global_opencode_json
+        from pactkit_opencode.deployer import OpenCodeDeployer
         from pactkit.prompts.rules import RULES_ONDEMAND_FILES
 
-        _update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
 
         config = json.loads((tmp_path / "opencode.json").read_text())
         instructions = config.get("instructions", [])
@@ -110,14 +110,14 @@ class TestInstructionsCoreOnly:
 
     def test_existing_user_instructions_preserved(self, tmp_path):
         """AC5: User's own instructions are not removed during update."""
-        from pactkit.generators.deployer import _update_global_opencode_json
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
         # Pre-existing user config
         existing = {"$schema": "https://opencode.ai/config.json", "instructions": ["CONTRIBUTING.md", "rules/*.md"]}
         json_path = tmp_path / "opencode.json"
         json_path.write_text(json.dumps(existing))
 
-        _update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
 
         config = json.loads(json_path.read_text())
         instructions = config.get("instructions", [])
@@ -131,10 +131,10 @@ class TestInstructionsCoreOnly:
 
     def test_no_duplicate_instructions(self, tmp_path):
         """Running update twice must not add duplicates."""
-        from pactkit.generators.deployer import _update_global_opencode_json
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
-        _update_global_opencode_json(tmp_path)
-        _update_global_opencode_json(tmp_path)  # second run
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)  # second run
 
         config = json.loads((tmp_path / "opencode.json").read_text())
         instructions = config.get("instructions", [])
@@ -148,9 +148,9 @@ class TestInstructionsCoreOnly:
 
 class TestAgentsMdOnDemandRefs:
     def _get_agents_md(self, tmp_path):
-        from pactkit.generators.deployer import _deploy_agents_md_inline
+        from pactkit_opencode.deployer import OpenCodeDeployer
 
-        _deploy_agents_md_inline(tmp_path)
+        OpenCodeDeployer._deploy_agents_md_inline(tmp_path)
         return (tmp_path / "AGENTS.md").read_text()
 
     def test_agents_md_contains_ondemand_refs(self, tmp_path):
@@ -230,16 +230,13 @@ class TestClassicUnchanged:
 class TestTokenOverhead:
     def test_core_instructions_under_10kb(self, tmp_path):
         """Core rules + AGENTS.md must be under 10KB total."""
-        from pactkit.generators.deployer import (
-            _deploy_agents_md_inline,
-            _deploy_rules,
-            _update_global_opencode_json,
-        )
+        from pactkit.generators.deployer import _deploy_rules
+        from pactkit_opencode.deployer import OpenCodeDeployer
         from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES
 
         _deploy_rules(tmp_path, list(RULES_FILES.keys()))
-        _update_global_opencode_json(tmp_path)
-        _deploy_agents_md_inline(tmp_path)
+        OpenCodeDeployer._update_global_opencode_json(tmp_path)
+        OpenCodeDeployer._deploy_agents_md_inline(tmp_path)
 
         # Sum core rule files
         rules_dir = tmp_path / "rules"

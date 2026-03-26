@@ -75,7 +75,7 @@ class TestFormatProfileDataclass:
 
 
 class TestFormatProfilesRegistry:
-    @pytest.mark.parametrize("fmt", ["classic", "opencode", "codex"])
+    @pytest.mark.parametrize("fmt", ["classic", "opencode"])
     def test_format_registered(self, fmt):
         from pactkit.profiles import FORMAT_PROFILES
 
@@ -109,17 +109,11 @@ class TestFormatProfilesRegistry:
         assert p.supports_model_routing is True
         assert p.pactkit_yaml_path == ".opencode/pactkit.yaml"
 
-    def test_codex_profile_values(self):
+    def test_codex_profile_removed(self):
+        """STORY-slim-059: codex profile no longer exists."""
         from pactkit.profiles import FORMAT_PROFILES
 
-        p = FORMAT_PROFILES["codex"]
-        assert p.global_config_dir == "~/.codex"
-        assert p.project_config_dir == ".codex"
-        assert p.agent_format == "toml"
-        assert p.rules_import_style == "inline"
-        assert p.has_custom_commands is False
-        assert p.commands_dir is None
-        assert p.rules_dir is None
+        assert "codex" not in FORMAT_PROFILES
 
     def test_classic_excluded_fields(self):
         from pactkit.profiles import FORMAT_PROFILES
