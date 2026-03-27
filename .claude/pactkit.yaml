@@ -1,61 +1,11 @@
 # PactKit Configuration
-# Edit this file to customize which components are deployed.
-# Remove items from a list to disable them. Default: all enabled.
+# All agents, commands, skills, and rules are deployed by default.
+# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).
 
 version: 2.7.0
 stack: python
 root: .
 developer: "slim"
-
-# Agents — AI role definitions
-agents:
-  - code-explorer
-  - product-designer
-  - qa-engineer
-  - repo-maintainer
-  - security-auditor
-  - senior-developer
-  - system-architect
-  - system-medic
-  - visual-architect
-
-# Commands — PDCA playbooks
-commands:
-  - project-act
-  - project-check
-  - project-design
-  - project-done
-  - project-hotfix
-  - project-init
-  - project-plan
-  - project-sprint
-  - project-clarify
-  - project-pr
-  - project-release
-
-# Skills — tool scripts
-skills:
-  - pactkit-board
-  - pactkit-doctor
-  - pactkit-draw
-  - pactkit-release
-  - pactkit-review
-  - pactkit-scaffold
-  - pactkit-status
-  - pactkit-trace
-  - pactkit-visualize
-  - pactkit-analyze
-
-# Rules — constitution modules
-rules:
-  - 01-core-protocol
-  - 02-hierarchy-of-truth
-  - 03-file-atlas
-  - 04-routing-table
-  - 05-workflow-conventions
-  - 06-mcp-integration
-  - 07-shared-protocols
-  - 08-architecture-principles
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
