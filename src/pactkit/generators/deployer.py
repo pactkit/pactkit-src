@@ -301,10 +301,10 @@ def _deploy_classic(config=None, target=None):
         d.mkdir(parents=True, exist_ok=True)
 
     # Deploy components filtered by config
-    enabled_skills = config.get("skills", [])
-    enabled_rules = config.get("rules", [])
-    enabled_agents = config.get("agents", [])
-    enabled_commands = config.get("commands", [])
+    enabled_skills = config.get("skills", sorted(VALID_SKILLS))
+    enabled_rules = config.get("rules", sorted(VALID_RULES))
+    enabled_agents = config.get("agents", sorted(VALID_AGENTS))
+    enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
 
     classic_profile = get_profile("classic")
     n_skills = _deploy_skills(skills_dir, enabled_skills, profile=classic_profile)

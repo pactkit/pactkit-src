@@ -4,6 +4,23 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.8.0] - 2026-03-27
+
+### Added
+- **3-IDE default install** — `pip install pactkit` now installs all three IDE adapters (Claude Code + OpenCode + Codex) out of the box.
+
+### Fixed
+- **OpenCode command architecture** — Reverted OpenCode from skills-only back to `commands/` + `skills/` dual architecture. OpenCode auto-discovers commands from `commands/*.md` (invoked via `/project-plan`), while embedded skills in `skills/` are loaded by AI agent on demand. `opencode.json` command entries now only contain model routing (no `template` field — it was incorrectly treated as file path, but is actually inline text).
+- **Spec version confusion** — `/project-plan` Phase 3.2a no longer reads version from `pactkit.yaml` (PactKit toolkit version). Now explicitly reads from project's package manifest (`pyproject.toml`, `package.json`, `Cargo.toml`).
+- **OpenCode path isolation** — All deployed OpenCode files reference `~/.config/opencode/` paths, CLI commands replaced with `python3 ~/.config/opencode/skills/*/scripts/*.py` invocations.
+- **pactkit.yaml simplification** — Removed redundant component lists (agents/commands/skills/rules) from yaml template. Absence = deploy all from `VALID_*` sets. `pactkit doctor` drift check skips absent keys.
+
+### Changed
+- **Cross-IDE command architecture**:
+  - Claude Code: skills-only (`skills/project-*/SKILL.md`), prefix `/`
+  - OpenCode: commands + skills (`commands/project-*.md` + `skills/pactkit-*/SKILL.md`), prefix `/`
+  - Codex: skills-only (`skills/project-*/SKILL.md`), prefix `$`
+
 ## [2.7.0] - 2026-03-27
 
 ### Added
