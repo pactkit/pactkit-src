@@ -4,6 +4,21 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.7.0] - 2026-03-27
+
+### Added
+- **Commands → Skills Migration** (STORY-slim-063) — 11 PDCA commands now deploy as `skills/{name}/SKILL.md` subdirectories instead of flat `commands/{name}.md` files for Claude Code format. `VALID_SKILLS` expanded from 10 to 21 entries (10 embedded + 11 commands).
+- **Legacy Command Cleanup** — `_cleanup_legacy_commands()` auto-removes old `project-*.md` from `commands/` on upgrade, preserving non-PactKit files.
+- **Codex FormatProfile** (STORY-slim-060) — Re-added `codex` profile to core for thin adapter pattern support (`pactkit-codex` package).
+
+### Fixed
+- **board.py update_task** (HOTFIX-slim-061) — `update_task` now recognizes bullet-format Done entries (`- **STORY-xxx**:`), not just heading format.
+- **visualize --lazy focus** (HOTFIX-slim-062) — Removed hardcoded `--focus cli` refresh; added stem matching for focus target resolution.
+
+### Changed
+- **Deploy summary** — Output now shows unified `Skills (embedded + commands)` count instead of separate Commands/Skills lines.
+- **Cross-format isolation** — OpenCode and Codex profiles unaffected; commands still deploy as flat `.md` files for non-classic formats.
+
 ## [2.6.1] - 2026-03-26
 
 ### Fixed

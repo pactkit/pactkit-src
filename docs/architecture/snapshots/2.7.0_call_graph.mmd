@@ -1,0 +1,529 @@
+graph TD
+    ClassicDeployer_deploy["ClassicDeployer.deploy"]
+    DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
+    DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
+    DeployerBase_deploy_commands["DeployerBase.deploy_commands"]
+    DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
+    DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
+    DeployerBase_render_prompt["DeployerBase.render_prompt"]
+    FrontendParser_parse["FrontendParser.parse"]
+    JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
+    PdcaParser_parse["PdcaParser.parse"]
+    PluginDeployer_deploy["PluginDeployer.deploy"]
+    PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
+    ServiceParser_parse["ServiceParser.parse"]
+    TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
+    TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
+    TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
+    TreeSitterAnalyzer__extract_funcs_and_calls["TreeSitterAnalyzer._extract_funcs_and_calls"]
+    TreeSitterAnalyzer_extract_functions_and_calls["TreeSitterAnalyzer.extract_functions_and_calls"]
+    TreeSitterAnalyzer_extract_imports["TreeSitterAnalyzer.extract_imports"]
+    WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
+    WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
+    _add_fix_flag["_add_fix_flag"]
+    _atomic_mmd_write["_atomic_mmd_write"]
+    _best_match["_best_match"]
+    _build_bridge_edges["_build_bridge_edges"]
+    _build_call_graph["_build_call_graph"]
+    _build_class_graph["_build_class_graph"]
+    _build_command_rules_header["_build_command_rules_header"]
+    _build_file_graph["_build_file_graph"]
+    _build_github_workflow["_build_github_workflow"]
+    _build_gitlab_ci["_build_gitlab_ci"]
+    _build_reverse_graph["_build_reverse_graph"]
+    _build_rule_id_to_filename["_build_rule_id_to_filename"]
+    _build_rule_id_to_key["_build_rule_id_to_key"]
+    _build_suffix_index["_build_suffix_index"]
+    _check_acceptance_criteria["_check_acceptance_criteria"]
+    _check_gh_available["_check_gh_available"]
+    _check_implementation_steps["_check_implementation_steps"]
+    _check_metadata["_check_metadata"]
+    _check_optional_sections["_check_optional_sections"]
+    _check_req_ac_coverage["_check_req_ac_coverage"]
+    _check_requirements_section["_check_requirements_section"]
+    _check_security_scope["_check_security_scope"]
+    _classify_coverage["_classify_coverage"]
+    _classify_story["_classify_story"]
+    _cleanup_legacy["_cleanup_legacy"]
+    _cleanup_legacy_commands["_cleanup_legacy_commands"]
+    _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
+    _create_issue["_create_issue"]
+    _deploy_agents["_deploy_agents"]
+    _deploy_ci["_deploy_ci"]
+    _deploy_classic["_deploy_classic"]
+    _deploy_claude_md["_deploy_claude_md"]
+    _deploy_claude_md_inline["_deploy_claude_md_inline"]
+    _deploy_commands["_deploy_commands"]
+    _deploy_hooks["_deploy_hooks"]
+    _deploy_marketplace["_deploy_marketplace"]
+    _deploy_marketplace_json["_deploy_marketplace_json"]
+    _deploy_plugin["_deploy_plugin"]
+    _deploy_plugin_json["_deploy_plugin_json"]
+    _deploy_rules["_deploy_rules"]
+    _deploy_skills["_deploy_skills"]
+    _detect_file_ext["_detect_file_ext"]
+    _detect_ghe["_detect_ghe"]
+    _detect_stack["_detect_stack"]
+    _extract_calls["_extract_calls"]
+    _extract_module_path["_extract_module_path"]
+    _extract_node_id["_extract_node_id"]
+    _extract_requirement_ids["_extract_requirement_ids"]
+    _find_enclosing_class["_find_enclosing_class"]
+    _find_entry_func["_find_entry_func"]
+    _find_section["_find_section"]
+    _format_result["_format_result"]
+    _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
+    _generate_config_if_missing["_generate_config_if_missing"]
+    _generate_project_claude_md["_generate_project_claude_md"]
+    _get_command_rules["_get_command_rules"]
+    _get_done_ids["_get_done_ids"]
+    _get_git_branches["_get_git_branches"]
+    _get_issue_tracker_provider["_get_issue_tracker_provider"]
+    _get_last_n_entries["_get_last_n_entries"]
+    _inject_developer_prefix["_inject_developer_prefix"]
+    _is_doc_only["_is_doc_only"]
+    _is_docs_or_tests_only["_is_docs_or_tests_only"]
+    _is_duplicate["_is_duplicate"]
+    _is_local_import["_is_local_import"]
+    _is_specific["_is_specific"]
+    _is_user_modified_claude_md["_is_user_modified_claude_md"]
+    _is_version_file["_is_version_file"]
+    _jaccard_similarity["_jaccard_similarity"]
+    _line_number["_line_number"]
+    _load_code_graph["_load_code_graph"]
+    _load_entry_point_deployers["_load_entry_point_deployers"]
+    _load_scan_excludes["_load_scan_excludes"]
+    _mark_done["_mark_done"]
+    _mermaid_escape["_mermaid_escape"]
+    _migrate_from_scafpy["_migrate_from_scafpy"]
+    _parse_active_stories["_parse_active_stories"]
+    _parse_app_router_pages["_parse_app_router_pages"]
+    _parse_board["_parse_board"]
+    _parse_commands["_parse_commands"]
+    _parse_component_imports["_parse_component_imports"]
+    _parse_coverage_output["_parse_coverage_output"]
+    _parse_docker_compose["_parse_docker_compose"]
+    _parse_hook_store_imports["_parse_hook_store_imports"]
+    _parse_item_type["_parse_item_type"]
+    _parse_last_lessons["_parse_last_lessons"]
+    _parse_mq_config["_parse_mq_config"]
+    _parse_openapi["_parse_openapi"]
+    _parse_pages_router["_parse_pages_router"]
+    _parse_pdca_sequence["_parse_pdca_sequence"]
+    _parse_proto_files["_parse_proto_files"]
+    _parse_recent_completions["_parse_recent_completions"]
+    _parse_routing_table["_parse_routing_table"]
+    _parse_story_blocks["_parse_story_blocks"]
+    _parse_vue_routes["_parse_vue_routes"]
+    _path_ends_with_ext["_path_ends_with_ext"]
+    _path_matches_any["_path_matches_any"]
+    _print_mcp_recommendations["_print_mcp_recommendations"]
+    _read_content["_read_content"]
+    _read_developer_prefix["_read_developer_prefix"]
+    _render_prompt["_render_prompt"]
+    _render_skill_md["_render_skill_md"]
+    _resolve_callee["_resolve_callee"]
+    _resolve_test_path["_resolve_test_path"]
+    _rewrite_skills_prefix["_rewrite_skills_prefix"]
+    _rewrite_yaml["_rewrite_yaml"]
+    _run_pytest_cov["_run_pytest_cov"]
+    _scan_call_edges["_scan_call_edges"]
+    _scan_files["_scan_files"]
+    _scan_hooks["_scan_hooks"]
+    _scan_mq_source_patterns["_scan_mq_source_patterns"]
+    _scan_skill_files["_scan_skill_files"]
+    _scan_stores["_scan_stores"]
+    _search_issue["_search_issue"]
+    _section_text["_section_text"]
+    _select_analyzer["_select_analyzer"]
+    _strip_code_blocks["_strip_code_blocks"]
+    _upsert_venv_managed_block["_upsert_venv_managed_block"]
+    _validate_developer["_validate_developer"]
+    _write_board["_write_board"]
+    add_story["add_story"]
+    append_lesson["append_lesson"]
+    archive_stories["archive_stories"]
+    atomic_write["atomic_write"]
+    auto_merge_config_file["auto_merge_config_file"]
+    build_unified_graph["build_unified_graph"]
+    build_workflow_graph["build_workflow_graph"]
+    check_config_completeness["check_config_completeness"]
+    check_config_drift["check_config_drift"]
+    check_coverage["check_coverage"]
+    check_init_markers["check_init_markers"]
+    check_stale_graphs["check_stale_graphs"]
+    check_version_mismatch["check_version_mismatch"]
+    classify_changes["classify_changes"]
+    clean_artifacts["clean_artifacts"]
+    create_board["create_board"]
+    create_e2e["create_e2e"]
+    create_prd["create_prd"]
+    create_skill["create_skill"]
+    create_spec["create_spec"]
+    create_test_file["create_test_file"]
+    deploy["deploy"]
+    detect_security_scope["detect_security_scope"]
+    detect_stack["detect_stack"]
+    detect_topology["detect_topology"]
+    detect_venv["detect_venv"]
+    export_focus_graphs["export_focus_graphs"]
+    find_pactkit_yaml["find_pactkit_yaml"]
+    fix_board["fix_board"]
+    generate_context["generate_context"]
+    generate_default_yaml["generate_default_yaml"]
+    get_default_config["get_default_config"]
+    get_profile["get_profile"]
+    git_start["git_start"]
+    impact["impact"]
+    init_architecture["init_architecture"]
+    is_environment_format["is_environment_format"]
+    issue_sync["issue_sync"]
+    list_stories["list_stories"]
+    load_config["load_config"]
+    load_script["load_script"]
+    main["main"]
+    map_to_tests["map_to_tests"]
+    move_story["move_story"]
+    nl["nl"]
+    register_deployer["register_deployer"]
+    regression_workflow_impact["regression_workflow_impact"]
+    resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    run_lint["run_lint"]
+    scan_and_replace_tbd["scan_and_replace_tbd"]
+    should_visualize["should_visualize"]
+    strip_frontmatter["strip_frontmatter"]
+    transform["transform"]
+    update_task["update_task"]
+    validate_config["validate_config"]
+    validate_spec["validate_spec"]
+    visualize["visualize"]
+    workflow_impact["workflow_impact"]
+    classify_changes --> _is_doc_only
+    classify_changes --> _is_version_file
+    resolve_pactkit_yaml_dir --> is_environment_format
+    resolve_pactkit_yaml_dir --> get_profile
+    resolve_pactkit_yaml_dir --> get_profile
+    load_config --> get_default_config
+    load_config --> _validate_developer
+    load_config --> find_pactkit_yaml
+    load_config --> get_default_config
+    auto_merge_config_file --> get_default_config
+    auto_merge_config_file --> _rewrite_yaml
+    generate_default_yaml --> get_default_config
+    _is_duplicate --> _jaccard_similarity
+    append_lesson --> _get_last_n_entries
+    append_lesson --> _is_duplicate
+    append_lesson --> _is_specific
+    check_init_markers --> find_pactkit_yaml
+    check_config_completeness --> find_pactkit_yaml
+    check_version_mismatch --> find_pactkit_yaml
+    check_version_mismatch --> load_config
+    detect_security_scope --> _is_docs_or_tests_only
+    detect_security_scope --> _read_content
+    detect_security_scope --> _path_ends_with_ext
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_ends_with_ext
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_matches_any
+    detect_security_scope --> _path_ends_with_ext
+    run_lint --> detect_stack
+    run_lint --> find_pactkit_yaml
+    run_lint --> _add_fix_flag
+    run_lint --> load_config
+    should_visualize --> detect_stack
+    generate_context --> _get_git_branches
+    generate_context --> _parse_last_lessons
+    generate_context --> _parse_board
+    generate_context --> _parse_active_stories
+    generate_context --> _parse_recent_completions
+    main --> validate_spec
+    main --> _format_result
+    main --> validate_spec
+    main --> _format_result
+    scan_and_replace_tbd --> _get_done_ids
+    clean_artifacts --> detect_stack
+    _parse_coverage_output --> _classify_coverage
+    check_coverage --> _parse_coverage_output
+    check_coverage --> _extract_module_path
+    check_coverage --> _run_pytest_cov
+    _get_issue_tracker_provider --> find_pactkit_yaml
+    issue_sync --> _parse_item_type
+    issue_sync --> _get_issue_tracker_provider
+    issue_sync --> _search_issue
+    issue_sync --> _create_issue
+    issue_sync --> _check_gh_available
+    map_to_tests --> detect_stack
+    check_config_drift --> find_pactkit_yaml
+    check_stale_graphs --> load_config
+    add_story --> _parse_story_blocks
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    fix_board --> _parse_story_blocks
+    fix_board --> _classify_story
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    update_task --> _mark_done
+    update_task --> _write_board
+    update_task --> fix_board
+    move_story --> _parse_story_blocks
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    list_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    init_architecture --> nl
+    init_architecture --> nl
+    _detect_file_ext --> _detect_stack
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
+    JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    _build_file_graph --> _extract_node_id
+    _build_file_graph --> _best_match
+    _build_file_graph --> _extract_node_id
+    _build_file_graph --> nl
+    _build_file_graph --> _mermaid_escape
+    _build_file_graph --> _extract_node_id
+    _build_class_graph --> nl
+    _build_call_graph --> _build_suffix_index
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> nl
+    _build_call_graph --> nl
+    _build_call_graph --> _mermaid_escape
+    _build_call_graph --> _mermaid_escape
+    _build_reverse_graph --> _build_suffix_index
+    _build_reverse_graph --> _find_entry_func
+    _build_reverse_graph --> _resolve_callee
+    impact --> _load_scan_excludes
+    impact --> _detect_stack
+    impact --> _select_analyzer
+    impact --> _scan_call_edges
+    impact --> _build_reverse_graph
+    impact --> _scan_files
+    impact --> _scan_files
+    impact --> _detect_file_ext
+    impact --> _scan_files
+    impact --> _resolve_test_path
+    visualize --> _load_scan_excludes
+    visualize --> _detect_stack
+    visualize --> _select_analyzer
+    visualize --> _atomic_mmd_write
+    visualize --> build_unified_graph
+    visualize --> _atomic_mmd_write
+    visualize --> build_workflow_graph
+    visualize --> _atomic_mmd_write
+    visualize --> _scan_files
+    visualize --> _scan_files
+    visualize --> _detect_file_ext
+    visualize --> _scan_files
+    visualize --> _build_class_graph
+    visualize --> export_focus_graphs
+    visualize --> _build_file_graph
+    visualize --> _scan_call_edges
+    visualize --> _build_reverse_graph
+    visualize --> _build_call_graph
+    visualize --> nl
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> nl
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> _mermaid_escape
+    WorkflowGraph_to_mermaid --> _mermaid_escape
+    PdcaParser_parse --> _parse_commands
+    PdcaParser_parse --> _parse_routing_table
+    PdcaParser_parse --> _scan_skill_files
+    PdcaParser_parse --> _parse_pdca_sequence
+    ServiceParser_parse --> _parse_docker_compose
+    ServiceParser_parse --> _parse_openapi
+    ServiceParser_parse --> _parse_proto_files
+    ServiceParser_parse --> _parse_mq_config
+    ServiceParser_parse --> _scan_mq_source_patterns
+    _parse_component_imports --> _is_local_import
+    _parse_component_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    FrontendParser_parse --> _parse_component_imports
+    FrontendParser_parse --> _scan_hooks
+    FrontendParser_parse --> _scan_stores
+    FrontendParser_parse --> _parse_hook_store_imports
+    FrontendParser_parse --> _parse_app_router_pages
+    FrontendParser_parse --> _parse_pages_router
+    FrontendParser_parse --> _parse_vue_routes
+    regression_workflow_impact --> build_workflow_graph
+    workflow_impact --> build_workflow_graph
+    workflow_impact --> nl
+    build_workflow_graph --> detect_topology
+    _load_code_graph --> _detect_stack
+    _load_code_graph --> _select_analyzer
+    _load_code_graph --> _load_scan_excludes
+    _load_code_graph --> _build_suffix_index
+    _load_code_graph --> _scan_files
+    _load_code_graph --> _resolve_callee
+    build_unified_graph --> build_workflow_graph
+    build_unified_graph --> _load_code_graph
+    build_unified_graph --> _build_bridge_edges
+    export_focus_graphs --> _atomic_mmd_write
+    _find_section --> _line_number
+    _section_text --> _find_section
+    _check_requirements_section --> _section_text
+    _check_acceptance_criteria --> _section_text
+    _check_acceptance_criteria --> _section_text
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _extract_requirement_ids
+    _check_implementation_steps --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_security_scope --> _section_text
+    validate_spec --> _strip_code_blocks
+    validate_spec --> _check_metadata
+    validate_spec --> _check_requirements_section
+    validate_spec --> _check_acceptance_criteria
+    validate_spec --> _check_optional_sections
+    validate_spec --> _check_implementation_steps
+    validate_spec --> _check_req_ac_coverage
+    validate_spec --> _check_security_scope
+    git_start --> _inject_developer_prefix
+    create_test_file --> nl
+    create_e2e --> _inject_developer_prefix
+    create_e2e --> nl
+    _inject_developer_prefix --> _read_developer_prefix
+    create_spec --> _inject_developer_prefix
+    create_skill --> nl
+    create_skill --> nl
+    create_board --> nl
+    create_prd --> nl
+    _render_skill_md --> _rewrite_skills_prefix
+    _render_skill_md --> _render_prompt
+    _render_skill_md --> _render_prompt
+    _render_skill_md --> get_profile
+    ClassicDeployer_deploy --> _deploy_classic
+    PluginDeployer_deploy --> _deploy_plugin
+    _load_entry_point_deployers --> register_deployer
+    deploy --> _deploy_marketplace
+    _deploy_classic --> _migrate_from_scafpy
+    _deploy_classic --> validate_config
+    _deploy_classic --> get_profile
+    _deploy_classic --> _deploy_skills
+    _deploy_classic --> _cleanup_legacy
+    _deploy_classic --> _deploy_rules
+    _deploy_classic --> _deploy_claude_md
+    _deploy_classic --> _deploy_agents
+    _deploy_classic --> _cleanup_legacy_commands
+    _deploy_classic --> _deploy_commands
+    _deploy_classic --> _deploy_ci
+    _deploy_classic --> _deploy_hooks
+    _deploy_classic --> _generate_config_if_missing
+    _deploy_classic --> _print_mcp_recommendations
+    _deploy_classic --> find_pactkit_yaml
+    _deploy_classic --> auto_merge_config_file
+    _deploy_classic --> load_config
+    _deploy_classic --> _generate_project_claude_md
+    _deploy_plugin --> _deploy_skills
+    _deploy_plugin --> _deploy_claude_md_inline
+    _deploy_plugin --> _deploy_agents
+    _deploy_plugin --> _deploy_commands
+    _deploy_plugin --> _deploy_plugin_json
+    _deploy_plugin --> _print_mcp_recommendations
+    _deploy_marketplace --> _deploy_plugin
+    _deploy_marketplace --> _deploy_marketplace_json
+    _deploy_skills --> _render_skill_md
+    _deploy_skills --> atomic_write
+    _deploy_skills --> atomic_write
+    _deploy_skills --> _render_skill_md
+    _deploy_skills --> atomic_write
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
+    _deploy_skills --> load_script
+    _deploy_rules --> _build_rule_id_to_key
+    _deploy_rules --> atomic_write
+    _deploy_claude_md --> atomic_write
+    _deploy_agents --> atomic_write
+    _deploy_agents --> get_profile
+    _deploy_agents --> get_profile
+    _deploy_agents --> _render_prompt
+    _deploy_agents --> _rewrite_skills_prefix
+    _build_command_rules_header --> _get_command_rules
+    _build_command_rules_header --> _build_rule_id_to_filename
+    _deploy_commands --> get_profile
+    _deploy_commands --> get_profile
+    _deploy_commands --> _convert_command_frontmatter_opencode
+    _deploy_commands --> _build_command_rules_header
+    _deploy_commands --> _render_prompt
+    _deploy_commands --> _rewrite_skills_prefix
+    _deploy_commands --> atomic_write
+    _deploy_commands --> atomic_write
+    _deploy_ci --> _build_github_workflow
+    _deploy_ci --> atomic_write
+    _deploy_ci --> _build_gitlab_ci
+    _deploy_ci --> atomic_write
+    _deploy_ci --> _detect_ghe
+    _deploy_hooks --> atomic_write
+    _generate_config_if_missing --> resolve_pactkit_yaml_dir
+    _generate_config_if_missing --> atomic_write
+    _generate_config_if_missing --> find_pactkit_yaml
+    _generate_config_if_missing --> generate_default_yaml
+    _upsert_venv_managed_block --> atomic_write
+    _generate_claude_local_md_if_missing --> atomic_write
+    _generate_project_claude_md --> _generate_claude_local_md_if_missing
+    _generate_project_claude_md --> _upsert_venv_managed_block
+    _generate_project_claude_md --> atomic_write
+    _generate_project_claude_md --> _is_user_modified_claude_md
+    _generate_project_claude_md --> atomic_write
+    _generate_project_claude_md --> detect_venv
+    _deploy_plugin_json --> atomic_write
+    _deploy_claude_md_inline --> _build_rule_id_to_key
+    _deploy_claude_md_inline --> _rewrite_skills_prefix
+    _deploy_claude_md_inline --> atomic_write
+    _deploy_marketplace_json --> atomic_write
+    transform --> strip_frontmatter
+    DeployerBase_render_prompt --> _render_prompt
+    DeployerBase_deploy_skills --> _deploy_skills
+    DeployerBase_deploy_rules --> _deploy_rules
+    DeployerBase_deploy_agents --> _deploy_agents
+    DeployerBase_deploy_commands --> _deploy_commands
+    DeployerBase_deploy_ci --> _deploy_ci
