@@ -92,12 +92,13 @@ class TestAC4UserConfirmation:
 class TestDeployedPlanCommand:
 
     def test_deployed_plan_contains_greenfield(self, tmp_path):
-        """Deployed project-plan.md contains greenfield heuristic."""
+        """Deployed project-plan/SKILL.md contains greenfield heuristic (STORY-slim-063)."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
-        plan_file = tmp_path / '.claude' / 'commands' / 'project-plan.md'
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
+        plan_file = tmp_path / '.claude' / 'skills' / 'project-plan' / 'SKILL.md'
         assert plan_file.exists()
         content = plan_file.read_text()
         assert 'greenfield' in content.lower() or 'Greenfield' in content

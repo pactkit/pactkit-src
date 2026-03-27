@@ -126,17 +126,18 @@ class TestAC2AC3ClassicImport:
     """AC2/AC3: Classic command files get @import headers for their rules."""
 
     def test_classic_clarify_imports(self, tmp_path):
-        """AC2: project-clarify gets only 01 and 09 @imports."""
+        """AC2: project-clarify gets only 01 and 09 @imports (STORY-slim-063: now SKILL.md)."""
         from pactkit.generators.deployer import _deploy_commands
         from pactkit.profiles import get_profile
 
-        commands_dir = tmp_path / "commands"
-        commands_dir.mkdir()
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
 
         profile = get_profile("classic")
-        _deploy_commands(commands_dir, ["project-clarify"], profile=profile)
+        _deploy_commands(skills_dir, ["project-clarify"], profile=profile)
 
-        content = (commands_dir / "project-clarify.md").read_text()
+        # STORY-slim-063: deployed as skills_dir/{name}/SKILL.md
+        content = (skills_dir / "project-clarify" / "SKILL.md").read_text()
         assert "@~/.claude/rules/01-core-protocol.md" in content
         assert "@~/.claude/rules/09-credential-safety.md" in content
         # Should NOT have other rules
@@ -146,17 +147,18 @@ class TestAC2AC3ClassicImport:
         assert "@~/.claude/rules/08-architecture-principles.md" not in content
 
     def test_classic_act_imports(self, tmp_path):
-        """AC3: project-act gets 01, 02, 03, 06, 07, 08, 09 @imports."""
+        """AC3: project-act gets 01, 02, 03, 06, 07, 08, 09 @imports (STORY-slim-063: now SKILL.md)."""
         from pactkit.generators.deployer import _deploy_commands
         from pactkit.profiles import get_profile
 
-        commands_dir = tmp_path / "commands"
-        commands_dir.mkdir()
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
 
         profile = get_profile("classic")
-        _deploy_commands(commands_dir, ["project-act"], profile=profile)
+        _deploy_commands(skills_dir, ["project-act"], profile=profile)
 
-        content = (commands_dir / "project-act.md").read_text()
+        # STORY-slim-063: deployed as skills_dir/{name}/SKILL.md
+        content = (skills_dir / "project-act" / "SKILL.md").read_text()
         # Should have: 01, 02, 03, 06, 07, 08, 09
         for rule_file in [
             "01-core-protocol.md",

@@ -42,10 +42,13 @@ class TestFullConfigDeploysAll:
             assert (agents_dir / f"{name}.md").is_file(), f"Missing agent: {name}"
 
     def test_all_commands_deployed(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         claude = _run_deploy(tmp_path, config=get_default_config())
-        cmds_dir = claude / "commands"
+        skills_dir = claude / "skills"
         for filename in COMMANDS_CONTENT:
-            assert (cmds_dir / filename).is_file(), f"Missing command: {filename}"
+            cmd_name = filename.removesuffix(".md")
+            assert (skills_dir / cmd_name / "SKILL.md").is_file(), \
+                f"Missing command skill: skills/{cmd_name}/SKILL.md"
 
     def test_all_skills_deployed(self, tmp_path):
         claude = _run_deploy(tmp_path, config=get_default_config())
@@ -123,19 +126,20 @@ class TestPartialAgentConfig:
 
 class TestPartialCommandConfig:
     def test_only_selected_commands_deployed(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         cfg = get_default_config()
         cfg["commands"] = ["project-plan", "project-act", "project-done"]
 
         claude = _run_deploy(tmp_path, config=cfg)
-        cmds_dir = claude / "commands"
+        skills_dir = claude / "skills"
 
-        assert (cmds_dir / "project-plan.md").is_file()
-        assert (cmds_dir / "project-act.md").is_file()
-        assert (cmds_dir / "project-done.md").is_file()
+        assert (skills_dir / "project-plan" / "SKILL.md").is_file()
+        assert (skills_dir / "project-act" / "SKILL.md").is_file()
+        assert (skills_dir / "project-done" / "SKILL.md").is_file()
 
         # Others should NOT exist
-        assert not (cmds_dir / "project-check.md").exists()
-        assert not (cmds_dir / "project-sprint.md").exists()
+        assert not (skills_dir / "project-check" / "SKILL.md").exists()
+        assert not (skills_dir / "project-sprint" / "SKILL.md").exists()
 
     def test_user_custom_command_preserved(self, tmp_path):
         claude = tmp_path / ".claude"
@@ -235,16 +239,18 @@ class TestConfigAutoGeneration:
 
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
-        # STORY-051: 11 commands (added project-release, project-pr)
+        # STORY-slim-063: summary format changed to unified Skills count
+        # "21/21 Skills (10 embedded + 11 commands)"
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
-        assert "11/11 Commands" in output
-        assert "10/10 Skills" in output
+        assert "21/21 Skills" in output
+        assert "10 embedded" in output
+        assert "11 commands" in output
         assert "8/8 Rules" in output or "9/9 Rules" in output  # 9 rules after 09-sectional-write
 
     def test_summary_printed_partial(self, tmp_path, capsys):
-        # STORY-051: total commands is now 11
+        # STORY-slim-063: partial deploy — commands counted within Skills line
         cfg = get_default_config()
         cfg["agents"] = ["system-architect", "senior-developer"]
         cfg["commands"] = ["project-plan", "project-act", "project-done"]
@@ -252,7 +258,8 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
         assert "2/9 Agents" in output
-        assert "3/11 Commands" in output
+        # 10 embedded skills + 3 commands = 13 total skills deployed out of 21
+        assert "13/21 Skills" in output
 
 
 # ===========================================================================

@@ -650,3 +650,18 @@
 > Spec: docs/specs/STORY-slim-060.md
 
 - [x] Add codex FormatProfile to core profiles.py,Create CodexDeployer(DeployerBase) in pactkit-codex,Delete duplicated core modules from pactkit-codex,Update pyproject.toml deps and entry points,Migrate test imports to pactkit core,Create CI/CD workflows,Run full test suite and fix
+
+### [HOTFIX-slim-062] visualize --lazy focus target cli not found
+> Spec: docs/specs/HOTFIX-slim-062.md
+
+- [x] Remove hardcoded focus refresh and fix stem matching
+
+### [HOTFIX-slim-061] board.py update_task fails for Done-section stories
+> Spec: docs/specs/HOTFIX-slim-061.md
+
+- [x] Fix update_task to recognize bullet-format Done entries
+
+### [STORY-slim-063] Migrate Claude Code commands to skills deployment
+> Spec: docs/specs/STORY-slim-063.md
+
+- [x] Deploy 11 PDCA commands to skills dir, merge VALID sets, legacy cleanup

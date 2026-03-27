@@ -45,6 +45,17 @@ skills:
   - pactkit-trace
   - pactkit-visualize
   - pactkit-analyze
+  - project-act
+  - project-check
+  - project-clarify
+  - project-design
+  - project-done
+  - project-hotfix
+  - project-init
+  - project-plan
+  - project-pr
+  - project-release
+  - project-sprint
 
 # Rules — constitution modules
 rules:

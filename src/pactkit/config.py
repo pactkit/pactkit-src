@@ -47,6 +47,7 @@ VALID_COMMANDS = frozenset(
 
 VALID_SKILLS = frozenset(
     {
+        # Embedded skills (auto-invoked by commands)
         "pactkit-visualize",
         "pactkit-board",
         "pactkit-scaffold",
@@ -57,6 +58,18 @@ VALID_SKILLS = frozenset(
         "pactkit-review",
         "pactkit-release",
         "pactkit-analyze",
+        # PDCA commands (STORY-slim-063: migrated from commands/ to skills/)
+        "project-plan",
+        "project-act",
+        "project-check",
+        "project-done",
+        "project-init",
+        "project-sprint",
+        "project-hotfix",
+        "project-design",
+        "project-clarify",
+        "project-release",
+        "project-pr",
     }
 )
 

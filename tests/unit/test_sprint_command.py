@@ -145,13 +145,15 @@ class TestSprintDeployment:
     """Scenario 6: 部署后文件存在且正确"""
 
     def test_sprint_file_deployed(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         _deploy(tmp_path)
-        sprint_file = tmp_path / '.claude' / 'commands' / 'project-sprint.md'
-        assert sprint_file.exists(), 'project-sprint.md 未部署'
+        sprint_file = tmp_path / '.claude' / 'skills' / 'project-sprint' / 'SKILL.md'
+        assert sprint_file.exists(), 'project-sprint/SKILL.md 未部署'
 
     def test_deployed_sprint_has_frontmatter(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         _deploy(tmp_path)
-        sprint_file = tmp_path / '.claude' / 'commands' / 'project-sprint.md'
+        sprint_file = tmp_path / '.claude' / 'skills' / 'project-sprint' / 'SKILL.md'
         content = sprint_file.read_text()
         fm = _parse_frontmatter(content)
         assert 'description' in fm
@@ -184,14 +186,15 @@ class TestBackwardCompatibility:
             assert agent in AGENTS_EXPERT, f'现有 Agent {agent} 丢失'
 
     def test_all_existing_commands_deployed(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         _deploy(tmp_path)
-        commands_dir = tmp_path / '.claude' / 'commands'
+        skills_dir = tmp_path / '.claude' / 'skills'
         expected = [
-            'project-plan.md', 'project-act.md', 'project-check.md',
-            'project-done.md', 'project-init.md',
+            'project-plan', 'project-act', 'project-check',
+            'project-done', 'project-init',
         ]
         for cmd in expected:
-            assert (commands_dir / cmd).exists(), f'部署后 {cmd} 丢失'
+            assert (skills_dir / cmd / 'SKILL.md').exists(), f'部署后 skills/{cmd}/SKILL.md 丢失'
 
 
 # =============================================================================

@@ -285,16 +285,17 @@ class TestDeployedOutputIntegration:
         assert "{VISUALIZE_CMD}" not in content
 
     def test_classic_command_has_classic_path(self, tmp_path):
-        """Classic commands should have ~/.claude/skills/ references."""
+        """Classic commands should have ~/.claude/skills/ references (STORY-slim-063: now skills subdirs)."""
         from pactkit.generators.deployer import _deploy_commands
         from pactkit.profiles import get_profile
 
-        cmd_dir = tmp_path / "commands"
-        cmd_dir.mkdir()
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
         profile = get_profile("classic")
-        _deploy_commands(cmd_dir, ["project-done"], profile=profile)
+        _deploy_commands(skills_dir, ["project-done"], profile=profile)
 
-        done_cmd = cmd_dir / "project-done.md"
+        # STORY-slim-063: deployed as skills_dir/{name}/SKILL.md
+        done_cmd = skills_dir / "project-done" / "SKILL.md"
         assert done_cmd.exists()
         content = done_cmd.read_text()
         assert "~/.claude/skills" in content

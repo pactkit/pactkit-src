@@ -84,12 +84,13 @@ class TestAC4DeclineWarning:
 class TestDeployedInitCommand:
 
     def test_deployed_init_contains_git_guard(self, tmp_path):
-        """Deployed project-init.md contains git guard section."""
+        """Deployed project-init/SKILL.md contains git guard section (STORY-slim-063)."""
         from pactkit.config import get_default_config
         from pactkit.generators.deployer import deploy
         config = get_default_config()
         deploy(config=config, target=str(tmp_path / '.claude'))
-        init_file = tmp_path / '.claude' / 'commands' / 'project-init.md'
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
+        init_file = tmp_path / '.claude' / 'skills' / 'project-init' / 'SKILL.md'
         assert init_file.exists()
         content = init_file.read_text()
         assert 'git' in content.lower()

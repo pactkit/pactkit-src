@@ -112,7 +112,8 @@ class TestDeployedCommandFiles:
             from pactkit.generators.deployer import deploy
             deploy(mode='expert')
 
-        check_file = tmp_path / '.claude' / 'commands' / 'project-check.md'
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
+        check_file = tmp_path / '.claude' / 'skills' / 'project-check' / 'SKILL.md'
         assert check_file.exists()
         content = check_file.read_text()
         fm = _parse_frontmatter(content)

@@ -43,8 +43,9 @@ class TestGetDefaultConfig:
         assert len(cfg["commands"]) == 11
 
     def test_default_skills_count(self):
+        # STORY-slim-063: VALID_SKILLS now includes 11 commands migrated to skills/ subdirs
         cfg = _config().get_default_config()
-        assert len(cfg["skills"]) == 10
+        assert len(cfg["skills"]) == 21
 
     def test_default_rules_count(self):
         """9 rule modules (added 09-sectional-write)."""

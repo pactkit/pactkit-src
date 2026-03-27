@@ -139,3 +139,4 @@
 | 2026-03-26 | VALID_FORMATS auto-derives from FORMAT_PROFILES.keys() — removing a profile cascades to config, CLI, and deployer with zero manual sync | profiles.py:FORMAT_PROFILES |
 | 2026-03-26 | DeployerBase static methods use lazy imports to avoid circular dependencies between deploy_base.py and deployer.py | deploy_base.py:DeployerBase.render_prompt |
 | 2026-03-26 | Thin adapter conversion: pactkit-codex reduced from 15,356 lines (full fork) to 668 lines (thin adapter) by importing core via DeployerBase. Key: deploy_codex_playbooks needs explicit path replacement for ALL format prefixes (~/.claude/, ~/.config/opencode/ → ~/.codex/) | pactkit_codex/deployer.py:deploy_codex_playbooks |
+| 2026-03-27 | When migrating commands to skills (subdir/SKILL.md format), all path assertions in pre-existing tests must be updated in the same commit — 17 tests broke because they asserted flat commands/*.md paths | deployer.py:_deploy_commands |

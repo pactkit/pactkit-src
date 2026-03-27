@@ -314,7 +314,9 @@ def _deploy_classic(config=None, target=None):
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
-    n_commands = _deploy_commands(commands_dir, enabled_commands, profile=classic_profile, config=config)
+    # STORY-slim-063: Deploy commands as skills (to skills_dir, not commands_dir)
+    _cleanup_legacy_commands(commands_dir)
+    n_commands = _deploy_commands(skills_dir, enabled_commands, profile=classic_profile, config=config)
 
     # Deploy CI pipeline if configured (STORY-025)
     ci_config = config.get("ci", {})
@@ -334,16 +336,15 @@ def _deploy_classic(config=None, target=None):
     if target is None:
         _generate_project_claude_md(config)
 
-    # Summary
+    # Summary — STORY-slim-063: commands are now deployed as skills
     total_agents = len(VALID_AGENTS)
-    total_commands = len(VALID_COMMANDS)
     total_skills = len(VALID_SKILLS)
     total_rules = len(VALID_RULES)
 
     print(
         f"\n✅ Deployed: {n_agents}/{total_agents} Agents, "
-        f"{n_commands}/{total_commands} Commands, "
-        f"{n_skills}/{total_skills} Skills, "
+        f"{n_skills + n_commands}/{total_skills} Skills "
+        f"({n_skills} embedded + {n_commands} commands), "
         f"{n_rules}/{total_rules} Rules"
     )
     _print_mcp_recommendations()
@@ -482,6 +483,19 @@ def _cleanup_legacy(skills_dir):
     legacy = skills_dir / "pactkit_tools.py"
     if legacy.exists():
         legacy.unlink()
+
+
+def _cleanup_legacy_commands(commands_dir):
+    """Remove legacy project-*.md files from commands/ (STORY-slim-063).
+
+    After migration, commands are deployed as skills. Old flat .md files
+    in commands/ would be shadowed but should be cleaned up.
+    Non-PactKit files (e.g., ultra-think.md) are preserved.
+    """
+    if not commands_dir.exists():
+        return
+    for f in commands_dir.glob("project-*.md"):
+        f.unlink()
 
 
 def _migrate_from_scafpy(claude_root):
@@ -792,11 +806,22 @@ def _deploy_commands(
     # e.g. 'project-plan' -> 'project-plan.md'
     enabled_filenames = {f"{cmd}.md" for cmd in enabled_commands}
 
-    # Clean managed command files not in enabled set
+    # STORY-slim-063: For classic format, commands deploy as skills (subdirectory/SKILL.md).
+    # For other formats (plugin/marketplace), keep flat .md files.
+    _deploy_as_skill = profile.name == "classic" and _legacy_prefix is None
+
+    # Clean managed command files/dirs not in enabled set
     if commands_dir.exists():
-        for f in commands_dir.glob("*.md"):
-            if f.name.startswith("project-") and f.name not in enabled_filenames:
-                f.unlink()
+        if _deploy_as_skill:
+            # Clean skill subdirectories for commands no longer enabled
+            for d in commands_dir.iterdir():
+                if d.is_dir() and d.name.startswith("project-") and d.name not in enabled_set:
+                    import shutil
+                    shutil.rmtree(d)
+        else:
+            for f in commands_dir.glob("*.md"):
+                if f.name.startswith("project-") and f.name not in enabled_filenames:
+                    f.unlink()
 
     # Deploy enabled commands
     deployed = 0
@@ -820,7 +845,12 @@ def _deploy_commands(
             if _legacy_prefix is None
             else _rewrite_skills_prefix(content, _effective_prefix)
         )
-        atomic_write(commands_dir / filename, rendered)
+
+        if _deploy_as_skill:
+            # STORY-slim-063: Write as skills_dir/{name}/SKILL.md
+            atomic_write(commands_dir / cmd_name / "SKILL.md", rendered)
+        else:
+            atomic_write(commands_dir / filename, rendered)
         deployed += 1
 
     return deployed

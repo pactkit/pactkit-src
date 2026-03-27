@@ -117,13 +117,14 @@ class TestInitClassicFormat:
         assert len(agent_files) >= 1
 
     def test_init_creates_command_files(self, tmp_path):
-        """pactkit init creates command playbook files."""
+        """pactkit init creates command playbook files (STORY-slim-063: now in skills/ subdirs)."""
         target = tmp_path / "classic_deploy"
         run_pactkit("init", "-t", str(target))
 
-        commands_dir = target / "commands"
-        command_files = list(commands_dir.glob("*.md"))
-        assert len(command_files) >= 1
+        skills_dir = target / "skills"
+        # Commands are now deployed as skills/{name}/SKILL.md
+        command_skill_files = list(skills_dir.glob("project-*/SKILL.md"))
+        assert len(command_skill_files) >= 1
 
 
 @pytest.mark.e2e
@@ -260,14 +261,16 @@ class TestDeploymentCompleteness:
         assert deployed == set(VALID_AGENTS)
 
     def test_all_commands_deployed(self, deploy_target):
-        """AC2: Exactly 11 commands deployed, names match VALID_COMMANDS exactly."""
+        """AC2: Exactly 11 commands deployed as skills/{name}/SKILL.md (STORY-slim-063)."""
         from pactkit.config import VALID_COMMANDS
-        commands_dir = deploy_target / "commands"
-        deployed = {f.stem for f in commands_dir.glob("*.md")}
+        skills_dir = deploy_target / "skills"
+        # Commands are now deployed as skills/{name}/SKILL.md subdirectories
+        deployed = {d.name for d in skills_dir.iterdir()
+                    if d.is_dir() and d.name.startswith("project-")}
         assert deployed == set(VALID_COMMANDS)
 
     def test_all_skills_deployed_with_skill_md(self, deploy_target):
-        """AC3: Exactly 10 skill dirs deployed, each contains SKILL.md."""
+        """AC3: Exactly 21 skill dirs deployed (10 embedded + 11 commands), each contains SKILL.md."""
         from pactkit.config import VALID_SKILLS
         skills_dir = deploy_target / "skills"
         deployed_dirs = {d.name for d in skills_dir.iterdir() if d.is_dir()}

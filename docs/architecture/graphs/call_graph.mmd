@@ -45,6 +45,7 @@ graph TD
     _classify_coverage["_classify_coverage"]
     _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
+    _cleanup_legacy_commands["_cleanup_legacy_commands"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
@@ -452,6 +453,7 @@ graph TD
     _deploy_classic --> _deploy_rules
     _deploy_classic --> _deploy_claude_md
     _deploy_classic --> _deploy_agents
+    _deploy_classic --> _cleanup_legacy_commands
     _deploy_classic --> _deploy_commands
     _deploy_classic --> _deploy_ci
     _deploy_classic --> _deploy_hooks
@@ -487,13 +489,14 @@ graph TD
     _deploy_agents --> _rewrite_skills_prefix
     _build_command_rules_header --> _get_command_rules
     _build_command_rules_header --> _build_rule_id_to_filename
-    _deploy_commands --> atomic_write
     _deploy_commands --> get_profile
     _deploy_commands --> get_profile
     _deploy_commands --> _convert_command_frontmatter_opencode
     _deploy_commands --> _build_command_rules_header
     _deploy_commands --> _render_prompt
     _deploy_commands --> _rewrite_skills_prefix
+    _deploy_commands --> atomic_write
+    _deploy_commands --> atomic_write
     _deploy_ci --> _build_github_workflow
     _deploy_ci --> atomic_write
     _deploy_ci --> _build_gitlab_ci

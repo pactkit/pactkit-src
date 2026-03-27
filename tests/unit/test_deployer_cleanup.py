@@ -76,11 +76,14 @@ class TestScenario1_StaleCommandsCleaned:
         assert not (cmds / "project-old-removed.md").exists()
 
     def test_current_commands_all_exist(self, tmp_path):
+        # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md
         _run_deploy(tmp_path)
-        cmds = tmp_path / ".claude" / "commands"
+        skills_dir = tmp_path / ".claude" / "skills"
 
         for filename in COMMANDS_CONTENT:
-            assert (cmds / filename).is_file(), f"Missing: {filename}"
+            cmd_name = filename.removesuffix(".md")
+            assert (skills_dir / cmd_name / "SKILL.md").is_file(), \
+                f"Missing: skills/{cmd_name}/SKILL.md"
 
 
 class TestScenario2_UserCommandsPreserved:
