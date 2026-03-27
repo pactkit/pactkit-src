@@ -223,11 +223,15 @@ class TestGenerateDefaultYaml:
         parsed = yaml.safe_load(result)
         assert isinstance(parsed, dict)
 
-    def test_roundtrip_equals_default(self):
+    def test_roundtrip_contains_core_keys(self):
+        """Generated YAML has operational config but not component lists."""
         result = _config().generate_default_yaml()
         parsed = yaml.safe_load(result)
-        default = _config().get_default_config()
-        assert parsed == default
+        assert "stack" in parsed
+        assert "version" in parsed
+        # Component lists omitted — default is "deploy all" from VALID_* sets
+        for key in ("agents", "commands", "skills", "rules"):
+            assert key not in parsed
 
     def test_contains_comments(self):
         result = _config().generate_default_yaml()

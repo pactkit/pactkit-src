@@ -448,14 +448,12 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     added: list[str] = []
 
     # --- List-type keys: merge new items ---
+    # If a list key is absent from yaml, it means "deploy all" (VALID_* default).
+    # Only merge if the user explicitly provides a list (opt-in customization).
     for key, valid_set in _REGISTRY.items():
         user_list = user_data.get(key)
         if user_list is None:
-            # BUG-013: key missing from user yaml → backfill full default list
-            excluded_items = set(exclude.get(key, []) or [])
-            new_items = sorted(item for item in valid_set if item not in excluded_items)
-            user_data[key] = new_items
-            added.append(f"section: {key}")
+            # Key absent = deploy all by default. No backfill needed.
             continue
         if not isinstance(user_list, list):
             continue
@@ -900,34 +898,14 @@ def generate_default_yaml() -> str:
     cfg = get_default_config()
     lines = [
         "# PactKit Configuration",
-        "# Edit this file to customize which components are deployed.",
-        "# Remove items from a list to disable them. Default: all enabled.",
+        "# All agents, commands, skills, and rules are deployed by default.",
+        "# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).",
         "",
         f'version: "{cfg["version"]}"',
         f"stack: {cfg['stack']}",
         f"root: {cfg['root']}",
         f'developer: "{cfg["developer"]}"',
-        "",
-        "# Agents — AI role definitions",
-        "agents:",
     ]
-    for a in cfg["agents"]:
-        lines.append(f"  - {a}")
-
-    lines.extend(["", "# Commands — PDCA playbooks"])
-    lines.append("commands:")
-    for c in cfg["commands"]:
-        lines.append(f"  - {c}")
-
-    lines.extend(["", "# Skills — tool scripts"])
-    lines.append("skills:")
-    for s in cfg["skills"]:
-        lines.append(f"  - {s}")
-
-    lines.extend(["", "# Rules — constitution modules"])
-    lines.append("rules:")
-    for r in cfg["rules"]:
-        lines.append(f"  - {r}")
 
     ci = cfg.get("ci", {})
     lines.extend(["", "# CI/CD — set provider to github or gitlab to generate pipeline config"])

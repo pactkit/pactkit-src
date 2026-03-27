@@ -233,13 +233,13 @@ class TestAC4BackfillReport:
         assert len(section_reports) == 0
 
     def test_reports_multiple_sections(self, tmp_path):
-        """All missing sections reported when all are absent (BUG-013: includes lists)."""
+        """All missing non-list sections reported when absent."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
-        # 4 list-type (agents, commands, skills, rules) + 12 non-list (ci, issue_tracker, hooks, lint_blocking, auto_fix, e2e, venv, release, regression, check, done, visualize)
-        assert len(section_reports) == 16
+        # 12 non-list sections only (list-type keys no longer backfilled)
+        assert len(section_reports) == 12
 
 
 # ===========================================================================

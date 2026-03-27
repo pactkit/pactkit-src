@@ -154,10 +154,10 @@ class TestAC2NewConfigAtProjectPath:
             'Full config should be generated at $CWD/.claude/pactkit.yaml'
 
         generated = yaml.safe_load(project_yaml.read_text())
-        assert 'agents' in generated, 'Generated config should have agents list'
-        assert 'commands' in generated, 'Generated config should have commands list'
-        assert 'skills' in generated, 'Generated config should have skills list'
-        assert 'rules' in generated, 'Generated config should have rules list'
+        # Component lists (agents, commands, skills, rules) are no longer in yaml —
+        # default is "deploy all" from VALID_* sets. Only operational config remains.
+        assert 'stack' in generated, 'Generated config should have stack'
+        assert 'version' in generated, 'Generated config should have version'
 
     def test_no_config_at_global_path(self, tmp_path):
         from pactkit.generators.deployer import deploy

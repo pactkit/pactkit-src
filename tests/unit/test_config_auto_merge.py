@@ -246,8 +246,8 @@ class TestBackwardCompatibility:
         added = cfg.auto_merge_config_file(yaml_path)
         assert added == []
 
-    def test_yaml_with_only_scalar_keys_backfills_lists(self, tmp_path):
-        """BUG-013: missing list keys are backfilled with full defaults."""
+    def test_yaml_with_only_scalar_keys_no_backfill(self, tmp_path):
+        """Missing list keys are NOT backfilled — absence means 'deploy all'."""
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
         _write_yaml(yaml_path, {
@@ -260,11 +260,10 @@ class TestBackwardCompatibility:
         })
 
         added = cfg.auto_merge_config_file(yaml_path)
-        section_reports = [r for r in added if r.startswith('section:')]
-        assert 'section: agents' in section_reports
-        assert 'section: commands' in section_reports
-        assert 'section: skills' in section_reports
-        assert 'section: rules' in section_reports
+        # No list backfill — missing keys mean "deploy all"
+        list_keys = {'agents', 'commands', 'skills', 'rules'}
+        list_backfills = [r for r in added if any(r == f'section: {k}' for k in list_keys)]
+        assert len(list_backfills) == 0
 
     def test_full_list_nothing_added(self, tmp_path):
         """If user already has all VALID items and sections, nothing is added."""

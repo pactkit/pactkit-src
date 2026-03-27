@@ -229,7 +229,7 @@ class TestConfigAutoGeneration:
         yaml_path = claude / "pactkit.yaml"
         parsed = yaml.safe_load(yaml_path.read_text())
         assert parsed is not None
-        assert "agents" in parsed
+        assert "stack" in parsed
 
 
 # ===========================================================================
