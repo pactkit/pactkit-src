@@ -55,6 +55,12 @@ def check_orphaned_specs(project_root: Path) -> dict:
 def check_config_drift(project_root: Path) -> dict:
     """Compare pactkit.yaml declared items vs deployed files.
 
+    Detects the deployment format (classic/opencode/codex) from config_dir
+    and adjusts checks accordingly:
+    - Codex/OpenCode: skills-only architecture — commands are deployed as
+      skills/{name}/SKILL.md, agents/ dir doesn't exist (single-agent).
+    - Classic (Claude Code): full agents/, commands/, skills/, rules/.
+
     Returns:
         {"missing_deployments": [{"type": ..., "name": ...}]}
     """
@@ -69,33 +75,44 @@ def check_config_drift(project_root: Path) -> dict:
     with open(yaml_path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
-    config_dir = yaml_path.parent  # .claude/ or .opencode/
+    config_dir = yaml_path.parent  # .claude/ or .opencode/ or .codex/
     missing: list[dict] = []
 
-    # Check agents
-    for agent in data.get("agents", []):
-        agent_file = config_dir / "agents" / f"{agent}.md"
-        if not agent_file.exists():
-            missing.append({"type": "agent", "name": agent})
+    # Detect format from config_dir name to determine deployment layout.
+    # Codex/OpenCode use skills-only architecture — agents/ and commands/
+    # dirs don't exist; commands are deployed as skills/{name}/ at the
+    # global level (~/.codex/ or ~/.config/opencode/), not project-level.
+    dir_name = config_dir.name
+    is_skills_only = dir_name in (".codex", ".opencode")
 
-    # Check commands
-    for cmd in data.get("commands", []):
-        cmd_file = config_dir / "commands" / f"{cmd}.md"
-        if not cmd_file.exists():
-            missing.append({"type": "command", "name": cmd})
+    # Check agents — skip for skills-only environments (single-agent, global deploy)
+    if not is_skills_only:
+        for agent in data.get("agents", []):
+            agent_file = config_dir / "agents" / f"{agent}.md"
+            if not agent_file.exists():
+                missing.append({"type": "agent", "name": agent})
 
-    # Check skills
-    for skill in data.get("skills", []):
-        skill_dir = config_dir / "skills" / skill
-        skill_file = config_dir / "skills" / f"{skill}.md"
-        if not skill_dir.is_dir() and not skill_file.exists():
-            missing.append({"type": "skill", "name": skill})
+    # Check commands — skip for skills-only (deployed as global skills/)
+    if not is_skills_only:
+        for cmd in data.get("commands", []):
+            cmd_file = config_dir / "commands" / f"{cmd}.md"
+            if not cmd_file.exists():
+                missing.append({"type": "command", "name": cmd})
 
-    # Check rules
-    for rule in data.get("rules", []):
-        rule_file = config_dir / "rules" / f"{rule}.md"
-        if not rule_file.exists():
-            missing.append({"type": "rule", "name": rule})
+    # Check skills — skip for skills-only (deployed at global level)
+    if not is_skills_only:
+        for skill in data.get("skills", []):
+            skill_dir = config_dir / "skills" / skill
+            skill_file = config_dir / "skills" / f"{skill}.md"
+            if not skill_dir.is_dir() and not skill_file.exists():
+                missing.append({"type": "skill", "name": skill})
+
+    # Check rules — skip for skills-only (deployed at global level)
+    if not is_skills_only:
+        for rule in data.get("rules", []):
+            rule_file = config_dir / "rules" / f"{rule}.md"
+            if not rule_file.exists():
+                missing.append({"type": "rule", "name": rule})
 
     return {"missing_deployments": missing}
 
