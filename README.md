@@ -13,7 +13,7 @@
 
 > **PactKit** (Pact 契约 + Kit) is a governance framework that enforces the **P.A.C.T.** contract between humans and AI agents. Deterministic operations run as code, not prompts. Decisions are grounded in data, not memory. AI does what it's best at — creativity and language — while code handles everything that must be repeatable and correct.
 >
-> 25 CLI subcommands, 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` and your AI assistant follows the contract.
+> 25 CLI subcommands, 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` deploys to all 3 supported IDEs.
 
 ### Supported AI Tools
 
@@ -21,6 +21,7 @@
 |------|--------|---------|
 | **Claude Code** | Classic | `pactkit init` |
 | **OpenCode** | OpenCode | `pactkit init --format opencode` |
+| **Codex CLI** | Codex | `pactkit init --format codex` |
 
 ### What it looks like
 
@@ -57,7 +58,7 @@ T   Truth    Data is the Truth     Factual basis for all judgment — no memory,
 - **Multi-Agent Ensemble** — 9 specialized agents collaborate, each with constrained tools
 - **Full PDCA Lifecycle** — Plan -> Act -> Check -> Done, with quality gates at every stage
 - **Safe by Design** — TDD-first, safe regression, pre-existing test protection
-- **Multi-Tool Support** — Works with Claude Code and OpenCode
+- **Multi-Tool Support** — Works with Claude Code, OpenCode, and Codex CLI
 
 ## Installation
 
@@ -68,6 +69,9 @@ pip install pactkit
 Requires Python 3.10+ and one of:
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [OpenCode](https://opencode.ai)
+- [Codex CLI](https://github.com/openai/codex)
+
+> `pip install pactkit` automatically installs adapters for all 3 IDEs.
 
 ## Quick Start
 
@@ -89,6 +93,16 @@ pactkit init --format opencode
 
 # Update existing deployment
 pactkit upgrade --format opencode
+```
+
+### Codex CLI
+
+```bash
+# Deploy to Codex CLI (global: ~/.codex/)
+pactkit init --format codex
+
+# Update existing deployment
+pactkit-codex update
 ```
 
 Then in any project:
@@ -245,7 +259,7 @@ PactKit ships 25 deterministic CLI subcommands — operations that were previous
 
 ## Deployment Architecture
 
-PactKit supports two deployment formats:
+PactKit supports three deployment formats:
 
 ### Claude Code (Classic)
 
@@ -253,10 +267,11 @@ PactKit supports two deployment formats:
 ~/.claude/
 ├── CLAUDE.md                 <- Project context entry point
 ├── rules/                    <- 8 rule modules (loaded per-command, not globally)
-├── commands/                 <- 11 command playbooks (with per-command rule @imports)
-├── agents/                   <- 9 agent definitions
-└── skills/                   <- 10 skill packages
+├── skills/                   <- 21 skill packages (11 commands + 10 embedded)
+└── agents/                   <- 9 agent definitions
 ```
+
+Commands are deployed as skills (`skills/project-*/SKILL.md`), invoked with `/project-plan`.
 
 ### OpenCode
 
@@ -264,18 +279,26 @@ PactKit supports two deployment formats:
 ~/.config/opencode/
 ├── AGENTS.md                 <- On-demand @reference index (lazy rule loading)
 ├── rules/                    <- 8 rule modules (3 core always-load + 6 on-demand)
-├── commands/                 <- 11 command playbooks (with model: routing)
+├── commands/                 <- 11 command playbooks (auto-discovered, invoked via /)
 ├── agents/                   <- 9 agent definitions (mode: subagent)
-├── skills/                   <- 10 skill packages (with SKILL.md frontmatter)
-└── opencode.json             <- Global config (instructions, provider preserved)
+├── skills/                   <- 10 skill packages (AI agent loads on demand)
+└── opencode.json             <- Global config (model routing, instructions)
 ```
 
-Key OpenCode differences:
-- **Rules**: Per-command inline embedding; credential safety always loaded via `instructions` (context-aware loading, -20% to -83% tokens per command)
-- **Agents**: `mode: subagent`, no `name` field, tools as record format
-- **Commands**: `agent: build` + `model: provider/model-id` (model routing)
-- **Config**: `pactkit.yaml` in `.opencode/` (not `.claude/`)
-- **Model routing**: Commands auto-route to Sonnet for implementation, inherit main model for planning
+OpenCode uses dual mechanism: `commands/` for user-facing PDCA entry points, `skills/` for AI-invoked tools.
+
+### Codex CLI
+
+```
+~/.codex/
+├── AGENTS.md                 <- Global constitution
+├── config.toml               <- Model, sandbox, MCP config
+├── rules/                    <- 8 rule modules
+├── skills/                   <- 21 skill packages (11 commands + 10 embedded)
+└── .pactkit-version          <- Version marker for updates
+```
+
+Commands are deployed as skills (`skills/project-*/SKILL.md`), invoked with `$project-plan`.
 
 ## Multi-Developer Collaboration
 
@@ -367,6 +390,7 @@ All MCP instructions are conditional — gracefully skipped when unavailable.
 pip install --upgrade pactkit
 pactkit update                    # Claude Code
 pactkit upgrade --format opencode # OpenCode
+pactkit-codex update              # Codex CLI
 ```
 
 ## Contributing
