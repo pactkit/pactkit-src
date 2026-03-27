@@ -204,16 +204,28 @@ def _load_entry_point_deployers():
     eps = entry_points(group="pactkit.deployers")
     for ep in eps:
         if ep.name in _DEPLOYER_REGISTRY:
-            continue  # built-in or already registered
+            continue  # built-in or already loaded via self-registration
         try:
             deployer_cls = ep.load()
-            register_deployer(ep.name, deployer_cls)
+            # ep.load() may trigger adapter's self-registration (force=True).
+            # Re-check registry — adapter may have registered itself during import.
+            if ep.name not in _DEPLOYER_REGISTRY:
+                register_deployer(ep.name, deployer_cls)
         except Exception:
             pass  # graceful degradation — adapter package may be broken
 
 
-# Auto-discover adapter packages at import time
-_load_entry_point_deployers()
+# Lazy discovery: avoid module-level ep.load() which triggers circular imports
+# when adapter packages (pactkit-opencode, pactkit-codex) import from deployer.py.
+_ep_loaded = False
+
+
+def _ensure_entry_point_deployers():
+    """Lazy wrapper — loads entry_point deployers on first deploy() call."""
+    global _ep_loaded
+    if not _ep_loaded:
+        _load_entry_point_deployers()
+        _ep_loaded = True
 
 
 def deploy(
@@ -233,6 +245,8 @@ def deploy(
         non_interactive: Non-interactive mode: auto-accept defaults (CI/CD).
         mode: Deprecated, ignored. Kept for backward compatibility.
     """
+    _ensure_entry_point_deployers()
+
     if format not in VALID_FORMATS:
         raise ValueError(f"Unknown format: {format!r}. Valid: {', '.join(VALID_FORMATS)}")
 
