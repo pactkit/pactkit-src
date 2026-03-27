@@ -197,7 +197,8 @@ class TestAC6DevRefGhostResolved:
 # AC7: Total Prompt Size Reduced >= 15%
 # ---------------------------------------------------------------------------
 # STORY-slim-050: bumped +393 for Done smart regression gate (R2)
-BASELINE_TOTAL_CHARS = 73975
+# HOTFIX: bumped +875 for Clarify pre-mortem risk probe
+BASELINE_TOTAL_CHARS = 74850
 
 
 class TestAC7PromptSizeReduced:
