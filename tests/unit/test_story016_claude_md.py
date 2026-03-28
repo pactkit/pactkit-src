@@ -70,10 +70,11 @@ class TestProjectClaudeMdContent:
         local_path = ROOT / '.claude' / 'CLAUDE.local.md'
         if local_path.exists():
             content = local_path.read_text()
-            # Either has architecture (user added or migrated), or is minimal template
+            # Either has architecture (user added or migrated), minimal template, or venv block
             is_user_content = 'src/pactkit/' in content or 'Architecture' in content
             is_minimal_template = 'Project Local Instructions' in content
-            assert is_user_content or is_minimal_template
+            is_venv_block = 'pactkit:venv:start' in content
+            assert is_user_content or is_minimal_template or is_venv_block
         else:
             # Fresh install before first deploy
             pass
