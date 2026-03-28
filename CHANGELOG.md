@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.0] - 2026-03-28
+
+### Added
+- **`pactkit init` deploys all IDEs by default** — `--format all` is now the CLI default, deploying Claude Code + OpenCode + Codex configs in one shot. No need to specify `--format` per IDE. Packaging modes (plugin, marketplace) excluded from "all".
+
+### Fixed
+- **Entry_point deployer circular import** — Lazy-load entry_point deployers to fix `ValueError` when running `pactkit init` via pipx. Module-level `ep.load()` caused circular import between deployer.py and adapter packages.
+
 ## [2.8.0] - 2026-03-27
 
 ### Added
