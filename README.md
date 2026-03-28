@@ -20,8 +20,10 @@
 | Tool | Format | Command |
 |------|--------|---------|
 | **Claude Code** | Classic | `pactkit init` |
-| **OpenCode** | OpenCode | `pactkit init --format opencode` |
-| **Codex CLI** | Codex | `pactkit init --format codex` |
+| **OpenCode** | OpenCode | `pactkit init` |
+| **Codex CLI** | Codex | `pactkit init` |
+
+> `pactkit init` deploys all 3 IDEs at once. Use `--format <name>` to target a single IDE.
 
 ### What it looks like
 
@@ -75,35 +77,24 @@ Requires Python 3.10+ and one of:
 
 ## Quick Start
 
-### Claude Code
-
 ```bash
-# Deploy full toolkit
+# Deploy to all 3 IDEs at once
 pactkit init
 
 # Update to latest playbooks (preserves your config)
 pactkit update
 ```
 
-### OpenCode
+<details>
+<summary>Single-IDE deployment</summary>
 
 ```bash
-# Deploy to OpenCode (global: ~/.config/opencode/)
-pactkit init --format opencode
-
-# Update existing deployment
-pactkit upgrade --format opencode
+# Deploy to one IDE only
+pactkit init --format classic    # Claude Code
+pactkit init --format opencode   # OpenCode
+pactkit init --format codex      # Codex CLI
 ```
-
-### Codex CLI
-
-```bash
-# Deploy to Codex CLI (global: ~/.codex/)
-pactkit init --format codex
-
-# Update existing deployment
-pactkit-codex update
-```
+</details>
 
 Then in any project:
 
@@ -388,10 +379,10 @@ All MCP instructions are conditional — gracefully skipped when unavailable.
 
 ```bash
 pip install --upgrade pactkit
-pactkit update                    # Claude Code
-pactkit upgrade --format opencode # OpenCode
-pactkit-codex update              # Codex CLI
+pactkit update    # Updates all deployed IDEs
 ```
+
+Use `pactkit update --format <name>` to update a single IDE.
 
 ## Contributing
 
