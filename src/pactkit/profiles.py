@@ -171,8 +171,8 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
 # Deployment modes that are not environment formats
 _DEPLOYMENT_MODES: frozenset[str] = frozenset({"plugin", "marketplace"})
 
-# All valid --format values: environment profiles + deployment modes
-VALID_FORMATS: frozenset[str] = frozenset(FORMAT_PROFILES.keys()) | _DEPLOYMENT_MODES
+# All valid --format values: "all" + environment profiles + deployment modes
+VALID_FORMATS: frozenset[str] = frozenset({"all"}) | frozenset(FORMAT_PROFILES.keys()) | _DEPLOYMENT_MODES
 
 # Ordered candidate paths for pactkit.yaml discovery (first existing wins)
 # Order = preference: OpenCode > Codex > Classic

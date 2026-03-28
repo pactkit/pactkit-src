@@ -259,11 +259,11 @@ class TestCliFormatArgument:
         assert (out / "CLAUDE.md").is_file()
         assert "PactKit Global Constitution" in (out / "CLAUDE.md").read_text()
 
-    def test_cli_default_format_is_classic(self, tmp_path):
-        """pactkit init -t <dir> (no --format) defaults to classic."""
+    def test_cli_default_format_is_all(self, tmp_path):
+        """pactkit init (no --format) defaults to 'all' (all IDE formats)."""
         from pactkit.cli import main
-        out = tmp_path / "out"
-        with patch("sys.argv", ["pactkit", "init", "-t", str(out)]):
+        with patch("sys.argv", ["pactkit", "init"]), \
+             patch.object(Path, "home", return_value=tmp_path):
             main()
-        assert not (out / ".claude-plugin").exists()
-        assert (out / "CLAUDE.md").is_file()
+        # Classic deploys to ~/.claude/ as part of "all"
+        assert (tmp_path / ".claude" / "CLAUDE.md").is_file()

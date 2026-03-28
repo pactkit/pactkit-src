@@ -64,9 +64,9 @@ def main():
     init_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace", "opencode"],
-        default="classic",
-        help="Output format: classic (default), plugin, marketplace, or opencode",
+        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        default="all",
+        help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
     init_parser.add_argument(
         "--agent",
@@ -107,9 +107,9 @@ def main():
     update_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace", "opencode"],
-        default="classic",
-        help="Output format: classic (default), plugin, marketplace, or opencode",
+        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        default="all",
+        help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
     update_parser.add_argument(
         "--agent",
@@ -157,9 +157,9 @@ def main():
     upgrade_parser.add_argument(
         "--format",
         type=str,
-        choices=["classic", "plugin", "marketplace", "opencode"],
-        default="classic",
-        help="Output format: classic (default), plugin, marketplace, or opencode",
+        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        default="all",
+        help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
     upgrade_parser.add_argument(
         "--agent",

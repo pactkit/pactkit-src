@@ -86,9 +86,9 @@ class TestInitClassicFormat:
     """Test pactkit init with classic format."""
 
     def test_init_creates_expected_directories(self, tmp_path):
-        """pactkit init -t <tmp> creates agents, commands, skills, rules dirs."""
+        """pactkit init --format classic -t <tmp> creates agents, commands, skills, rules dirs."""
         target = tmp_path / "classic_deploy"
-        stdout, stderr, exit_code = run_pactkit("init", "-t", str(target))
+        stdout, stderr, exit_code = run_pactkit("init", "--format", "classic", "-t", str(target))
 
         assert exit_code == 0
         assert (target / "agents").is_dir()
@@ -97,9 +97,9 @@ class TestInitClassicFormat:
         assert (target / "rules").is_dir()
 
     def test_init_creates_claude_md(self, tmp_path):
-        """pactkit init -t <tmp> creates CLAUDE.md."""
+        """pactkit init --format classic -t <tmp> creates CLAUDE.md."""
         target = tmp_path / "classic_deploy"
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
 
         claude_md = target / "CLAUDE.md"
         assert claude_md.exists()
@@ -107,9 +107,9 @@ class TestInitClassicFormat:
         assert "PactKit" in content
 
     def test_init_creates_agent_files(self, tmp_path):
-        """pactkit init creates agent definition files."""
+        """pactkit init --format classic creates agent definition files."""
         target = tmp_path / "classic_deploy"
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
 
         agents_dir = target / "agents"
         agent_files = list(agents_dir.glob("*.md"))
@@ -117,9 +117,9 @@ class TestInitClassicFormat:
         assert len(agent_files) >= 1
 
     def test_init_creates_command_files(self, tmp_path):
-        """pactkit init creates command playbook files (STORY-slim-063: now in skills/ subdirs)."""
+        """pactkit init --format classic creates command playbook files (STORY-slim-063: now in skills/ subdirs)."""
         target = tmp_path / "classic_deploy"
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
 
         skills_dir = target / "skills"
         # Commands are now deployed as skills/{name}/SKILL.md
@@ -179,18 +179,18 @@ class TestIdempotency:
     """Test that pactkit init is idempotent."""
 
     def test_init_idempotent(self, tmp_path):
-        """Running pactkit init twice produces same result."""
+        """Running pactkit init --format classic twice produces same result."""
         target = tmp_path / "idempotent_test"
 
         # First run
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
         first_files = set(f.name for f in target.rglob("*") if f.is_file())
         first_content = {}
         for f in target.rglob("*.md"):
             first_content[str(f.relative_to(target))] = f.read_text()
 
         # Second run
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
         second_files = set(f.name for f in target.rglob("*") if f.is_file())
         second_content = {}
         for f in target.rglob("*.md"):
@@ -229,9 +229,9 @@ class TestUpdateCommand:
     """Test pactkit update command (alias for init)."""
 
     def test_update_works_like_init(self, tmp_path):
-        """pactkit update behaves identically to pactkit init."""
+        """pactkit update --format classic behaves identically to pactkit init."""
         target = tmp_path / "update_test"
-        stdout, stderr, exit_code = run_pactkit("update", "-t", str(target))
+        stdout, stderr, exit_code = run_pactkit("update", "--format", "classic", "-t", str(target))
 
         assert exit_code == 0
         assert (target / "agents").is_dir()
@@ -248,9 +248,9 @@ class TestDeploymentCompleteness:
 
     @pytest.fixture(scope="class")
     def deploy_target(self, tmp_path_factory):
-        """Run pactkit init once; share the result across all tests in this class."""
+        """Run pactkit init --format classic once; share the result across all tests in this class."""
         target = tmp_path_factory.mktemp("completeness")
-        run_pactkit("init", "-t", str(target))
+        run_pactkit("init", "--format", "classic", "-t", str(target))
         return target
 
     def test_all_agents_deployed(self, deploy_target):

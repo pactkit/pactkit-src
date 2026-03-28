@@ -236,9 +236,10 @@ def deploy(
 
     Args:
         config: Optional config dict. If None, loads from pactkit.yaml or defaults.
-        target: Optional target directory. If None, uses ~/.claude (classic) or
-                ./pactkit-plugin (plugin) or ./pactkit-marketplace (marketplace).
-        format: Output format — 'classic', 'plugin', or 'marketplace'.
+        target: Optional target directory. If None, uses format-specific default.
+        format: Output format — 'classic' (default for Python API), 'all'
+                (deploy all installed IDEs, CLI default), or a specific format
+                ('opencode', 'codex', 'plugin', 'marketplace').
         agent: Target agent format (claude, cursor, copilot, generic, all).
         no_git: Disable all git operations (enterprise: air-gapped environments).
         no_external: Disable external network calls (enterprise).
@@ -246,6 +247,21 @@ def deploy(
         mode: Deprecated, ignored. Kept for backward compatibility.
     """
     _ensure_entry_point_deployers()
+
+    # "all" deploys every IDE environment (classic + installed adapters).
+    # Skips packaging modes (plugin, marketplace) — those are distribution
+    # formats, not IDE targets.
+    _PACKAGING_MODES = {"plugin", "marketplace"}
+    if format == "all":
+        for fmt_name in sorted(_DEPLOYER_REGISTRY):
+            if fmt_name in _PACKAGING_MODES:
+                continue
+            deployer_cls = _DEPLOYER_REGISTRY[fmt_name]
+            deployer_instance = deployer_cls()
+            # Classic respects -t target; adapters always deploy to their own default
+            fmt_target = target if fmt_name == "classic" else None
+            deployer_instance.deploy(config=config, target=fmt_target)
+        return
 
     if format not in VALID_FORMATS:
         raise ValueError(f"Unknown format: {format!r}. Valid: {', '.join(VALID_FORMATS)}")
