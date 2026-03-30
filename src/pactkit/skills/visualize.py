@@ -1222,7 +1222,8 @@ class TopologyParser(abc.ABC):
     """Abstract base class for topology-specific workflow parsers (STORY-slim-040 R1).
 
     Subclasses declare `markers` and implement `parse()`.
-    The default `detect()` checks if any marker file/dir exists under root.
+    The default `detect()` checks if any marker file/dir exists under root,
+    then checks immediate subdirectories for monorepo layouts (e.g., web/, frontend/).
     """
     markers: list[str] = []
 
@@ -1231,6 +1232,16 @@ class TopologyParser(abc.ABC):
         for marker in self.markers:
             if (root / marker).exists():
                 return True
+        # Monorepo: check immediate subdirectories (e.g., web/, frontend/, client/)
+        try:
+            subdirs = [d for d in root.iterdir()
+                       if d.is_dir() and not d.name.startswith('.') and d.name != 'node_modules']
+        except OSError:
+            return False
+        for subdir in subdirs:
+            for marker in self.markers:
+                if (subdir / marker).exists():
+                    return True
         return False
 
     @abc.abstractmethod
@@ -1261,13 +1272,28 @@ def detect_topology(root) -> list[str]:
             matched.append(name)
         checked.add(name)
     # Second pass: fall back to _TOPOLOGY_MARKERS for unregistered topologies
+    try:
+        subdirs = [d for d in root.iterdir()
+                   if d.is_dir() and not d.name.startswith('.') and d.name != 'node_modules']
+    except OSError:
+        subdirs = []
     for name, markers in _TOPOLOGY_MARKERS.items():
         if name in checked:
             continue
+        found = False
         for marker in markers:
             if (root / marker).exists():
-                matched.append(name)
+                found = True
                 break
+            # Monorepo: check subdirectories
+            for subdir in subdirs:
+                if (subdir / marker).exists():
+                    found = True
+                    break
+            if found:
+                break
+        if found:
+            matched.append(name)
     return matched
 
 
