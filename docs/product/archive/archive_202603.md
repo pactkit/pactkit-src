@@ -665,3 +665,8 @@
 > Spec: docs/specs/STORY-slim-063.md
 
 - [x] Deploy 11 PDCA commands to skills dir, merge VALID sets, legacy cleanup
+
+### [STORY-slim-066] PactKit Trace Multi-Topology Extension
+> Spec: docs/specs/STORY-slim-066.md
+
+- [x] Add ApiCallParser,Add AgentParser,Update _KIND_TO_DIMENSION,Add api_convention_summary,Update Plan/Act prompts,Update pactkit-trace skill,Add trace config schema,Tests

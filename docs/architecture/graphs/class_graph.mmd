@@ -71,6 +71,17 @@ classDiagram
         +parse(root)
     }
     TopologyParser <|-- FrontendParser
+    class ApiCallParser {
+        -__init__(fetch_functions)
+        +detect(root)
+        +parse(root)
+    }
+    TopologyParser <|-- ApiCallParser
+    class AgentParser {
+        +detect(root)
+        +parse(root)
+    }
+    TopologyParser <|-- AgentParser
     class LintIssue {
     }
     class LintResult {

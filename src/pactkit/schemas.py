@@ -168,6 +168,16 @@ TEST_CASE_KEYWORDS = ("**Given**", "**When**", "**Then**")
 # File naming: docs/test_cases/{ID}_case.md
 TEST_CASE_FILE_PATTERN = "{id}_case.md"
 
+# ─── Trace Config Schema ────────────────────────────────────────────────────
+# Optional pactkit.yaml `trace` section keys for topology-aware tracing.
+# ApiCallParser and AgentParser read these at init time; all keys are optional.
+
+TRACE_CONFIG_KEYS = frozenset({
+    "fetch_functions",    # list[str] — custom fetch function names for ApiCallParser
+    "agent_strategies",   # list[str] — enabled AgentParser strategies (langgraph/yaml/mcp/a2a)
+    "agent_markers",      # list[str] — extra marker paths for declarative agent detection
+})
+
 # ─── Schema Registry ─────────────────────────────────────────────────────────
 # Used by `pactkit schema` CLI command for discovery.
 

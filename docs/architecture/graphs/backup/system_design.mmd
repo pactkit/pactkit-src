@@ -1,15 +1,8 @@
 graph TD
     subgraph "Deployment Layer"
         CLI["cli.py<br/>pactkit init/update"]
-        Deployer["deployer.py<br/>DeployerProtocol + ClassicDeployer"]
+        Deployer["deployer.py<br/>classic/plugin/marketplace"]
         Config["config.py<br/>pactkit.yaml"]
-        DeployBase["deploy_base.py<br/>DeployerBase<br/>(skills/rules/agents/commands/ci)"]
-    end
-
-    subgraph "Adapter Packages (External)"
-        OpenCodePkg["pactkit-opencode<br/>OpenCodeDeployer<br/>(separate repo)"]
-        CodexPkg["pactkit-codex<br/>CodexDeployer<br/>(separate repo)"]
-        TraePkg["pactkit-trae<br/>TraeDeployer<br/>(future, separate repo)"]
     end
 
     subgraph "Prompt Layer (Constitution)"
@@ -22,7 +15,7 @@ graph TD
 
     subgraph "Runtime Skills"
         Board["board.py<br/>Sprint Board ops"]
-        Visualize["visualize.py<br/>Code graphs + impact()<br/>+ unified graph (full + focus splits)<br/>+ TopologyParser registry<br/>(5 parsers: PDCA, Service, Frontend,<br/>ApiCall, Agent)"]
+        Visualize["visualize.py<br/>Code graphs + impact()<br/>(reads pactkit.yaml scan_excludes + stack<br/>test_map_pattern via LANG_PROFILES)"]
         Scaffold["scaffold.py<br/>File scaffolding"]
         SpecLinter["spec_linter.py<br/>Spec validation"]
     end
@@ -61,10 +54,6 @@ graph TD
 
     CLI --> Deployer
     CLI --> Config
-    Deployer --> DeployBase
-    OpenCodePkg -.->|"depends on"| DeployBase
-    CodexPkg -.->|"depends on"| DeployBase
-    TraePkg -.->|"depends on"| DeployBase
     CLI -->|"pactkit subcommands"| Doctor
     CLI -->|"pactkit subcommands"| Guards
     CLI -->|"pactkit subcommands"| Lessons

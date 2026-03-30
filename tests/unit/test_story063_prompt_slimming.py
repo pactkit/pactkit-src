@@ -198,7 +198,8 @@ class TestAC6DevRefGhostResolved:
 # ---------------------------------------------------------------------------
 # STORY-slim-050: bumped +393 for Done smart regression gate (R2)
 # HOTFIX: bumped +875 for Clarify pre-mortem risk probe
-BASELINE_TOTAL_CHARS = 74850
+# STORY-slim-066: bumped +1005 for topology-aware trace gate (Plan/Act/Skill)
+BASELINE_TOTAL_CHARS = 75855
 
 
 class TestAC7PromptSizeReduced:

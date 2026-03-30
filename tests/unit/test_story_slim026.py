@@ -122,6 +122,6 @@ class TestAC4DesignUnchanged:
 class TestAC5CharCount:
 
     def test_plan_prompt_not_longer_than_baseline(self):
-        """Plan prompt SHOULD be shorter or equal to 9817 chars (pre-change baseline)."""
+        """Plan prompt SHOULD be shorter or equal to 9933 chars (pre-change baseline)."""
         prompt = _get_plan_prompt()
-        assert len(prompt) <= 9817, f"Plan prompt grew to {len(prompt)} chars (baseline: 9817)"
+        assert len(prompt) <= 9933, f"Plan prompt grew to {len(prompt)} chars (baseline: 9933)"

@@ -1,0 +1,9 @@
+agent:
+  name: researcher
+  role: Research Analyst
+  goal: Find relevant information
+  tools:
+    - web_search
+    - document_reader
+  delegates_to:
+    - writer

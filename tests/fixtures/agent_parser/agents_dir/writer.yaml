@@ -1,0 +1,6 @@
+agent:
+  name: writer
+  role: Content Writer
+  goal: Write reports based on research
+  tools:
+    - text_editor
