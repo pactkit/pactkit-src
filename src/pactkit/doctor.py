@@ -76,6 +76,28 @@ def check_config_drift(project_root: Path) -> dict:
     config_dir = yaml_path.parent  # .claude/ or .opencode/ or .codex/
     missing: list[dict] = []
 
+    # Files are deployed globally (e.g., ~/.claude/, ~/.config/opencode/, ~/.codex/),
+    # not per-project. Check all known global deploy directories + project-local.
+    home = Path.home()
+    search_dirs = [
+        home / ".claude",
+        home / ".config" / "opencode",
+        home / ".codex",
+        config_dir,  # project-local as fallback
+    ]
+
+    def _exists_in_any(subdir: str, filename: str) -> bool:
+        for base in search_dirs:
+            if (base / subdir / filename).exists():
+                return True
+        return False
+
+    def _dir_or_file_in_any(subdir: str, name: str) -> bool:
+        for base in search_dirs:
+            if (base / subdir / name).is_dir() or (base / subdir / f"{name}.md").exists():
+                return True
+        return False
+
     # Only check drift for explicitly declared lists.
     # If the key is absent, it means "deploy all" — no drift to check.
     _CHECKS = [
@@ -88,16 +110,14 @@ def check_config_drift(project_root: Path) -> dict:
         if not isinstance(declared, list):
             continue
         for item in declared:
-            if not (config_dir / subdir / f"{item}{suffix}").exists():
+            if not _exists_in_any(subdir, f"{item}{suffix}"):
                 missing.append({"type": key.rstrip("s"), "name": item})
 
     # Skills: check as directory or .md file
     declared_skills = data.get("skills")
     if isinstance(declared_skills, list):
         for skill in declared_skills:
-            skill_dir = config_dir / "skills" / skill
-            skill_file = config_dir / "skills" / f"{skill}.md"
-            if not skill_dir.is_dir() and not skill_file.exists():
+            if not _dir_or_file_in_any("skills", skill):
                 missing.append({"type": "skill", "name": skill})
 
     return {"missing_deployments": missing}
