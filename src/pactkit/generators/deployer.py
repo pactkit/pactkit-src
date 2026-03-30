@@ -29,9 +29,9 @@ from pactkit.generators.deploy_base import (
     register_deployer,
 )
 from pactkit.profiles import (
+    _DEPLOYMENT_MODES,
     VALID_FORMATS,
     FormatProfile,
-    _DEPLOYMENT_MODES,
     get_profile,
 )
 from pactkit.skills import load_script
