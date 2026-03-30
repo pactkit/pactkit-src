@@ -76,6 +76,18 @@ def check_config_drift(project_root: Path) -> dict:
     config_dir = yaml_path.parent  # .claude/ or .opencode/ or .codex/
     missing: list[dict] = []
 
+    # Detect format from yaml path to get format-level excluded commands
+    _format_excluded_commands: frozenset = frozenset()
+    try:
+        from pactkit.profiles import FORMAT_PROFILES
+        dir_name = config_dir.name  # e.g. ".claude", ".opencode", ".codex"
+        for prof in FORMAT_PROFILES.values():
+            if prof.project_config_dir == dir_name:
+                _format_excluded_commands = prof.excluded_commands
+                break
+    except Exception:
+        pass
+
     # Files are deployed globally (e.g., ~/.claude/, ~/.config/opencode/, ~/.codex/),
     # not per-project. Check all known global deploy directories + project-local.
     home = Path.home()
@@ -110,6 +122,9 @@ def check_config_drift(project_root: Path) -> dict:
         if not isinstance(declared, list):
             continue
         for item in declared:
+            # Skip format-level excluded commands (e.g., project-sprint for opencode/codex)
+            if key == "commands" and item in _format_excluded_commands:
+                continue
             if not _exists_in_any(subdir, f"{item}{suffix}"):
                 missing.append({"type": key.rstrip("s"), "name": item})
 
@@ -117,6 +132,9 @@ def check_config_drift(project_root: Path) -> dict:
     declared_skills = data.get("skills")
     if isinstance(declared_skills, list):
         for skill in declared_skills:
+            # Skip format-level excluded commands deployed as skills
+            if skill in _format_excluded_commands:
+                continue
             if not _dir_or_file_in_any("skills", skill):
                 missing.append({"type": "skill", "name": skill})
 

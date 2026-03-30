@@ -88,6 +88,10 @@ class FormatProfile:
     excluded_agent_fields: frozenset
     """Agent YAML fields to exclude for this format. Replaces CLAUDE_ONLY_FIELDS."""
 
+    # Exclusions
+    excluded_commands: frozenset
+    """Commands not applicable to this format (e.g., project-sprint needs subagent team)."""
+
     # Capabilities
     has_custom_commands: bool
     """Whether the tool supports custom slash commands."""
@@ -121,6 +125,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         agent_format="md",
         rules_import_style="@import",
         excluded_agent_fields=frozenset(),  # Classic: include all fields
+        excluded_commands=frozenset(),  # Classic: all commands supported
         has_custom_commands=True,
         supports_model_routing=False,
         supports_mcp=True,
@@ -141,6 +146,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         agent_format="md",
         rules_import_style="instructions",
         excluded_agent_fields=frozenset({"permissionMode", "memory", "skills"}),
+        excluded_commands=frozenset({"project-sprint"}),
         has_custom_commands=True,
         supports_model_routing=True,
         supports_mcp=True,
@@ -161,6 +167,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         agent_format="md",
         rules_import_style="inline",
         excluded_agent_fields=frozenset({"permissionMode", "memory", "skills", "hooks"}),
+        excluded_commands=frozenset({"project-sprint"}),
         has_custom_commands=True,
         supports_model_routing=False,
         supports_mcp=True,
