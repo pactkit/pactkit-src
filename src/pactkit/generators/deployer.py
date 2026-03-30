@@ -31,6 +31,7 @@ from pactkit.generators.deploy_base import (
 from pactkit.profiles import (
     VALID_FORMATS,
     FormatProfile,
+    _DEPLOYMENT_MODES,
     get_profile,
 )
 from pactkit.skills import load_script
@@ -249,12 +250,11 @@ def deploy(
     _ensure_entry_point_deployers()
 
     # "all" deploys every IDE environment (classic + installed adapters).
-    # Skips packaging modes (plugin, marketplace) — those are distribution
-    # formats, not IDE targets.
-    _PACKAGING_MODES = {"plugin", "marketplace"}
+    # Skips deployment modes (plugin, marketplace) — those are distribution
+    # formats, not IDE targets.  Canonical source: profiles._DEPLOYMENT_MODES
     if format == "all":
         for fmt_name in sorted(_DEPLOYER_REGISTRY):
-            if fmt_name in _PACKAGING_MODES:
+            if fmt_name in _DEPLOYMENT_MODES:
                 continue
             deployer_cls = _DEPLOYER_REGISTRY[fmt_name]
             deployer_instance = deployer_cls()

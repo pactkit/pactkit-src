@@ -60,22 +60,30 @@ class TestProjectClaudeMdContent:
     Dev commands are in CLAUDE.md (framework-owned).
     """
 
-    def test_has_architecture_in_local(self):
-        """Architecture section should be in CLAUDE.local.md (user content).
+    def test_generate_claude_local_md_creates_template(self, tmp_path):
+        """_generate_claude_local_md_if_missing creates a valid template (STORY-040 R3).
 
-        STORY-040: CLAUDE.local.md is now auto-created as a minimal template.
-        Architecture is only present if the user has added it, or if migrated
-        from a pre-040 user-modified CLAUDE.md.
+        Tests the generator function directly instead of reading repo state,
+        which can be polluted by test-invoked deploy() side effects in CI.
         """
-        local_path = ROOT / '.claude' / 'CLAUDE.local.md'
-        if local_path.exists():
-            content = local_path.read_text()
-            # File should have some content — exact content depends on environment
-            # (dev machine vs CI, with or without pactkit init)
-            assert len(content.strip()) > 0, "CLAUDE.local.md exists but is empty"
-        else:
-            # Fresh install before first deploy
-            pass
+        from pactkit.generators.deployer import _generate_claude_local_md_if_missing
+        claude_dir = tmp_path / '.claude'
+        claude_dir.mkdir()
+        _generate_claude_local_md_if_missing(claude_dir)
+        local_path = claude_dir / 'CLAUDE.local.md'
+        assert local_path.exists()
+        content = local_path.read_text()
+        assert 'Project Local Instructions' in content
+
+    def test_generate_claude_local_md_preserves_existing(self, tmp_path):
+        """_generate_claude_local_md_if_missing does not overwrite existing file."""
+        from pactkit.generators.deployer import _generate_claude_local_md_if_missing
+        claude_dir = tmp_path / '.claude'
+        claude_dir.mkdir()
+        local_path = claude_dir / 'CLAUDE.local.md'
+        local_path.write_text('# My custom content\n')
+        _generate_claude_local_md_if_missing(claude_dir)
+        assert local_path.read_text() == '# My custom content\n'
 
     def test_has_dev_commands(self):
         """Dev commands should be in CLAUDE.md (framework content)."""
