@@ -4,6 +4,16 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.1] - 2026-03-30
+
+### Added
+- **Topology-aware trace** (STORY-slim-066) — ApiCallParser (tree-sitter-typescript) and AgentParser (LangGraph/YAML/MCP) for multi-topology code tracing. Plan/Act phases now include topology gate.
+
+### Fixed
+- **Monorepo subdirectory detection** — TopologyParser.detect() now scans immediate subdirectories, fixing false negatives for monorepo layouts (e.g., `web/package.json`).
+- **Doctor false drift warnings** — `check_config_drift()` now searches global deploy directories (`~/.claude/`, `~/.config/opencode/`, `~/.codex/`) instead of only project-local paths.
+- **Canonical lessons.md header** — Init Phase 5 now enforces `| Date | Lesson | Context |` table header, preventing AI-invented column names like `| Source |`.
+
 ## [2.9.0] - 2026-03-28
 
 ### Added
