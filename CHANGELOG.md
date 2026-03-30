@@ -4,6 +4,13 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.2] - 2026-03-30
+
+### Fixed
+- **FormatProfile.excluded_commands** — `project-sprint` excluded for OpenCode/Codex (requires subagent team, Claude Code only). Doctor `check_config_drift` now respects format-level exclusions.
+- **Redundant pactkit.yaml component lists** — Removed explicit agents/commands/skills/rules lists from `.opencode/pactkit.yaml` (absence = deploy all).
+- **Orphaned spec cleanup** — Removed 7 pre-developer-prefix spec files that were already archived under old IDs.
+
 ## [2.9.1] - 2026-03-30
 
 ### Added
