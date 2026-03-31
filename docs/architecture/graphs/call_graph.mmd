@@ -129,6 +129,7 @@ graph TD
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _read_content["_read_content"]
     _read_developer_prefix["_read_developer_prefix"]
+    _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _resolve_callee["_resolve_callee"]
@@ -342,6 +343,8 @@ graph TD
     _build_call_graph --> nl
     _build_call_graph --> _mermaid_escape
     _build_call_graph --> _mermaid_escape
+    _render_nested_call_graph --> nl
+    _render_nested_call_graph --> _mermaid_escape
     _build_reverse_graph --> _build_suffix_index
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee

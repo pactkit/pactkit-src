@@ -2,12 +2,6 @@
 
 ## 📋 Backlog
 
-
-### [HOTFIX-slim-067] Conditional pactkit update + auto-init guard
-> Spec: docs/specs/HOTFIX-slim-067.md
-
-- [ ] Done runs pactkit update unconditionally; pactkit.yaml not auto-created
-
 ## 🔄 In Progress
 
 ## ✅ Done

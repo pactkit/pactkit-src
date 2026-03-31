@@ -768,12 +768,14 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
                     reachable_edges.append((current, resolved))
                     if resolved not in visited: queue.append(resolved)
 
-        lines = ['graph TD']
-        safe = lambda s: s.replace('.', '_')
-        for fn in visited:
-            lines.append(f'    {safe(fn)}["{_mermaid_escape(fn)}"]')
-        for src, dst in reachable_edges:
-            lines.append(f'    {safe(src)} --> {safe(dst)}')
+        # STORY-slim-067: Nested subgraph rendering with fan-in/fan-out
+        content = _render_nested_call_graph(
+            visited, reachable_edges, entry=start,
+            call_edges=call_edges, func_registry=func_registry,
+        )
+        dest = root / 'docs/architecture/graphs/call_graph.mmd'
+        if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
+        return dest, content
     else:
         # Full call graph — only edges where both endpoints are in func_registry (BUG-012)
         lines = ['graph TD']
@@ -850,6 +852,82 @@ def _resolve_callee(callee, all_func_names, suffix_index=None):
         if fn.endswith(f'.{callee}') or fn == callee:
             return fn
     return None
+
+
+def _render_nested_call_graph(visited, edges, entry, call_edges, func_registry, reverse=False):
+    """Render a call graph as depth-based nested Mermaid subgraphs with fan-in/fan-out (STORY-slim-067).
+
+    Args:
+        visited: set of function names in the reachable graph
+        edges: list of (source, target) tuples
+        entry: the entry function name (depth 0)
+        call_edges: full call_edges dict from scan (for fan-out calculation)
+        func_registry: full func_registry dict from scan
+        reverse: if True, edges point toward entry (caller→callee)
+    """
+    safe = lambda s: s.replace('.', '_')
+
+    # Build adjacency for BFS depth calculation
+    adj: dict[str, list[str]] = {}
+    for src, dst in edges:
+        if reverse:
+            adj.setdefault(dst, []).append(src)
+        else:
+            adj.setdefault(src, []).append(dst)
+
+    # BFS to assign depths
+    depth_map: dict[str, int] = {}
+    queue = deque([entry])
+    depth_map[entry] = 0
+    while queue:
+        current = queue.popleft()
+        for neighbor in adj.get(current, []):
+            if neighbor not in depth_map:
+                depth_map[neighbor] = depth_map[current] + 1
+                queue.append(neighbor)
+
+    # Compute fan-in and fan-out within the reachable set
+    fan_in: dict[str, int] = {fn: 0 for fn in visited}
+    fan_out: dict[str, int] = {fn: 0 for fn in visited}
+    for src, dst in edges:
+        if src in visited and dst in visited:
+            fan_in[dst] = fan_in.get(dst, 0) + 1
+            fan_out[src] = fan_out.get(src, 0) + 1
+
+    # Detect cycle edges: target already at same or lower depth than source
+    cycle_edges = set()
+    for src, dst in edges:
+        if reverse:
+            parent, child = dst, src
+        else:
+            parent, child = src, dst
+        if child in depth_map and parent in depth_map and depth_map[child] <= depth_map[parent]:
+            cycle_edges.add((src, dst))
+
+    # Group nodes by depth into nested subgraphs
+    max_depth = max(depth_map.values()) if depth_map else 0
+    lines = ['graph TD']
+    for d in range(max_depth + 1):
+        nodes_at_depth = sorted(fn for fn, dep in depth_map.items() if dep == d)
+        if not nodes_at_depth:
+            continue
+        lines.append(f'    subgraph "Depth {d}"')
+        for fn in nodes_at_depth:
+            fi = fan_in.get(fn, 0)
+            fo = fan_out.get(fn, 0)
+            label = f'{_mermaid_escape(fn)} [↑{fi} ↓{fo}]'
+            lines.append(f'        {safe(fn)}["{label}"]')
+        lines.append('    end')
+
+    # Render edges with cycle detection
+    for src, dst in edges:
+        if (src, dst) in cycle_edges:
+            lines.append(f'    {safe(src)} -.->|↻| {safe(dst)}')
+        else:
+            lines.append(f'    {safe(src)} --> {safe(dst)}')
+
+    return nl().join(lines)
+
 
 # --- MODE: REVERSE CALLER BFS (STORY-053) ---
 def _scan_call_edges(root, all_files, analyzer=None):
@@ -1031,16 +1109,16 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
             # Reverse BFS: find all callers of the entry function
             func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
             visited, reverse_edges = _build_reverse_graph(func_registry, call_edges, entry)
-            lines = ['graph TD']
-            safe = lambda s: s.replace('.', '_')
-            for fn in visited:
-                lines.append(f'    {safe(fn)}["{fn}"]')
-            for src, dst in reverse_edges:
-                lines.append(f'    {safe(src)} --> {safe(dst)}')
+            # STORY-slim-067: Nested subgraph rendering for reverse graph
+            from pactkit.skills.visualize import _find_entry_func
+            start = _find_entry_func(entry, set(func_registry.keys()))
+            content = _render_nested_call_graph(
+                visited, reverse_edges, entry=start or entry,
+                call_edges=call_edges, func_registry=func_registry, reverse=True,
+            )
             # R14: Write to reverse_call_graph.mmd to avoid overwriting call_graph.mmd
             dest = root / 'docs/architecture/graphs/reverse_call_graph.mmd'
             if focus: dest = root / 'docs/architecture/graphs/focus_reverse_call_graph.mmd'
-            content = nl().join(lines)
         else:
             dest, content = _build_call_graph(root, all_files, focus, entry, analyzer=analyzer)
     else:

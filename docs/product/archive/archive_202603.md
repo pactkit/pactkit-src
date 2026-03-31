@@ -670,3 +670,13 @@
 > Spec: docs/specs/STORY-slim-066.md
 
 - [x] Add ApiCallParser,Add AgentParser,Update _KIND_TO_DIMENSION,Add api_convention_summary,Update Plan/Act prompts,Update pactkit-trace skill,Add trace config schema,Tests
+
+### [STORY-slim-067] Call graph nested subgraph with fan-in/fan-out
+> Spec: docs/specs/STORY-slim-067.md
+
+- [x] Modify forward BFS + nested rendering,Modify reverse BFS rendering,Add unit tests AC1-AC5
+
+### [HOTFIX-slim-067] Conditional pactkit update + auto-init guard
+> Spec: docs/specs/HOTFIX-slim-067.md
+
+- [x] Done runs pactkit update unconditionally; pactkit.yaml not auto-created
