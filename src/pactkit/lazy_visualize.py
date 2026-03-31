@@ -80,18 +80,30 @@ def should_visualize(
     return (False, "Graph up-to-date — no source changes")
 
 
-def run_visualize_single(project_root: Path, mode: str) -> None:
-    """Execute visualize.py for a single graph mode (HOTFIX-slim-023)."""
+def run_visualize_single(
+    project_root: Path, mode: str, *,
+    entry: str | None = None, focus: str | None = None,
+    reverse: bool = False, depth: int = 0, max_nodes: int = 0,
+) -> None:
+    """Execute visualize.py for a single graph mode (HOTFIX-slim-023, HOTFIX-slim-070)."""
     import sys
 
     viz_script = Path(__file__).resolve().parent / "skills" / "visualize.py"
     if not viz_script.exists():
         print(f"visualize.py not found: {viz_script}")
         return
-    subprocess.run(
-        [sys.executable, str(viz_script), "visualize", "--mode", mode],
-        cwd=str(project_root),
-    )
+    cmd = [sys.executable, str(viz_script), "visualize", "--mode", mode]
+    if entry:
+        cmd += ["--entry", entry]
+    if focus:
+        cmd += ["--focus", focus]
+    if reverse:
+        cmd.append("--reverse")
+    if depth:
+        cmd += ["--depth", str(depth)]
+    if max_nodes:
+        cmd += ["--max-nodes", str(max_nodes)]
+    subprocess.run(cmd, cwd=str(project_root))
 
 
 def run_visualize_graphs(project_root: Path) -> None:

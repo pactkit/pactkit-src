@@ -79,6 +79,7 @@ SCAN_EXCLUDES = {
     'venv', '_venv', '.venv', '.env', 'env', '__pycache__', '.git', '.claude',
     'tests', 'docs', 'node_modules', 'site-packages', 'dist', 'build',
     'skills', 'commands', 'rules', 'agents',  # PactKit marketplace dirs (BUG-006)
+    'pactkit-plugin',  # STORY-slim-068: exclude deploy artifact dir
 }
 
 MAX_SCAN_FILES = 500   # STORY-060: file count ceiling to prevent hangs on large repos
@@ -140,6 +141,36 @@ def _load_scan_excludes(root):
             except Exception as e:
                 print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
     return None
+
+
+def _load_stub_edges(root):
+    """Load stub_edges from pactkit.yaml visualize section. Returns list of (src, dst) tuples or empty list.
+
+    STORY-slim-068 R4: Format in YAML: visualize.stub_edges: ["src -> dst"]
+    """
+    candidates = [
+        root / '.claude' / 'pactkit.yaml',
+        root / '.opencode' / 'pactkit.yaml',
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    viz = data.get('visualize', {})
+                    if isinstance(viz, dict) and 'stub_edges' in viz:
+                        raw = viz['stub_edges']
+                        if isinstance(raw, list):
+                            edges = []
+                            for entry in raw:
+                                if isinstance(entry, str) and ' -> ' in entry:
+                                    parts = entry.split(' -> ', 1)
+                                    edges.append((parts[0].strip(), parts[1].strip()))
+                            return edges
+            except Exception:
+                pass
+    return []
 
 
 def _detect_stack(root):
@@ -259,21 +290,45 @@ class PythonAnalyzer(LanguageAnalyzer):
                 import sys as _sys
                 print(f"⚠️ Skipping large file: {file_path} ({file_path.stat().st_size} bytes)", file=_sys.stderr)
                 return {}, {}
-            tree = ast.parse(file_path.read_text(encoding='utf-8'))
+            source_text = file_path.read_text(encoding='utf-8')
+            tree = ast.parse(source_text)
             rel = file_path.stem
             func_registry = {}
             call_edges = {}
+            # STORY-slim-068 R3: Track class definitions for inheritance edge linking
+            class_defs = {}  # {class_name: ast.ClassDef}
             for node in ast.iter_child_nodes(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     qname = node.name
                     func_registry[qname] = rel
-                    call_edges[qname] = _extract_calls(node, current_class=None)
+                    call_edges[qname] = _extract_calls(node, current_class=None, source_text=source_text)
                 elif isinstance(node, ast.ClassDef):
+                    class_defs[node.name] = node
                     for item in node.body:
                         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                             qname = f'{node.name}.{item.name}'
                             func_registry[qname] = rel
-                            call_edges[qname] = _extract_calls(item, current_class=node.name)
+                            call_edges[qname] = _extract_calls(item, current_class=node.name, source_text=source_text)
+            # STORY-slim-068 R3: Add virtual edges for inheritance overrides
+            for cls_name, cls_node in class_defs.items():
+                sub_methods = {item.name for item in cls_node.body
+                               if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                for base in cls_node.bases:
+                    base_name = None
+                    if isinstance(base, ast.Name):
+                        base_name = base.id
+                    elif isinstance(base, ast.Attribute):
+                        base_name = base.attr
+                    if base_name and base_name in class_defs:
+                        base_methods = {item.name for item in class_defs[base_name].body
+                                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))}
+                        for method in sub_methods & base_methods:
+                            base_qname = f'{base_name}.{method}'
+                            sub_qname = f'{cls_name}.{method}'
+                            if base_qname in call_edges:
+                                call_edges[base_qname].append(sub_qname)
+                            else:
+                                call_edges[base_qname] = [sub_qname]
             return func_registry, call_edges
         except (SyntaxError, UnicodeDecodeError, ValueError):
             return {}, {}
@@ -736,7 +791,20 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
     for p in all_files:
         fr, ce = analyzer.extract_functions_and_calls(p)
         func_registry.update(fr)
-        call_edges.update(ce)
+        # STORY-slim-068 R1: extend-merge to avoid last-wins overwrite on same-name functions
+        for caller, callees in ce.items():
+            if caller in call_edges:
+                call_edges[caller].extend(callees)
+            else:
+                call_edges[caller] = callees
+
+    # STORY-slim-068 R4: Inject stub edges from pactkit.yaml
+    for stub_src, stub_dst in _load_stub_edges(root):
+        func_registry.setdefault(stub_dst, '_stub')
+        if stub_src in call_edges:
+            call_edges[stub_src].append(stub_dst)
+        else:
+            call_edges[stub_src] = [stub_dst]
 
     # Pass 3: Resolve short names to qualified names where possible
     all_func_names = set(func_registry.keys())
@@ -814,7 +882,9 @@ _BUILTIN_CALLEES = {
     'OSError', 'IOError', 'StopIteration', 'Exception', 'ImportError',
 }
 
-def _extract_calls(func_node, current_class=None):
+_DISPATCH_HINT_PREFIX = '# pactkit-trace: dispatches_to '
+
+def _extract_calls(func_node, current_class=None, source_text=None):
     # Extract function/method calls from a function body (BUG-012: filtered).
     callees = []
     for node in ast.walk(func_node):
@@ -829,6 +899,21 @@ def _extract_calls(func_node, current_class=None):
                     if node.func.value.id == 'self' and current_class:
                         callees.append(f'{current_class}.{node.func.attr}')
                     # Skip non-self local variable method calls (e.g., lines.append)
+    # STORY-slim-068 R2: Parse dispatch hint comments from source text
+    if source_text:
+        try:
+            segment = ast.get_source_segment(source_text, func_node)
+            if segment:
+                for line in segment.splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith(_DISPATCH_HINT_PREFIX):
+                        targets = stripped[len(_DISPATCH_HINT_PREFIX):]
+                        for t in targets.split(','):
+                            t = t.strip()
+                            if t:
+                                callees.append(t)
+        except Exception:
+            pass
     return callees
 
 def _build_suffix_index(all_func_names):
@@ -969,7 +1054,12 @@ def _scan_call_edges(root, all_files, analyzer=None):
     for p in all_files:
         fr, ce = analyzer.extract_functions_and_calls(p)
         func_registry.update(fr)
-        call_edges.update(ce)
+        # STORY-slim-068 R1: extend-merge to avoid last-wins overwrite
+        for caller, callees in ce.items():
+            if caller in call_edges:
+                call_edges[caller].extend(callees)
+            else:
+                call_edges[caller] = callees
     return func_registry, call_edges
 
 

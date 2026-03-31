@@ -142,3 +142,5 @@
 | 2026-03-27 | When migrating commands to skills (subdir/SKILL.md format), all path assertions in pre-existing tests must be updated in the same commit — 17 tests broke because they asserted flat commands/*.md paths | deployer.py:_deploy_commands |
 | 2026-03-30 | Frontend API path convention bugs are structurally preventable: ApiCallParser+api_convention_summary in trace phase surfaces prefix/wrapper conventions before implementation, eliminating a class of copy-paste path errors | visualize.py:ApiCallParser |
 | 2026-03-31 | Rendering-only changes to visualize.py can be isolated by extracting a shared render helper (_render_nested_call_graph) that both forward and reverse BFS call — keeps AST parsing untouched | visualize.py:_render_nested_call_graph |
+| 2026-03-31 | dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead | visualize.py:_build_call_graph |
+| 2026-03-31 | CLI args must mirror visualize.py standalone argparse; feature implemented in visualize.py but not exposed in cli.py is effectively dead code | cli.py:viz_parser |

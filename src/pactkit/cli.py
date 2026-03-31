@@ -252,6 +252,12 @@ def main():
         "--mode", choices=["file", "class", "call"], default=None,
         help="Graph mode (default: all three)",
     )
+    # HOTFIX-slim-070: expose visualize.py args to CLI
+    viz_parser.add_argument("--entry", default=None, help="Entry function for call graph BFS")
+    viz_parser.add_argument("--focus", default=None, help="Focus on specific module")
+    viz_parser.add_argument("--reverse", action="store_true", default=False, help="Reverse BFS: find callers of entry")
+    viz_parser.add_argument("--depth", type=int, default=0, help="Limit traversal depth (0=unlimited)")
+    viz_parser.add_argument("--max-nodes", type=int, default=0, help="Truncate graph to N nodes (0=unlimited)")
 
     # pactkit doctor (STORY-slim-015 R1-R3)
     subparsers.add_parser("doctor", help="Diagnose project health")
@@ -485,7 +491,11 @@ def main():
             print(f"Visualize needed: {reason}")
         # HOTFIX-slim-023: support --mode for single or all modes
         if args.mode:
-            run_visualize_single(project_root, args.mode)
+            run_visualize_single(
+                project_root, args.mode,
+                entry=args.entry, focus=args.focus, reverse=args.reverse,
+                depth=args.depth, max_nodes=args.max_nodes,
+            )
         else:
             run_visualize_graphs(project_root)
 

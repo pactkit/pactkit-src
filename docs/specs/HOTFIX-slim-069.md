@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | HOTFIX-slim-069 |
-| Status | In Progress |
+| Status | Done |
 | Priority | P2 |
 
 ## Background

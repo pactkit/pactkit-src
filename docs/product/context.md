@@ -1,5 +1,5 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-03-31T15:18:35+08:00 by pactkit context
+> Last updated: 2026-03-31T15:51:10+08:00 by pactkit context
 
 ## Sprint Status
 Backlog: 0 | In Progress: 0 | Done: 0 stories
@@ -30,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- DeployerBase static methods use lazy imports to avoid circular dependencies between deploy_base.py and deployer.py
-- Thin adapter conversion: pactkit-codex reduced from 15,356 lines (full fork) to 668 lines (thin adapter) by importing core via DeployerBase. Key: deploy_codex_playbooks needs explicit path replacement for ALL format prefixes (~/.claude/, ~/.config/opencode/ → ~/.codex/)
 - When migrating commands to skills (subdir/SKILL.md format), all path assertions in pre-existing tests must be updated in the same commit — 17 tests broke because they asserted flat commands/*.md paths
 - Frontend API path convention bugs are structurally preventable: ApiCallParser+api_convention_summary in trace phase surfaces prefix/wrapper conventions before implementation, eliminating a class of copy-paste path errors
 - Rendering-only changes to visualize.py can be isolated by extracting a shared render helper (_render_nested_call_graph) that both forward and reverse BFS call — keeps AST parsing untouched
+- dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead
+- CLI args must mirror visualize.py standalone argparse; feature implemented in visualize.py but not exposed in cli.py is effectively dead code
 
 ## Next Recommended Action
 `/project-design`

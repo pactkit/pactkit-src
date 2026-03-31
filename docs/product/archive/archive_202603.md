@@ -680,3 +680,22 @@
 > Spec: docs/specs/HOTFIX-slim-067.md
 
 - [x] Done runs pactkit update unconditionally; pactkit.yaml not auto-created
+
+### [HOTFIX-slim-070] Expose --entry/--focus/--reverse in CLI
+> Spec: docs/specs/HOTFIX-slim-070.md
+
+- [x] Passthrough visualize.py args to pactkit visualize CLI
+
+### [STORY-slim-068] Fix 4 call chain断链
+> Spec: docs/specs/STORY-slim-068.md
+
+- [x] R1: Add pactkit-plugin to SCAN_EXCLUDES + extend-merge call_edges
+- [x] R2: Parse dispatch hint comments in _extract_calls
+- [x] R3: Inheritance edge linking in extract_functions_and_calls
+- [x] R4: Stub edges from pactkit.yaml config
+- [x] TDD tests for AC1-AC6
+
+### [HOTFIX-slim-069] Fix duplicate edges and cycle false positives in nested call graph
+> Spec: docs/specs/HOTFIX-slim-069.md
+
+- [x] Dedup edges with count label, fix cycle detection to ancestor-only
