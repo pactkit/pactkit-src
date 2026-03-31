@@ -33,6 +33,7 @@ from .skills import (
     SKILL_BOARD_MD,
     SKILL_DOCTOR_MD,
     SKILL_DRAW_MD,
+    SKILL_GARDEN_MD,
     SKILL_RELEASE_MD,
     SKILL_REVIEW_MD,
     SKILL_SCAFFOLD_MD,

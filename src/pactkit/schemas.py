@@ -141,6 +141,8 @@ BOARD_STORY_PREFIX = "- **"
 
 CONTEXT_HEADER = "# Project Context (Auto-generated)"
 
+CONTEXT_SECTION_CONTINUATION = "## Agent Continuation"
+
 CONTEXT_SECTIONS = (
     "## Sprint Status",
     "## Current Stories",
@@ -148,6 +150,7 @@ CONTEXT_SECTIONS = (
     "## Active Branches",
     "## Key Decisions",
     "## Next Recommended Action",
+    CONTEXT_SECTION_CONTINUATION,
 )
 
 # Rendered section list for use in playbook templates ({CONTEXT_SECTIONS} variable)

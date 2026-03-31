@@ -704,3 +704,34 @@
 > Spec: docs/specs/STORY-slim-069.md
 
 - [x] 将 R2(dispatch hint注释解析) 和 R3(继承边链接) 从 PythonAnalyzer 扩展到 TreeSitterAnalyzer 所有子类
+
+### [STORY-slim-073] Observability Check Extension
+- [x] TDD: tests for check.observe config parsing + defaults
+- [x] Add check.observe sub-section to config.py
+- [x] TDD: tests for signal classification, report formatting
+- [x] Implement observe.py (detect, classify, report)
+- [x] Add observe CLI subcommand
+- [x] Add Phase 4.7 to Check playbook template (config-gated)
+- [x] Add OBSERVE_* template variables to deployer.py
+
+### [STORY-slim-072] PactGuard Check Extension
+- [x] TDD: tests for check.pactguard config parsing + defaults
+- [x] Add check.pactguard sub-section to config.py
+- [x] Add Phase 4.5 to Check playbook template (config-gated)
+- [x] Add PACTGUARD_* template variables to deployer.py
+- [x] E2E: deploy with pactguard config
+
+### [STORY-slim-071] Context Handoff — Structured Agent Continuation
+- [x] TDD: tests for _generate_continuation(), _extract_sprint_contract()
+- [x] Update schemas.py (CONTEXT_SECTION_CONTINUATION)
+- [x] Extend context_gen.py with continuation logic
+- [x] Add --continuation CLI args
+- [x] Update Act/Done playbook templates
+- [x] E2E test
+
+### [STORY-slim-070] Harness Garden — Codebase Quality Patrol
+- [x] TDD: tests for dead code, stale docs, pattern duplication checks
+- [x] Implement garden.py (3 check functions + run_garden)
+- [x] Add garden CLI subcommand with --json and --scope
+- [x] Update config.py (VALID_SKILLS)
+- [x] E2E test

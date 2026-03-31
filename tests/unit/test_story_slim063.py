@@ -55,12 +55,12 @@ class TestAC1CommandsDeployedToSkillsDir:
 
 
 class TestAC2ValidSkillsContainsAll:
-    """AC2: VALID_SKILLS contains all 21 entries."""
+    """AC2: VALID_SKILLS contains all 22 entries (STORY-slim-070: +garden)."""
 
     def test_valid_skills_count(self):
         from pactkit.config import VALID_SKILLS
 
-        assert len(VALID_SKILLS) == 21
+        assert len(VALID_SKILLS) == 22
 
     def test_commands_in_valid_skills(self):
         from pactkit.config import VALID_COMMANDS, VALID_SKILLS

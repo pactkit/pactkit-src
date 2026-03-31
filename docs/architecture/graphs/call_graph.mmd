@@ -61,6 +61,7 @@ graph TD
     _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
+    _collect_signals["_collect_signals"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
@@ -84,6 +85,7 @@ graph TD
     _extract_module_path["_extract_module_path"]
     _extract_node_id["_extract_node_id"]
     _extract_requirement_ids["_extract_requirement_ids"]
+    _extract_sprint_contract["_extract_sprint_contract"]
     _find_enclosing_class["_find_enclosing_class"]
     _find_enclosing_func_name["_find_enclosing_func_name"]
     _find_entry_func["_find_entry_func"]
@@ -91,6 +93,7 @@ graph TD
     _format_result["_format_result"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
+    _generate_continuation["_generate_continuation"]
     _generate_project_claude_md["_generate_project_claude_md"]
     _get_command_rules["_get_command_rules"]
     _get_done_ids["_get_done_ids"]
@@ -141,16 +144,19 @@ graph TD
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
+    _python_files["_python_files"]
     _read_content["_read_content"]
     _read_developer_prefix["_read_developer_prefix"]
     _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _resolve_callee["_resolve_callee"]
+    _resolve_scope["_resolve_scope"]
     _resolve_test_path["_resolve_test_path"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
     _run_pytest_cov["_run_pytest_cov"]
+    _sanitize_text["_sanitize_text"]
     _scan_call_edges["_scan_call_edges"]
     _scan_files["_scan_files"]
     _scan_hooks["_scan_hooks"]
@@ -171,17 +177,22 @@ graph TD
     archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
+    build_report["build_report"]
     build_unified_graph["build_unified_graph"]
     build_workflow_graph["build_workflow_graph"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
     check_coverage["check_coverage"]
+    check_dead_imports["check_dead_imports"]
     check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
+    check_pattern_duplication["check_pattern_duplication"]
+    check_stale_docs["check_stale_docs"]
     check_stale_graphs["check_stale_graphs"]
     check_version_mismatch["check_version_mismatch"]
     classify_changes["classify_changes"]
+    classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
     create_board["create_board"]
     create_e2e["create_e2e"]
@@ -222,7 +233,9 @@ graph TD
     register_deployer["register_deployer"]
     regression_workflow_impact["regression_workflow_impact"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    run_garden["run_garden"]
     run_lint["run_lint"]
+    run_observe["run_observe"]
     run_visualize_graphs["run_visualize_graphs"]
     run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
@@ -264,16 +277,31 @@ graph TD
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_ends_with_ext
+    check_dead_imports --> _resolve_scope
+    check_dead_imports --> _python_files
+    check_pattern_duplication --> _resolve_scope
+    check_pattern_duplication --> _python_files
+    run_garden --> check_dead_imports
+    run_garden --> check_stale_docs
+    run_garden --> check_pattern_duplication
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
     run_lint --> load_config
     should_visualize --> detect_stack
+    _generate_continuation --> _sanitize_text
+    _generate_continuation --> _sanitize_text
+    _generate_continuation --> _extract_sprint_contract
+    _generate_continuation --> _sanitize_text
     generate_context --> _get_git_branches
     generate_context --> _parse_last_lessons
+    generate_context --> _generate_continuation
     generate_context --> _parse_board
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
+    run_observe --> _collect_signals
+    run_observe --> classify_signals
+    run_observe --> build_report
     main --> deploy
     main --> load_config
     main --> _schema_command
@@ -293,6 +321,8 @@ graph TD
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
+    main --> run_garden
+    main --> run_observe
     main --> check_orphaned_specs
     main --> check_config_drift
     main --> check_stale_graphs

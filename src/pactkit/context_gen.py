@@ -18,6 +18,7 @@ from pactkit.schemas import (
     BOARD_SECTION_DONE,
     BOARD_SECTION_IN_PROGRESS,
     CONTEXT_HEADER,
+    CONTEXT_SECTION_CONTINUATION,
     CONTEXT_SECTIONS,
     LESSONS_TABLE_HEADER,
 )
@@ -146,10 +147,103 @@ def _parse_last_lessons(lessons_path: Path, n: int = 5) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Agent Continuation helpers (STORY-slim-071)
+# ---------------------------------------------------------------------------
+
+# Pattern to extract AC titles: ### AC1: Title (R1)
+_AC_TITLE_RE = re.compile(r"^###\s+(AC\d+:\s*.+?)(?:\s*\(R\d+\))?\s*$", re.MULTILINE)
+
+# Pattern to extract story ID from command string
+_STORY_ID_FROM_CMD_RE = re.compile(r"((?:STORY|BUG|HOTFIX)-[\w]+-\d+)")
+
+
+def _sanitize_text(text: str) -> str:
+    """Sanitize free-text input: keep only the first line, strip markdown headers."""
+    # Take only the first line to prevent injection of markdown structure
+    first_line = text.split("\n")[0]
+    # Remove any markdown header markers
+    sanitized = re.sub(r"#{1,6}\s+", "", first_line)
+    return sanitized.strip()
+
+
+def _extract_sprint_contract(spec_path: Path) -> str:
+    """Extract AC titles from a spec file as a markdown checklist.
+
+    Returns a string like:
+        ### Sprint Contract (STORY-slim-070)
+        - [ ] AC1: First Check
+        - [ ] AC2: Second Check
+    """
+    if not spec_path.exists():
+        return ""
+
+    text = spec_path.read_text(encoding="utf-8")
+    ac_matches = _AC_TITLE_RE.findall(text)
+    if not ac_matches:
+        return ""
+
+    # Extract story ID from filename
+    stem = spec_path.stem
+    lines = [f"### Sprint Contract ({stem})"]
+    for ac_title in ac_matches:
+        lines.append(f"- [ ] {ac_title}")
+
+    return "\n".join(lines)
+
+
+def _generate_continuation(
+    project_root: Path,
+    board_text: str,
+    continuation_args: dict[str, str] | None,
+) -> str:
+    """Generate the Agent Continuation section content.
+
+    Args:
+        project_root: Project root directory.
+        board_text: The sprint board content (for detecting in-progress stories).
+        continuation_args: Dict with keys 'last_command', 'phase', 'blockers'.
+            If None, returns the default "no active session" message.
+
+    Returns:
+        Content for the ## Agent Continuation section (without the header).
+    """
+    if continuation_args is None:
+        return "No active work session."
+
+    last_cmd = _sanitize_text(continuation_args.get("last_command", "unknown"))
+    phase = _sanitize_text(continuation_args.get("phase", "unknown"))
+    blockers = continuation_args.get("blockers")
+
+    lines = [
+        f"Last Command: {last_cmd}",
+        f"Phase Reached: {phase}",
+    ]
+
+    if blockers:
+        lines.append(f"Blockers: {_sanitize_text(blockers)}")
+
+    # Extract story ID from the command to find spec
+    story_match = _STORY_ID_FROM_CMD_RE.search(last_cmd)
+    if story_match:
+        story_id = story_match.group(1)
+        spec_path = project_root / "docs" / "specs" / f"{story_id}.md"
+        contract = _extract_sprint_contract(spec_path)
+        if contract:
+            lines.append("")
+            lines.append(contract)
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Main public API
 # ---------------------------------------------------------------------------
 
-def generate_context(project_root: Path, command: str = "pactkit context") -> str:
+def generate_context(
+    project_root: Path,
+    command: str = "pactkit context",
+    continuation_args: dict[str, str] | None = None,
+) -> str:
     """Generate the contents of docs/product/context.md.
 
     Reads the sprint board, git branch list, and lessons file, then composes
@@ -230,6 +324,14 @@ def generate_context(project_root: Path, command: str = "pactkit context") -> st
         lines.append("`/project-plan`")
     else:
         lines.append("`/project-design`")
+    lines.append("")
+
+    # ---- Agent Continuation (STORY-slim-071) ----
+    lines.append(CONTEXT_SECTION_CONTINUATION)
+    continuation_content = _generate_continuation(
+        project_root, board_text, continuation_args,
+    )
+    lines.append(continuation_content)
     lines.append("")
 
     return "\n".join(lines)

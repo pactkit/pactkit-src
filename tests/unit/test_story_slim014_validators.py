@@ -34,6 +34,9 @@ main
 
 ## Next Recommended Action
 /project-plan
+
+## Agent Continuation
+No active work session.
 """
         path = Path(tmp_dir) / "context.md"
         path.write_text(content)

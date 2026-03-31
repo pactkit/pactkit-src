@@ -11,6 +11,8 @@ graph TD
     click src_pactkit_guards_py href "src/pactkit/guards.py"
     src_pactkit_sec_scope_py["sec_scope.py"]
     click src_pactkit_sec_scope_py href "src/pactkit/sec_scope.py"
+    src_pactkit_garden_py["garden.py"]
+    click src_pactkit_garden_py href "src/pactkit/garden.py"
     src_pactkit_lint_runner_py["lint_runner.py"]
     click src_pactkit_lint_runner_py href "src/pactkit/lint_runner.py"
     src_pactkit_validators_py["validators.py"]
@@ -21,6 +23,8 @@ graph TD
     click src_pactkit_lazy_visualize_py href "src/pactkit/lazy_visualize.py"
     src_pactkit_context_gen_py["context_gen.py"]
     click src_pactkit_context_gen_py href "src/pactkit/context_gen.py"
+    src_pactkit_observe_py["observe.py"]
+    click src_pactkit_observe_py href "src/pactkit/observe.py"
     src_pactkit_schemas_py["schemas.py"]
     click src_pactkit_schemas_py href "src/pactkit/schemas.py"
     src_pactkit_cli_py["cli.py"]
@@ -113,6 +117,8 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
     src_pactkit_cli_py --> src_pactkit_lazy_visualize_py
+    src_pactkit_cli_py --> src_pactkit_garden_py
+    src_pactkit_cli_py --> src_pactkit_observe_py
     src_pactkit_cli_py --> src_pactkit_doctor_py
     src_pactkit_cli_py --> src_pactkit_backfill_py
     src_pactkit_cli_py --> src_pactkit_issue_sync_py

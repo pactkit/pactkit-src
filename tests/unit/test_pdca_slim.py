@@ -98,8 +98,9 @@ class TestSkillPromotion:
 
     def test_valid_skills_count(self):
         # STORY-slim-063: VALID_SKILLS expanded to 21 (10 embedded + 11 commands)
+        # STORY-slim-070: +pactkit-garden = 22 total
         cfg = _config()
-        assert len(cfg.VALID_SKILLS) == 21
+        assert len(cfg.VALID_SKILLS) == 22
 
     def test_new_skills_present(self):
         cfg = _config()
@@ -138,9 +139,10 @@ class TestSkillPromotion:
 
     def test_default_config_has_10_skills(self):
         # STORY-slim-063: default config skills now includes all 21 (10 embedded + 11 commands)
+        # STORY-slim-070: +pactkit-garden = 22 total
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['skills']) == 21
+        assert len(default['skills']) == 22
 
     def test_default_config_has_9_commands(self):
         """STORY-051: default config now has 11 commands (added project-release, project-pr)."""
@@ -271,13 +273,13 @@ class TestAgentSkillReferences:
 # ===========================================================================
 
 class TestDeployerSkillCount:
-    """Deployer must deploy 10 skills."""
+    """Deployer must deploy 11 skills (STORY-slim-070: +garden)."""
 
     def test_deploy_all_skills(self, tmp_path):
         from pactkit.generators.deployer import _deploy_skills
         all_skills = sorted(_config().VALID_SKILLS)
         count = _deploy_skills(tmp_path, all_skills)
-        assert count == 10
+        assert count == 11
 
     def test_prompt_only_skills_have_skill_md(self, tmp_path):
         """New prompt-only skills should have SKILL.md but not necessarily a script."""

@@ -28,6 +28,8 @@ graph TD
     end
 
     subgraph "CLI Subcommand Modules"
+        Garden["garden.py<br/>Codebase quality patrol"]
+        Observe["observe.py<br/>Agent observability"]
         Doctor["doctor.py<br/>Project health"]
         Guards["guards.py<br/>Deterministic gates"]
         Validators["validators.py<br/>Input validation"]
@@ -57,6 +59,12 @@ graph TD
 
     subgraph "MCP Integrations (Conditional)"
         DrawioMCP["Draw.io MCP<br/>open_drawio_xml/csv/mermaid"]
+        ChromeMCP["Chrome DevTools MCP<br/>console/network/perf"]
+        PlaywrightMCP["Playwright MCP<br/>snapshot/screenshot"]
+    end
+
+    subgraph "External Tools (Optional)"
+        PactGuard["PactGuard<br/>Code compliance<br/>(pattern + review rules)"]
     end
 
     CLI --> Deployer
@@ -65,6 +73,8 @@ graph TD
     OpenCodePkg -.->|"depends on"| DeployBase
     CodexPkg -.->|"depends on"| DeployBase
     TraePkg -.->|"depends on"| DeployBase
+    CLI -->|"pactkit subcommands"| Garden
+    CLI -->|"pactkit subcommands"| Observe
     CLI -->|"pactkit subcommands"| Doctor
     CLI -->|"pactkit subcommands"| Guards
     CLI -->|"pactkit subcommands"| Lessons
@@ -85,6 +95,9 @@ graph TD
     Commands -->|"Plan/Act/Done<br/>conditional"| MemoryMCP
 
     Rules -->|"CLAUDE.md @import"| Context
+    Observe -->|"conditional"| ChromeMCP
+    Observe -->|"conditional"| PlaywrightMCP
+    Commands -->|"Act Phase 0.3<br/>Check Phase 3.7<br/>conditional"| PactGuard
     Workflows -->|"Draw command<br/>conditional"| DrawioMCP
 
     style Context fill:#f9f,stroke:#333,stroke-width:2px

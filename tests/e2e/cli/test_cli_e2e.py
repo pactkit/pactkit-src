@@ -448,3 +448,108 @@ class TestVersionSync:
         assert result["version"] == __version__, (
             f"Expected version {__version__!r} in fresh pactkit.yaml, got {result['version']!r}"
         )
+
+
+@pytest.mark.e2e
+class TestGardenCLI:
+    """STORY-slim-070: pactkit garden E2E tests."""
+
+    def test_garden_no_findings_exits_zero(self, tmp_path):
+        """AC6: clean project → exit 0."""
+        # Create minimal project with no dead code
+        src = tmp_path / "src" / "app"
+        src.mkdir(parents=True)
+        (src / "clean.py").write_text("import os\n\nos.getcwd()\n")
+        (tmp_path / "docs" / "specs").mkdir(parents=True)
+        (tmp_path / "docs" / "product").mkdir(parents=True)
+        (tmp_path / "docs" / "test_cases").mkdir(parents=True)
+
+        stdout, stderr, exit_code = run_pactkit("garden", cwd=str(tmp_path))
+        assert exit_code == 0, f"Expected exit 0, got {exit_code}. stdout={stdout}"
+        assert "all clear" in stdout.lower()
+
+    def test_garden_findings_exits_one(self, tmp_path):
+        """AC1: dead import → exit 1."""
+        src = tmp_path / "src" / "app"
+        src.mkdir(parents=True)
+        (src / "bad.py").write_text("import os\n\nprint('hello')\n")
+        (tmp_path / "docs" / "specs").mkdir(parents=True)
+        (tmp_path / "docs" / "product").mkdir(parents=True)
+        (tmp_path / "docs" / "test_cases").mkdir(parents=True)
+
+        stdout, stderr, exit_code = run_pactkit("garden", cwd=str(tmp_path))
+        assert exit_code == 1
+        assert "DEAD-IMPORT" in stdout
+
+    def test_garden_json_output(self, tmp_path):
+        """AC4: --json produces valid JSON."""
+        import json
+
+        src = tmp_path / "src" / "app"
+        src.mkdir(parents=True)
+        (src / "bad.py").write_text("import os\n\nprint('hello')\n")
+        (tmp_path / "docs" / "specs").mkdir(parents=True)
+        (tmp_path / "docs" / "product").mkdir(parents=True)
+        (tmp_path / "docs" / "test_cases").mkdir(parents=True)
+
+        stdout, stderr, exit_code = run_pactkit("garden", "--json", cwd=str(tmp_path))
+        assert exit_code == 1
+        data = json.loads(stdout)
+        assert "findings" in data
+        assert "total" in data
+        assert data["total"] > 0
+
+
+@pytest.mark.e2e
+class TestContextContinuationCLI:
+    """STORY-slim-071: pactkit context --continuation E2E tests."""
+
+    @staticmethod
+    def _setup_project(tmp_path):
+        """Create minimal project for context generation."""
+        (tmp_path / "docs" / "product").mkdir(parents=True)
+        (tmp_path / "docs" / "specs").mkdir(parents=True)
+        (tmp_path / "docs" / "architecture" / "governance").mkdir(parents=True)
+        board = tmp_path / "docs" / "product" / "sprint_board.md"
+        board.write_text(
+            "# Sprint Board\n\n## 📋 Backlog\n\n"
+            "## 🔄 In Progress\n\n"
+            "### [STORY-slim-070] Test Story\n- [ ] Task 1\n\n"
+            "## ✅ Done\n\n"
+        )
+        spec = tmp_path / "docs" / "specs" / "STORY-slim-070.md"
+        spec.write_text(
+            "# STORY-slim-070\n\n"
+            "| Field | Value |\n|---|---|\n| Status | Draft |\n\n"
+            "## Acceptance Criteria\n\n"
+            "### AC1: First Check (R1)\n\n- **Given** x\n- **When** y\n- **Then** z\n"
+        )
+        # Init git so git branch doesn't fail
+        subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True)
+
+    def test_continuation_updates_context(self, tmp_path):
+        """AC1+AC3: --continuation writes Agent Continuation section."""
+        self._setup_project(tmp_path)
+        stdout, stderr, exit_code = run_pactkit(
+            "context", "--continuation",
+            "--last-command", "/project-act STORY-slim-070",
+            "--phase", "Phase 3: step 2/5",
+            cwd=str(tmp_path),
+        )
+        assert exit_code == 0, f"exit={exit_code}, stderr={stderr}"
+        content = (tmp_path / "docs" / "product" / "context.md").read_text()
+        assert "## Agent Continuation" in content
+        assert "/project-act STORY-slim-070" in content
+        assert "Phase 3: step 2/5" in content
+        assert "Sprint Contract" in content
+
+    def test_no_continuation_shows_default(self, tmp_path):
+        """AC5+AC7: without --continuation → default message."""
+        self._setup_project(tmp_path)
+        stdout, stderr, exit_code = run_pactkit(
+            "context", cwd=str(tmp_path),
+        )
+        assert exit_code == 0
+        content = (tmp_path / "docs" / "product" / "context.md").read_text()
+        assert "## Agent Continuation" in content
+        assert "No active work session." in content

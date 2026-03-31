@@ -240,17 +240,18 @@ class TestConfigAutoGeneration:
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # STORY-slim-063: summary format changed to unified Skills count
-        # "21/21 Skills (10 embedded + 11 commands)"
+        # STORY-slim-070: +pactkit-garden = 22 total (11 embedded + 11 commands)
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
-        assert "21/21 Skills" in output
-        assert "10 embedded" in output
+        assert "22/22 Skills" in output
+        assert "11 embedded" in output
         assert "11 commands" in output
         assert "8/8 Rules" in output or "9/9 Rules" in output  # 9 rules after 09-sectional-write
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-slim-063: partial deploy — commands counted within Skills line
+        # STORY-slim-070: +pactkit-garden = 22 total (11 embedded + 11 commands)
         cfg = get_default_config()
         cfg["agents"] = ["system-architect", "senior-developer"]
         cfg["commands"] = ["project-plan", "project-act", "project-done"]
@@ -258,8 +259,8 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
         assert "2/9 Agents" in output
-        # 10 embedded skills + 3 commands = 13 total skills deployed out of 21
-        assert "13/21 Skills" in output
+        # 11 embedded skills + 3 commands = 14 total skills deployed out of 22
+        assert "14/22 Skills" in output
 
 
 # ===========================================================================

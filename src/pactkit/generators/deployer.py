@@ -473,6 +473,7 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         {"name": "pactkit-draw", "skill_md": prompts.SKILL_DRAW_MD},
         {"name": "pactkit-status", "skill_md": prompts.SKILL_STATUS_MD},
         {"name": "pactkit-doctor", "skill_md": prompts.SKILL_DOCTOR_MD},
+        {"name": "pactkit-garden", "skill_md": prompts.SKILL_GARDEN_MD},
         {"name": "pactkit-review", "skill_md": prompts.SKILL_REVIEW_MD},
         {"name": "pactkit-release", "skill_md": prompts.SKILL_RELEASE_MD},
         {"name": "pactkit-analyze", "skill_md": prompts.SKILL_ANALYZE_MD},

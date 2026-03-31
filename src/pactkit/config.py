@@ -55,6 +55,7 @@ VALID_SKILLS = frozenset(
         "pactkit-draw",
         "pactkit-status",
         "pactkit-doctor",
+        "pactkit-garden",
         "pactkit-review",
         "pactkit-release",
         "pactkit-analyze",
@@ -180,6 +181,18 @@ def get_default_config() -> dict:
         "check": {
             "security_checklist": True,
             "security_scope_override": "none",
+            "pactguard": {
+                "enabled": False,
+                "mode": "all",
+                "ruleset": "",
+                "blocking": False,
+            },
+            "observe": {
+                "enabled": False,
+                "sources": "auto",
+                "max_console": 100,
+                "max_network": 200,
+            },
         },
         "e2e": {
             "type": "none",
@@ -396,8 +409,15 @@ def load_config(path: Path | str | None = None) -> dict:
         if key in merged:
             # BUG-022: Deep merge for nested dict sections
             if key in DEEP_MERGE_KEYS and isinstance(merged[key], dict) and isinstance(value, dict):
-                # Preserve default sub-keys, override with user values
-                merged[key] = {**merged[key], **value}
+                # Two-level deep merge: for sub-keys that are also dicts, merge them too
+                # (e.g., check.pactguard, check.observe)
+                result = {**merged[key]}
+                for sub_key, sub_value in value.items():
+                    if sub_key in result and isinstance(result[sub_key], dict) and isinstance(sub_value, dict):
+                        result[sub_key] = {**result[sub_key], **sub_value}
+                    else:
+                        result[sub_key] = sub_value
+                merged[key] = result
             else:
                 # Shallow override for non-dict keys (strings, lists, booleans)
                 merged[key] = value
@@ -642,7 +662,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append(f"  max_impact_tests: {regression.get('max_impact_tests', 50)}")
         lines.append("")
 
-    # Write check section (STORY-055, STORY-056)
+    # Write check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
     check = data.get("check", {})
     if isinstance(check, dict):
         lines.append("# Check — configure QA verification behavior")
@@ -651,6 +671,22 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append(f"  security_checklist: {'true' if sc else 'false'}")
         sso = check.get("security_scope_override", "none")
         lines.append(f"  security_scope_override: {sso}")
+        # PactGuard sub-section (STORY-slim-072)
+        pg = check.get("pactguard", {})
+        if isinstance(pg, dict):
+            lines.append("  pactguard:")
+            lines.append(f"    enabled: {'true' if pg.get('enabled') else 'false'}")
+            lines.append(f"    mode: {pg.get('mode', 'all')}")
+            lines.append(f"    ruleset: \"{pg.get('ruleset', '')}\"")
+            lines.append(f"    blocking: {'true' if pg.get('blocking') else 'false'}")
+        # Observe sub-section (STORY-slim-073)
+        obs = check.get("observe", {})
+        if isinstance(obs, dict):
+            lines.append("  observe:")
+            lines.append(f"    enabled: {'true' if obs.get('enabled') else 'false'}")
+            lines.append(f"    sources: {obs.get('sources', 'auto')}")
+            lines.append(f"    max_console: {obs.get('max_console', 100)}")
+            lines.append(f"    max_network: {obs.get('max_network', 200)}")
         lines.append("")
 
     # Write done section (STORY-055)
@@ -832,7 +868,7 @@ def validate_config(config: dict) -> None:
         if not isinstance(max_impact, int) or max_impact <= 0:
             warnings.warn(f"regression.max_impact_tests should be a positive integer, got {max_impact!r}")
 
-    # Validate check section (STORY-055, STORY-056)
+    # Validate check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
     check = config.get("check", {})
     if isinstance(check, dict):
         sc = check.get("security_checklist", True)
@@ -841,6 +877,25 @@ def validate_config(config: dict) -> None:
         sso = check.get("security_scope_override", "none")
         if sso not in ("none", "full"):
             warnings.warn(f"check.security_scope_override should be 'none' or 'full', got {sso!r}")
+
+        # Validate check.pactguard (STORY-slim-072)
+        pactguard = check.get("pactguard", {})
+        if isinstance(pactguard, dict):
+            pg_mode = pactguard.get("mode", "all")
+            if pg_mode not in ("pattern", "all"):
+                warnings.warn(
+                    f"check.pactguard.mode should be 'pattern' or 'all', got '{pg_mode}'"
+                )
+
+        # Validate check.observe (STORY-slim-073)
+        observe = check.get("observe", {})
+        if isinstance(observe, dict):
+            obs_sources = observe.get("sources", "auto")
+            if obs_sources not in ("auto", "chrome-devtools", "playwright", "all"):
+                warnings.warn(
+                    f"check.observe.sources should be 'auto', 'chrome-devtools', "
+                    f"'playwright', or 'all', got '{obs_sources}'"
+                )
 
     # Validate done section (STORY-055)
     done_cfg = config.get("done", {})
@@ -955,7 +1010,7 @@ def generate_default_yaml() -> str:
     lines.append(f"  strategy: {regression.get('strategy', 'impact')}")
     lines.append(f"  max_impact_tests: {regression.get('max_impact_tests', 50)}")
 
-    # Write check section (STORY-055, STORY-056)
+    # Write check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
     check = cfg.get("check", {})
     lines.extend(["", "# Check — configure QA verification behavior"])
     lines.append("check:")
@@ -963,6 +1018,20 @@ def generate_default_yaml() -> str:
     lines.append(f"  security_checklist: {'true' if sc else 'false'}")
     sso = check.get("security_scope_override", "none")
     lines.append(f"  security_scope_override: {sso}")
+    # PactGuard sub-section (STORY-slim-072)
+    pg = check.get("pactguard", {})
+    lines.append("  pactguard:")
+    lines.append(f"    enabled: {'true' if pg.get('enabled') else 'false'}")
+    lines.append(f"    mode: {pg.get('mode', 'all')}")
+    lines.append(f"    ruleset: \"{pg.get('ruleset', '')}\"")
+    lines.append(f"    blocking: {'true' if pg.get('blocking') else 'false'}")
+    # Observe sub-section (STORY-slim-073)
+    obs = check.get("observe", {})
+    lines.append("  observe:")
+    lines.append(f"    enabled: {'true' if obs.get('enabled') else 'false'}")
+    lines.append(f"    sources: {obs.get('sources', 'auto')}")
+    lines.append(f"    max_console: {obs.get('max_console', 100)}")
+    lines.append(f"    max_network: {obs.get('max_network', 200)}")
 
     # Write done section (STORY-055)
     done_cfg = cfg.get("done", {})

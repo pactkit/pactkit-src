@@ -223,8 +223,13 @@ def main():
     regression_parser = subparsers.add_parser("regression", help="Classify changes for regression testing")
     regression_parser.add_argument("files", nargs="*", help="Changed file paths (default: git diff)")
 
-    # pactkit context (STORY-slim-014 R1)
-    subparsers.add_parser("context", help="Generate docs/product/context.md")
+    # pactkit context (STORY-slim-014 R1, STORY-slim-071 continuation)
+    ctx_parser = subparsers.add_parser("context", help="Generate docs/product/context.md")
+    ctx_parser.add_argument("--continuation", action="store_true", default=False,
+                            help="Update Agent Continuation section")
+    ctx_parser.add_argument("--last-command", default=None, help="Last PDCA command run")
+    ctx_parser.add_argument("--phase", default=None, help="Phase reached")
+    ctx_parser.add_argument("--blockers", default=None, help="Blockers or open questions")
 
     # pactkit sec-scope (STORY-slim-014 R6)
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
@@ -258,6 +263,16 @@ def main():
     viz_parser.add_argument("--reverse", action="store_true", default=False, help="Reverse BFS: find callers of entry")
     viz_parser.add_argument("--depth", type=int, default=0, help="Limit traversal depth (0=unlimited)")
     viz_parser.add_argument("--max-nodes", type=int, default=0, help="Truncate graph to N nodes (0=unlimited)")
+
+    # pactkit garden (STORY-slim-070)
+    garden_parser = subparsers.add_parser("garden", help="Codebase quality patrol")
+    garden_parser.add_argument("--json", action="store_true", default=False, help="JSON output")
+    garden_parser.add_argument("--scope", default=None, help="Scan only this directory (relative path)")
+
+    # pactkit observe (STORY-slim-073)
+    observe_parser = subparsers.add_parser("observe", help="Collect runtime observability signals")
+    observe_parser.add_argument("--report", action="store_true", default=False, help="Human-readable report")
+    observe_parser.add_argument("--json", action="store_true", default=False, help="JSON output")
 
     # pactkit doctor (STORY-slim-015 R1-R3)
     subparsers.add_parser("doctor", help="Diagnose project health")
@@ -421,7 +436,19 @@ def main():
 
         from pactkit.context_gen import generate_context
 
-        content = generate_context(Path.cwd(), command="pactkit context")
+        continuation_args = None
+        if args.continuation and args.last_command:
+            continuation_args = {"last_command": args.last_command}
+            if args.phase:
+                continuation_args["phase"] = args.phase
+            if args.blockers:
+                continuation_args["blockers"] = args.blockers
+
+        content = generate_context(
+            Path.cwd(),
+            command="pactkit context",
+            continuation_args=continuation_args,
+        )
         ctx_path = Path.cwd() / "docs" / "product" / "context.md"
         ctx_path.parent.mkdir(parents=True, exist_ok=True)
         ctx_path.write_text(content, encoding="utf-8")
@@ -498,6 +525,24 @@ def main():
             )
         else:
             run_visualize_graphs(project_root)
+
+    elif args.command == "garden":
+        from pathlib import Path
+
+        from pactkit.garden import run_garden
+
+        root = Path.cwd()
+        scope = Path(args.scope) if args.scope else None
+        output, exit_code = run_garden(root, scope=scope, json_output=args.json)
+        print(output)
+        raise SystemExit(exit_code)
+
+    elif args.command == "observe":
+        from pactkit.observe import run_observe
+
+        output, exit_code = run_observe(report=args.report, json_output=args.json)
+        print(output)
+        raise SystemExit(exit_code)
 
     elif args.command == "doctor":
         from pathlib import Path
