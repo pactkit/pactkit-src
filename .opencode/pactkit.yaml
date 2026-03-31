@@ -2,7 +2,7 @@
 # Edit this file to customize which components are deployed.
 # Remove items from a list to disable them. Default: all enabled.
 
-version: "2.9.2"
+version: "2.9.3"
 stack: python
 root: .
 developer: "slim"

@@ -4,6 +4,16 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.3] - 2026-03-31
+
+### Added
+- **Multi-language call chain fix** (STORY-slim-069) — Dispatch hint comment parsing (`pactkit-trace: dispatches_to`) and inheritance edge linking extended from Python-only to Go (struct embedding), Java (extends/implements), and TypeScript (class extends) tree-sitter analyzers.
+- **CLI visualize args exposed** (HOTFIX-slim-070) — `--entry`, `--focus`, `--reverse`, `--depth`, `--max-nodes` now reachable from `pactkit visualize` CLI.
+
+### Fixed
+- **4 call chain断链** (STORY-slim-068) — dict.update scan collision, dynamic dispatch hints, abstract method orphan nodes, cross-package stub edges.
+- **CI install command** — Fallback from `.[multilang]` to `.[dev]` in generated pactkit.yml.
+
 ## [2.9.2] - 2026-03-30
 
 ### Fixed
