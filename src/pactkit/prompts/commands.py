@@ -500,11 +500,12 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
 
 ## 🎬 Phase 4: Git Commit
 0.  **Enterprise Check**: If `enterprise.no_git: true` in `pactkit.yaml`, skip ALL git operations in this phase. Print: "ℹ️ Git operations disabled (enterprise.no_git)". Skip to the Session Context Update phase.
-0.5.  **Deployment Verification (MANDATORY)**: Before committing, verify code changes are reflected in the deployed environment:
+0.5.  **Deployment Verification (self-dev only)**: Only when developing PactKit itself (`pyproject.toml` name == "pactkit"):
     - Run `pactkit update` to redeploy all prompts, agents, commands, skills, and rules.
     - Smoke-check: for each AC that references prompt/deployed file content, `grep` 1-2 key assertions on deployed files (e.g., `~/.claude/commands/*.md`).
     - Report: `Deploy verification: PASS ({N} assertions checked)` or `FAIL (details)`.
     - If FAIL, fix the deployment issue before committing.
+    - **If NOT self-dev**: Skip this step silently.
 1.  **Format**: `feat(scope): <title from spec>`
 2.  **Execute**: Run the git commit command.
 3.  **Post-Commit Prompts**:
