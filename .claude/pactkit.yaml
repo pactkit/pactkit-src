@@ -2,7 +2,7 @@
 # All agents, commands, skills, and rules are deployed by default.
 # To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).
 
-version: 2.9.3
+version: 2.9.4
 stack: python
 root: .
 developer: "slim"
@@ -10,7 +10,7 @@ developer: "slim"
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
   provider: github
-  install_cmd: "python -m pip install --upgrade pip\n          pip install -e \".[multilang]\"\n          pip install pytest ruff\n          pactkit init"
+  install_cmd: "python -m pip install --upgrade pip\n          pip install -e .\n          pip install pytest ruff\n          pactkit init"
   # runner: ubuntu-latest
   # language_version: 2.4.1
   # github_host: ""  # GHE server (empty = github.com)

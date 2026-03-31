@@ -4,6 +4,17 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.4] - 2026-03-31
+
+### Fixed
+- **Init playbook DIP violation** (STORY-slim-074) — Eliminated `DETECTED_ENV` runtime IDE detection; all hardcoded paths replaced with template variables (`{FORMAT_NAME}`, `{PROJECT_CONFIG_DIR}`, etc.). Adding a new IDE format now requires zero playbook changes.
+- **Full DIP audit** — Fixed hardcoded IDE paths in doctor skill, core-protocol rule, and done command.
+- **tree-sitter promoted to core dependency** — No longer optional; CI install updated to include `tree-sitter-go`, `tree-sitter-java`, `tree-sitter-typescript`.
+- **`--focus` scan optimization** — `_scan_files` now scans only the focused subdirectory, not the full project root. `pactkit visualize --focus` without `--mode` now correctly passes focus through.
+- **SCAN_EXCLUDES expanded** — From 13 to 30+ entries covering Go (`vendor`), Java (`target`, `.gradle`, `.mvn`), Node (`.next`, `.nuxt`, `.turbo`), IDE (`.idea`, `.vscode`), VCS (`.svn`, `.hg`), and more.
+- **Codex pactkit.yaml candidates** — 3 functions in `visualize.py` now include `.codex/pactkit.yaml` in search paths.
+- **Topology markers** — `_TOPOLOGY_MARKERS` and `PdcaParser.markers` now include all 3 IDE format directories.
+
 ## [2.9.3] - 2026-03-31
 
 ### Added
