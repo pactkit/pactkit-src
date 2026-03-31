@@ -29,11 +29,11 @@ class TestProjectInitPlaybook:
         # Should warn about missing CLI
         assert "pip install pactkit" in content
 
-    def test_playbook_still_creates_project_claude_md(self):
-        """Playbook should create CLAUDE.md (Claude Code) or AGENTS.md (OpenCode) (STORY-073)."""
+    def test_playbook_still_creates_project_instructions_file(self):
+        """Playbook should create project instructions file using template variables (STORY-074)."""
         content = COMMANDS_CONTENT["project-init.md"]
-        # Should have conditional instruction for project instructions file
-        assert ".claude/CLAUDE.md" in content
+        # Should use template variables, not hardcoded paths
+        assert "{PROJECT_CONFIG_DIR}/{INSTRUCTIONS_FILE}" in content
         assert "Project Instructions File" in content
 
     def test_playbook_uses_pactkit_update_for_existing_config(self):

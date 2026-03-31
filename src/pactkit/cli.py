@@ -524,7 +524,7 @@ def main():
                 depth=args.depth, max_nodes=args.max_nodes,
             )
         else:
-            run_visualize_graphs(project_root)
+            run_visualize_graphs(project_root, focus=args.focus)
 
     elif args.command == "garden":
         from pathlib import Path

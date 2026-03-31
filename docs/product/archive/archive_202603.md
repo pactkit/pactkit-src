@@ -735,3 +735,8 @@
 - [x] Add garden CLI subcommand with --json and --scope
 - [x] Update config.py (VALID_SKILLS)
 - [x] E2E test
+
+### [STORY-slim-074] Fix init playbook: eliminate DETECTED_ENV, use template variables
+> Spec: docs/specs/STORY-slim-074.md
+
+- [x] Add FORMAT_NAME to _render_prompt var_map,Rewrite init playbook with template variables,Add tests for source template and deployed output,Deployment verification

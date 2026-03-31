@@ -106,7 +106,7 @@ def run_visualize_single(
     subprocess.run(cmd, cwd=str(project_root))
 
 
-def run_visualize_graphs(project_root: Path) -> None:
+def run_visualize_graphs(project_root: Path, *, focus: str | None = None) -> None:
     """Execute visualize.py to regenerate all graph files.
 
     Runs file, class, call modes. Also refreshes focus graphs if they exist.
@@ -119,8 +119,10 @@ def run_visualize_graphs(project_root: Path) -> None:
 
     mode_flag = "--mode"
     for mode in ["file", "class", "call"]:
-        subprocess.run([sys.executable, str(viz_script), "visualize", mode_flag, mode],
-                       cwd=str(project_root))
+        cmd = [sys.executable, str(viz_script), "visualize", mode_flag, mode]
+        if focus:
+            cmd += ["--focus", focus]
+        subprocess.run(cmd, cwd=str(project_root))
 
     # Focus graphs are user-generated on demand (--focus <target>), not auto-refreshed.
     # Removed hardcoded --focus cli refresh (HOTFIX-slim-062).

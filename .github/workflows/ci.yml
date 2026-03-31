@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --no-deps -e ".[multilang]"
+          pip install --no-deps -e .
           pip install pyyaml pytest ruff==0.15.1
 
       - name: Lint with ruff

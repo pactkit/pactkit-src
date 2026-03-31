@@ -68,6 +68,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "INSTRUCTIONS_FILE": profile.project_instructions_file,
         "PACTKIT_YAML": profile.pactkit_yaml_path,
         "DISPLAY_NAME": profile.display_name,
+        "FORMAT_NAME": profile.name,
         # Derived variables
         "VISUALIZE_CMD": f"python3 {skills_root}/pactkit-visualize/scripts/visualize.py",
         "BOARD_CMD": f"python3 {skills_root}/pactkit-board/scripts/board.py",

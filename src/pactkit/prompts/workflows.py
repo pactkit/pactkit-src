@@ -101,14 +101,14 @@ CI_PROFILES = {
         "default_version": "3.11",
         "install_cmd": (
             "python -m pip install --upgrade pip\n"
-            "          pip install -e \".[multilang]\" || pip install -e .\n"
+            "          pip install -e .\n"
             "          pip install pytest ruff\n"
             "          pactkit init"
         ),
         "test_cmd": "pytest tests/ -v",
         "docker_image": "python",
         "docker_install": (
-            "pip install -e \".[multilang]\" || pip install -e .\n"
+            "pip install -e .\n"
             "    - pip install pytest"
         ),
         "setup_name": "Python",

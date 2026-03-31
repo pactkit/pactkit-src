@@ -96,22 +96,20 @@ class TestPluginSkillsUseCPR:
 class TestPluginCommandsUseCPR:
     """TC-3: Plugin commands use ${CLAUDE_PLUGIN_ROOT}/skills/ paths."""
 
-    def test_plugin_commands_contain_plugin_prefix(self, tmp_path):
+    def test_plugin_commands_no_classic_prefix(self, tmp_path):
+        """After STORY-slim-074: all commands use template variables, so no raw skill
+        prefix references remain. Plugin rewrite has nothing left to rewrite — verify
+        that no classic prefix leaks through."""
         commands_dir = tmp_path / "commands"
         commands_dir.mkdir()
         _deploy_commands(commands_dir, sorted(VALID_COMMANDS),
                          _legacy_prefix="${CLAUDE_PLUGIN_ROOT}/skills")
 
-        found_any = False
         for cmd_file in commands_dir.glob("*.md"):
             content = cmd_file.read_text()
-            if CLASSIC_PREFIX.rstrip('/') in content or PLUGIN_PREFIX.rstrip('/') in content:
-                found_any = True
-                assert CLASSIC_PREFIX not in content, (
-                    f"{cmd_file.name} still has classic prefix"
-                )
-
-        assert found_any, "Expected at least one command with skill path references"
+            assert CLASSIC_PREFIX not in content, (
+                f"{cmd_file.name} still has classic prefix"
+            )
 
     def test_plugin_commands_zero_classic_prefix(self, tmp_path):
         commands_dir = tmp_path / "commands"

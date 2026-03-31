@@ -8,10 +8,13 @@ INIT_PROMPT = COMMANDS_CONTENT["project-init.md"]
 class TestInitPromptClaudeMdGeneration:
     """Verify the project-init prompt instructs CLAUDE.md generation."""
 
-    def test_prompt_contains_claude_md_generation_step(self):
-        """Scenario 1: prompt includes a step to generate .claude/CLAUDE.md."""
-        assert "CLAUDE.md" in INIT_PROMPT
-        assert ".claude/CLAUDE.md" in INIT_PROMPT
+    def test_prompt_contains_instructions_file_generation_step(self):
+        """Scenario 1: prompt includes a step to generate project instructions file.
+
+        STORY-slim-074: changed from hardcoded .claude/CLAUDE.md to template variables.
+        """
+        assert "{INSTRUCTIONS_FILE}" in INIT_PROMPT
+        assert "{PROJECT_CONFIG_DIR}/{INSTRUCTIONS_FILE}" in INIT_PROMPT
 
     def test_prompt_skip_if_exists(self):
         """Scenario 2: prompt instructs to skip if CLAUDE.md already exists."""

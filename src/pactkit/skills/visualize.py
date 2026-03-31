@@ -76,8 +76,25 @@ def init_architecture():
 
 # --- SCAN HELPERS (shared across modes) ---
 SCAN_EXCLUDES = {
-    'venv', '_venv', '.venv', '.env', 'env', '__pycache__', '.git', '.claude',
-    'tests', 'docs', 'node_modules', 'site-packages', 'dist', 'build',
+    # Version control
+    '.git', '.svn', '.hg',
+    # IDE / editor
+    '.idea', '.vscode',
+    # Python
+    'venv', '_venv', '.venv', '.env', 'env', '__pycache__',
+    'site-packages', '.eggs', '.tox', '.mypy_cache', '.ruff_cache', '.pytest_cache',
+    # Node / TypeScript
+    'node_modules', '.next', '.nuxt', '.output', '.turbo', '.cache', 'coverage',
+    # Go
+    'vendor',
+    # Java
+    'target', '.gradle', '.mvn', 'out',
+    # General build output
+    'dist', 'build', 'bin',
+    # Common non-source dirs
+    'tests', 'docs',
+    # PactKit-specific
+    '.claude', '.opencode', '.codex',
     'skills', 'commands', 'rules', 'agents',  # PactKit marketplace dirs (BUG-006)
     'pactkit-plugin',  # STORY-slim-068: exclude deploy artifact dir
 }
@@ -117,13 +134,14 @@ _TEST_MAP_PATTERNS = {
 def _load_scan_excludes(root):
     """Load scan_excludes from pactkit.yaml if present. Returns list or None.
 
-    Searches .claude/pactkit.yaml then .opencode/pactkit.yaml.
+    Searches all known config dirs for pactkit.yaml.
     R16: Logs visible warning on YAML parse failure instead of silent pass.
     """
     import sys as _sys
     candidates = [
         root / '.claude' / 'pactkit.yaml',
         root / '.opencode' / 'pactkit.yaml',
+        root / '.codex' / 'pactkit.yaml',
     ]
     for path in candidates:
         if path.exists():
@@ -151,6 +169,7 @@ def _load_stub_edges(root):
     candidates = [
         root / '.claude' / 'pactkit.yaml',
         root / '.opencode' / 'pactkit.yaml',
+        root / '.codex' / 'pactkit.yaml',
     ]
     for path in candidates:
         if path.exists():
@@ -186,6 +205,7 @@ def _detect_stack(root):
     candidates = [
         root / '.claude' / 'pactkit.yaml',
         root / '.opencode' / 'pactkit.yaml',
+        root / '.codex' / 'pactkit.yaml',
     ]
     for path in candidates:
         if path.exists():
@@ -218,14 +238,21 @@ def _detect_file_ext(root):
     return _LANG_FILE_EXT.get(_detect_stack(root), '.py')
 
 
-def _scan_files(root, scan_excludes=None, file_ext='.py'):
+def _scan_files(root, scan_excludes=None, file_ext='.py', focus=None):
     import sys as _sys
     excludes = set(scan_excludes) if scan_excludes is not None else SCAN_EXCLUDES
     all_files = []
     module_index = {}
     file_to_node = {}
 
-    for p in root.rglob(f'*{file_ext}'):
+    # When focus is set, scan only under that subdirectory to avoid truncation
+    scan_root = root
+    if focus:
+        candidate = root / focus
+        if candidate.is_dir():
+            scan_root = candidate
+
+    for p in scan_root.rglob(f'*{file_ext}'):
         if any(part in excludes for part in p.parts): continue
         if len(all_files) >= MAX_SCAN_FILES:
             print(f"⚠️ Scan truncated at {MAX_SCAN_FILES} files. Use --focus <module> to narrow scope.", file=_sys.stderr)
@@ -335,7 +362,7 @@ class PythonAnalyzer(LanguageAnalyzer):
 
 
 # --- TREE-SITTER ADAPTER (STORY-slim-032) ---
-# Guard imports: tree-sitter is optional (multilang extra)
+# Guard imports: tree-sitter is a core dependency but guard for standalone script usage
 try:
     from tree_sitter import Language as _TSLanguage, Parser as _TSParser, Query as _TSQuery, QueryCursor as _TSQueryCursor
     _HAS_TREE_SITTER = True
@@ -1349,14 +1376,14 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
     stack = _detect_stack(root)
     # Multi-extension scanning for Node projects (STORY-slim-034 R5)
     if stack == 'node':
-        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts')
-        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js')
+        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts', focus=focus)
+        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js', focus=focus)
         all_files = files_ts + files_js
         module_index = {**mi_ts, **mi_js}
         file_to_node = {**ftn_ts, **ftn_js}
     else:
         file_ext = _detect_file_ext(root)
-        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
+        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext, focus=focus)
     analyzer = _select_analyzer(stack)
 
     if mode == 'class':
@@ -1586,7 +1613,7 @@ class TopologyParser(abc.ABC):
 
 # STORY-slim-040 R2: Topology marker lists for auto-detection
 _TOPOLOGY_MARKERS: dict[str, list[str]] = {
-    'pdca': ['.claude/commands/', 'commands/', '.claude/pactkit.yaml', 'pactkit.yaml'],
+    'pdca': ['.claude/commands/', '.opencode/commands/', '.codex/commands/', 'commands/', '.claude/pactkit.yaml', '.opencode/pactkit.yaml', '.codex/pactkit.yaml', 'pactkit.yaml'],
     'service': ['docker-compose.yml', 'docker-compose.yaml', 'kubernetes/', 'k8s/', 'openapi.yaml', 'swagger.json'],
     'frontend': ['next.config.js', 'next.config.ts', 'nuxt.config.ts', 'vite.config.ts', 'app/layout.tsx', 'pages/_app.tsx', 'src/router/', 'src/store/'],
 }
@@ -1641,7 +1668,7 @@ class PdcaParser(TopologyParser):
 
     Declared kind_order and kind_labels for PDCA topology.
     """
-    markers = ['.claude/commands/', 'commands/', '.claude/pactkit.yaml', '.opencode/pactkit.yaml']
+    markers = ['.claude/commands/', '.opencode/commands/', '.codex/commands/', 'commands/', '.claude/pactkit.yaml', '.opencode/pactkit.yaml', '.codex/pactkit.yaml']
     kind_order = ['command', 'agent', 'skill', 'file']
     kind_labels = {'command': 'Commands', 'agent': 'Agents', 'skill': 'Skills', 'file': 'Files'}
 
