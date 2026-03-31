@@ -699,3 +699,8 @@
 > Spec: docs/specs/HOTFIX-slim-069.md
 
 - [x] Dedup edges with count label, fix cycle detection to ancestor-only
+
+### [STORY-slim-069] Extend dispatch hint + inheritance edges to Go/Java/TS
+> Spec: docs/specs/STORY-slim-069.md
+
+- [x] 将 R2(dispatch hint注释解析) 和 R3(继承边链接) 从 PythonAnalyzer 扩展到 TreeSitterAnalyzer 所有子类

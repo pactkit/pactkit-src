@@ -144,3 +144,4 @@
 | 2026-03-31 | Rendering-only changes to visualize.py can be isolated by extracting a shared render helper (_render_nested_call_graph) that both forward and reverse BFS call — keeps AST parsing untouched | visualize.py:_render_nested_call_graph |
 | 2026-03-31 | dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead | visualize.py:_build_call_graph |
 | 2026-03-31 | CLI args must mirror visualize.py standalone argparse; feature implemented in visualize.py but not exposed in cli.py is effectively dead code | cli.py:viz_parser |
+| 2026-03-31 | tree-sitter comment nodes are direct children of function body nodes (block/statement_block), enabling scoped dispatch hint queries without parent traversal. Per-language comment query needed: Go/TS use (comment), Java uses [(line_comment)(block_comment)]. | visualize.py:_extract_calls_from_body |

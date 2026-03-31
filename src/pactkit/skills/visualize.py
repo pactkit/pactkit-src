@@ -401,6 +401,28 @@ class TreeSitterAnalyzer(LanguageAnalyzer):
         methods = [n.text.decode() for n in captures.get('method', [])]
         for obj, method in zip(objs, methods):
             calls.append(f'{obj}.{method}')
+
+        # STORY-slim-069 R1: Parse dispatch hint comments in body
+        comment_query = getattr(self, '_comment_query', None)
+        if comment_query:
+            try:
+                comment_captures = self._captures(comment_query, body_node)
+                for node in comment_captures.get('comment', []):
+                    text = node.text.decode().strip()
+                    # Strip comment prefix (// or /* */)
+                    if text.startswith('//'):
+                        text = text[2:].strip()
+                    elif text.startswith('/*') and text.endswith('*/'):
+                        text = text[2:-2].strip()
+                    if text.startswith('pactkit-trace: dispatches_to '):
+                        targets = text[len('pactkit-trace: dispatches_to '):]
+                        for t in targets.split(','):
+                            t = t.strip()
+                            if t:
+                                calls.append(t)
+            except Exception:
+                pass
+
         return calls
 
 
@@ -434,6 +456,7 @@ class GoAnalyzer(TreeSitterAnalyzer):
         self._func_query = _TSQuery(self._lang, _GO_FUNC_QUERY)
         self._method_query = _TSQuery(self._lang, _GO_METHOD_QUERY)
         self._call_query = _TSQuery(self._lang, _GO_CALL_QUERY)
+        self._comment_query = _TSQuery(self._lang, '(comment) @comment')  # STORY-slim-069 R1
 
     def _extract_funcs_and_calls(self, tree, stem):
         func_registry = {}
@@ -463,6 +486,49 @@ class GoAnalyzer(TreeSitterAnalyzer):
                 qname = f'{receiver_type}.{func_name}' if receiver_type else func_name
                 func_registry[qname] = stem
                 call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        # STORY-slim-069 R2: Detect struct embedding and add inheritance edges
+        # Build struct_name → set_of_embedded_type_names
+        struct_bases = {}  # {struct_name: [embedded_type_name, ...]}
+        for node in tree.root_node.children:
+            if node.type == 'type_declaration':
+                for child in node.children:
+                    if child.type == 'type_spec':
+                        name_node = child.child_by_field_name('name')
+                        type_node = child.child_by_field_name('type')
+                        if name_node and type_node and type_node.type == 'struct_type':
+                            struct_name = name_node.text.decode()
+                            embedded = []
+                            for field_list in type_node.children:
+                                if field_list.type == 'field_declaration_list':
+                                    for field in field_list.children:
+                                        if field.type == 'field_declaration':
+                                            has_field_id = any(
+                                                c.type == 'field_identifier' for c in field.children
+                                            )
+                                            if not has_field_id:
+                                                for c in field.children:
+                                                    if c.type == 'type_identifier':
+                                                        embedded.append(c.text.decode())
+                                                    elif c.type == 'pointer_type':
+                                                        for pc in c.children:
+                                                            if pc.type == 'type_identifier':
+                                                                embedded.append(pc.text.decode())
+                            if embedded:
+                                struct_bases[struct_name] = embedded
+
+        # Add virtual edges: Base.method → Sub.method for shared methods
+        for sub_name, bases in struct_bases.items():
+            sub_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{sub_name}.')}
+            for base_name in bases:
+                base_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{base_name}.')}
+                for method in sub_methods & base_methods:
+                    base_qname = f'{base_name}.{method}'
+                    sub_qname = f'{sub_name}.{method}'
+                    if base_qname in call_edges:
+                        call_edges[base_qname].append(sub_qname)
+                    else:
+                        call_edges[base_qname] = [sub_qname]
 
         return func_registry, call_edges
 
@@ -505,6 +571,7 @@ class JavaAnalyzer(TreeSitterAnalyzer):
         self._constructor_query = _TSQuery(self._lang, _JAVA_CONSTRUCTOR_QUERY)
         self._call_query = _TSQuery(self._lang, _JAVA_CALL_QUERY)
         self._method_query = None  # Java uses _func_query + _constructor_query
+        self._comment_query = _TSQuery(self._lang, '[(line_comment)(block_comment)] @comment')  # STORY-slim-069 R1
 
     def _extract_funcs_and_calls(self, tree, stem):
         func_registry = {}
@@ -532,6 +599,44 @@ class JavaAnalyzer(TreeSitterAnalyzer):
                 qname = f'{ctor_name}.{ctor_name}'
                 func_registry[qname] = stem
                 call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        # STORY-slim-069 R3: Detect extends/implements and add inheritance edges
+        class_bases = {}  # {class_name: [base_names]}
+        for node in tree.root_node.children:
+            if node.type == 'class_declaration':
+                name_node = node.child_by_field_name('name')
+                if not name_node:
+                    continue
+                cls_name = name_node.text.decode()
+                bases = []
+                # superclass (extends)
+                superclass = node.child_by_field_name('superclass')
+                if superclass:
+                    for c in superclass.children:
+                        if c.type == 'type_identifier':
+                            bases.append(c.text.decode())
+                # super_interfaces (implements)
+                for child in node.children:
+                    if child.type == 'super_interfaces':
+                        for c in child.children:
+                            if c.type == 'type_list':
+                                for ti in c.children:
+                                    if ti.type == 'type_identifier':
+                                        bases.append(ti.text.decode())
+                if bases:
+                    class_bases[cls_name] = bases
+
+        for sub_name, bases in class_bases.items():
+            sub_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{sub_name}.')}
+            for base_name in bases:
+                base_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{base_name}.')}
+                for method in sub_methods & base_methods:
+                    base_qname = f'{base_name}.{method}'
+                    sub_qname = f'{sub_name}.{method}'
+                    if base_qname in call_edges:
+                        call_edges[base_qname].append(sub_qname)
+                    else:
+                        call_edges[base_qname] = [sub_qname]
 
         return func_registry, call_edges
 
@@ -572,6 +677,7 @@ class TSAnalyzer(TreeSitterAnalyzer):
         self._func_query = _TSQuery(self._lang, _TS_FUNC_QUERY)
         self._call_query = _TSQuery(self._lang, _TS_CALL_QUERY)
         self._method_query = None
+        self._comment_query = _TSQuery(self._lang, '(comment) @comment')  # STORY-slim-069 R1
 
     def _extract_funcs_and_calls(self, tree, stem):
         func_registry = {}
@@ -587,6 +693,37 @@ class TSAnalyzer(TreeSitterAnalyzer):
                 qname = f'{class_name}.{func_name}' if class_name else func_name
                 func_registry[qname] = stem
                 call_edges[qname] = self._extract_calls_from_body(bodies[0])
+
+        # STORY-slim-069 R4: Detect class extends and add inheritance edges
+        class_bases = {}  # {class_name: [base_names]}
+        for node in tree.root_node.children:
+            if node.type == 'class_declaration':
+                name_node = node.child_by_field_name('name')
+                if not name_node:
+                    continue
+                cls_name = name_node.text.decode()
+                bases = []
+                for child in node.children:
+                    if child.type == 'class_heritage':
+                        for hc in child.children:
+                            if hc.type == 'extends_clause':
+                                for ec in hc.children:
+                                    if ec.type in ('type_identifier', 'identifier'):
+                                        bases.append(ec.text.decode())
+                if bases:
+                    class_bases[cls_name] = bases
+
+        for sub_name, bases in class_bases.items():
+            sub_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{sub_name}.')}
+            for base_name in bases:
+                base_methods = {k.split('.', 1)[1] for k in func_registry if k.startswith(f'{base_name}.')}
+                for method in sub_methods & base_methods:
+                    base_qname = f'{base_name}.{method}'
+                    sub_qname = f'{sub_name}.{method}'
+                    if base_qname in call_edges:
+                        call_edges[base_qname].append(sub_qname)
+                    else:
+                        call_edges[base_qname] = [sub_qname]
 
         return func_registry, call_edges
 
