@@ -886,23 +886,49 @@ def _render_nested_call_graph(visited, edges, entry, call_edges, func_registry, 
                 depth_map[neighbor] = depth_map[current] + 1
                 queue.append(neighbor)
 
-    # Compute fan-in and fan-out within the reachable set
+    # Deduplicate edges and count occurrences (HOTFIX-slim-069)
+    from collections import Counter
+    edge_counts = Counter(edges)
+    unique_edges = list(edge_counts.keys())
+
+    # Compute fan-in and fan-out from unique edges within the reachable set
     fan_in: dict[str, int] = {fn: 0 for fn in visited}
     fan_out: dict[str, int] = {fn: 0 for fn in visited}
-    for src, dst in edges:
+    for src, dst in unique_edges:
         if src in visited and dst in visited:
             fan_in[dst] = fan_in.get(dst, 0) + 1
             fan_out[src] = fan_out.get(src, 0) + 1
 
-    # Detect cycle edges: target already at same or lower depth than source
+    # Detect true cycle edges: only when target is an ancestor of source in BFS tree
+    # (i.e., target has strictly lower depth AND source is reachable from target).
+    # Same-depth calls to shared helpers (e.g., nl()) are NOT cycles. (HOTFIX-slim-069)
+    parent_map: dict[str, str | None] = {entry: None}
+    bfs_q = deque([entry])
+    while bfs_q:
+        cur = bfs_q.popleft()
+        for nb in adj.get(cur, []):
+            if nb not in parent_map:
+                parent_map[nb] = cur
+                bfs_q.append(nb)
+
+    def _is_ancestor(ancestor, descendant):
+        """Check if ancestor is on the BFS-tree path from root to descendant."""
+        node = descendant
+        while node is not None:
+            if node == ancestor:
+                return True
+            node = parent_map.get(node)
+        return False
+
     cycle_edges = set()
-    for src, dst in edges:
+    for src, dst in unique_edges:
         if reverse:
             parent, child = dst, src
         else:
             parent, child = src, dst
-        if child in depth_map and parent in depth_map and depth_map[child] <= depth_map[parent]:
-            cycle_edges.add((src, dst))
+        if child in depth_map and parent in depth_map and depth_map[child] < depth_map[parent]:
+            if _is_ancestor(child, parent):
+                cycle_edges.add((src, dst))
 
     # Group nodes by depth into nested subgraphs
     max_depth = max(depth_map.values()) if depth_map else 0
@@ -919,12 +945,16 @@ def _render_nested_call_graph(visited, edges, entry, call_edges, func_registry, 
             lines.append(f'        {safe(fn)}["{label}"]')
         lines.append('    end')
 
-    # Render edges with cycle detection
-    for src, dst in edges:
+    # Render deduplicated edges with count and cycle detection (HOTFIX-slim-069)
+    for (src, dst), count in edge_counts.items():
+        s, d = safe(src), safe(dst)
         if (src, dst) in cycle_edges:
-            lines.append(f'    {safe(src)} -.->|↻| {safe(dst)}')
+            label = f'↻ ×{count}' if count > 1 else '↻'
+            lines.append(f'    {s} -.->|{label}| {d}')
+        elif count > 1:
+            lines.append(f'    {s} -->|×{count}| {d}')
         else:
-            lines.append(f'    {safe(src)} --> {safe(dst)}')
+            lines.append(f'    {s} --> {d}')
 
     return nl().join(lines)
 
