@@ -229,23 +229,27 @@ def _detect_stacks(root):
                 print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
 
     # 2. Marker-file detection — collect ALL matching stacks
+    #    STORY-slim-080: rglob all depths, respect SCAN_EXCLUDES
     seen = set()
     stacks = []
-    # 2a. Root-level scan
-    for marker, stack in _STACK_MARKERS:
-        if (root / marker).exists() and stack not in seen:
-            seen.add(stack)
-            stacks.append(stack)
-    # 2b. Depth-1 subdirectory scan (STORY-slim-077: monorepo support)
+    marker_names = {m for m, _ in _STACK_MARKERS}
+    marker_to_stack = {m: s for m, s in _STACK_MARKERS}
     try:
-        subdirs = [p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')]
-    except OSError:
-        subdirs = []
-    for subdir in subdirs:
-        for marker, stack in _STACK_MARKERS:
-            if (subdir / marker).exists() and stack not in seen:
+        for p in root.rglob('*'):
+            if not p.is_file():
+                continue
+            if p.name not in marker_names:
+                continue
+            if any(part in SCAN_EXCLUDES for part in p.relative_to(root).parts):
+                continue
+            stack = marker_to_stack[p.name]
+            if stack not in seen:
                 seen.add(stack)
                 stacks.append(stack)
+            if len(seen) >= len(set(s for _, s in _STACK_MARKERS)):
+                break  # All possible stacks found
+    except OSError:
+        pass
 
     # 3. Default
     return stacks if stacks else ['python']
@@ -265,6 +269,155 @@ def _detect_file_ext(root):
     Thin wrapper around _detect_stack() that returns the file extension.
     """
     return _LANG_FILE_EXT.get(_detect_stack(root), '.py')
+
+
+def _detect_modules(root, scan_excludes=None):
+    """Detect module boundaries by scanning for marker files.
+
+    Returns list of (module_name, module_dir, stack) tuples.
+    STORY-slim-081 R1.
+    """
+    excludes = set(scan_excludes) if scan_excludes is not None else SCAN_EXCLUDES
+    marker_to_stack = {m: s for m, s in _STACK_MARKERS}
+    marker_names = set(marker_to_stack.keys())
+    modules = []
+    seen_dirs = set()
+    try:
+        for p in root.rglob('*'):
+            if not p.is_file():
+                continue
+            if p.name not in marker_names:
+                continue
+            try:
+                rel = p.relative_to(root)
+            except ValueError:
+                continue
+            if any(part in excludes for part in rel.parts):
+                continue
+            mod_dir = p.parent
+            dir_key = str(mod_dir)
+            if dir_key in seen_dirs:
+                continue
+            seen_dirs.add(dir_key)
+            mod_name = str(rel.parent).replace(os.sep, '/')
+            if mod_name == '.':
+                mod_name = '.'
+            stack = marker_to_stack[p.name]
+            modules.append((mod_name, mod_dir, stack))
+    except OSError:
+        pass
+    return modules
+
+
+def _build_module_graph(root, modules, scan_excludes=None):
+    """Build module-level Mermaid graph with weighted cross-module edges.
+
+    STORY-slim-081 R2.
+    """
+    if not modules:
+        return None, 'graph TD\n'
+
+    excludes = set(scan_excludes) if scan_excludes is not None else SCAN_EXCLUDES
+
+    # Phase 1: Scan each module's files, collect imports, and build a
+    # key→module_name index so imports can be resolved to target modules.
+    module_imports = {}   # mod_name → [raw_import_str, ...]
+    key_to_module = {}    # qualified_key → mod_name (for cross-module lookup)
+    for mod_name, mod_dir, stack in modules:
+        analyzer = _select_analyzer(stack)
+        exts = [_LANG_FILE_EXT.get(stack, '.py')]
+        if stack == 'node':
+            exts.extend(['.js', '.tsx', '.jsx'])
+        mod_files = []
+        for ext in exts:
+            try:
+                for p in mod_dir.rglob(f'*{ext}'):
+                    if not p.is_file():
+                        continue
+                    try:
+                        rel = p.relative_to(root)
+                    except ValueError:
+                        continue
+                    if any(part in excludes for part in rel.parts):
+                        continue
+                    mod_files.append(p)
+            except OSError:
+                continue
+        # Register module keys from each file (qualified names, path-based keys)
+        for f in mod_files:
+            try:
+                rel = f.relative_to(root)
+                for key in analyzer.build_module_keys(rel, root):
+                    key_to_module[key] = mod_name
+            except Exception:
+                pass
+        # Also register the module directory itself as a key
+        if mod_name != '.':
+            key_to_module[mod_name] = mod_name
+            key_to_module[mod_name.replace('/', '.')] = mod_name
+            # Python packages use underscores but dirs often use hyphens
+            underscore_name = mod_name.replace('-', '_')
+            if underscore_name != mod_name:
+                key_to_module[underscore_name] = mod_name
+                key_to_module[underscore_name.replace('/', '.')] = mod_name
+        # Extract imports
+        raw_imports = []
+        for f in mod_files:
+            try:
+                raw_imports.extend(analyzer.extract_imports(f))
+            except Exception:
+                pass
+        module_imports[mod_name] = raw_imports
+
+    # Phase 2: Resolve imports to target modules using the key index
+    edge_weights = {}  # (src_mod, dst_mod) → count
+    for src_mod, imports in module_imports.items():
+        for imp in imports:
+            dst_mod = None
+            # Direct lookup: exact match in key_to_module
+            if imp in key_to_module:
+                dst_mod = key_to_module[imp]
+            else:
+                # Try slash-separated form
+                imp_slash = imp.replace('.', '/').replace('\\', '/')
+                if imp_slash in key_to_module:
+                    dst_mod = key_to_module[imp_slash]
+                else:
+                    # Prefix match: import might be a sub-path of a registered key
+                    # e.g., import "mod_b.utils.foo" → key "mod_b.utils" exists
+                    parts = imp.split('.')
+                    for i in range(len(parts), 0, -1):
+                        candidate = '.'.join(parts[:i])
+                        if candidate in key_to_module:
+                            dst_mod = key_to_module[candidate]
+                            break
+                        candidate_slash = '/'.join(parts[:i])
+                        if candidate_slash in key_to_module:
+                            dst_mod = key_to_module[candidate_slash]
+                            break
+            if dst_mod and dst_mod != src_mod:
+                key = (src_mod, dst_mod)
+                edge_weights[key] = edge_weights.get(key, 0) + 1
+
+    # Generate Mermaid
+    lines = ['graph TD']
+    for mod_name, mod_dir, stack in modules:
+        node_id = mod_name.replace('/', '_').replace('.', '_').replace('-', '_')
+        label = mod_name if mod_name != '.' else 'root'
+        lines.append(f'    {node_id}["{label}"]')
+        href = mod_name + '/' if mod_name != '.' else './'
+        lines.append(f'    click {node_id} href "{href}"')
+    for (src, dst), weight in sorted(edge_weights.items()):
+        src_id = src.replace('/', '_').replace('.', '_').replace('-', '_')
+        dst_id = dst.replace('/', '_').replace('.', '_').replace('-', '_')
+        lines.append(f'    {src_id} -->|{weight}| {dst_id}')
+
+    content = '\n'.join(lines) + '\n'
+    graphs_dir = root / 'docs' / 'architecture' / 'graphs'
+    graphs_dir.mkdir(parents=True, exist_ok=True)
+    dest = graphs_dir / 'module_graph.mmd'
+    _atomic_mmd_write(dest, content)
+    return dest, content
 
 
 def _scan_files(root, scan_excludes=None, file_ext='.py', focus=None, analyzer=None):
@@ -842,7 +995,7 @@ def impact(target='.', entry=None):
     for stk in stacks:
         exts = [_LANG_FILE_EXT.get(stk, '.py')]
         if stk == 'node':
-            exts.append('.js')
+            exts.extend(['.js', '.tsx', '.jsx'])
         for ext in exts:
             files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
             all_files.extend(files)
@@ -924,8 +1077,30 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         return f'✅ Graph: {dest}'
 
     scan_excludes = _load_scan_excludes(root)
+
+    # --- Module mode (STORY-slim-081 R2) ---
+    if mode == 'module':
+        modules = _detect_modules(root, scan_excludes=scan_excludes)
+        dest, content = _build_module_graph(root, modules, scan_excludes=scan_excludes)
+        return f'✅ Graph: {dest}'
+
+    # --- STORY-slim-081 R4: Scoped focus — resolve module name to directory ---
+    scan_root = root
+    if focus and mode in ('file', 'class', 'call'):
+        modules = _detect_modules(root, scan_excludes=scan_excludes)
+        mod_map = {m[0]: m for m in modules}
+        if focus in mod_map:
+            _mod_name, mod_dir, _mod_stack = mod_map[focus]
+            scan_root = mod_dir
+            focus = None  # Clear focus so _scan_files scans all files within module dir
+        elif modules:
+            # focus didn't match a module — check if it's a partial match or suggest
+            available = sorted(m[0] for m in modules if m[0] != '.')
+            if available:
+                return f'❌ Module \'{focus}\' not found. Available modules: {", ".join(available)}'
+
     # STORY-slim-076: Multi-stack scanning
-    stacks = _detect_stacks(root)
+    stacks = _detect_stacks(scan_root)
     all_files = []
     module_index = {}
     file_to_node = {}
@@ -934,10 +1109,10 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         stk_analyzer = _select_analyzer(stk)
         exts = [_LANG_FILE_EXT.get(stk, '.py')]
         if stk == 'node':
-            exts.append('.js')
+            exts.extend(['.js', '.tsx', '.jsx'])
         stk_files = []
         for ext in exts:
-            files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext, focus=focus, analyzer=stk_analyzer)
+            files, mi, ftn = _scan_files(scan_root, scan_excludes=scan_excludes, file_ext=ext, focus=focus, analyzer=stk_analyzer)
             stk_files.extend(files)
             module_index.update(mi)
             file_to_node.update(ftn)
@@ -945,6 +1120,22 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         analyzer_file_groups.append((stk, stk_analyzer, stk_files))
     # Primary analyzer for call/file modes (first stack)
     analyzer = analyzer_file_groups[0][1] if analyzer_file_groups else PythonAnalyzer()
+
+    # STORY-slim-081 R3: Auto-degrade to module graph when files exceed limit
+    if mode == 'file' and len(all_files) >= MAX_SCAN_FILES and scan_root == root:
+        import sys as _sys
+        modules = _detect_modules(root, scan_excludes=scan_excludes)
+        if modules and len(modules) > 1:
+            mod_names = sorted(m[0] for m in modules if m[0] != '.')
+            print(
+                f"\u26a0\ufe0f {len(all_files)} files exceed limit ({MAX_SCAN_FILES}). "
+                f"Generating module graph. Use --focus <module> for file-level detail.",
+                file=_sys.stderr,
+            )
+            if mod_names:
+                print(f"Available modules: {', '.join(mod_names)}", file=_sys.stderr)
+            dest, content = _build_module_graph(root, modules, scan_excludes=scan_excludes)
+            return f'✅ Graph: {dest} (module graph — {len(all_files)} files exceeded limit)'
 
     if mode == 'class':
         dest, content = _build_class_graph(root, all_files, focus, analyzers=analyzer_file_groups)
@@ -2400,7 +2591,7 @@ def _load_code_graph(root) -> tuple:
     for stk in stacks:
         exts = [_LANG_FILE_EXT.get(stk, '.py')]
         if stk == 'node':
-            exts.append('.js')
+            exts.extend(['.js', '.tsx', '.jsx'])
         for ext in exts:
             try:
                 files, _, _ = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
@@ -2416,7 +2607,7 @@ def _load_code_graph(root) -> tuple:
         stk_ext = _LANG_FILE_EXT.get(stk, '.py')
         stk_exts = {stk_ext}
         if stk == 'node':
-            stk_exts.add('.js')
+            stk_exts.update({'.js', '.tsx', '.jsx'})
         for f in all_files:
             if f.suffix in stk_exts:
                 fr, ce = analyzer.extract_functions_and_calls(f)
@@ -2539,7 +2730,7 @@ if __name__ == '__main__':
     sub.add_parser('list_rules')
     p_viz = sub.add_parser('visualize')
     p_viz.add_argument('--focus')
-    p_viz.add_argument('--mode', choices=['file', 'class', 'call', 'workflow', 'unified'], default='file')
+    p_viz.add_argument('--mode', choices=['file', 'class', 'call', 'module', 'workflow', 'unified'], default='file')
     p_viz.add_argument('--entry')
     p_viz.add_argument('--depth', type=int, default=0, help='Limit graph traversal to N levels (0=unlimited)')
     p_viz.add_argument('--max-nodes', type=int, default=0, help='Truncate graph to N nodes (0=unlimited)')

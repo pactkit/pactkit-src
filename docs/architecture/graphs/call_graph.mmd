@@ -15,8 +15,8 @@ graph TD
     GoAnalyzer__captures["GoAnalyzer._captures"]
     GoAnalyzer__extract_calls_from_body["GoAnalyzer._extract_calls_from_body"]
     GoAnalyzer__extract_funcs_and_calls["GoAnalyzer._extract_funcs_and_calls"]
+    GoAnalyzer__find_nearest_go_mod["GoAnalyzer._find_nearest_go_mod"]
     GoAnalyzer__matches["GoAnalyzer._matches"]
-    GoAnalyzer__read_go_module_prefix["GoAnalyzer._read_go_module_prefix"]
     GoAnalyzer_extract_classes["GoAnalyzer.extract_classes"]
     GoAnalyzer_extract_functions_and_calls["GoAnalyzer.extract_functions_and_calls"]
     GoAnalyzer_extract_imports["GoAnalyzer.extract_imports"]
@@ -40,7 +40,9 @@ graph TD
     TSAnalyzer__captures["TSAnalyzer._captures"]
     TSAnalyzer__extract_calls_from_body["TSAnalyzer._extract_calls_from_body"]
     TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
+    TSAnalyzer__find_nearest_config["TSAnalyzer._find_nearest_config"]
     TSAnalyzer__load_tsconfig_paths["TSAnalyzer._load_tsconfig_paths"]
+    TSAnalyzer__load_tsconfig_paths_for["TSAnalyzer._load_tsconfig_paths_for"]
     TSAnalyzer__matches["TSAnalyzer._matches"]
     TSAnalyzer_extract_functions_and_calls["TSAnalyzer.extract_functions_and_calls"]
     TSAnalyzer_extract_imports["TSAnalyzer.extract_imports"]
@@ -65,6 +67,7 @@ graph TD
     _build_file_graph["_build_file_graph"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
+    _build_module_graph["_build_module_graph"]
     _build_reverse_graph["_build_reverse_graph"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
@@ -99,6 +102,7 @@ graph TD
     _deploy_skills["_deploy_skills"]
     _detect_file_ext["_detect_file_ext"]
     _detect_ghe["_detect_ghe"]
+    _detect_modules["_detect_modules"]
     _detect_stack["_detect_stack"]
     _detect_stacks["_detect_stacks"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
@@ -563,6 +567,8 @@ graph TD
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
+    _build_module_graph --> _atomic_mmd_write
+    _build_module_graph --> _select_analyzer
     _select_analyzers --> _select_analyzer
     _build_file_graph --> _extract_node_id
     _build_file_graph --> _best_match
@@ -655,10 +661,15 @@ graph TD
     visualize --> _atomic_mmd_write
     visualize --> build_workflow_graph
     visualize --> _atomic_mmd_write
+    visualize --> _detect_modules
+    visualize --> _build_module_graph
+    visualize --> _detect_modules
     visualize --> _select_analyzer
+    visualize --> _detect_modules
     visualize --> _build_class_graph
     visualize --> export_focus_graphs
     visualize --> _scan_files
+    visualize --> _build_module_graph
     visualize --> _build_file_graph
     visualize --> _scan_call_edges
     visualize --> _build_reverse_graph
@@ -1068,7 +1079,7 @@ graph TD
     GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
     GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
     GoAnalyzer_extract_classes --> GoAnalyzer__matches
-    GoAnalyzer_normalize_import --> GoAnalyzer__read_go_module_prefix
+    GoAnalyzer_normalize_import --> GoAnalyzer__find_nearest_go_mod
     TSAnalyzer_extract_imports --> TSAnalyzer__captures
     TSAnalyzer_extract_functions_and_calls --> TSAnalyzer__extract_funcs_and_calls
     TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
@@ -1082,7 +1093,9 @@ graph TD
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__matches
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_calls_from_body
-    TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths
+    TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths_for
+    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__find_nearest_config
+    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__load_tsconfig_paths
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports

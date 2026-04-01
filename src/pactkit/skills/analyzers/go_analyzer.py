@@ -274,10 +274,19 @@ class GoAnalyzer(TreeSitterAnalyzer):
         # Known external prefixes
         if import_str.startswith('golang.org/') or import_str.startswith('google.golang.org/'):
             return None
-        # Try to strip module prefix from go.mod
-        mod_prefix = self._read_go_module_prefix(root)
+        # Try to strip module prefix from nearest go.mod
+        mod_prefix, go_mod_dir = self._find_nearest_go_mod(consumer_path, root)
         if mod_prefix and import_str.startswith(mod_prefix):
             rel = import_str[len(mod_prefix):].lstrip('/')
+            if rel and go_mod_dir:
+                # Prepend go.mod's directory relative to root
+                try:
+                    dir_rel = go_mod_dir.relative_to(root)
+                    dir_prefix = str(dir_rel).replace(os.sep, '/')
+                    if dir_prefix and dir_prefix != '.':
+                        return dir_prefix + '/' + rel
+                except ValueError:
+                    pass
             return rel if rel else None
         # Check if first component matches a local directory
         parts = import_str.split('/')
@@ -285,34 +294,46 @@ class GoAnalyzer(TreeSitterAnalyzer):
             return import_str
         return None
 
-    # --- R5: Go module prefix detection (STORY-slim-078) ---
+    # --- R5: Go module prefix detection (STORY-slim-078, STORY-slim-080) ---
 
-    def _read_go_module_prefix(self, root):
-        """Read the Go module path from go.mod. Cached per root."""
+    def _find_nearest_go_mod(self, file_path, root):
+        """Walk from file_path's parent up to root, find nearest go.mod.
+
+        Returns (module_prefix, go_mod_dir) or (None, None).
+        """
         if not hasattr(self, '_go_mod_cache'):
             self._go_mod_cache = {}
-        root_str = str(root)
-        if root_str in self._go_mod_cache:
-            return self._go_mod_cache[root_str]
-        go_mod = root / 'go.mod'
-        if not go_mod.exists():
-            # Also check parent directories for monorepo structure
-            for parent in root.parents:
-                candidate = parent / 'go.mod'
-                if candidate.exists():
-                    go_mod = candidate
+
+        root_resolved = root.resolve()
+        current = file_path.parent
+        go_mod_path = None
+        while True:
+            candidate = current / 'go.mod'
+            if candidate.exists():
+                go_mod_path = candidate
+                break
+            try:
+                if current.resolve() == root_resolved or current == current.parent:
                     break
-            else:
-                self._go_mod_cache[root_str] = None
-                return None
+            except (OSError, ValueError):
+                break
+            current = current.parent
+
+        if go_mod_path is None:
+            return None, None
+
+        cache_key = str(go_mod_path)
+        if cache_key in self._go_mod_cache:
+            return self._go_mod_cache[cache_key], go_mod_path.parent
+
         try:
-            for line in go_mod.read_text(encoding='utf-8').splitlines():
+            for line in go_mod_path.read_text(encoding='utf-8').splitlines():
                 line = line.strip()
                 if line.startswith('module '):
                     prefix = line[len('module '):].strip()
-                    self._go_mod_cache[root_str] = prefix
-                    return prefix
+                    self._go_mod_cache[cache_key] = prefix
+                    return prefix, go_mod_path.parent
         except (OSError, UnicodeDecodeError):
             pass
-        self._go_mod_cache[root_str] = None
-        return None
+        self._go_mod_cache[cache_key] = None
+        return None, None

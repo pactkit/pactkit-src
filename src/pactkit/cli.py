@@ -255,7 +255,7 @@ def main():
     viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
     viz_parser.add_argument("--stack", default="auto", help="Language stack (default: auto)")
     viz_parser.add_argument(
-        "--mode", choices=["file", "class", "call"], default=None,
+        "--mode", choices=["file", "class", "call", "module"], default=None,
         help="Graph mode (default: all three)",
     )
     # HOTFIX-slim-070: expose visualize.py args to CLI
@@ -683,11 +683,11 @@ def main():
     elif args.command == "redetect-stack":
         from pathlib import Path
 
+        import yaml as _yaml
+
         from pactkit.cleaners import detect_stacks
         from pactkit.config import update_yaml_stack
         from pactkit.profiles import PACTKIT_YAML_CANDIDATES
-
-        import yaml as _yaml
 
         cwd = Path.cwd()
         yaml_paths = [cwd / c for c in PACTKIT_YAML_CANDIDATES if (cwd / c).exists()]

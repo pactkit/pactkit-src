@@ -28,3 +28,22 @@
 > Spec: docs/specs/STORY-slim-079.md
 
 - [x] Read tsconfig paths,Resolve alias imports,Wildcard patterns,Tests
+
+### [STORY-slim-082] Sync prompt templates for --mode module and --focus scoping
+> Spec: docs/specs/STORY-slim-082.md
+
+- [x] Update SKILL_VISUALIZE_MD
+- [x] Update Visual First rule
+- [x] Update release snapshot
+- [x] Update init Phase 3
+- [x] Deploy and verify
+
+### [STORY-slim-081] Two-tier module graph with scoped focus for large codebases
+> Spec: docs/specs/STORY-slim-081.md
+
+- [x] R1: _detect_modules boundary detection,R2: _build_module_graph with weighted edges,R3: Auto-degradation when files > MAX_SCAN_FILES,R4: Scoped focus scan (resolve module → directory),R5: .tsx/.jsx regression test,R6: Backward compat for small projects
+
+### [STORY-slim-080] Deep monorepo scanning: nearest-ancestor config discovery for all analyzers
+> Spec: docs/specs/STORY-slim-080.md
+
+- [x] Extend _detect_stacks depth,TS nearest-ancestor tsconfig,Go nearest-ancestor go.mod,Plumb consumer_path,Tests

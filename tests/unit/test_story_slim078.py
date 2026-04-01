@@ -209,25 +209,30 @@ class TestScanFilesAnalyzer:
         mock_a.build_module_keys.assert_called_once()
 
 
-# --- R5: Go module prefix detection (AC5) ---
+# --- R5: Go module prefix detection (AC5, STORY-slim-080: nearest-ancestor) ---
 
 class TestGoModulePrefix:
     def _make(self):
         from pactkit.skills.analyzers.go_analyzer import GoAnalyzer
-        return GoAnalyzer.__new__(GoAnalyzer)
+        go = GoAnalyzer.__new__(GoAnalyzer)
+        go._go_mod_cache = {}
+        return go
 
     def test_read_prefix(self, tmp_path):
         (tmp_path / 'go.mod').write_text('module github.com/slim/phase-smith\n\ngo 1.22\n')
-        assert self._make()._read_go_module_prefix(tmp_path) == 'github.com/slim/phase-smith'
+        prefix, _ = self._make()._find_nearest_go_mod(tmp_path / 'cmd/main.go', tmp_path)
+        assert prefix == 'github.com/slim/phase-smith'
 
     def test_no_go_mod(self, tmp_path):
-        assert self._make()._read_go_module_prefix(tmp_path) is None
+        prefix, _ = self._make()._find_nearest_go_mod(tmp_path / 'main.go', tmp_path)
+        assert prefix is None
 
     def test_subdir_go_mod(self, tmp_path):
         sub = tmp_path / 'backend'
         sub.mkdir()
         (sub / 'go.mod').write_text('module github.com/slim/phase-smith/backend\n')
-        assert self._make()._read_go_module_prefix(sub) == 'github.com/slim/phase-smith/backend'
+        prefix, _ = self._make()._find_nearest_go_mod(tmp_path / 'backend/cmd/main.go', tmp_path)
+        assert prefix == 'github.com/slim/phase-smith/backend'
 
 
 # --- R0: load_script merge ---

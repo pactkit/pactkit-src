@@ -7,49 +7,42 @@ def _make():
     return TSAnalyzer.__new__(TSAnalyzer)
 
 
-# --- R1: _load_tsconfig_paths ---
+# --- R1: _load_tsconfig_paths (STORY-slim-080: now keyed by tsconfig path) ---
 
 class TestLoadTsconfigPaths:
     def test_reads_paths_from_tsconfig(self, tmp_path):
         tsconfig = {"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}
         (tmp_path / 'tsconfig.json').write_text(json.dumps(tsconfig))
-        result = _make()._load_tsconfig_paths(tmp_path)
+        result = _make()._load_tsconfig_paths(tmp_path / 'tsconfig.json', tmp_path)
         assert len(result) >= 1
-        # Should have ("@/", "src/") or similar
         assert any(alias.startswith('@/') for alias, _ in result)
 
     def test_jsconfig_fallback(self, tmp_path):
         jsconfig = {"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}
         (tmp_path / 'jsconfig.json').write_text(json.dumps(jsconfig))
-        result = _make()._load_tsconfig_paths(tmp_path)
+        result = _make()._load_tsconfig_paths(tmp_path / 'jsconfig.json', tmp_path)
         assert len(result) >= 1
-
-    def test_no_tsconfig_returns_empty(self, tmp_path):
-        result = _make()._load_tsconfig_paths(tmp_path)
-        assert result == []
 
     def test_no_paths_returns_empty(self, tmp_path):
         tsconfig = {"compilerOptions": {"target": "ES2017"}}
         (tmp_path / 'tsconfig.json').write_text(json.dumps(tsconfig))
-        result = _make()._load_tsconfig_paths(tmp_path)
+        result = _make()._load_tsconfig_paths(tmp_path / 'tsconfig.json', tmp_path)
         assert result == []
 
-    def test_cached_per_root(self, tmp_path):
+    def test_cached_per_tsconfig(self, tmp_path):
         tsconfig = {"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}
         (tmp_path / 'tsconfig.json').write_text(json.dumps(tsconfig))
         analyzer = _make()
-        r1 = analyzer._load_tsconfig_paths(tmp_path)
-        r2 = analyzer._load_tsconfig_paths(tmp_path)
+        r1 = analyzer._load_tsconfig_paths(tmp_path / 'tsconfig.json', tmp_path)
+        r2 = analyzer._load_tsconfig_paths(tmp_path / 'tsconfig.json', tmp_path)
         assert r1 is r2  # Same object = cached
 
     def test_baseurl_respected(self, tmp_path):
         """AC4: baseUrl changes resolution root."""
         tsconfig = {"compilerOptions": {"baseUrl": ".", "paths": {"@/*": ["./*"]}}}
         (tmp_path / 'tsconfig.json').write_text(json.dumps(tsconfig))
-        result = _make()._load_tsconfig_paths(tmp_path)
-        # With baseUrl='.', '@/*' -> './*' means no 'src/' prefix
+        result = _make()._load_tsconfig_paths(tmp_path / 'tsconfig.json', tmp_path)
         assert any(alias.startswith('@/') for alias, _ in result)
-        # replacement should NOT have src/ prefix
         for alias, repl in result:
             if alias.startswith('@/'):
                 assert not repl.startswith('src/')
@@ -60,19 +53,18 @@ class TestLoadTsconfigPaths:
         frontend.mkdir()
         tsconfig = {"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}
         (frontend / 'tsconfig.json').write_text(json.dumps(tsconfig))
-        result = _make()._load_tsconfig_paths(frontend)
+        result = _make()._load_tsconfig_paths(frontend / 'tsconfig.json', tmp_path)
         assert len(result) >= 1
 
-    def test_monorepo_root_discovers_subdir_tsconfig(self, tmp_path):
-        """AC7 real-world: root is monorepo root, tsconfig in frontend/ subdir."""
+    def test_nearest_ancestor_finds_subdir_tsconfig(self, tmp_path):
+        """AC7 real-world: nearest-ancestor walk finds frontend/tsconfig.json."""
         frontend = tmp_path / 'frontend'
-        frontend.mkdir()
+        (frontend / 'src/app').mkdir(parents=True)
         tsconfig = {"compilerOptions": {"paths": {"@/*": ["./src/*"]}}}
         (frontend / 'tsconfig.json').write_text(json.dumps(tsconfig))
-        # Pass monorepo root, not frontend subdir
-        result = _make()._load_tsconfig_paths(tmp_path)
-        assert len(result) >= 1
-        assert any(alias.startswith('@/') for alias, _ in result)
+        analyzer = _make()
+        found = analyzer._find_nearest_config(tmp_path / 'frontend/src/app/page.ts', tmp_path)
+        assert found == frontend / 'tsconfig.json'
 
 
 # --- R2: normalize_import with aliases ---

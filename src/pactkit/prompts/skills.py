@@ -17,12 +17,12 @@ TOOLS_CONTENT = TOOLS_SOURCE.split("\n")
 # ==============================================================================
 SKILL_VISUALIZE_MD = """---
 name: pactkit-visualize
-description: "Generate project code dependency graph (Mermaid), supporting file-level, class-level, and function-level call chain analysis"
+description: "Generate project code dependency graph (Mermaid), supporting file-level, class-level, function-level, and module-level analysis"
 ---
 
 # PactKit Visualize
 
-Generate project code relationship graphs (Mermaid format), supporting three analysis modes.
+Generate project code relationship graphs (Mermaid format), supporting four analysis modes.
 
 > **Script location**: Use the base directory from the skill invocation header to resolve script paths.
 
@@ -34,7 +34,7 @@ Generate project code relationship graphs (Mermaid format), supporting three ana
 
 ### visualize -- Generate code dependency graph
 ```
-{VISUALIZE_CMD} visualize [--mode file|class|call] [--entry <func>] [--focus <module>]
+{VISUALIZE_CMD} visualize [--mode file|class|call|module] [--entry <func>] [--focus <module>]
 ```
 
 | Parameter | Description | Default |
@@ -42,8 +42,9 @@ Generate project code relationship graphs (Mermaid format), supporting three ana
 | `--mode file` | File-level dependency graph (inter-module import relationships) | Default |
 | `--mode class` | Class diagram (including inheritance) | - |
 | `--mode call` | Function-level call graph | - |
+| `--mode module` | Module-level dependency graph with weighted cross-module edges | - |
 | `--entry <func>` | BFS transitive chain tracing from specified function (requires `--mode call`) | - |
-| `--focus <module>` | Focus on call relationships of specified module (requires `--mode call`) | - |
+| `--focus <module>` | Scope scan to a specific module directory (works with file, class, call modes) | - |
 
 ### init_arch -- Initialize architecture directory
 ```
@@ -65,6 +66,7 @@ Generate project code relationship graphs (Mermaid format), supporting three ana
 | `--mode file` | `docs/architecture/graphs/code_graph.mmd` | graph TD |
 | `--mode class` | `docs/architecture/graphs/class_graph.mmd` | classDiagram |
 | `--mode call` | `docs/architecture/graphs/call_graph.mmd` | graph TD |
+| `--mode module` | `docs/architecture/graphs/module_graph.mmd` | graph TD |
 | `--focus` (file) | `docs/architecture/graphs/focus_file_graph.mmd` | graph TD |
 | `--focus` (class) | `docs/architecture/graphs/focus_class_graph.mmd` | classDiagram |
 | `--focus` (call) | `docs/architecture/graphs/focus_call_graph.mmd` | graph TD |
@@ -584,7 +586,7 @@ Version release management — update versions, snapshot architecture, create Gi
 - Backfill Specs: run `pactkit backfill-release $VERSION` to replace `Release: TBD` in completed specs.
 
 ### 2. Architecture Snapshot
-- Run `visualize` (all three modes: file, class, call).
+- Run `visualize` (all four modes: file, class, call, module).
 - Run `snapshot "$VERSION"` via pactkit-board skill.
 - Result: graphs saved to `docs/architecture/snapshots/{version}_*.mmd`.
 

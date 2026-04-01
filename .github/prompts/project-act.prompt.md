@@ -1,21 +1,97 @@
-from pactkit import __version__
+---
+mode: agent
+description: "Implement code per Spec, strict TDD"
+---
 
-RULES_MODULES = {
-    "core": """# Core Protocol
+# Command: Act (v1.3.0 Stack-Aware)
+- **Usage**: `/project-act $ARGUMENTS`
+- **Agent**: Senior Developer
+
+## 🧠 Phase 0: The Thinking Process
+> **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan all implementation steps in your head before producing output.
+1.  **Read Law**: Read the Spec (`docs/specs/`) carefully.
+2.  **RFC Gate (Feasibility Check)**: If you identify a requirement in the Spec that is technically infeasible, contradictory, or would require violating a security/architectural constraint, invoke the **RFC Protocol**:
+    - **STOP** implementation immediately. Do NOT write any code.
+    - **Report** to the user: (a) quote the exact problematic requirement from the Spec, (b) explain why it is infeasible (technical reasoning), (c) suggest an alternative approach.
+    - You MUST NOT modify the Spec unilaterally — only the user (or Architect via a new `/project-plan` cycle) may amend Tier 1.
+    - Wait for user guidance before proceeding.
+3.  **Locate Target**: Which file/function needs surgery?
+4.  **Detect Stack & Select Stack Reference**: Identify the project type from source files (`.py`, `.ts`/`.tsx`, `.go`, `.java`). Apply the corresponding language-specific best practices throughout implementation and testing.
+5.  **Memory MCP (Conditional)**: IF Memory MCP is available, use search_nodes to load prior context for {STORY_ID} — retrieve architectural decisions and design rationale from the Plan phase.
+
+## 🛡️ Phase 0.5: Spec Lint Gate (MUST)
+> **PURPOSE**: Non-AI structural validation — ensures "Spec is Law" has physical enforcement before any code is written.
+1.  **Run Linter**: Execute the Spec Linter on the current Story's spec:
+    ```bash
+    python3 .github/skills/pactkit-scaffold/scripts/spec_linter.py docs/specs/{STORY_ID}.md
+    ```
+    Replace `{STORY_ID}` with the actual Story ID from `$ARGUMENTS` (e.g., `STORY-042`).
+2.  **If ERRORs found**: **STOP**. Output all ERROR and WARN items. Instruct the user:
+    > "Spec Lint failed. Fix the issues above in `docs/specs/{STORY_ID}.md`, then re-run `/project-act`."
+    Do NOT proceed to Phase 1.
+3.  **If WARNs only**: Output the WARN list, then **continue** to Phase 1.
+4.  **If all pass**: Continue silently to Phase 1.
+
+## 📊 Phase 0.6: Consistency Check (Lightweight)
+> **PURPOSE**: Quick pre-flight to verify artifacts exist. Full alignment analysis is deferred to `/project-check` (normal workflow).
+> **NON-BLOCKING**: This phase NEVER stops Act.
+1.  **Spec exists?**: Check if `docs/specs/{STORY_ID}.md` exists. If not: WARN "Spec not found".
+2.  **Board entry exists?**: Check if `{STORY_ID}` appears in `docs/product/sprint_board.md`. If not: WARN "Board entry not found".
+3.  **Move to In Progress**: If `{STORY_ID}` is found on the board, move it to In Progress section.
+4.  **Continue**: Regardless of findings, proceed to Phase 1.
+
+## 🎬 Phase 1: Precision Targeting
+1.  **Targeted Visual Scan**: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
+2.  **Trace Verification** — use pactkit-trace skill:
+    - Before touching any code, confirm the call site and ensure you don't break existing callers.
+3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
+    - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
+    - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
+
+## 🎬 Phase 2: Test Scaffolding (TDD)
+1.  **Constraint**: DO NOT write source code yet.
+2.  **Action**: Create a reproduction test case in `tests/unit/`.
+    - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
+
+## 🎬 Phase 3: Implementation
+1.  **Write Code**: Implement logic in the appropriate source directory.
+    - **Context7 (Conditional)**: IF implementing with an unfamiliar library API, use Context7 MCP to fetch up-to-date documentation before writing code.
+2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2. Loop until GREEN.
+    - Do NOT include pre-existing tests in this loop.
+    - **Iteration Cap**: Maximum **5 iterations**. If exceeded, **STOP** and report.
+    - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
+      - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
+      - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
+3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
+    - Run the project test suite (e.g., `pytest tests/ -q` for Python, `npm test` for Node) (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
+    - If IMPACT: run `pactkit test-map <changed-files>` (run from terminal) for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
+    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
+4.  **Lint Gate**: Run the project linter (e.g., `ruff check src/ tests/` for Python, `npm run lint` for Node) to check code style. If lint errors are found, fix them before proceeding. If run the project linter is unavailable, run the stack's lint command directly.
+
+## 🎬 Phase 4: Sync & Document
+1.  Run language-specific cleanup (e.g., `find . -name '__pycache__' -exec rm -rf {} +` for Python) and run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` (file, `--mode class`, `--mode call` if source changed) (runs file, `--mode class`, `--mode call` if source changed).
+2.  **Update Board (CRITICAL)**: Run `python3 .github/skills/pactkit-board/scripts/board.py update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
+3.  **Update Continuation State**: Run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` from the terminal to record the agent's stopping point for session handoff.
+
+
+---
+
+## Rules Reference
+
+# Core Protocol
 
 ## Session Context
-On new session, run `pactkit update --if-needed` to sync project files if PactKit was upgraded.
-If `pactkit.yaml` does not exist (check `{PROJECT_CONFIG_DIR}/`), run `pactkit init` to create it before proceeding.
+On new session, check `.github/pactkit.yaml` exists. If not, run `pactkit init --format copilot` from the terminal.
+If `.github/pactkit.yaml` does not exist (check `.github/`), run `pactkit init --format copilot` from the terminal to create it before proceeding.
 Then read `docs/product/context.md` to understand project state before taking action.
 If the file is missing, suggest `/project-init` to bootstrap the project.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## Visual First
 Before modifying code:
-- Run `visualize` to view file dependency graph
-- Run `visualize --mode class` for class inheritance
-- Run `visualize --mode call --entry <func>` to trace call chains
-- Run `visualize --mode module` for module-level architectural overview
+- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to view module dependency graph
+- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode class` for class inheritance
+- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode call --entry <func>` to trace call chains
 - **PDCA Exemption**: When a PDCA command is active, the command's own visualize phases take precedence — skip Visual First.
 
 ## Strict TDD
@@ -27,18 +103,38 @@ Before modifying code:
 - Match the user's language (Chinese→Chinese, English→English).
 - Technical terms (function names, file paths, git commands) stay in original form.
 
-## Subagent Model Selection
-Select `model` based on task complexity:
 
-| Model | When to Use |
-|-------|-------------|
-| **haiku** | File search, format checks, info extraction |
-| **sonnet** | Code implementation, test writing, general tasks (default) |
-| **opus** | Architecture decisions, deep reasoning, multi-step planning |
+# Sectional Write Protocol
 
-**Cost**: haiku ~10x cheaper than sonnet, sonnet ~5x cheaper than opus.
-""",
-    "hierarchy": """# The Hierarchy of Truth
+## Rule
+When generating **any file** (code, document, test, HTML, etc.) that will exceed **300 lines**:
+
+1. **Write skeleton first**: Create the file with the structural framework (imports, class/function signatures, section headings) via a single Write call
+2. **Edit block-by-block**: Fill in one logical block at a time, using Edit after each block before starting the next
+3. **Checkpoint between blocks**: After each Edit, print a brief progress message (e.g., "Block 2/5 written.")
+4. **Never accumulate**: Do NOT compose the entire file in reasoning before writing — write as you go
+
+## Applies To — any file type over 300 lines
+- Documents: PRD, specs, README, architecture guides
+- Source code: large modules, multi-endpoint API files, data models
+- Tests: test files with many test classes or scenarios
+- HTML/templates: prototypes, page templates
+
+## Does NOT Apply To
+- Short files (< 300 lines): single Write is fine
+- Small config files (YAML, JSON, TOML)
+
+## Anti-Pattern (DO NOT)
+```
+Compose entire file in head → one Write call at the end
+```
+
+## Correct Pattern
+```
+Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint → ...
+```
+
+# The Hierarchy of Truth
 > **CRITICAL**: Code is NOT the law.
 1.  **Tier 1**: **Specs** (`docs/specs/*.md`) & **Test Cases** (`docs/test_cases/*.md`).
 2.  **Tier 2**: **Tests** (The verification of the law).
@@ -64,8 +160,8 @@ Select `model` based on task complexity:
 - Before modifying tests, you must first read the corresponding Test Case (`docs/test_cases/`)
 - When unsure whether a Spec exists, use `Glob` to search `docs/specs/*.md` (covers STORY-*, HOTFIX-*, BUG-* prefixes)
 - **Exemption**: `/project-plan` and `/project-design` create new Specs — they are exempt from "read Spec before modifying code" since the Spec does not yet exist.
-""",
-    "atlas": """# File Atlas
+
+# File Atlas
 
 | Path | Purpose |
 |------|---------|
@@ -78,120 +174,8 @@ Select `model` based on task complexity:
 | `tests/e2e/` | E2E Integration Tests |
 | `docs/product/archive/` | Archived Stories |
 | `docs/product/prd.md` | Product Requirements Document (PRD) |
-""",
-    "workflow": """# Workflow Conventions
 
-## Git Commit (Conventional Commit)
-Format: `type(scope): description`
-
-| Type | Purpose |
-|------|---------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation change |
-| `chore` | Build/tooling/dependency |
-| `refactor` | Refactoring (no behavior change) |
-| `test` | Add or modify tests |
-
-- Infer scope from the modified module/directory (e.g. `board`, `auth`, `ui`)
-- Description in English, concisely describing "why"
-- All tests in the project's test suite must pass before committing
-
-## Branch Naming
-- Feature branch: `feature/STORY-{ID}-short-desc`
-- Hotfix branch: `fix/HOTFIX-{ID}-short-desc`
-- Bug fix branch: `fix/BUG-{ID}-short-desc`
-- Main branch: `main` / `master` (no direct push)
-- Development branch: `develop`
-
-## PR Conventions
-- Title: `feat(scope): short description` (consistent with commit)
-- Body: Summary + Test Plan
-- Must pass CI and Code Review before merging
-""",
-    "routing": """# Command Reference (Routing Table)
-
-## Commands (11 user-facing entry points)
-
-### Init (`/project-init`)
-- **Role**: System Architect
-- **Playbook**: `commands/project-init.md`
-- **When NOT to use**: Project already has `pactkit.yaml` and `docs/product/sprint_board.md`. Use `pactkit update` instead to sync after upgrades.
-
-### Plan (`/project-plan`)
-- **Role**: System Architect
-- **Playbook**: `commands/project-plan.md`
-- **When NOT to use**: Greenfield with no existing code — use `/project-design` first. For typos/config fixes — use `/project-hotfix` (no Spec needed).
-
-### Clarify (`/project-clarify`)
-- **Role**: System Architect
-- **Playbook**: `commands/project-clarify.md`
-- **When NOT to use**: Requirements are already clear and specific. Plan Phase 0.7 auto-triggers Clarify when ambiguity is detected — no need to invoke manually unless you want to force it.
-
-### Act (`/project-act`)
-- **Role**: Senior Developer
-- **Playbook**: `commands/project-act.md`
-- **When NOT to use**: No Spec exists yet — use `/project-plan` first. For typos/config/style fixes — use `/project-hotfix` (skips TDD overhead).
-
-### Check (`/project-check`)
-- **Role**: QA Engineer
-- **Playbook**: `commands/project-check.md`
-- **Responsibility**: Security Scan, Test Case Generation, API vs Browser.
-- **When NOT to use**: Just want to run tests — use `pytest` directly. Act Phase 3 already runs regression; Check is for dedicated QA after implementation is complete.
-
-### Done (`/project-done`)
-- **Role**: Repo Maintainer
-- **Playbook**: `commands/project-done.md`
-- **When NOT to use**: Code is not yet implemented — use `/project-act` first. For version releases — use `/project-release` (Done archives stories; Release tags versions).
-
-### Release (`/project-release`)
-- **Role**: Repo Maintainer
-- **Playbook**: `commands/project-release.md`
-- **Goal**: Version release: snapshot, archive, and Git tag.
-- **When NOT to use**: Just finishing a story — use `/project-done` (archive + commit). Release is for version milestones with changelog, tag, and PyPI publish.
-
-### PR (`/project-pr`)
-- **Role**: Repo Maintainer
-- **Playbook**: `commands/project-pr.md`
-- **Goal**: Push branch and create pull request via gh CLI.
-- **When NOT to use**: Working on main branch directly (sole developer). PR is for branch-based collaboration workflows.
-
-### Sprint (`/project-sprint`)
-- **Role**: Team Lead (Orchestrator)
-- **Playbook**: `commands/project-sprint.md`
-- **Goal**: Automated PDCA Sprint orchestration via Subagent Team.
-- **When NOT to use**: Single story to implement — use `/project-act` directly. Sprint orchestrates multiple stories via subagent team; overkill for one story.
-
-### Hotfix (`/project-hotfix`)
-- **Role**: Senior Developer
-- **Playbook**: `commands/project-hotfix.md`
-- **Goal**: Lightweight fast-fix channel that bypasses PDCA.
-- **When NOT to use**: Change requires design decisions or has multiple requirements — use `/project-plan` + `/project-act` for full PDCA traceability.
-
-### Design (`/project-design`)
-- **Role**: Product Designer
-- **Playbook**: `commands/project-design.md`
-- **Goal**: Greenfield product design: PRD generation, story decomposition, board setup.
-- **When NOT to use**: Adding a feature to an existing project — use `/project-plan` (single story). Design is for greenfield products or major multi-story initiatives.
-
-## Embedded Skills (auto-invoked by commands above)
-
-| Skill | Embedded In | Purpose |
-|-------|-------------|---------|
-| `pactkit-trace` | Plan Phase 1, Act Phase 1 | Deep code tracing and execution flow analysis |
-| `pactkit-release` | Release Phase 1 (snapshot/archive) | Version release: snapshot, archive, Tag |
-
-## Agent Skills (invoked via agent roles, not by commands)
-
-| Skill | Available To | Purpose |
-|-------|-------------|---------|
-| `pactkit-draw` | visual-architect, system-architect agents | Generate Draw.io XML architecture diagrams |
-| `pactkit-status` | system-medic agent | Project state overview |
-| `pactkit-doctor` | system-medic agent | Diagnose project health |
-| `pactkit-review` | qa-engineer agent | PR Code Review |
-| `pactkit-analyze` | senior-developer (Act Phase 0.6 inline) | Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases |
-""",
-    "mcp": """# MCP Integration (Conditional)
+# MCP Integration (Conditional)
 > **PRINCIPLE**: All MCP instructions are conditional. If an MCP server is not available, skip the instruction gracefully.
 
 ## Available MCP Servers
@@ -246,8 +230,8 @@ Format: `type(scope): description`
 | **Check** | Playwright MCP | If `mcp__playwright__*` tools are available |
 | **Check** | Chrome DevTools | If `mcp__chrome-devtools__*` tools are available |
 | **Done** | Memory | If `mcp__memory__*` tools are available |
-""",
-    "shared": """# Shared Protocols
+
+# Shared Protocols
 
 ## Lazy Visualize Protocol
 > Referenced by: Act Phase 4, Done Phase 2
@@ -285,8 +269,8 @@ Write `docs/product/context.md` using this format:
 ## Next Recommended Action
 {If In Progress: `/project-act STORY-XXX` | If Backlog only: `/project-plan` | If empty: `/project-design`}
 ```
-""",
-    "architecture": """# Architecture Principles
+
+# Architecture Principles
 
 > Derived from SOLID, DRY, 12-Factor App, and Defense-in-Depth practices.
 > Violations of MUST rules are treated as bugs. SHOULD rules are advisory.
@@ -312,15 +296,15 @@ Write `docs/product/context.md` using this format:
 ## 3. Dependency Inversion (DIP)
 - Prompt templates MUST NOT contain hardcoded environment-specific paths.
 - Pattern: use named placeholders (`{SKILLS_ROOT}`, `{BOARD_CMD}`, `{PACTKIT_YAML}`) resolved at deploy time by `_render_prompt(template, profile)`.
-- Functions MUST accept a `profile: FormatProfile` parameter instead of format-specific booleans (`opencode_format=True`) or manual path strings (`skills_prefix="~/.config/opencode/skills"`).
+- Functions MUST accept a `profile: FormatProfile` parameter instead of format-specific booleans (`opencode_format=True`) or manual path strings (`skills_prefix=".github/skills"`).
 
 ## 4. Liskov Substitution (LSP) — Deploy Chain Parity
 - All deployer classes (ClassicDeployer, OpenCodeDeployer, etc.) MUST support the same user-facing feature set:
-  - Selective deployment (read `pactkit.yaml`)
+  - Selective deployment (read `.github/pactkit.yaml`)
   - Auto-merge on upgrade (`auto_merge_config_file`)
   - Legacy cleanup (`_cleanup_legacy`)
   - Project-level instructions file generation
-- Format-specific features (e.g., hooks for Claude Code, opencode.json for OpenCode) are extensions, not omissions.
+- Format-specific features (e.g., hooks for GitHub Copilot, opencode.json for OpenCode) are extensions, not omissions.
 
 ## 5. Interface Segregation (ISP)
 - Each `FormatProfile` exposes only the fields relevant to that format:
@@ -358,115 +342,8 @@ Write `docs/product/context.md` using this format:
 | New template variable | `deployer.py` → `_render_prompt()` var_map | All deployed prompts |
 | New spec rule | `schemas.py` + `spec_linter.py` | scaffold, playbooks |
 | New prompt placeholder | `profiles.py` (if env-specific) or `schemas.py` (if doc-specific) | `_render_prompt()` |
-""",
-    "sectional": """# Sectional Write Protocol
 
-## Rule
-When generating **any file** (code, document, test, HTML, etc.) that will exceed **300 lines**:
+### Credential Safety
 
-1. **Write skeleton first**: Create the file with the structural framework (imports, class/function signatures, section headings) via a single Write call
-2. **Edit block-by-block**: Fill in one logical block at a time, using Edit after each block before starting the next
-3. **Checkpoint between blocks**: After each Edit, print a brief progress message (e.g., "Block 2/5 written.")
-4. **Never accumulate**: Do NOT compose the entire file in reasoning before writing — write as you go
-
-## Applies To — any file type over 300 lines
-- Documents: PRD, specs, README, architecture guides
-- Source code: large modules, multi-endpoint API files, data models
-- Tests: test files with many test classes or scenarios
-- HTML/templates: prototypes, page templates
-
-## Does NOT Apply To
-- Short files (< 300 lines): single Write is fine
-- Small config files (YAML, JSON, TOML)
-
-## Anti-Pattern (DO NOT)
-```
-Compose entire file in head → one Write call at the end
-```
-
-## Correct Pattern
-```
-Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint → ...
-```
-""",
-}
-
-# STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
-#
-# RULES_CORE_FILES: PactKit-managed rules injected every turn via instructions.
-#   Only PactKit-deployed files here — user files (10-*) NOT included.
-#
-# RULES_ONDEMAND_FILES: PactKit-managed files referenced via @rules/ in AGENTS.md.
-#
-# RULES_INSTRUCTIONS_CORE: ALL files that go into opencode.json instructions
-#   (superset of RULES_CORE_FILES — includes user-managed safety rules).
-RULES_CORE_FILES = {
-    "core": "01-core-protocol.md",  # Session context, visual-first, TDD — every task
-    "hierarchy": "02-hierarchy-of-truth.md",  # Spec-is-Law — every PDCA task
-    "sectional": "09-sectional-write.md",  # Large doc safety — every task
-}
-
-RULES_ONDEMAND_FILES = {
-    "atlas": "03-file-atlas.md",
-    "routing": "04-routing-table.md",
-    "workflow": "05-workflow-conventions.md",
-    "mcp": "06-mcp-integration.md",
-    "shared": "07-shared-protocols.md",
-    "architecture": "08-architecture-principles.md",
-}
-
-# Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
-RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
-
-# Files to inject into opencode.json instructions (always-load layer)
-# Includes user-managed safety rules (09-credential-safety) even though PactKit
-# doesn't deploy their content — they are written by the user or by separate tools.
-# SEC-1: credential safety must ALWAYS be in context.
-RULES_INSTRUCTIONS_CORE = [
-    "rules/01-core-protocol.md",
-    "rules/02-hierarchy-of-truth.md",
-    "rules/09-credential-safety.md",  # user-managed but security-critical
-]
-
-# User-managed credential safety rule (not in RULES_MODULES, but always required)
-# SEC-1: This file must be injected into every command regardless of config.
-CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
-
-# STORY-slim-011: Command → Rules mapping
-# Each command loads only the rules it needs, reducing token waste.
-# "credential" is a special key referencing CREDENTIAL_SAFETY_FILE (user-managed).
-# Keys: core=01, hierarchy=02, atlas=03, routing=04, workflow=05,
-#        mcp=06, shared=07, architecture=08, credential=09
-COMMAND_RULES_MAP = {
-    "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
-    "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
-    "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
-    "project-release": ["core", "workflow", "credential"],
-    "project-pr": ["core", "workflow", "credential"],
-    "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "sectional", "atlas", "mcp", "architecture", "credential"],
-    "project-sprint": [
-        "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
-        "mcp", "shared", "architecture", "credential",
-    ],
-}
-
-# Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-"]
-
-# CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
-# Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)
-# OpenCode uses split strategy: core via instructions, ondemand via AGENTS.md @refs (STORY-slim-009)
-_claude_rules_imports = "\n".join(f"@~/.claude/rules/{filename}" for filename in sorted(RULES_FILES.values()))
-CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
-
-{_claude_rules_imports}
-
-@./docs/product/context.md
-"""
-
-# Backward-compatible: combine all modules for anything that still reads this
-CONSTITUTION_EXPERT = CLAUDE_MD_TEMPLATE
+NEVER print passwords, keys, or tokens to stdout.
+NEVER commit secrets to version control.

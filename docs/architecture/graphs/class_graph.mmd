@@ -98,7 +98,7 @@ classDiagram
         +extract_classes(file_path, root)
         +build_module_keys(rel_path, root)
         +normalize_import(import_str, consumer_path, root)
-        -_read_go_module_prefix(root)
+        -_find_nearest_go_mod(file_path, root)
     }
     TreeSitterAnalyzer <|-- GoAnalyzer
     class TSAnalyzer {
@@ -112,7 +112,9 @@ classDiagram
         +extract_classes(file_path, root)
         +build_module_keys(rel_path, root)
         +normalize_import(import_str, consumer_path, root)
-        -_load_tsconfig_paths(root)
+        -_load_tsconfig_paths_for(consumer_path, root)
+        -_find_nearest_config(file_path, root)
+        -_load_tsconfig_paths(tsconfig_path, root)
     }
     TreeSitterAnalyzer <|-- TSAnalyzer
     class LanguageAnalyzer {

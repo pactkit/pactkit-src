@@ -1,14 +1,16 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-04-01T20:50:44+08:00 by pactkit context
+> Last updated: 2026-04-01T22:14:43+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 1 | In Progress: 0 | Done: 3 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- STORY-slim-082: Sync prompt templates for --mode module and --focus scoping
+- STORY-slim-081: Two-tier module graph with scoped focus for large codebases
+- STORY-slim-080: Deep monorepo scanning: nearest-ancestor config discovery for all analyzers
 
 ## Active Branches
 codex-integration
@@ -37,7 +39,7 @@ codex-integration
 - TSAnalyzer._load_tsconfig_paths must search depth-1 subdirs like _detect_stacks does because visualize.py always passes monorepo root as root param, not stack subdir — tsconfig in frontend/ is invisible if only root is searched
 
 ## Next Recommended Action
-`/project-design`
+`/project-plan`
 
 ## Agent Continuation
 No active work session.

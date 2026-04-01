@@ -250,8 +250,8 @@ class TSAnalyzer(TreeSitterAnalyzer):
                     result.append(p)
             return '/'.join(result)
 
-        # STORY-slim-079: Try tsconfig path alias resolution
-        aliases = self._load_tsconfig_paths(root)
+        # STORY-slim-079/080: Try tsconfig path alias resolution (nearest-ancestor)
+        aliases = self._load_tsconfig_paths_for(consumer_path, root)
         for alias_prefix, replacement_prefix in aliases:
             if '*' in alias_prefix:
                 # Wildcard: "@/*" matches "@/anything"
@@ -267,45 +267,62 @@ class TSAnalyzer(TreeSitterAnalyzer):
         # No alias match — bare module (react, @supabase/ssr)
         return None
 
-    # --- STORY-slim-079: tsconfig path alias loading ---
+    # --- STORY-slim-079/080: tsconfig path alias loading (nearest-ancestor) ---
 
-    def _load_tsconfig_paths(self, root):
-        """Read tsconfig.json/jsconfig.json compilerOptions.paths. Cached per root."""
+    def _load_tsconfig_paths_for(self, consumer_path, root):
+        """Find nearest tsconfig.json/jsconfig.json by walking up from consumer_path to root."""
+        tsconfig_path = self._find_nearest_config(consumer_path, root)
+        if tsconfig_path is None:
+            return []
+        return self._load_tsconfig_paths(tsconfig_path, root)
+
+    def _find_nearest_config(self, file_path, root):
+        """Walk from file_path's parent up to root, looking for tsconfig/jsconfig."""
+        if not hasattr(self, '_ancestor_cache'):
+            self._ancestor_cache = {}
+        cache_key = str(file_path)
+        if cache_key in self._ancestor_cache:
+            return self._ancestor_cache[cache_key]
+
+        root_resolved = root.resolve()
+        current = file_path.parent
+        result = None
+        while True:
+            for name in ('tsconfig.json', 'jsconfig.json'):
+                candidate = current / name
+                if candidate.exists():
+                    result = candidate
+                    break
+            if result is not None:
+                break
+            # Stop at root (inclusive — root itself is checked above)
+            try:
+                if current.resolve() == root_resolved or current == current.parent:
+                    break
+            except (OSError, ValueError):
+                break
+            current = current.parent
+
+        self._ancestor_cache[cache_key] = result
+        return result
+
+    def _load_tsconfig_paths(self, tsconfig_path, root):
+        """Parse tsconfig compilerOptions.paths. Cached per tsconfig file path."""
         if not hasattr(self, '_tsconfig_cache'):
             self._tsconfig_cache = {}
-        root_str = str(root)
-        if root_str in self._tsconfig_cache:
-            return self._tsconfig_cache[root_str]
+        cache_key = str(tsconfig_path)
+        if cache_key in self._tsconfig_cache:
+            return self._tsconfig_cache[cache_key]
 
         import json as _json
 
         result = []
-        tsconfig_path = None
-        # Search root first, then depth-1 subdirectories (monorepo support per R1)
-        search_dirs = [root]
-        try:
-            search_dirs += [p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')]
-        except OSError:
-            pass
-        for search_dir in search_dirs:
-            for name in ('tsconfig.json', 'jsconfig.json'):
-                candidate = search_dir / name
-                if candidate.exists():
-                    tsconfig_path = candidate
-                    break
-            if tsconfig_path is not None:
-                break
-
-        if tsconfig_path is None:
-            self._tsconfig_cache[root_str] = result
-            return result
-
         try:
             data = _json.loads(tsconfig_path.read_text(encoding='utf-8'))
             compiler_opts = data.get('compilerOptions', {})
             paths = compiler_opts.get('paths')
             if not paths:
-                self._tsconfig_cache[root_str] = result
+                self._tsconfig_cache[cache_key] = result
                 return result
 
             # Determine base directory for path resolution
@@ -335,5 +352,5 @@ class TSAnalyzer(TreeSitterAnalyzer):
         except (OSError, ValueError, KeyError):
             pass
 
-        self._tsconfig_cache[root_str] = result
+        self._tsconfig_cache[cache_key] = result
         return result
