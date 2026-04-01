@@ -2,7 +2,7 @@
 # All agents, commands, skills, and rules are deployed by default.
 # To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).
 
-version: 2.9.7
+version: 2.9.9
 stack: python
 root: .
 developer: "slim"

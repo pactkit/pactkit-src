@@ -4,7 +4,7 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [2.9.7] - 2026-04-01
+## [2.9.9] - 2026-04-01
 
 ### Added
 - **GitHub Copilot adapter support** — New `copilot` FormatProfile in `profiles.py`. `pactkit init --format copilot` deploys to project `.github/` directory.
