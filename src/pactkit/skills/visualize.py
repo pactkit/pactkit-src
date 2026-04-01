@@ -198,7 +198,9 @@ def _detect_stacks(root):
     Returns a list of stack names (deduplicated, order follows _STACK_MARKERS).
 
     Priority:
-    1. pactkit.yaml 'stack' field (if not 'auto' and known in _LANG_FILE_EXT) → single-element list
+    1. pactkit.yaml 'stack' field:
+       - list (e.g. [go, node]) → return validated list directly
+       - single string (if not 'auto' and known) → single-element list
     2. Marker-file detection via _STACK_MARKERS (collects ALL matches)
     3. Default: ['python']
     """
@@ -216,7 +218,11 @@ def _detect_stacks(root):
                 data = _yaml.safe_load(path.read_text(encoding='utf-8'))
                 if isinstance(data, dict):
                     stack = data.get('stack', 'auto')
-                    if stack and stack != 'auto' and stack in _LANG_FILE_EXT:
+                    if isinstance(stack, list):
+                        valid = [s for s in stack if s in _LANG_FILE_EXT]
+                        if valid:
+                            return valid
+                    elif stack and stack != 'auto' and stack in _LANG_FILE_EXT:
                         return [stack]
             except ImportError:
                 print(f"⚠️ Warning: pyyaml not installed, cannot read {path}", file=_sys.stderr)

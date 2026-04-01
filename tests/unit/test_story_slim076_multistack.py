@@ -304,6 +304,31 @@ class TestAC10YamlOverride:
         assert 'go' in stacks
         assert 'node' in stacks
 
+    def test_stack_list_syntax(self, tmp_path):
+        """stack: [go, node] in pactkit.yaml returns exactly those stacks."""
+        from pactkit.skills.visualize import _detect_stacks
+        config_dir = tmp_path / '.claude'
+        config_dir.mkdir(parents=True)
+        (config_dir / 'pactkit.yaml').write_text('stack:\n  - go\n  - node\n')
+        assert _detect_stacks(tmp_path) == ['go', 'node']
+
+    def test_stack_list_filters_invalid(self, tmp_path):
+        """Invalid stacks in list are filtered out."""
+        from pactkit.skills.visualize import _detect_stacks
+        config_dir = tmp_path / '.claude'
+        config_dir.mkdir(parents=True)
+        (config_dir / 'pactkit.yaml').write_text('stack:\n  - go\n  - rust\n')
+        assert _detect_stacks(tmp_path) == ['go']
+
+    def test_stack_list_all_invalid_falls_through(self, tmp_path):
+        """If all stacks in list are invalid, fall through to marker detection."""
+        from pactkit.skills.visualize import _detect_stacks
+        config_dir = tmp_path / '.claude'
+        config_dir.mkdir(parents=True)
+        (config_dir / 'pactkit.yaml').write_text('stack:\n  - rust\n  - cpp\n')
+        _make_marker(tmp_path, 'go.mod')
+        assert _detect_stacks(tmp_path) == ['go']
+
 
 # ── R4: _build_class_graph accepts analyzer ─────────────────────────────
 
