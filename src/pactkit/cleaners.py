@@ -27,16 +27,27 @@ _STACK_MARKERS: list[tuple[str, str]] = [
 ]
 
 
-def detect_stack(project_root: Path) -> str:
-    """Detect project stack from marker files.
+def detect_stacks(project_root: Path) -> list[str]:
+    """Detect all project stacks from marker files.
 
-    Returns stack name ('python', 'node', 'go', 'java').
-    Defaults to 'python' if no markers found.
+    Returns deduplicated list of stack names in _STACK_MARKERS order.
+    Defaults to ['python'] if no markers found.
     """
+    seen: set[str] = set()
+    stacks: list[str] = []
     for marker_file, stack in _STACK_MARKERS:
-        if (project_root / marker_file).exists():
-            return stack
-    return "python"
+        if (project_root / marker_file).exists() and stack not in seen:
+            seen.add(stack)
+            stacks.append(stack)
+    return stacks if stacks else ["python"]
+
+
+def detect_stack(project_root: Path) -> str:
+    """Detect primary project stack from marker files.
+
+    Backward-compatible wrapper — returns the first detected stack.
+    """
+    return detect_stacks(project_root)[0]
 
 
 def clean_artifacts(

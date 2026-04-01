@@ -1196,9 +1196,13 @@ def _generate_config_if_missing(format: str | None = None):
     if find_pactkit_yaml() is not None:
         return
 
+    # STORY-slim-076: Auto-detect stacks for new projects
+    from pactkit.cleaners import detect_stacks
+    stacks = detect_stacks(Path.cwd())
+
     yaml_path = resolve_pactkit_yaml_dir(format=format)
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write(yaml_path, generate_default_yaml())
+    atomic_write(yaml_path, generate_default_yaml(stack=stacks))
 
 
 _VENV_BLOCK_START = "<!-- pactkit:venv:start -->"

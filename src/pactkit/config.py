@@ -519,6 +519,16 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     return added
 
 
+def _render_stack_line(stack) -> str:
+    """Render the stack field as a YAML line (supports string or list)."""
+    if isinstance(stack, list):
+        if len(stack) == 1:
+            return f"stack: {stack[0]}"
+        items = "\n".join(f"  - {s}" for s in stack)
+        return f"stack:\n{items}"
+    return f"stack: {stack}"
+
+
 def _rewrite_yaml(path: Path, data: dict) -> None:
     """Rewrite pactkit.yaml preserving the standard section layout.
 
@@ -557,7 +567,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         "# Remove items from a list to disable them. Default: all enabled.",
         "",
         f'version: "{__version__}"',
-        f"stack: {data.get('stack', 'auto')}",
+        _render_stack_line(data.get('stack', 'auto')),
         f"root: {data.get('root', '.')}",
         f'developer: "{data.get("developer", "")}"',
         "",
@@ -776,9 +786,13 @@ _REGISTRY = {
 
 def validate_config(config: dict) -> None:
     """Warn (never raise) about unknown component names or invalid values."""
-    # Validate stack
+    # Validate stack (string or list of strings)
     stack = config.get("stack", "auto")
-    if stack not in VALID_STACKS:
+    if isinstance(stack, list):
+        for s in stack:
+            if s not in VALID_STACKS or s == "auto":
+                warnings.warn(f"Unknown stack in list: {s}. Valid: {', '.join(sorted(VALID_STACKS - {'auto'}))}")
+    elif stack not in VALID_STACKS:
         warnings.warn(f"Unknown stack: {stack}. Valid: {', '.join(sorted(VALID_STACKS))}")
 
     # Validate component lists
@@ -948,16 +962,26 @@ def validate_config(config: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def generate_default_yaml() -> str:
-    """Return the default config as a commented YAML string."""
+def generate_default_yaml(stack=None) -> str:
+    """Return the default config as a commented YAML string.
+
+    Args:
+        stack: Override stack value. If list with 1 element, unwraps to string.
+               If None, uses default 'auto'.
+    """
     cfg = get_default_config()
+    if stack is not None:
+        # Single-element list → unwrap to string for cleaner YAML
+        if isinstance(stack, list) and len(stack) == 1:
+            stack = stack[0]
+        cfg["stack"] = stack
     lines = [
         "# PactKit Configuration",
         "# All agents, commands, skills, and rules are deployed by default.",
         "# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).",
         "",
         f'version: "{cfg["version"]}"',
-        f"stack: {cfg['stack']}",
+        _render_stack_line(cfg['stack']),
         f"root: {cfg['root']}",
         f'developer: "{cfg["developer"]}"',
     ]
