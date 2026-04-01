@@ -10,6 +10,7 @@ Usage:
 import argparse
 
 from pactkit import __version__
+from pactkit.profiles import VALID_FORMATS
 
 
 def _schema_command(args) -> None:
@@ -64,7 +65,7 @@ def main():
     init_parser.add_argument(
         "--format",
         type=str,
-        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        choices=sorted(VALID_FORMATS),
         default="all",
         help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
@@ -107,7 +108,7 @@ def main():
     update_parser.add_argument(
         "--format",
         type=str,
-        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        choices=sorted(VALID_FORMATS),
         default="all",
         help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
@@ -157,7 +158,7 @@ def main():
     upgrade_parser.add_argument(
         "--format",
         type=str,
-        choices=["all", "classic", "plugin", "marketplace", "opencode", "codex"],
+        choices=sorted(VALID_FORMATS),
         default="all",
         help="Output format: all (default, deploy all installed IDEs), or a specific format",
     )
