@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.11] - 2026-04-01
+
+### Fixed
+- **Rules template variables** — `_deploy_rules()` now renders `{PROJECT_CONFIG_DIR}` and other template variables via `_render_prompt()`. Previously rules were deployed with raw template strings, causing unresolved `{PROJECT_CONFIG_DIR}` in Codex/OpenCode deployments.
+
 ## [2.9.10] - 2026-04-01
 
 ### Fixed
