@@ -4,6 +4,12 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.10] - 2026-04-01
+
+### Fixed
+- **Skill script `__future__` import** — `load_script()` now hoists `from __future__ import annotations` above `_SHARED_HEADER`, fixing SyntaxError in deployed `spec_linter.py`. Added `# === SCRIPT BODY ===` marker to `spec_linter.py`.
+- **Lessons table auto-repair** — `append_lesson()` now calls `_repair_table_structure()` before appending, fixing: missing header, wrong header format, data rows before header, stray text in table area.
+
 ## [2.9.9] - 2026-04-01
 
 ### Added
