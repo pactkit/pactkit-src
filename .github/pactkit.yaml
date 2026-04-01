@@ -1,4 +1,4 @@
 stack: python
-version: 0.0.1
+version: 2.9.12
 root: .
 developer: ""

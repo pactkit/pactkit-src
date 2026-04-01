@@ -1,16 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-04-01T22:14:43+08:00 by pactkit context
+> Last updated: 2026-04-01T22:29:11+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 1 | In Progress: 0 | Done: 3 stories
+Backlog: 0 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-- STORY-slim-082: Sync prompt templates for --mode module and --focus scoping
-- STORY-slim-081: Two-tier module graph with scoped focus for large codebases
-- STORY-slim-080: Deep monorepo scanning: nearest-ancestor config discovery for all analyzers
+None
 
 ## Active Branches
 codex-integration
@@ -32,14 +30,14 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- Graduated safety language: retire MANDATORY keyword across prompts/commands.py, workflows.py, skills.py — use CRITICAL for safety gates (T1) and MUST for required steps (T2). Consistency prevents AI from treating all-caps keywords as equally urgent.
-- Multi-stack visualize: _detect_stack() returning single str masks Go/TS/Java files in mixed projects; _build_class_graph hardcoded ast.parse() silently skips non-Python via except. Fix: _detect_stacks() returns list, extract_classes() ABC on all 4 analyzers.
-- Monorepo stack detection requires depth-1 subdir scan; cleaners.py and visualize.py _STACK_MARKERS must scan root/* not just root
-- When splitting a monolithic file into submodules with deploy-time inlining via load_script(), relative imports (from .foo) in exec() context raise KeyError not ImportError — guard with except (ImportError, KeyError)
 - TSAnalyzer._load_tsconfig_paths must search depth-1 subdirs like _detect_stacks does because visualize.py always passes monorepo root as root param, not stack subdir — tsconfig in frontend/ is invisible if only root is searched
+- nearest-ancestor config discovery: tests for STORY-078/079 need updating when analyzer signatures change — always check downstream test_story_* files
+- key_to_module index in visualize.py:_build_module_graph must register hyphen-to-underscore variants for Python packages (pydantic-core vs pydantic_core)
+- Adding new visualize modes requires syncing prompts/skills.py:SKILL_VISUALIZE_MD, prompts/rules.py:Visual First, prompts/skills.py:SKILL_RELEASE_MD, prompts/commands.py:Init Phase 3
+- deployer.py:_build_command_rules_header dispatched on profile.name — must dispatch on profile.rules_import_style for OCP; OpenCode profile had rules_import_style='instructions' but actually inlines rules in commands, corrected to 'inline'
 
 ## Next Recommended Action
-`/project-plan`
+`/project-design`
 
 ## Agent Continuation
 No active work session.

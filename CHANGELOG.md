@@ -4,6 +4,18 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.12] - 2026-04-01
+
+### Added
+- **Copilot deployer adapter** (STORY-slim-083) — `pactkit-copilot` adapter package registered via entry_points. `pactkit update --format copilot` deploys skills, commands, agents, and `copilot-instructions.md` to `.github/`.
+- **OCP-compliant rules header dispatch** (STORY-slim-083 R6) — `_build_command_rules_header()` dispatches on `profile.rules_import_style` (`@import`/`inline`/`instructions`) instead of hardcoded profile name checks. New adapters get correct rule injection automatically.
+- **Multi-stack auto-detection** (STORY-slim-080) — `pactkit init` auto-detects multiple stacks and writes `stack: [python, typescript]` list syntax to `pactkit.yaml`. `pactkit visualize` supports stack list.
+- **Two-tier module graph** (STORY-slim-081) — `visualize --mode module` generates dimension-based subgraphs (Code/PDCA/Service/Frontend Topology).
+- **Prompt template sync** (STORY-slim-082) — Canonical prompt templates rendered consistently across all deployer formats.
+
+### Fixed
+- **OpenCode `rules_import_style`** — Corrected from `"instructions"` to `"inline"` to match actual behavior (commands inline rule content).
+
 ## [2.9.11] - 2026-04-01
 
 ### Fixed

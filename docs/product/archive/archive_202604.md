@@ -47,3 +47,8 @@
 > Spec: docs/specs/STORY-slim-080.md
 
 - [x] Extend _detect_stacks depth,TS nearest-ancestor tsconfig,Go nearest-ancestor go.mod,Plumb consumer_path,Tests
+
+### [STORY-slim-083] Copilot deployer adapter package (pactkit-copilot)
+> Spec: docs/specs/STORY-slim-083.md
+
+- [x] CopilotDeployer class + entry_point registration + deploy to .github/ + OCP fix for rules_import_style dispatch

@@ -28,13 +28,19 @@ graph TD
     JavaAnalyzer__matches["JavaAnalyzer._matches"]
     JavaAnalyzer_extract_functions_and_calls["JavaAnalyzer.extract_functions_and_calls"]
     JavaAnalyzer_extract_imports["JavaAnalyzer.extract_imports"]
+    LanguageAnalyzer_build_module_keys["LanguageAnalyzer.build_module_keys"]
+    LanguageAnalyzer_extract_classes["LanguageAnalyzer.extract_classes"]
     LanguageAnalyzer_extract_functions_and_calls["LanguageAnalyzer.extract_functions_and_calls"]
     LanguageAnalyzer_extract_imports["LanguageAnalyzer.extract_imports"]
+    LanguageAnalyzer_normalize_import["LanguageAnalyzer.normalize_import"]
     PdcaParser_detect["PdcaParser.detect"]
     PdcaParser_parse["PdcaParser.parse"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
+    PythonAnalyzer_build_module_keys["PythonAnalyzer.build_module_keys"]
+    PythonAnalyzer_extract_classes["PythonAnalyzer.extract_classes"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
     PythonAnalyzer_extract_imports["PythonAnalyzer.extract_imports"]
+    PythonAnalyzer_normalize_import["PythonAnalyzer.normalize_import"]
     ServiceParser_parse["ServiceParser.parse"]
     TSAnalyzer___init__["TSAnalyzer.__init__"]
     TSAnalyzer__captures["TSAnalyzer._captures"]
@@ -53,6 +59,7 @@ graph TD
     TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
     TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
     TreeSitterAnalyzer__extract_funcs_and_calls["TreeSitterAnalyzer._extract_funcs_and_calls"]
+    TreeSitterAnalyzer__matches["TreeSitterAnalyzer._matches"]
     TreeSitterAnalyzer_extract_functions_and_calls["TreeSitterAnalyzer.extract_functions_and_calls"]
     TreeSitterAnalyzer_extract_imports["TreeSitterAnalyzer.extract_imports"]
     WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
@@ -564,11 +571,15 @@ graph TD
     init_architecture --> nl
     init_architecture --> nl
     _detect_stack --> _detect_stacks
+    _detect_stack --> _detect_stacks
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
     _build_module_graph --> _atomic_mmd_write
     _build_module_graph --> _select_analyzer
+    _build_module_graph --> _atomic_mmd_write
+    _build_module_graph --> _select_analyzer
+    _select_analyzers --> _select_analyzer
     _select_analyzers --> _select_analyzer
     _build_file_graph --> _extract_node_id
     _build_file_graph --> _best_match
@@ -645,13 +656,10 @@ graph TD
     impact --> _scan_files
     impact --> _resolve_test_path
     impact --> _load_scan_excludes
-    impact --> _detect_stack
+    impact --> _detect_stacks
     impact --> _select_analyzer
     impact --> _scan_call_edges
     impact --> _build_reverse_graph
-    impact --> _scan_files
-    impact --> _scan_files
-    impact --> _detect_file_ext
     impact --> _scan_files
     impact --> _resolve_test_path
     visualize --> _load_scan_excludes
@@ -696,19 +704,21 @@ graph TD
     visualize --> _build_call_graph
     visualize --> nl
     visualize --> _load_scan_excludes
-    visualize --> _detect_stack
-    visualize --> _select_analyzer
+    visualize --> _detect_stacks
     visualize --> _atomic_mmd_write
     visualize --> build_unified_graph
     visualize --> _atomic_mmd_write
     visualize --> build_workflow_graph
     visualize --> _atomic_mmd_write
-    visualize --> _scan_files
-    visualize --> _scan_files
-    visualize --> _detect_file_ext
-    visualize --> _scan_files
+    visualize --> _detect_modules
+    visualize --> _build_module_graph
+    visualize --> _detect_modules
+    visualize --> _select_analyzer
+    visualize --> _detect_modules
     visualize --> _build_class_graph
     visualize --> export_focus_graphs
+    visualize --> _scan_files
+    visualize --> _build_module_graph
     visualize --> _build_file_graph
     visualize --> _scan_call_edges
     visualize --> _build_reverse_graph
@@ -854,12 +864,12 @@ graph TD
     _load_code_graph --> _build_suffix_index
     _load_code_graph --> _scan_files
     _load_code_graph --> _resolve_callee
-    _load_code_graph --> _detect_stack
-    _load_code_graph --> _select_analyzer
+    _load_code_graph --> _detect_stacks
     _load_code_graph --> _load_scan_excludes
     _load_code_graph --> _build_suffix_index
-    _load_code_graph --> _scan_files
+    _load_code_graph --> _select_analyzer
     _load_code_graph --> _resolve_callee
+    _load_code_graph --> _scan_files
     build_unified_graph --> build_workflow_graph
     build_unified_graph --> _load_code_graph
     build_unified_graph --> _build_bridge_edges
@@ -1044,7 +1054,11 @@ graph TD
     DeployerBase_deploy_commands --> _deploy_commands
     DeployerBase_deploy_ci --> _deploy_ci
     JavaAnalyzer_extract_imports --> JavaAnalyzer__captures
+    JavaAnalyzer_extract_imports --> JavaAnalyzer__captures
     JavaAnalyzer_extract_functions_and_calls --> JavaAnalyzer__extract_funcs_and_calls
+    JavaAnalyzer_extract_functions_and_calls --> JavaAnalyzer__extract_funcs_and_calls
+    JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
+    JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
     JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
     JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
     JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__matches
@@ -1063,7 +1077,11 @@ graph TD
     JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_calls_from_body
     JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_calls_from_body
     GoAnalyzer_extract_imports --> GoAnalyzer__captures
+    GoAnalyzer_extract_imports --> GoAnalyzer__captures
     GoAnalyzer_extract_functions_and_calls --> GoAnalyzer__extract_funcs_and_calls
+    GoAnalyzer_extract_functions_and_calls --> GoAnalyzer__extract_funcs_and_calls
+    GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
+    GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
     GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
     GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
     GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__matches
@@ -1079,9 +1097,15 @@ graph TD
     GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
     GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
     GoAnalyzer_extract_classes --> GoAnalyzer__matches
+    GoAnalyzer_extract_classes --> GoAnalyzer__matches
+    GoAnalyzer_normalize_import --> GoAnalyzer__find_nearest_go_mod
     GoAnalyzer_normalize_import --> GoAnalyzer__find_nearest_go_mod
     TSAnalyzer_extract_imports --> TSAnalyzer__captures
+    TSAnalyzer_extract_imports --> TSAnalyzer__captures
     TSAnalyzer_extract_functions_and_calls --> TSAnalyzer__extract_funcs_and_calls
+    TSAnalyzer_extract_functions_and_calls --> TSAnalyzer__extract_funcs_and_calls
+    TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
+    TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
     TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
     TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__matches
@@ -1094,41 +1118,62 @@ graph TD
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_calls_from_body
     TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths_for
+    TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths_for
+    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__find_nearest_config
+    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__load_tsconfig_paths
     TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__find_nearest_config
     TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__load_tsconfig_paths
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
-    LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
+    LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
-    LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
+    LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
+    LanguageAnalyzer_extract_classes --> PythonAnalyzer_extract_classes
+    LanguageAnalyzer_build_module_keys --> PythonAnalyzer_build_module_keys
+    LanguageAnalyzer_normalize_import --> PythonAnalyzer_normalize_import
     TreeSitterAnalyzer___init__ --> GoAnalyzer___init__
     TreeSitterAnalyzer___init__ --> JavaAnalyzer___init__
     TreeSitterAnalyzer___init__ --> TSAnalyzer___init__
     TreeSitterAnalyzer___init__ --> GoAnalyzer___init__
-    TreeSitterAnalyzer___init__ --> JavaAnalyzer___init__
     TreeSitterAnalyzer___init__ --> TSAnalyzer___init__
+    TreeSitterAnalyzer___init__ --> JavaAnalyzer___init__
+    TreeSitterAnalyzer__captures --> GoAnalyzer__captures
+    TreeSitterAnalyzer__captures --> TSAnalyzer__captures
+    TreeSitterAnalyzer__captures --> JavaAnalyzer__captures
+    TreeSitterAnalyzer__matches --> GoAnalyzer__matches
+    TreeSitterAnalyzer__matches --> TSAnalyzer__matches
+    TreeSitterAnalyzer__matches --> JavaAnalyzer__matches
     TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer_extract_imports --> GoAnalyzer_extract_imports
+    TreeSitterAnalyzer_extract_imports --> TSAnalyzer_extract_imports
+    TreeSitterAnalyzer_extract_imports --> JavaAnalyzer_extract_imports
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer_extract_functions_and_calls --> GoAnalyzer_extract_functions_and_calls
+    TreeSitterAnalyzer_extract_functions_and_calls --> TSAnalyzer_extract_functions_and_calls
+    TreeSitterAnalyzer_extract_functions_and_calls --> JavaAnalyzer_extract_functions_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
-    TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer__extract_calls_from_body --> GoAnalyzer__extract_calls_from_body
+    TreeSitterAnalyzer__extract_calls_from_body --> TSAnalyzer__extract_calls_from_body
+    TreeSitterAnalyzer__extract_calls_from_body --> JavaAnalyzer__extract_calls_from_body
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
