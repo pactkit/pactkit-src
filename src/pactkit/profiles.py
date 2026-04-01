@@ -173,6 +173,27 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_mcp=True,
         skills_path_var="~/.codex/skills",
     ),
+    "copilot": FormatProfile(
+        name="copilot",
+        display_name="GitHub Copilot",
+        global_config_dir=".github",  # project-level, no user-level dir
+        project_config_dir=".github",
+        skills_dir=".github/skills",
+        agents_dir=".github/agents",
+        commands_dir=".github/prompts",
+        rules_dir=".github/rules",
+        project_instructions_file="copilot-instructions.md",
+        global_instructions_file="copilot-instructions.md",
+        pactkit_yaml_path=".github/pactkit.yaml",
+        agent_format="md",
+        rules_import_style="inline",  # no @include support
+        excluded_agent_fields=frozenset({"permissionMode", "memory", "skills", "hooks"}),
+        excluded_commands=frozenset({"project-sprint"}),
+        has_custom_commands=True,
+        supports_model_routing=False,
+        supports_mcp=True,
+        skills_path_var=".github/skills",
+    ),
 }
 
 # Deployment modes that are not environment formats
@@ -186,6 +207,7 @@ VALID_FORMATS: frozenset[str] = frozenset({"all"}) | frozenset(FORMAT_PROFILES.k
 PACTKIT_YAML_CANDIDATES: list[str] = [
     FORMAT_PROFILES["opencode"].pactkit_yaml_path,
     FORMAT_PROFILES["codex"].pactkit_yaml_path,
+    FORMAT_PROFILES["copilot"].pactkit_yaml_path,
     FORMAT_PROFILES["classic"].pactkit_yaml_path,
 ]
 
