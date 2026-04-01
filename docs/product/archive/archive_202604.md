@@ -18,3 +18,8 @@
 > Spec: docs/specs/STORY-slim-077.md
 
 - [x] Extend detect_stacks depth-1,Add redetect-stack CLI,Update init flow,Tests
+
+### [STORY-slim-078] Multi-language module resolution for file-mode dependency graph
+> Spec: docs/specs/STORY-slim-078.md
+
+- [x] Per-lang module keys,Per-lang import normalization,Multi-analyzer file graph,Fix src-strip,Go module prefix,Tests

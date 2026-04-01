@@ -85,6 +85,16 @@ graph TD
     click src_pactkit_generators___init___py href "src/pactkit/generators/__init__.py"
     src_pactkit_generators_deploy_base_py["deploy_base.py"]
     click src_pactkit_generators_deploy_base_py href "src/pactkit/generators/deploy_base.py"
+    src_pactkit_skills_analyzers_java_analyzer_py["java_analyzer.py"]
+    click src_pactkit_skills_analyzers_java_analyzer_py href "src/pactkit/skills/analyzers/java_analyzer.py"
+    src_pactkit_skills_analyzers_go_analyzer_py["go_analyzer.py"]
+    click src_pactkit_skills_analyzers_go_analyzer_py href "src/pactkit/skills/analyzers/go_analyzer.py"
+    src_pactkit_skills_analyzers_ts_analyzer_py["ts_analyzer.py"]
+    click src_pactkit_skills_analyzers_ts_analyzer_py href "src/pactkit/skills/analyzers/ts_analyzer.py"
+    src_pactkit_skills_analyzers___init___py["__init__.py"]
+    click src_pactkit_skills_analyzers___init___py href "src/pactkit/skills/analyzers/__init__.py"
+    src_pactkit_skills_analyzers_python_analyzer_py["python_analyzer.py"]
+    click src_pactkit_skills_analyzers_python_analyzer_py href "src/pactkit/skills/analyzers/python_analyzer.py"
     pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py["visualize.py"]
     click pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py href "pactkit-plugin/skills/pactkit-visualize/scripts/visualize.py"
     pactkit_plugin_skills_pactkit_board_scripts_board_py["board.py"]
@@ -149,6 +159,8 @@ graph TD
     src_pactkit_prompts_skills_py --> src_pactkit_skills___init___py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py
+    src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers___init___py
+    src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers_python_analyzer_py
     src_pactkit_skills_spec_linter_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_config_py
@@ -161,5 +173,9 @@ graph TD
     src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_profiles_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_generators_deployer_py
+    src_pactkit_skills_analyzers_java_analyzer_py --> src_pactkit_skills_analyzers___init___py
+    src_pactkit_skills_analyzers_go_analyzer_py --> src_pactkit_skills_analyzers___init___py
+    src_pactkit_skills_analyzers_ts_analyzer_py --> src_pactkit_skills_analyzers___init___py
+    src_pactkit_skills_analyzers_python_analyzer_py --> src_pactkit_skills_analyzers___init___py
     _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_skills_visualize_py
     _github_skills_pactkit_scaffold_scripts_spec_linter_py --> src_pactkit_schemas_py
