@@ -10,6 +10,7 @@ R5: Prompt delegation to new CLI commands
 from __future__ import annotations
 
 import inspect
+import re
 import textwrap
 from datetime import date
 from unittest.mock import patch
@@ -101,6 +102,61 @@ class TestR1LessonAppend:
         assert LESSONS_TABLE_HEADER in content
         assert LESSONS_TABLE_SEPARATOR in content
         assert "bar.py:baz diverged" in content
+        # Data row must come AFTER header
+        assert content.index(LESSONS_TABLE_HEADER) < content.index("old lesson about foo.py")
+
+    def test_auto_repair_wrong_header_format(self, tmp_path):
+        """Wrong header text should be replaced with canonical format."""
+        from pactkit.lessons import append_lesson
+        from pactkit.schemas import LESSONS_TABLE_HEADER, LESSONS_TABLE_SEPARATOR
+
+        p = tmp_path / "docs" / "architecture" / "governance" / "lessons.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(
+            "# Lessons Learned\n\n"
+            "| 日期 | 教训 | 上下文 |\n"
+            "|---|---|---|\n"
+            "| 2026-03-13 | old lesson about foo.py | STORY-001 |\n"
+        )
+
+        result = append_lesson(tmp_path, "STORY-FIX", "bar.py:baz issue", "bar.py")
+        assert result["action"] == "appended"
+
+        content = p.read_text()
+        assert LESSONS_TABLE_HEADER in content
+        assert LESSONS_TABLE_SEPARATOR in content
+        assert "日期" not in content  # wrong header removed
+
+    def test_auto_repair_data_before_header(self, tmp_path):
+        """Data rows before header should be restructured."""
+        from pactkit.lessons import append_lesson
+        from pactkit.schemas import LESSONS_TABLE_HEADER, LESSONS_TABLE_SEPARATOR
+
+        p = tmp_path / "docs" / "architecture" / "governance" / "lessons.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(
+            "# Lessons Learned\n\n---\n\n"
+            "| 2026-03-13 | first about foo.py | STORY-001 |\n"
+            "| 2026-03-14 | second about bar.py | STORY-002 |\n"
+            "\n*(No lessons recorded yet)*\n"
+        )
+
+        result = append_lesson(tmp_path, "STORY-FIX", "baz.py:qux issue", "baz.py")
+        assert result["action"] == "appended"
+
+        content = p.read_text()
+        lines = content.splitlines()
+        # Header and separator must exist
+        assert LESSONS_TABLE_HEADER in content
+        assert LESSONS_TABLE_SEPARATOR in content
+        # Header must come before all data rows
+        header_idx = lines.index(LESSONS_TABLE_HEADER)
+        for line in lines:
+            if re.search(r"\|\s*\d{4}-\d{2}-\d{2}\s*\|", line):
+                assert lines.index(line) > header_idx
+        # Both original data rows preserved
+        assert "first about foo.py" in content
+        assert "second about bar.py" in content
 
 
 # ---------------------------------------------------------------------------

@@ -122,6 +122,65 @@ def _rotate_if_needed(project_root: Path, max_rows: int = LESSONS_MAX_ROWS) -> N
             f.write(row if row.endswith("\n") else row + "\n")
 
 
+def _repair_table_structure(lessons_path: Path) -> bool:
+    """Auto-repair lessons.md table structure if malformed.
+
+    Detects and fixes:
+    - Missing table header or separator
+    - Wrong header/separator format
+    - Data rows appearing before the header
+    - Stray non-table lines mixed into the table area
+
+    Strategy: extract prose (everything before the first data row or table header),
+    extract all valid data rows, then rewrite as: prose + canonical header + data rows.
+
+    Returns True if a repair was made.
+    """
+    content = lessons_path.read_text(encoding="utf-8")
+
+    # Fast path: already valid
+    if LESSONS_TABLE_HEADER in content and LESSONS_TABLE_SEPARATOR in content:
+        # Check that header comes before first data row
+        header_pos = content.index(LESSONS_TABLE_HEADER)
+        data_match = re.search(r"\|\s*\d{4}-\d{2}-\d{2}\s*\|", content)
+        if data_match is None or header_pos < data_match.start():
+            return False
+
+    # Extract all valid 3-column data rows (| date | lesson | context |)
+    data_rows: list[str] = []
+    prose_lines: list[str] = []
+    found_first_table_line = False
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        # Skip existing (possibly wrong) header/separator lines
+        if stripped.startswith("|") and re.search(r"\d{4}-\d{2}-\d{2}", stripped):
+            data_rows.append(stripped)
+            found_first_table_line = True
+        elif stripped.startswith("|") and found_first_table_line:
+            # Table-like line after data started (wrong header, separator, etc.) — skip
+            continue
+        elif stripped.startswith("|") and not found_first_table_line:
+            # Could be a malformed header — skip it, we'll write canonical one
+            found_first_table_line = True
+            continue
+        elif not found_first_table_line:
+            prose_lines.append(line)
+        # else: non-table line after table started (stray text) — skip
+
+    # Rebuild file: prose + canonical table
+    result_lines = prose_lines[:]
+    # Ensure blank line before table
+    if result_lines and result_lines[-1].strip():
+        result_lines.append("")
+    result_lines.append(LESSONS_TABLE_HEADER)
+    result_lines.append(LESSONS_TABLE_SEPARATOR)
+    result_lines.extend(data_rows)
+
+    lessons_path.write_text("\n".join(result_lines) + "\n", encoding="utf-8")
+    return True
+
+
 def append_lesson(
     project_root: Path,
     story_id: str,
@@ -150,14 +209,8 @@ def append_lesson(
     # Rotate before appending to stay within LESSONS_MAX_ROWS
     _rotate_if_needed(project_root)
 
-    # Auto-repair: insert table header if missing
-    content = lessons_path.read_text(encoding="utf-8")
-    if LESSONS_TABLE_SEPARATOR not in content:
-        with open(lessons_path, "a", encoding="utf-8") as f:
-            if not content.endswith("\n"):
-                f.write("\n")
-            f.write(LESSONS_TABLE_HEADER + "\n")
-            f.write(LESSONS_TABLE_SEPARATOR + "\n")
+    # Auto-repair table structure if malformed
+    _repair_table_structure(lessons_path)
 
     today = date.today().isoformat()
     ctx = context if context else story_id
