@@ -86,6 +86,12 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
     result = template
     for key, value in var_map.items():
         result = result.replace("{" + key + "}", value)
+
+    # Strip references to excluded commands (e.g., project-sprint for non-Claude formats)
+    if profile.excluded_commands:
+        from pactkit.generators.deploy_base import DeployerBase
+        result = DeployerBase.strip_excluded_command_references(result, profile)
+
     return result
 
 

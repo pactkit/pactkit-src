@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
@@ -92,6 +93,31 @@ class DeployerBase:
         from pactkit.generators.deployer import _deploy_ci
 
         return _deploy_ci(provider, project_root, config)
+
+    @staticmethod
+    def strip_excluded_command_references(content: str, profile: FormatProfile) -> str:
+        """Remove references to excluded commands from deployed content.
+
+        Currently handles project-sprint (the only excluded command).
+        Called by adapter deployers after rendering prompts.
+        """
+        if "project-sprint" not in profile.excluded_commands:
+            return content
+        # Remove routing table Sprint section (### Sprint ... until next ###)
+        content = re.sub(
+            r'### Sprint \(`/project-sprint`\)\n(?:.*\n)*?(?=### |\n##|\Z)',
+            '',
+            content,
+        )
+        # Remove PDCA routing table Sprint row
+        content = re.sub(r'\|.*`/project-sprint`.*\n', '', content)
+        # Replace inline references with /project-act (single-story fallback)
+        content = content.replace("Ready for /project-sprint", "Ready for /project-act")
+        content = content.replace("ready for `/project-sprint`", "ready for `/project-act`")
+        content = content.replace('"/project-sprint"', '"/project-act"')
+        content = content.replace("'/project-sprint'", "'/project-act'")
+        content = content.replace("`/project-sprint`", "`/project-act`")
+        return content
 
 
 # ---------------------------------------------------------------------------
