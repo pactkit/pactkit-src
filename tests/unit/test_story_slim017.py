@@ -79,6 +79,29 @@ class TestR1LessonAppend:
         result = append_lesson(tmp_path, "STORY-017", "foo.py:bar pattern")
         assert result["action"] == "skipped"
 
+    def test_auto_repair_missing_table_header(self, tmp_path):
+        """append_lesson should auto-insert table header when missing."""
+        from pactkit.lessons import append_lesson
+        from pactkit.schemas import LESSONS_TABLE_HEADER, LESSONS_TABLE_SEPARATOR
+
+        # Create lessons.md WITHOUT table header (just prose + bare data rows)
+        p = tmp_path / "docs" / "architecture" / "governance" / "lessons.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# Lessons Learned\n\n| 2026-03-13 | old lesson about foo.py | STORY-001 |\n")
+
+        result = append_lesson(
+            project_root=tmp_path,
+            story_id="STORY-FIX",
+            text="bar.py:baz diverged from config",
+            context="bar.py:baz",
+        )
+        assert result["action"] == "appended"
+
+        content = p.read_text()
+        assert LESSONS_TABLE_HEADER in content
+        assert LESSONS_TABLE_SEPARATOR in content
+        assert "bar.py:baz diverged" in content
+
 
 # ---------------------------------------------------------------------------
 # R2: invariants.py — refresh_test_count()

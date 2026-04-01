@@ -150,6 +150,15 @@ def append_lesson(
     # Rotate before appending to stay within LESSONS_MAX_ROWS
     _rotate_if_needed(project_root)
 
+    # Auto-repair: insert table header if missing
+    content = lessons_path.read_text(encoding="utf-8")
+    if LESSONS_TABLE_SEPARATOR not in content:
+        with open(lessons_path, "a", encoding="utf-8") as f:
+            if not content.endswith("\n"):
+                f.write("\n")
+            f.write(LESSONS_TABLE_HEADER + "\n")
+            f.write(LESSONS_TABLE_SEPARATOR + "\n")
+
     today = date.today().isoformat()
     ctx = context if context else story_id
     row = LESSONS_ROW_FORMAT.format(date=today, lesson=text, context=ctx) + "\n"
