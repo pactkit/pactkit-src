@@ -34,7 +34,7 @@ allowed-tools: [Read, Bash, Grep, Glob]
     - If `service.login()` is called, grep for `def login` to find the definition.
 2.  **Data Spy**: Note how data structures change (e.g., `dict` -> `UserObj` -> `JSON`).
 
-## 🏗️ Phase 3: Visual Synthesis (MANDATORY)
+## 🏗️ Phase 3: Visual Synthesis (MUST)
 You must output a **Mermaid Sequence Diagram** to visualize the flow.
 
 {M}mermaid
@@ -198,13 +198,13 @@ DRAW_REF_LAYOUTS = """## Layout Patterns
 - **Inner spacing**: dx=40, dy=80 inside container
 """
 
-DRAW_REF_ANTI_BUGS = """## Anti-Bug Rules (Mandatory)
+DRAW_REF_ANTI_BUGS = """## Anti-Bug Rules (MUST)
 - **Anti-Bug 1**: `mxGeometry` MUST be a child element of `mxCell`, never self-closing `mxCell`.
 - **Anti-Bug 2**: Labels with special chars MUST be XML-escaped (e.g., `&lt;br&gt;`, `&amp;`).
 - **Anti-Bug 3**: Every `id` MUST be unique across the entire diagram. Use prefixes like `n_`, `e_`, `c_` for nodes, edges, containers.
 - **Anti-Bug 4**: Edge `mxCell` MUST have valid `source` and `target` attributes pointing to existing node ids.
 - **Anti-Bug 5**: Child nodes inside a Container MUST set `parent="<container_id>"`, not `parent="1"`.
-- **Anti-Bug 6**: The root `mxCell` with `id="0"` and layer `mxCell` with `id="1" parent="0"` are mandatory boilerplate. Never omit them.
+- **Anti-Bug 6**: The root `mxCell` with `id="0"` and layer `mxCell` with `id="1" parent="0"` are required boilerplate. Never omit them.
 - **Anti-Bug 7**: Container nodes MUST include `container=1` in their style. Otherwise children won't nest properly.
 """
 

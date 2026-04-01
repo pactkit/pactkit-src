@@ -155,6 +155,7 @@ graph TD
     _resolve_test_path["_resolve_test_path"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
+    _rotate_if_needed["_rotate_if_needed"]
     _run_pytest_cov["_run_pytest_cov"]
     _sanitize_text["_sanitize_text"]
     _scan_call_edges["_scan_call_edges"]
@@ -263,6 +264,7 @@ graph TD
     _is_duplicate --> _jaccard_similarity
     append_lesson --> _get_last_n_entries
     append_lesson --> _is_duplicate
+    append_lesson --> _rotate_if_needed
     append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml

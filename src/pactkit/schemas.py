@@ -161,6 +161,7 @@ CONTEXT_SECTIONS_TEXT = "\n".join(f"- `{s}`" for s in CONTEXT_SECTIONS)
 LESSONS_TABLE_HEADER = "| Date | Lesson | Context |"
 LESSONS_TABLE_SEPARATOR = "|------|--------|---------|"
 LESSONS_ROW_FORMAT = "| {date} | {lesson} | {context} |"
+LESSONS_MAX_ROWS = 50
 
 # ─── Test Case Schema ─────────────────────────────────────────────────────────
 

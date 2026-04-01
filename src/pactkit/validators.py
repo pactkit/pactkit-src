@@ -14,6 +14,7 @@ from pathlib import Path
 from pactkit.schemas import (
     CONTEXT_HEADER,
     CONTEXT_SECTIONS,
+    LESSONS_MAX_ROWS,
     LESSONS_TABLE_HEADER,
     LESSONS_TABLE_SEPARATOR,
     TEST_CASE_KEYWORDS,
@@ -95,6 +96,18 @@ def lint_lessons(path: Path) -> list[str]:
         elif in_table and not stripped.startswith("|"):
             # End of table
             break
+
+    # STORY-slim-075 R4: Warn if row count exceeds LESSONS_MAX_ROWS (non-blocking)
+    row_count = sum(
+        1
+        for line in lines
+        if line.strip().startswith("|")
+        and re.search(r"\d{4}-\d{2}-\d{2}", line)
+    )
+    if row_count > LESSONS_MAX_ROWS:
+        errors.append(
+            f"Row count ({row_count}) exceeds max ({LESSONS_MAX_ROWS}) — consider running rotation"
+        )
 
     return errors
 

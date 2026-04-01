@@ -51,6 +51,10 @@ Implement code per Spec, strictly following TDD. You are the owner of the Act ph
 - Verification result showing all tests in the project's test suite GREEN
 - Updated architecture graphs (`visualize`)
 
+## PDCA Concurrency Guidance
+- **Parallelize**: Reading Spec + Board (independent reads); editing multiple unrelated source files; running lint + tests if independent.
+- **Serialize**: Spec change → test update → code update (Hierarchy of Truth order); `schemas.py` constant → all consumers; `_render_prompt()` var_map → prompt templates. Dependent changes MUST complete before the next step begins.
+
 ## Protocol
 ### /project-act (Formal Development)
 1. **Visual Scan**: `visualize --focus <module>` to understand dependencies
@@ -122,6 +126,10 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
 - Cleaned working directory (no `__pycache__`, `.DS_Store`, `*.tmp`)
 - Conventional Commit (`feat(scope): desc` / `fix(scope): desc`)
 - Archive records (`docs/product/archive/`)
+
+## PDCA Concurrency Guidance
+- **Parallelize**: Running `pactkit clean` + `pactkit visualize` (independent tools); archiving multiple stories; deploying to multiple formats.
+- **Serialize**: Test suite → commit (must pass before commit); archive → context update (archive changes board state); version bump → tag → push (strict order). Dependent steps MUST complete before the next begins.
 
 ## Protocol
 ### /project-done (Delivery Commit)

@@ -6,7 +6,12 @@ import re
 from datetime import date
 from pathlib import Path
 
-from pactkit.schemas import LESSONS_ROW_FORMAT
+from pactkit.schemas import (
+    LESSONS_MAX_ROWS,
+    LESSONS_ROW_FORMAT,
+    LESSONS_TABLE_HEADER,
+    LESSONS_TABLE_SEPARATOR,
+)
 
 
 def _is_specific(text: str) -> bool:
@@ -45,6 +50,78 @@ def _is_duplicate(text: str, recent_entries: list[str], threshold: float = 0.5) 
     return False
 
 
+def _rotate_if_needed(project_root: Path, max_rows: int = LESSONS_MAX_ROWS) -> None:
+    """Rotate lessons.md if row count exceeds max_rows.
+
+    Moves the oldest entries to docs/architecture/governance/archive/lessons_archive_YYYYMM.md.
+    Atomic: read → split → write archive → write truncated lessons.md.
+    """
+    lessons_path = project_root / "docs" / "architecture" / "governance" / "lessons.md"
+    if not lessons_path.exists():
+        return
+
+    content = lessons_path.read_text(encoding="utf-8")
+    # Extract all data rows (lines starting with | and containing a date)
+    lines = content.splitlines(keepends=True)
+
+    header_lines: list[str] = []
+    data_rows: list[str] = []
+    in_table = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == LESSONS_TABLE_SEPARATOR:
+            header_lines.append(line)
+            in_table = True
+            continue
+        if in_table and stripped.startswith("|") and re.search(r"\d{4}-\d{2}-\d{2}", stripped):
+            data_rows.append(line)
+        else:
+            if not in_table:
+                header_lines.append(line)
+
+    if len(data_rows) <= max_rows:
+        return
+
+    # Split: oldest go to archive, newest stay
+    overflow_count = len(data_rows) - max_rows
+    overflow_rows = data_rows[:overflow_count]
+    keep_rows = data_rows[overflow_count:]
+
+    # Group overflow rows by month for archive files
+    month_groups: dict[str, list[str]] = {}
+    for row in overflow_rows:
+        m = re.search(r"(\d{4}-\d{2})", row)
+        month_key = m.group(1).replace("-", "") if m else date.today().strftime("%Y%m")
+        month_groups.setdefault(month_key, []).append(row)
+
+    # Write archive files (append to existing if present)
+    archive_dir = project_root / "docs" / "architecture" / "governance" / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    for month_key, rows in month_groups.items():
+        archive_path = archive_dir / f"lessons_archive_{month_key}.md"
+        if archive_path.exists():
+            # Append rows to existing archive
+            with open(archive_path, "a", encoding="utf-8") as f:
+                for row in rows:
+                    f.write(row if row.endswith("\n") else row + "\n")
+        else:
+            # Create new archive with header
+            with open(archive_path, "w", encoding="utf-8") as f:
+                f.write(f"# Lessons Archive ({month_key[:4]}-{month_key[4:]})\n\n")
+                f.write(LESSONS_TABLE_HEADER + "\n")
+                f.write(LESSONS_TABLE_SEPARATOR + "\n")
+                for row in rows:
+                    f.write(row if row.endswith("\n") else row + "\n")
+
+    # Write truncated lessons.md
+    with open(lessons_path, "w", encoding="utf-8") as f:
+        for line in header_lines:
+            f.write(line if line.endswith("\n") else line + "\n")
+        for row in keep_rows:
+            f.write(row if row.endswith("\n") else row + "\n")
+
+
 def append_lesson(
     project_root: Path,
     story_id: str,
@@ -69,6 +146,9 @@ def append_lesson(
 
     if _is_duplicate(text, recent):
         return {"action": "skipped", "reason": "duplicate of recent entry"}
+
+    # Rotate before appending to stay within LESSONS_MAX_ROWS
+    _rotate_if_needed(project_root)
 
     today = date.today().isoformat()
     ctx = context if context else story_id
