@@ -65,10 +65,10 @@ class DeployerBase:
         return _deploy_skills(skills_dir, enabled_skills, profile=profile, _legacy_prefix=_legacy_prefix)
 
     @staticmethod
-    def deploy_rules(claude_root, enabled_rules, rule_scopes=None):
+    def deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
         from pactkit.generators.deployer import _deploy_rules
 
-        return _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes)
+        return _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes, profile=profile)
 
     @staticmethod
     def deploy_agents(agents_dir, enabled_agents, profile=None, agent_models=None, _legacy_prefix=None):

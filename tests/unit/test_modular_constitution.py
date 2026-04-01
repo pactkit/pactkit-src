@@ -126,11 +126,14 @@ class TestDeployedCoreMatchesSource:
     """STORY-008: Deployed core protocol matches source"""
 
     def test_deployed_file_matches_source(self, tmp_path):
-        """Deployed 01-core-protocol.md matches RULES_MODULES source"""
+        """Deployed 01-core-protocol.md matches rendered RULES_MODULES source"""
+        from pactkit.generators.deployer import _render_prompt
+        from pactkit.profiles import get_profile
         from pactkit.prompts import RULES_MODULES
         _deploy(tmp_path)
         deployed = (tmp_path / '.claude' / 'rules' / '01-core-protocol.md').read_text()
-        assert deployed.strip() == RULES_MODULES['core'].strip()
+        expected = _render_prompt(RULES_MODULES['core'], get_profile('classic'))
+        assert deployed.strip() == expected.strip()
 
 
 class TestImportSyntaxParseable:

@@ -347,7 +347,7 @@ def _deploy_classic(config=None, target=None):
     n_skills = _deploy_skills(skills_dir, enabled_skills, profile=classic_profile)
     _cleanup_legacy(skills_dir)
     rule_scopes = config.get("rule_scopes", {})
-    n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes)
+    n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes, profile=classic_profile)
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
@@ -561,11 +561,12 @@ def _migrate_from_scafpy(claude_root):
             old_yaml.unlink()
 
 
-def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
+def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     """Deploy rule modules filtered by config.
 
     Args:
         rule_scopes: Optional dict of rule_id -> glob pattern for includeFiles.
+        profile: Optional FormatProfile for template variable rendering.
     """
     if rule_scopes is None:
         rule_scopes = {}
@@ -589,6 +590,10 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None):
             continue
         filename = prompts.RULES_FILES[key]
         content = prompts.RULES_MODULES[key]
+
+        # Render template variables if profile provided
+        if profile is not None:
+            content = _render_prompt(content, profile)
 
         # Add includeFiles frontmatter if scope is defined (STORY-028)
         scope = rule_scopes.get(rule_id)
