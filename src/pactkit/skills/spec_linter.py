@@ -7,6 +7,8 @@ Usage (standalone):
     python3 src/pactkit/skills/spec_linter.py --all --specs-dir path/to/specs
 """
 
+# === SCRIPT BODY ===
+
 from __future__ import annotations
 
 import argparse
