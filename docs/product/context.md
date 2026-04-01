@@ -1,5 +1,5 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-04-01T20:36:00+08:00 by pactkit context
+> Last updated: 2026-04-01T20:50:44+08:00 by pactkit context
 
 ## Sprint Status
 Backlog: 0 | In Progress: 0 | Done: 0 stories
@@ -30,11 +30,11 @@ codex-integration
   worktree-agent-af6334c9
 
 ## Key Decisions
-- DETECTED_ENV in commands.py init playbook was unnecessary — _render_prompt(template, profile) already resolves per-format at deploy time. Added FORMAT_NAME to deployer.py var_map to enable pactkit init --format {FORMAT_NAME}.
 - Graduated safety language: retire MANDATORY keyword across prompts/commands.py, workflows.py, skills.py — use CRITICAL for safety gates (T1) and MUST for required steps (T2). Consistency prevents AI from treating all-caps keywords as equally urgent.
 - Multi-stack visualize: _detect_stack() returning single str masks Go/TS/Java files in mixed projects; _build_class_graph hardcoded ast.parse() silently skips non-Python via except. Fix: _detect_stacks() returns list, extract_classes() ABC on all 4 analyzers.
 - Monorepo stack detection requires depth-1 subdir scan; cleaners.py and visualize.py _STACK_MARKERS must scan root/* not just root
 - When splitting a monolithic file into submodules with deploy-time inlining via load_script(), relative imports (from .foo) in exec() context raise KeyError not ImportError — guard with except (ImportError, KeyError)
+- TSAnalyzer._load_tsconfig_paths must search depth-1 subdirs like _detect_stacks does because visualize.py always passes monorepo root as root param, not stack subdir — tsconfig in frontend/ is invisible if only root is searched
 
 ## Next Recommended Action
 `/project-design`

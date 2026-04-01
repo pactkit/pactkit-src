@@ -23,3 +23,8 @@
 > Spec: docs/specs/STORY-slim-078.md
 
 - [x] Per-lang module keys,Per-lang import normalization,Multi-analyzer file graph,Fix src-strip,Go module prefix,Tests
+
+### [STORY-slim-079] TS/JS path alias resolution for file-mode dependency graph
+> Spec: docs/specs/STORY-slim-079.md
+
+- [x] Read tsconfig paths,Resolve alias imports,Wildcard patterns,Tests

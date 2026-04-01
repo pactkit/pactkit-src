@@ -40,9 +40,11 @@ graph TD
     TSAnalyzer__captures["TSAnalyzer._captures"]
     TSAnalyzer__extract_calls_from_body["TSAnalyzer._extract_calls_from_body"]
     TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
+    TSAnalyzer__load_tsconfig_paths["TSAnalyzer._load_tsconfig_paths"]
     TSAnalyzer__matches["TSAnalyzer._matches"]
     TSAnalyzer_extract_functions_and_calls["TSAnalyzer.extract_functions_and_calls"]
     TSAnalyzer_extract_imports["TSAnalyzer.extract_imports"]
+    TSAnalyzer_normalize_import["TSAnalyzer.normalize_import"]
     TopologyParser_detect["TopologyParser.detect"]
     TopologyParser_parse["TopologyParser.parse"]
     TreeSitterAnalyzer___init__["TreeSitterAnalyzer.__init__"]
@@ -1080,6 +1082,7 @@ graph TD
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__matches
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_calls_from_body
+    TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports

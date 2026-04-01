@@ -112,6 +112,7 @@ classDiagram
         +extract_classes(file_path, root)
         +build_module_keys(rel_path, root)
         +normalize_import(import_str, consumer_path, root)
+        -_load_tsconfig_paths(root)
     }
     TreeSitterAnalyzer <|-- TSAnalyzer
     class LanguageAnalyzer {

@@ -224,31 +224,116 @@ class TSAnalyzer(TreeSitterAnalyzer):
                 keys.append('/'.join(parts[1:-1]))
         return keys
 
-    # --- R2: normalize_import (STORY-slim-078) ---
+    # --- R2: normalize_import (STORY-slim-078, STORY-slim-079) ---
 
     def normalize_import(self, import_str, consumer_path, root):
         """Normalize TS/JS import to match module_index keys.
 
         Returns None for bare module imports (react, @scope/pkg).
         Resolves relative imports (./foo, ../bar) against consumer directory.
+        Resolves tsconfig path aliases (@/foo) via compilerOptions.paths.
         """
-        # Bare module imports are external packages
-        if not import_str.startswith('.'):
-            return None
-        # Resolve relative import against consumer directory
+        # Relative imports — resolve against consumer directory
+        if import_str.startswith('.'):
+            try:
+                consumer_rel = consumer_path.relative_to(root)
+            except ValueError:
+                return None
+            consumer_dir_parts = list(consumer_rel.parent.parts)
+            import_parts = import_str.replace('\\', '/').split('/')
+            result = list(consumer_dir_parts)
+            for p in import_parts:
+                if p == '..':
+                    if result:
+                        result.pop()
+                elif p != '.':
+                    result.append(p)
+            return '/'.join(result)
+
+        # STORY-slim-079: Try tsconfig path alias resolution
+        aliases = self._load_tsconfig_paths(root)
+        for alias_prefix, replacement_prefix in aliases:
+            if '*' in alias_prefix:
+                # Wildcard: "@/*" matches "@/anything"
+                bare = alias_prefix.rstrip('*')
+                if import_str.startswith(bare):
+                    rest = import_str[len(bare):]
+                    return replacement_prefix.rstrip('*') + rest
+            else:
+                # Exact match: "@config" matches "@config" only
+                if import_str == alias_prefix:
+                    return replacement_prefix
+
+        # No alias match — bare module (react, @supabase/ssr)
+        return None
+
+    # --- STORY-slim-079: tsconfig path alias loading ---
+
+    def _load_tsconfig_paths(self, root):
+        """Read tsconfig.json/jsconfig.json compilerOptions.paths. Cached per root."""
+        if not hasattr(self, '_tsconfig_cache'):
+            self._tsconfig_cache = {}
+        root_str = str(root)
+        if root_str in self._tsconfig_cache:
+            return self._tsconfig_cache[root_str]
+
+        import json as _json
+
+        result = []
+        tsconfig_path = None
+        # Search root first, then depth-1 subdirectories (monorepo support per R1)
+        search_dirs = [root]
         try:
-            consumer_rel = consumer_path.relative_to(root)
-        except ValueError:
-            return None
-        consumer_dir_parts = list(consumer_rel.parent.parts)
-        # Split the import path
-        import_parts = import_str.replace('\\', '/').split('/')
-        # Start from consumer dir and resolve
-        result = list(consumer_dir_parts)
-        for p in import_parts:
-            if p == '..':
-                if result:
-                    result.pop()
-            elif p != '.':
-                result.append(p)
-        return '/'.join(result)
+            search_dirs += [p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')]
+        except OSError:
+            pass
+        for search_dir in search_dirs:
+            for name in ('tsconfig.json', 'jsconfig.json'):
+                candidate = search_dir / name
+                if candidate.exists():
+                    tsconfig_path = candidate
+                    break
+            if tsconfig_path is not None:
+                break
+
+        if tsconfig_path is None:
+            self._tsconfig_cache[root_str] = result
+            return result
+
+        try:
+            data = _json.loads(tsconfig_path.read_text(encoding='utf-8'))
+            compiler_opts = data.get('compilerOptions', {})
+            paths = compiler_opts.get('paths')
+            if not paths:
+                self._tsconfig_cache[root_str] = result
+                return result
+
+            # Determine base directory for path resolution
+            # baseUrl is relative to tsconfig location; default is tsconfig's dir
+            base_url = compiler_opts.get('baseUrl', '.')
+            tsconfig_dir = tsconfig_path.parent
+            base_dir = (tsconfig_dir / base_url).resolve()
+            try:
+                base_rel = base_dir.relative_to(root.resolve())
+                base_prefix = str(base_rel).replace(os.sep, '/')
+            except ValueError:
+                base_prefix = '.'
+
+            for alias_pattern, targets in paths.items():
+                if not targets:
+                    continue
+                # Use first target (standard behavior)
+                target = targets[0]
+                # Strip leading ./ from target
+                target = target.lstrip('.').lstrip('/')
+                # Prepend base_prefix if not '.'
+                if base_prefix and base_prefix != '.':
+                    resolved = base_prefix + '/' + target
+                else:
+                    resolved = target
+                result.append((alias_pattern, resolved))
+        except (OSError, ValueError, KeyError):
+            pass
+
+        self._tsconfig_cache[root_str] = result
+        return result
