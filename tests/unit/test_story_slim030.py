@@ -359,6 +359,9 @@ class TestExtensibilityWithDummyAnalyzer:
                 }
                 return func_registry, call_edges
 
+            def extract_classes(self, file_path, root):
+                return []
+
         # Create a dummy file (content doesn't matter — DummyAnalyzer ignores it)
         src = tmp_path / 'irrelevant.py'
         src.write_text('# no real code\n', encoding='utf-8')
@@ -383,6 +386,9 @@ class TestExtensibilityWithDummyAnalyzer:
 
             def extract_functions_and_calls(self, file_path):
                 return {'dummy_scan_func': 'stem'}, {'dummy_scan_func': []}
+
+            def extract_classes(self, file_path, root):
+                return []
 
         src = tmp_path / 'irrelevant.py'
         src.write_text('# no real code\n', encoding='utf-8')

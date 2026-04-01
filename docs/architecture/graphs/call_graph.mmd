@@ -15,11 +15,13 @@ graph TD
     GoAnalyzer__extract_funcs_and_calls["GoAnalyzer._extract_funcs_and_calls"]
     JavaAnalyzer___init__["JavaAnalyzer.__init__"]
     JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
+    LanguageAnalyzer_extract_classes["LanguageAnalyzer.extract_classes"]
     LanguageAnalyzer_extract_functions_and_calls["LanguageAnalyzer.extract_functions_and_calls"]
     LanguageAnalyzer_extract_imports["LanguageAnalyzer.extract_imports"]
     PdcaParser_detect["PdcaParser.detect"]
     PdcaParser_parse["PdcaParser.parse"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
+    PythonAnalyzer_extract_classes["PythonAnalyzer.extract_classes"]
     PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
     PythonAnalyzer_extract_imports["PythonAnalyzer.extract_imports"]
     ServiceParser_parse["ServiceParser.parse"]
@@ -80,6 +82,7 @@ graph TD
     _detect_file_ext["_detect_file_ext"]
     _detect_ghe["_detect_ghe"]
     _detect_stack["_detect_stack"]
+    _detect_stacks["_detect_stacks"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
@@ -150,6 +153,7 @@ graph TD
     _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
+    _repair_table_structure["_repair_table_structure"]
     _resolve_callee["_resolve_callee"]
     _resolve_scope["_resolve_scope"]
     _resolve_test_path["_resolve_test_path"]
@@ -168,6 +172,7 @@ graph TD
     _search_issue["_search_issue"]
     _section_text["_section_text"]
     _select_analyzer["_select_analyzer"]
+    _select_analyzers["_select_analyzers"]
     _strip_code_blocks["_strip_code_blocks"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
@@ -265,6 +270,7 @@ graph TD
     append_lesson --> _get_last_n_entries
     append_lesson --> _is_duplicate
     append_lesson --> _rotate_if_needed
+    append_lesson --> _repair_table_structure
     append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml
@@ -464,6 +470,7 @@ graph TD
     init_architecture --> nl
     init_architecture --> nl
     init_architecture --> nl
+    _detect_stack --> _detect_stacks
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
@@ -474,6 +481,7 @@ graph TD
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
+    LanguageAnalyzer_extract_classes --> PythonAnalyzer_extract_classes
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
@@ -501,6 +509,7 @@ graph TD
     JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    _select_analyzers --> _select_analyzer
     _build_file_graph --> _extract_node_id
     _build_file_graph --> _best_match
     _build_file_graph --> _extract_node_id
@@ -539,13 +548,10 @@ graph TD
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
     impact --> _load_scan_excludes
-    impact --> _detect_stack
+    impact --> _detect_stacks
     impact --> _select_analyzer
     impact --> _scan_call_edges
     impact --> _build_reverse_graph
-    impact --> _scan_files
-    impact --> _scan_files
-    impact --> _detect_file_ext
     impact --> _scan_files
     impact --> _resolve_test_path
     impact --> _load_scan_excludes
@@ -559,20 +565,17 @@ graph TD
     impact --> _scan_files
     impact --> _resolve_test_path
     visualize --> _load_scan_excludes
-    visualize --> _detect_stack
-    visualize --> _select_analyzer
+    visualize --> _detect_stacks
     visualize --> _atomic_mmd_write
     visualize --> build_unified_graph
     visualize --> _atomic_mmd_write
     visualize --> build_workflow_graph
     visualize --> _atomic_mmd_write
-    visualize --> _scan_files
-    visualize --> _scan_files
-    visualize --> _detect_file_ext
-    visualize --> _scan_files
     visualize --> _build_class_graph
     visualize --> export_focus_graphs
+    visualize --> _scan_files
     visualize --> _build_file_graph
+    visualize --> _select_analyzer
     visualize --> _scan_call_edges
     visualize --> _build_reverse_graph
     visualize --> _find_entry_func
@@ -678,12 +681,12 @@ graph TD
     workflow_impact --> nl
     build_workflow_graph --> detect_topology
     build_workflow_graph --> detect_topology
-    _load_code_graph --> _detect_stack
-    _load_code_graph --> _select_analyzer
+    _load_code_graph --> _detect_stacks
     _load_code_graph --> _load_scan_excludes
     _load_code_graph --> _build_suffix_index
-    _load_code_graph --> _scan_files
+    _load_code_graph --> _select_analyzer
     _load_code_graph --> _resolve_callee
+    _load_code_graph --> _scan_files
     _load_code_graph --> _detect_stack
     _load_code_graph --> _select_analyzer
     _load_code_graph --> _load_scan_excludes
@@ -786,6 +789,7 @@ graph TD
     _deploy_skills --> load_script
     _deploy_rules --> _build_rule_id_to_key
     _deploy_rules --> atomic_write
+    _deploy_rules --> _render_prompt
     _deploy_claude_md --> atomic_write
     _deploy_agents --> atomic_write
     _deploy_agents --> get_profile

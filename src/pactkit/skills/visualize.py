@@ -192,13 +192,15 @@ def _load_stub_edges(root):
     return []
 
 
-def _detect_stack(root):
-    """Detect the stack name for the project at root.
+def _detect_stacks(root):
+    """Detect all language stacks for the project at root.
+
+    Returns a list of stack names (deduplicated, order follows _STACK_MARKERS).
 
     Priority:
-    1. pactkit.yaml 'stack' field (if not 'auto' and known in _LANG_FILE_EXT)
-    2. Marker-file detection via _STACK_MARKERS
-    3. Default: 'python'
+    1. pactkit.yaml 'stack' field (if not 'auto' and known in _LANG_FILE_EXT) → single-element list
+    2. Marker-file detection via _STACK_MARKERS (collects ALL matches)
+    3. Default: ['python']
     """
     import sys as _sys
     # 1. Try reading stack from pactkit.yaml
@@ -215,19 +217,30 @@ def _detect_stack(root):
                 if isinstance(data, dict):
                     stack = data.get('stack', 'auto')
                     if stack and stack != 'auto' and stack in _LANG_FILE_EXT:
-                        return stack
+                        return [stack]
             except ImportError:
                 print(f"⚠️ Warning: pyyaml not installed, cannot read {path}", file=_sys.stderr)
             except Exception as e:
                 print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
 
-    # 2. Marker-file detection
+    # 2. Marker-file detection — collect ALL matching stacks
+    seen = set()
+    stacks = []
     for marker, stack in _STACK_MARKERS:
-        if (root / marker).exists():
-            return stack
+        if (root / marker).exists() and stack not in seen:
+            seen.add(stack)
+            stacks.append(stack)
 
     # 3. Default
-    return 'python'
+    return stacks if stacks else ['python']
+
+
+def _detect_stack(root):
+    """Detect the primary stack name for the project at root.
+
+    Backward-compatible wrapper around _detect_stacks() — returns the first detected stack.
+    """
+    return _detect_stacks(root)[0]
 
 
 def _detect_file_ext(root):
@@ -286,6 +299,11 @@ class LanguageAnalyzer(abc.ABC):
     @abc.abstractmethod
     def extract_functions_and_calls(self, file_path) -> tuple:
         """Return (func_registry, call_edges) for one file."""
+        ...
+
+    @abc.abstractmethod
+    def extract_classes(self, file_path, root) -> list:
+        """Return list of (rel_path, class_name, bases, methods) tuples for one file."""
         ...
 
 
@@ -359,6 +377,34 @@ class PythonAnalyzer(LanguageAnalyzer):
             return func_registry, call_edges
         except (SyntaxError, UnicodeDecodeError, ValueError):
             return {}, {}
+
+    def extract_classes(self, file_path, root):
+        """Extract class definitions from a Python file using ast."""
+        classes = []
+        try:
+            if file_path.stat().st_size > MAX_FILE_BYTES:
+                return []
+            tree = ast.parse(file_path.read_text(encoding='utf-8'))
+            rel = str(file_path.relative_to(root))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    bases = []
+                    for b in node.bases:
+                        if isinstance(b, ast.Name):
+                            bases.append(b.id)
+                        elif isinstance(b, ast.Attribute):
+                            bases.append(b.attr)
+                    methods = []
+                    for item in node.body:
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            prefix = '+' if not item.name.startswith('_') else '-'
+                            args = [a.arg for a in item.args.args if a.arg != 'self']
+                            sig = f"{prefix}{item.name}({', '.join(args)})"
+                            methods.append(sig)
+                    classes.append((rel, node.name, bases, methods))
+        except (SyntaxError, UnicodeDecodeError, ValueError):
+            pass
+        return classes
 
 
 # --- TREE-SITTER ADAPTER (STORY-slim-032) ---
@@ -559,6 +605,65 @@ class GoAnalyzer(TreeSitterAnalyzer):
 
         return func_registry, call_edges
 
+    def extract_classes(self, file_path, root):
+        """Extract struct/interface definitions from a Go file using tree-sitter."""
+        classes = []
+        try:
+            source = file_path.read_bytes()
+            tree = self._parser.parse(source)
+            rel = str(file_path.relative_to(root))
+
+            # Collect method signatures per receiver type
+            method_map = {}  # {type_name: [sig, ...]}
+            for _, match_dict in self._matches(self._method_query, tree.root_node):
+                names = match_dict.get('name', [])
+                receivers = match_dict.get('receiver_type', [])
+                if names:
+                    func_name = names[0].text.decode()
+                    receiver_type = ''
+                    if receivers:
+                        raw = receivers[0].text.decode()
+                        receiver_type = self._re.sub(r'[*& \[\]]', '', raw).strip()
+                    if receiver_type:
+                        prefix = '+' if not func_name.startswith('_') else '-'
+                        sig = f"{prefix}{func_name}()"
+                        method_map.setdefault(receiver_type, []).append(sig)
+
+            # Extract struct/interface declarations
+            for node in tree.root_node.children:
+                if node.type == 'type_declaration':
+                    for child in node.children:
+                        if child.type == 'type_spec':
+                            name_node = child.child_by_field_name('name')
+                            type_node = child.child_by_field_name('type')
+                            if not name_node or not type_node:
+                                continue
+                            struct_name = name_node.text.decode()
+                            bases = []
+                            if type_node.type == 'struct_type':
+                                for field_list in type_node.children:
+                                    if field_list.type == 'field_declaration_list':
+                                        for field in field_list.children:
+                                            if field.type == 'field_declaration':
+                                                has_field_id = any(
+                                                    c.type == 'field_identifier' for c in field.children
+                                                )
+                                                if not has_field_id:
+                                                    for c in field.children:
+                                                        if c.type == 'type_identifier':
+                                                            bases.append(c.text.decode())
+                                                        elif c.type == 'pointer_type':
+                                                            for pc in c.children:
+                                                                if pc.type == 'type_identifier':
+                                                                    bases.append(pc.text.decode())
+                            elif type_node.type == 'interface_type':
+                                pass  # interfaces have no embedded bases for now
+                            methods = method_map.get(struct_name, [])
+                            classes.append((rel, struct_name, bases, methods))
+        except Exception:
+            pass
+        return classes
+
 
 # Java tree-sitter queries (STORY-slim-033)
 _JAVA_IMPORT_QUERY = '(import_declaration (scoped_identifier) @import)'
@@ -667,6 +772,51 @@ class JavaAnalyzer(TreeSitterAnalyzer):
 
         return func_registry, call_edges
 
+    def extract_classes(self, file_path, root):
+        """Extract class definitions from a Java file using tree-sitter."""
+        classes = []
+        try:
+            source = file_path.read_bytes()
+            tree = self._parser.parse(source)
+            rel = str(file_path.relative_to(root))
+
+            for node in tree.root_node.children:
+                if node.type == 'class_declaration':
+                    name_node = node.child_by_field_name('name')
+                    if not name_node:
+                        continue
+                    cls_name = name_node.text.decode()
+                    bases = []
+                    # extends
+                    superclass = node.child_by_field_name('superclass')
+                    if superclass:
+                        for c in superclass.children:
+                            if c.type == 'type_identifier':
+                                bases.append(c.text.decode())
+                    # implements
+                    for child in node.children:
+                        if child.type == 'super_interfaces':
+                            for c in child.children:
+                                if c.type == 'type_list':
+                                    for ti in c.children:
+                                        if ti.type == 'type_identifier':
+                                            bases.append(ti.text.decode())
+                    # methods
+                    methods = []
+                    body_node = node.child_by_field_name('body')
+                    if body_node:
+                        for member in body_node.children:
+                            if member.type == 'method_declaration':
+                                mname_node = member.child_by_field_name('name')
+                                if mname_node:
+                                    mname = mname_node.text.decode()
+                                    prefix = '+' if not mname.startswith('_') else '-'
+                                    methods.append(f"{prefix}{mname}()")
+                    classes.append((rel, cls_name, bases, methods))
+        except Exception:
+            pass
+        return classes
+
 
 # TS/JS tree-sitter queries (STORY-slim-034)
 _TS_IMPORT_QUERY = '''[
@@ -754,6 +904,43 @@ class TSAnalyzer(TreeSitterAnalyzer):
 
         return func_registry, call_edges
 
+    def extract_classes(self, file_path, root):
+        """Extract class definitions from a TypeScript file using tree-sitter."""
+        classes = []
+        try:
+            source = file_path.read_bytes()
+            tree = self._parser.parse(source)
+            rel = str(file_path.relative_to(root))
+
+            for node in tree.root_node.children:
+                if node.type == 'class_declaration':
+                    name_node = node.child_by_field_name('name')
+                    if not name_node:
+                        continue
+                    cls_name = name_node.text.decode()
+                    bases = []
+                    for child in node.children:
+                        if child.type == 'class_heritage':
+                            for hc in child.children:
+                                if hc.type == 'extends_clause':
+                                    for ec in hc.children:
+                                        if ec.type in ('type_identifier', 'identifier'):
+                                            bases.append(ec.text.decode())
+                    methods = []
+                    body_node = node.child_by_field_name('body')
+                    if body_node:
+                        for member in body_node.children:
+                            if member.type == 'method_definition':
+                                mname_node = member.child_by_field_name('name')
+                                if mname_node:
+                                    mname = mname_node.text.decode()
+                                    prefix = '+' if not mname.startswith('_') else '-'
+                                    methods.append(f"{prefix}{mname}()")
+                    classes.append((rel, cls_name, bases, methods))
+        except Exception:
+            pass
+        return classes
+
 
 def _select_analyzer(stack):
     """Return the appropriate LanguageAnalyzer for the given stack.
@@ -777,6 +964,11 @@ def _select_analyzer(stack):
     except ImportError:
         print(f"tree-sitter-{stack} not installed; falling back to PythonAnalyzer for {stack}", file=_sys.stderr)
     return PythonAnalyzer()
+
+
+def _select_analyzers(stacks):
+    """Return a list of (stack, LanguageAnalyzer) tuples for the given stacks."""
+    return [(stack, _select_analyzer(stack)) for stack in stacks]
 
 
 # --- MODE: FILE (v1.3.0) ---
@@ -901,30 +1093,24 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
     return dest, nl().join(final_lines)
 
 # --- MODE: CLASS (classDiagram) ---
-def _build_class_graph(root, all_files, focus):
+def _build_class_graph(root, all_files, focus, analyzers=None):
+    """Build a classDiagram from source files using language-specific analyzers.
+
+    Args:
+        analyzers: list of (stack, analyzer, files) tuples. If None, falls back to
+                   PythonAnalyzer for all_files (backward compat).
+    """
     classes = []  # (file, class_name, bases, methods)
 
-    for p in all_files:
-        try:
-            if p.stat().st_size > MAX_FILE_BYTES:
-                continue
-            tree = ast.parse(p.read_text(encoding='utf-8'))
-            rel = str(p.relative_to(root))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    bases = []
-                    for b in node.bases:
-                        if isinstance(b, ast.Name): bases.append(b.id)
-                        elif isinstance(b, ast.Attribute): bases.append(b.attr)
-                    methods = []
-                    for item in node.body:
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            prefix = '+' if not item.name.startswith('_') else '-'
-                            args = [a.arg for a in item.args.args if a.arg != 'self']
-                            sig = f"{prefix}{item.name}({', '.join(args)})"
-                            methods.append(sig)
-                    classes.append((rel, node.name, bases, methods))
-        except (SyntaxError, UnicodeDecodeError, ValueError): pass
+    if analyzers is None:
+        # Backward compatibility: use PythonAnalyzer for all files
+        analyzer = PythonAnalyzer()
+        for p in all_files:
+            classes.extend(analyzer.extract_classes(p, root))
+    else:
+        for _stack, analyzer, files in analyzers:
+            for p in files:
+                classes.extend(analyzer.extract_classes(p, root))
 
     # Filter by focus
     if focus:
@@ -933,16 +1119,19 @@ def _build_class_graph(root, all_files, focus):
     lines = ['classDiagram']
     seen_classes = set()
     for rel, cname, bases, methods in classes:
-        if cname in seen_classes: continue
+        if cname in seen_classes:
+            continue
         seen_classes.add(cname)
         lines.append(f'    class {cname} {{')
-        for m in methods: lines.append(f'        {m}')
+        for m in methods:
+            lines.append(f'        {m}')
         lines.append('    }')
         for b in bases:
             lines.append(f'    {b} <|-- {cname}')
 
     dest = root / 'docs/architecture/graphs/class_graph.mmd'
-    if focus: dest = root / 'docs/architecture/graphs/focus_class_graph.mmd'
+    if focus:
+        dest = root / 'docs/architecture/graphs/focus_class_graph.mmd'
     return dest, nl().join(lines)
 
 # --- MODE: CALL (function-level call graph) ---
@@ -1286,18 +1475,21 @@ def impact(target='.', entry=None):
     if not entry: return ''
     root = Path(target).resolve()
     scan_excludes = _load_scan_excludes(root)
-    stack = _detect_stack(root)
-    # Multi-extension scanning for Node projects (STORY-slim-034 R5)
-    if stack == 'node':
-        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts')
-        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js')
-        all_files = files_ts + files_js
-        module_index = {**mi_ts, **mi_js}
-        file_to_node = {**ftn_ts, **ftn_js}
-    else:
-        file_ext = _detect_file_ext(root)
-        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    analyzer = _select_analyzer(stack)
+    # STORY-slim-076: Multi-stack scanning
+    stacks = _detect_stacks(root)
+    all_files = []
+    module_index = {}
+    file_to_node = {}
+    for stk in stacks:
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.append('.js')
+        for ext in exts:
+            files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
+            all_files.extend(files)
+            module_index.update(mi)
+            file_to_node.update(ftn)
+    analyzer = _select_analyzer(stacks[0])
     func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
 
     # Build stem → source_file index for {package} resolution
@@ -1316,7 +1508,7 @@ def impact(target='.', entry=None):
         source_file = stem_to_file.get(stem)
         if source_file:
             # Try pattern-based resolution first
-            test_path = _resolve_test_path(root, stem, source_file, stack)
+            test_path = _resolve_test_path(root, stem, source_file, stacks[0])
             if test_path:
                 test_files.add(str(test_path.relative_to(root)))
                 continue
@@ -1373,21 +1565,29 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         return f'✅ Graph: {dest}'
 
     scan_excludes = _load_scan_excludes(root)
-    stack = _detect_stack(root)
-    # Multi-extension scanning for Node projects (STORY-slim-034 R5)
-    if stack == 'node':
-        files_ts, mi_ts, ftn_ts = _scan_files(root, scan_excludes=scan_excludes, file_ext='.ts', focus=focus)
-        files_js, mi_js, ftn_js = _scan_files(root, scan_excludes=scan_excludes, file_ext='.js', focus=focus)
-        all_files = files_ts + files_js
-        module_index = {**mi_ts, **mi_js}
-        file_to_node = {**ftn_ts, **ftn_js}
-    else:
-        file_ext = _detect_file_ext(root)
-        all_files, module_index, file_to_node = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext, focus=focus)
-    analyzer = _select_analyzer(stack)
+    # STORY-slim-076: Multi-stack scanning
+    stacks = _detect_stacks(root)
+    all_files = []
+    module_index = {}
+    file_to_node = {}
+    analyzer_file_groups = []  # [(stack, analyzer, files), ...]
+    for stk in stacks:
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.append('.js')
+        stk_files = []
+        for ext in exts:
+            files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext, focus=focus)
+            stk_files.extend(files)
+            module_index.update(mi)
+            file_to_node.update(ftn)
+        all_files.extend(stk_files)
+        analyzer_file_groups.append((stk, _select_analyzer(stk), stk_files))
+    # Primary analyzer for call/file modes (first stack)
+    analyzer = analyzer_file_groups[0][1] if analyzer_file_groups else PythonAnalyzer()
 
     if mode == 'class':
-        dest, content = _build_class_graph(root, all_files, focus)
+        dest, content = _build_class_graph(root, all_files, focus, analyzers=analyzer_file_groups)
     elif mode == 'call':
         if entry and reverse:
             # Reverse BFS: find all callers of the entry function
@@ -2833,22 +3033,36 @@ def _load_code_graph(root) -> tuple:
     graph = WorkflowGraph()
     func_registry: dict[str, str] = {}
 
-    stack = _detect_stack(root)
-    analyzer = _select_analyzer(stack)
+    # STORY-slim-076: Multi-stack scanning
+    stacks = _detect_stacks(root)
     scan_excludes = _load_scan_excludes(root)
-    file_ext = _LANG_FILE_EXT.get(stack, '.py')
-
-    try:
-        all_files, _, _ = _scan_files(root, scan_excludes=scan_excludes, file_ext=file_ext)
-    except Exception:
+    all_files = []
+    for stk in stacks:
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.append('.js')
+        for ext in exts:
+            try:
+                files, _, _ = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
+                all_files.extend(files)
+            except Exception:
+                pass
+    if not all_files:
         return graph, func_registry
 
     call_edges_all: dict[str, list] = {}
-    for f in all_files:
-        fr, ce = analyzer.extract_functions_and_calls(f)
-        for fname, fpath in fr.items():
-            func_registry[fname] = str(fpath)
-        call_edges_all.update(ce)
+    for stk in stacks:
+        analyzer = _select_analyzer(stk)
+        stk_ext = _LANG_FILE_EXT.get(stk, '.py')
+        stk_exts = {stk_ext}
+        if stk == 'node':
+            stk_exts.add('.js')
+        for f in all_files:
+            if f.suffix in stk_exts:
+                fr, ce = analyzer.extract_functions_and_calls(f)
+                for fname, fpath in fr.items():
+                    func_registry[fname] = str(fpath)
+                call_edges_all.update(ce)
 
     all_funcs = set(func_registry.keys())
     suffix_idx = _build_suffix_index(all_funcs)
