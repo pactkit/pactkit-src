@@ -684,24 +684,26 @@ def main():
         from pathlib import Path
 
         from pactkit.cleaners import detect_stacks
-        from pactkit.config import find_pactkit_yaml, update_yaml_stack
-
-        yaml_path = find_pactkit_yaml()
-        if yaml_path is None:
-            print("❌ No pactkit.yaml found. Run `pactkit init` first.")
-            raise SystemExit(1)
+        from pactkit.config import update_yaml_stack
+        from pactkit.profiles import PACTKIT_YAML_CANDIDATES
 
         import yaml as _yaml
 
-        old_data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
-        old_stack = old_data.get("stack", "auto")
+        cwd = Path.cwd()
+        yaml_paths = [cwd / c for c in PACTKIT_YAML_CANDIDATES if (cwd / c).exists()]
+        if not yaml_paths:
+            print("❌ No pactkit.yaml found. Run `pactkit init` first.")
+            raise SystemExit(1)
 
-        new_stacks = detect_stacks(Path.cwd())
-        update_yaml_stack(yaml_path, new_stacks)
-
+        new_stacks = detect_stacks(cwd)
         new_display = new_stacks[0] if len(new_stacks) == 1 else new_stacks
-        print(f"Stack updated: {old_stack} → {new_display}")
-        print(f"  📄 {yaml_path}")
+
+        for yaml_path in yaml_paths:
+            old_data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+            old_stack = old_data.get("stack", "auto")
+            update_yaml_stack(yaml_path, new_stacks)
+            print(f"Stack updated: {old_stack} → {new_display}")
+            print(f"  📄 {yaml_path}")
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")
