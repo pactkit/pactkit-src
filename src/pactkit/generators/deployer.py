@@ -768,11 +768,12 @@ def _get_command_rules(cmd_name, config=None):
 
 
 def _build_command_rules_header(cmd_name, profile, config=None):
-    """Build rule injection header for a command file (STORY-slim-011).
+    """Build rule injection header for a command file (STORY-slim-011, R6: STORY-slim-083).
 
-    - Classic: @import lines for each rule
-    - OpenCode: inline rule content embedding
-    - Plugin/marketplace: no injection (rules handled globally)
+    Dispatches on profile.rules_import_style (OCP-compliant):
+    - "@import": @reference lines for each rule (e.g., classic)
+    - "inline": embed rule content directly (e.g., opencode, copilot)
+    - "instructions": no injection — rules loaded via global config (e.g., codex)
 
     Args:
         cmd_name: Command name.
@@ -786,10 +787,10 @@ def _build_command_rules_header(cmd_name, profile, config=None):
     if not rules:
         return ""
 
-    rule_id_to_filename = _build_rule_id_to_filename()
+    style = profile.rules_import_style
 
-    if profile.name == "classic":
-        # Classic: @import references
+    if style == "@import":
+        rule_id_to_filename = _build_rule_id_to_filename()
         lines = []
         for key in sorted(rules):
             if key == "credential":
@@ -801,13 +802,12 @@ def _build_command_rules_header(cmd_name, profile, config=None):
         lines.append("")  # blank line before command content
         return "\n".join(lines) + "\n"
 
-    elif profile.name == "opencode":
-        # OpenCode: inline content embedding for managed rules
-        # Credential (09) is loaded via opencode.json instructions, not inlined
+    elif style == "inline":
+        # Inline content embedding — credential handled externally, not inlined
         parts = []
         for key in sorted(rules):
             if key == "credential":
-                continue  # handled via opencode.json instructions
+                continue
             content = prompts.RULES_MODULES.get(key)
             if content:
                 parts.append(content.strip())
@@ -816,6 +816,7 @@ def _build_command_rules_header(cmd_name, profile, config=None):
             header = "\n\n".join(parts) + "\n\n<!-- rules-end -->\n\n"
             return header
 
+    # "instructions" or unknown: no injection (rules handled globally)
     return ""
 
 

@@ -187,9 +187,10 @@ If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## Visual First
 Before modifying code:
-- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to view module dependency graph
+- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to view file dependency graph
 - Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode class` for class inheritance
 - Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode call --entry <func>` to trace call chains
+- Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode module` for module-level architectural overview
 - **PDCA Exemption**: When a PDCA command is active, the command's own visualize phases take precedence — skip Visual First.
 
 ## Strict TDD

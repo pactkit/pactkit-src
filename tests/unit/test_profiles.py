@@ -104,7 +104,7 @@ class TestFormatProfilesRegistry:
         assert p.skills_dir == "~/.config/opencode/skills"
         assert p.project_instructions_file == "AGENTS.md"
         assert p.agent_format == "md"
-        assert p.rules_import_style == "instructions"
+        assert p.rules_import_style == "inline"
         assert p.has_custom_commands is True
         assert p.supports_model_routing is True
         assert p.pactkit_yaml_path == ".opencode/pactkit.yaml"

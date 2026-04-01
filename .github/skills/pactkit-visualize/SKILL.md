@@ -55,7 +55,7 @@ python3 .github/skills/pactkit-visualize/scripts/visualize.py list_rules
 | `--focus` (call) | `docs/architecture/graphs/focus_call_graph.mmd` | graph TD |
 
 ## Usage Scenarios
-- `/project-plan`: Run `visualize` to understand current project state before making design decisions
-- `/project-act`: Run `visualize --focus <module>` to understand dependencies of the modification target
-- `pactkit-doctor` skill: Run `visualize` to check whether architecture graphs can be generated correctly
-- `pactkit-trace` skill: Run `visualize --mode call --entry <func>` to trace call chains
+- `/project-plan`: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to understand current project state before making design decisions
+- `/project-act`: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --focus <module>` to understand dependencies of the modification target
+- `pactkit-doctor` skill: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to check whether architecture graphs can be generated correctly
+- `pactkit-trace` skill: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode call --entry <func>` to trace call chains
