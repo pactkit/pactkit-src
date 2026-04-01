@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.7] - 2026-04-01
+
+### Added
+- **GitHub Copilot adapter support** — New `copilot` FormatProfile in `profiles.py`. `pactkit init --format copilot` deploys to project `.github/` directory.
+- **Dynamic `--format` CLI choices** — `init`, `update`, `upgrade` commands now derive `--format` choices from `VALID_FORMATS` instead of hardcoded list. Adding a new format profile auto-exposes it in CLI.
+
+### Fixed
+- **Excluded command stripping** — `strip_excluded_command_references()` in `DeployerBase` now strips `/project-sprint` references from all rendered prompts for formats that exclude it (Copilot, Codex, OpenCode).
+
 ## [2.9.4] - 2026-03-31
 
 ### Fixed
