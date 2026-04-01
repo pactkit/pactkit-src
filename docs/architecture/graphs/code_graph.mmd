@@ -91,6 +91,14 @@ graph TD
     click pactkit_plugin_skills_pactkit_board_scripts_board_py href "pactkit-plugin/skills/pactkit-board/scripts/board.py"
     pactkit_plugin_skills_pactkit_scaffold_scripts_scaffold_py["scaffold.py"]
     click pactkit_plugin_skills_pactkit_scaffold_scripts_scaffold_py href "pactkit-plugin/skills/pactkit-scaffold/scripts/scaffold.py"
+    _github_skills_pactkit_visualize_scripts_visualize_py["visualize.py"]
+    click _github_skills_pactkit_visualize_scripts_visualize_py href ".github/skills/pactkit-visualize/scripts/visualize.py"
+    _github_skills_pactkit_board_scripts_board_py["board.py"]
+    click _github_skills_pactkit_board_scripts_board_py href ".github/skills/pactkit-board/scripts/board.py"
+    _github_skills_pactkit_scaffold_scripts_spec_linter_py["spec_linter.py"]
+    click _github_skills_pactkit_scaffold_scripts_spec_linter_py href ".github/skills/pactkit-scaffold/scripts/spec_linter.py"
+    _github_skills_pactkit_scaffold_scripts_scaffold_py["scaffold.py"]
+    click _github_skills_pactkit_scaffold_scripts_scaffold_py href ".github/skills/pactkit-scaffold/scripts/scaffold.py"
     src_pactkit_config_py --> src_pactkit___init___py
     src_pactkit_config_py --> src_pactkit_profiles_py
     src_pactkit_lessons_py --> src_pactkit_schemas_py
@@ -150,5 +158,8 @@ graph TD
     src_pactkit_generators_deployer_py --> src_pactkit_utils_py
     src_pactkit_generators_deployer_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py
+    src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_profiles_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_generators_deployer_py
+    _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_skills_visualize_py
+    _github_skills_pactkit_scaffold_scripts_spec_linter_py --> src_pactkit_schemas_py

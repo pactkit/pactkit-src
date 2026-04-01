@@ -313,6 +313,9 @@ def main():
     spec_status_parser.add_argument("spec", help="Path to spec file")
     spec_status_parser.add_argument("status", choices=["Draft", "In Progress", "Done"], help="New status value")
 
+    # pactkit redetect-stack (STORY-slim-077)
+    subparsers.add_parser("redetect-stack", help="Re-detect project stacks and update pactkit.yaml")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -676,6 +679,29 @@ def main():
         print(result["message"])
         if result["action"] == "error":
             raise SystemExit(1)
+
+    elif args.command == "redetect-stack":
+        from pathlib import Path
+
+        from pactkit.cleaners import detect_stacks
+        from pactkit.config import find_pactkit_yaml, update_yaml_stack
+
+        yaml_path = find_pactkit_yaml()
+        if yaml_path is None:
+            print("❌ No pactkit.yaml found. Run `pactkit init` first.")
+            raise SystemExit(1)
+
+        import yaml as _yaml
+
+        old_data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+        old_stack = old_data.get("stack", "auto")
+
+        new_stacks = detect_stacks(Path.cwd())
+        update_yaml_stack(yaml_path, new_stacks)
+
+        new_display = new_stacks[0] if len(new_stacks) == 1 else new_stacks
+        print(f"Stack updated: {old_stack} → {new_display}")
+        print(f"  📄 {yaml_path}")
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")

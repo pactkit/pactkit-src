@@ -30,15 +30,27 @@ _STACK_MARKERS: list[tuple[str, str]] = [
 def detect_stacks(project_root: Path) -> list[str]:
     """Detect all project stacks from marker files.
 
+    Scans root level first, then one level of subdirectories (monorepo support).
     Returns deduplicated list of stack names in _STACK_MARKERS order.
     Defaults to ['python'] if no markers found.
     """
     seen: set[str] = set()
     stacks: list[str] = []
+    # 1. Root-level scan
     for marker_file, stack in _STACK_MARKERS:
         if (project_root / marker_file).exists() and stack not in seen:
             seen.add(stack)
             stacks.append(stack)
+    # 2. Depth-1 subdirectory scan (STORY-slim-077: monorepo support)
+    try:
+        subdirs = [p for p in project_root.iterdir() if p.is_dir() and not p.name.startswith(".")]
+    except OSError:
+        subdirs = []
+    for subdir in subdirs:
+        for marker_file, stack in _STACK_MARKERS:
+            if (subdir / marker_file).exists() and stack not in seen:
+                seen.add(stack)
+                stacks.append(stack)
     return stacks if stacks else ["python"]
 
 

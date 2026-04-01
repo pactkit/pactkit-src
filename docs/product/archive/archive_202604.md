@@ -13,3 +13,8 @@
 - [x] R4: _build_class_graph refactor
 - [x] R5: _select_analyzers
 - [x] R6: Backward compat tests
+
+### [STORY-slim-077] Monorepo stack detection + redetect-stack CLI
+> Spec: docs/specs/STORY-slim-077.md
+
+- [x] Extend detect_stacks depth-1,Add redetect-stack CLI,Update init flow,Tests

@@ -315,6 +315,9 @@ def _deploy_classic(config=None, target=None):
         auto_added = auto_merge_config_file(project_yaml)
         for item in auto_added:
             print(f"  -> Auto-added: {item}")
+        # STORY-slim-077: Re-detect stacks for monorepo support
+        if project_yaml.exists() and _update_stack_if_stale(project_yaml, Path.cwd()):
+            print("  -> Stack re-detected from project markers")
         config = load_config(project_yaml)
 
     validate_config(config)
@@ -1203,6 +1206,35 @@ def _generate_config_if_missing(format: str | None = None):
     yaml_path = resolve_pactkit_yaml_dir(format=format)
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write(yaml_path, generate_default_yaml(stack=stacks))
+
+
+def _update_stack_if_stale(yaml_path: Path, project_root: Path) -> bool:
+    """Re-detect stacks and update yaml if changed (STORY-slim-077).
+
+    Returns True if yaml was updated, False otherwise.
+    """
+    import yaml as _yaml
+
+    from pactkit.cleaners import detect_stacks
+    from pactkit.config import update_yaml_stack
+
+    data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+    old_stack = data.get("stack", "auto")
+
+    new_stacks = detect_stacks(project_root)
+    # Normalize old value to list for comparison
+    if isinstance(old_stack, list):
+        old_list = old_stack
+    elif old_stack == "auto":
+        old_list = []  # force update
+    else:
+        old_list = [old_stack]
+
+    if sorted(new_stacks) == sorted(old_list):
+        return False
+
+    update_yaml_stack(yaml_path, new_stacks)
+    return True
 
 
 _VENV_BLOCK_START = "<!-- pactkit:venv:start -->"

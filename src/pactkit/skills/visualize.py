@@ -232,10 +232,21 @@ def _detect_stacks(root):
     # 2. Marker-file detection — collect ALL matching stacks
     seen = set()
     stacks = []
+    # 2a. Root-level scan
     for marker, stack in _STACK_MARKERS:
         if (root / marker).exists() and stack not in seen:
             seen.add(stack)
             stacks.append(stack)
+    # 2b. Depth-1 subdirectory scan (STORY-slim-077: monorepo support)
+    try:
+        subdirs = [p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.')]
+    except OSError:
+        subdirs = []
+    for subdir in subdirs:
+        for marker, stack in _STACK_MARKERS:
+            if (subdir / marker).exists() and stack not in seen:
+                seen.add(stack)
+                stacks.append(stack)
 
     # 3. Default
     return stacks if stacks else ['python']

@@ -14,7 +14,7 @@ from pactkit.prompts.workflows import (
 )
 
 # Utility-only commands that don't need prompt references
-CLI_NO_PROMPT_REF_ALLOWED = {"version", "upgrade", "schema", "backfill-release", "garden"}
+CLI_NO_PROMPT_REF_ALLOWED = {"version", "upgrade", "schema", "backfill-release", "garden", "redetect-stack"}
 
 _PACTKIT_REF = re.compile(r"pactkit\s+([\w-]+)")
 

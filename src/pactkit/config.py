@@ -529,6 +529,19 @@ def _render_stack_line(stack) -> str:
     return f"stack: {stack}"
 
 
+def update_yaml_stack(yaml_path: Path, stacks: list[str]) -> None:
+    """Update the stack field in an existing pactkit.yaml (STORY-slim-077).
+
+    Loads the yaml, updates the stack field, and rewrites the file.
+    Single-element lists are unwrapped to a plain string for cleaner output.
+    """
+    import yaml as _yaml
+
+    data = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+    data["stack"] = stacks[0] if len(stacks) == 1 else stacks
+    _rewrite_yaml(yaml_path, data)
+
+
 def _rewrite_yaml(path: Path, data: dict) -> None:
     """Rewrite pactkit.yaml preserving the standard section layout.
 

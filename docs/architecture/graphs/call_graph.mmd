@@ -153,6 +153,7 @@ graph TD
     _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
+    _render_stack_line["_render_stack_line"]
     _repair_table_structure["_repair_table_structure"]
     _resolve_callee["_resolve_callee"]
     _resolve_scope["_resolve_scope"]
@@ -174,6 +175,7 @@ graph TD
     _select_analyzer["_select_analyzer"]
     _select_analyzers["_select_analyzers"]
     _strip_code_blocks["_strip_code_blocks"]
+    _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _write_board["_write_board"]
@@ -209,6 +211,7 @@ graph TD
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_stack["detect_stack"]
+    detect_stacks["detect_stacks"]
     detect_topology["detect_topology"]
     detect_venv["detect_venv"]
     export_focus_graphs["export_focus_graphs"]
@@ -250,6 +253,7 @@ graph TD
     transform["transform"]
     update_spec_status["update_spec_status"]
     update_task["update_task"]
+    update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
     validate_spec["validate_spec"]
     visualize["visualize"]
@@ -265,7 +269,10 @@ graph TD
     load_config --> get_default_config
     auto_merge_config_file --> get_default_config
     auto_merge_config_file --> _rewrite_yaml
+    update_yaml_stack --> _rewrite_yaml
+    _rewrite_yaml --> _render_stack_line
     generate_default_yaml --> get_default_config
+    generate_default_yaml --> _render_stack_line
     _is_duplicate --> _jaccard_similarity
     append_lesson --> _get_last_n_entries
     append_lesson --> _is_duplicate
@@ -343,11 +350,19 @@ graph TD
     main --> refresh_test_count
     main --> check_coverage
     main --> update_spec_status
+    main --> find_pactkit_yaml
+    main --> detect_stacks
+    main --> update_yaml_stack
+    main --> validate_spec
+    main --> _format_result
+    main --> validate_spec
+    main --> _format_result
     main --> validate_spec
     main --> _format_result
     main --> validate_spec
     main --> _format_result
     scan_and_replace_tbd --> _get_done_ids
+    detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
     _parse_coverage_output --> _classify_coverage
     check_coverage --> _parse_coverage_output
@@ -378,6 +393,39 @@ graph TD
     add_story --> nl
     add_story --> nl
     add_story --> nl
+    add_story --> _parse_story_blocks
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    add_story --> nl
+    fix_board --> _parse_story_blocks
+    fix_board --> _classify_story
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
+    fix_board --> nl
     fix_board --> _parse_story_blocks
     fix_board --> _classify_story
     fix_board --> nl
@@ -434,6 +482,17 @@ graph TD
     update_task --> _mark_done
     update_task --> _write_board
     update_task --> fix_board
+    update_task --> _mark_done
+    update_task --> _write_board
+    update_task --> fix_board
+    move_story --> _parse_story_blocks
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
+    move_story --> nl
     move_story --> _parse_story_blocks
     move_story --> nl
     move_story --> nl
@@ -452,6 +511,7 @@ graph TD
     move_story --> nl
     list_stories --> nl
     list_stories --> nl
+    list_stories --> nl
     archive_stories --> nl
     archive_stories --> nl
     archive_stories --> nl
@@ -466,6 +526,15 @@ graph TD
     archive_stories --> nl
     archive_stories --> nl
     archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    archive_stories --> nl
+    init_architecture --> nl
+    init_architecture --> nl
     init_architecture --> nl
     init_architecture --> nl
     init_architecture --> nl
@@ -473,10 +542,15 @@ graph TD
     _detect_stack --> _detect_stacks
     _detect_file_ext --> _detect_stack
     _detect_file_ext --> _detect_stack
+    _detect_file_ext --> _detect_stack
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
     LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
+    LanguageAnalyzer_extract_imports --> PythonAnalyzer_extract_imports
+    LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
+    LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
+    LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
     LanguageAnalyzer_extract_functions_and_calls --> PythonAnalyzer_extract_functions_and_calls
@@ -486,6 +560,11 @@ graph TD
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    TreeSitterAnalyzer___init__ --> GoAnalyzer___init__
+    TreeSitterAnalyzer___init__ --> JavaAnalyzer___init__
+    TreeSitterAnalyzer___init__ --> TSAnalyzer___init__
     TreeSitterAnalyzer___init__ --> GoAnalyzer___init__
     TreeSitterAnalyzer___init__ --> JavaAnalyzer___init__
     TreeSitterAnalyzer___init__ --> TSAnalyzer___init__
@@ -494,6 +573,8 @@ graph TD
     TreeSitterAnalyzer___init__ --> TSAnalyzer___init__
     TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
@@ -502,11 +583,18 @@ graph TD
     TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
+    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
+    TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
     _select_analyzers --> _select_analyzer
@@ -522,6 +610,13 @@ graph TD
     _build_file_graph --> nl
     _build_file_graph --> _mermaid_escape
     _build_file_graph --> _extract_node_id
+    _build_file_graph --> _extract_node_id
+    _build_file_graph --> _best_match
+    _build_file_graph --> _extract_node_id
+    _build_file_graph --> nl
+    _build_file_graph --> _mermaid_escape
+    _build_file_graph --> _extract_node_id
+    _build_class_graph --> nl
     _build_class_graph --> nl
     _build_class_graph --> nl
     _build_call_graph --> _load_stub_edges
@@ -539,8 +634,21 @@ graph TD
     _build_call_graph --> nl
     _build_call_graph --> _mermaid_escape
     _build_call_graph --> _mermaid_escape
+    _build_call_graph --> _load_stub_edges
+    _build_call_graph --> _build_suffix_index
+    _build_call_graph --> _render_nested_call_graph
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> _resolve_callee
+    _build_call_graph --> nl
+    _build_call_graph --> nl
+    _build_call_graph --> _mermaid_escape
     _render_nested_call_graph --> nl
     _render_nested_call_graph --> _mermaid_escape
+    _render_nested_call_graph --> nl
+    _render_nested_call_graph --> _mermaid_escape
+    _build_reverse_graph --> _build_suffix_index
+    _build_reverse_graph --> _find_entry_func
+    _build_reverse_graph --> _resolve_callee
     _build_reverse_graph --> _build_suffix_index
     _build_reverse_graph --> _find_entry_func
     _build_reverse_graph --> _resolve_callee
@@ -552,6 +660,16 @@ graph TD
     impact --> _select_analyzer
     impact --> _scan_call_edges
     impact --> _build_reverse_graph
+    impact --> _scan_files
+    impact --> _resolve_test_path
+    impact --> _load_scan_excludes
+    impact --> _detect_stack
+    impact --> _select_analyzer
+    impact --> _scan_call_edges
+    impact --> _build_reverse_graph
+    impact --> _scan_files
+    impact --> _scan_files
+    impact --> _detect_file_ext
     impact --> _scan_files
     impact --> _resolve_test_path
     impact --> _load_scan_excludes
@@ -600,6 +718,33 @@ graph TD
     visualize --> _build_reverse_graph
     visualize --> _build_call_graph
     visualize --> nl
+    visualize --> _load_scan_excludes
+    visualize --> _detect_stack
+    visualize --> _select_analyzer
+    visualize --> _atomic_mmd_write
+    visualize --> build_unified_graph
+    visualize --> _atomic_mmd_write
+    visualize --> build_workflow_graph
+    visualize --> _atomic_mmd_write
+    visualize --> _scan_files
+    visualize --> _scan_files
+    visualize --> _detect_file_ext
+    visualize --> _scan_files
+    visualize --> _build_class_graph
+    visualize --> export_focus_graphs
+    visualize --> _build_file_graph
+    visualize --> _scan_call_edges
+    visualize --> _build_reverse_graph
+    visualize --> _find_entry_func
+    visualize --> _render_nested_call_graph
+    visualize --> _build_call_graph
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> nl
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
+    WorkflowGraph_to_mermaid --> _mermaid_escape
+    WorkflowGraph_to_mermaid --> _mermaid_escape
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
     WorkflowGraph_to_mermaid --> nl
@@ -618,6 +763,9 @@ graph TD
     TopologyParser_detect --> ApiCallParser_detect
     TopologyParser_detect --> AgentParser_detect
     TopologyParser_detect --> PdcaParser_detect
+    TopologyParser_detect --> PdcaParser_detect
+    TopologyParser_detect --> ApiCallParser_detect
+    TopologyParser_detect --> AgentParser_detect
     TopologyParser_parse --> PdcaParser_parse
     TopologyParser_parse --> ServiceParser_parse
     TopologyParser_parse --> FrontendParser_parse
@@ -626,6 +774,15 @@ graph TD
     TopologyParser_parse --> PdcaParser_parse
     TopologyParser_parse --> ServiceParser_parse
     TopologyParser_parse --> FrontendParser_parse
+    TopologyParser_parse --> PdcaParser_parse
+    TopologyParser_parse --> ServiceParser_parse
+    TopologyParser_parse --> FrontendParser_parse
+    TopologyParser_parse --> ApiCallParser_parse
+    TopologyParser_parse --> AgentParser_parse
+    PdcaParser_parse --> _parse_commands
+    PdcaParser_parse --> _parse_routing_table
+    PdcaParser_parse --> _scan_skill_files
+    PdcaParser_parse --> _parse_pdca_sequence
     PdcaParser_parse --> _parse_commands
     PdcaParser_parse --> _parse_routing_table
     PdcaParser_parse --> _scan_skill_files
@@ -644,6 +801,13 @@ graph TD
     ServiceParser_parse --> _parse_proto_files
     ServiceParser_parse --> _parse_mq_config
     ServiceParser_parse --> _scan_mq_source_patterns
+    ServiceParser_parse --> _parse_docker_compose
+    ServiceParser_parse --> _parse_openapi
+    ServiceParser_parse --> _parse_proto_files
+    ServiceParser_parse --> _parse_mq_config
+    ServiceParser_parse --> _scan_mq_source_patterns
+    _parse_component_imports --> _is_local_import
+    _parse_component_imports --> _is_local_import
     _parse_component_imports --> _is_local_import
     _parse_component_imports --> _is_local_import
     _parse_component_imports --> _is_local_import
@@ -652,6 +816,15 @@ graph TD
     _parse_hook_store_imports --> _is_local_import
     _parse_hook_store_imports --> _is_local_import
     _parse_hook_store_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    _parse_hook_store_imports --> _is_local_import
+    FrontendParser_parse --> _parse_component_imports
+    FrontendParser_parse --> _scan_hooks
+    FrontendParser_parse --> _scan_stores
+    FrontendParser_parse --> _parse_hook_store_imports
+    FrontendParser_parse --> _parse_app_router_pages
+    FrontendParser_parse --> _parse_pages_router
+    FrontendParser_parse --> _parse_vue_routes
     FrontendParser_parse --> _parse_component_imports
     FrontendParser_parse --> _scan_hooks
     FrontendParser_parse --> _scan_stores
@@ -667,18 +840,29 @@ graph TD
     FrontendParser_parse --> _parse_pages_router
     FrontendParser_parse --> _parse_vue_routes
     ApiCallParser_parse --> _find_enclosing_func_name
+    ApiCallParser_parse --> _find_enclosing_func_name
+    _parse_langgraph_ast --> _langgraph_process_call
+    _parse_langgraph_ast --> _langgraph_process_call
     _parse_langgraph_ast --> _langgraph_process_call
     _parse_langgraph_ast --> _langgraph_process_call
     AgentParser_parse --> _parse_yaml_agents
     AgentParser_parse --> _parse_langgraph_ast
     AgentParser_parse --> _parse_mcp_settings
+    AgentParser_parse --> _parse_yaml_agents
+    AgentParser_parse --> _parse_langgraph_ast
+    AgentParser_parse --> _parse_mcp_settings
+    api_convention_summary --> _get_used_fetch_functions
     api_convention_summary --> _get_used_fetch_functions
     regression_workflow_impact --> build_workflow_graph
     regression_workflow_impact --> build_workflow_graph
+    regression_workflow_impact --> build_workflow_graph
     workflow_impact --> build_workflow_graph
     workflow_impact --> nl
     workflow_impact --> build_workflow_graph
     workflow_impact --> nl
+    workflow_impact --> build_workflow_graph
+    workflow_impact --> nl
+    build_workflow_graph --> detect_topology
     build_workflow_graph --> detect_topology
     build_workflow_graph --> detect_topology
     _load_code_graph --> _detect_stacks
@@ -693,28 +877,60 @@ graph TD
     _load_code_graph --> _build_suffix_index
     _load_code_graph --> _scan_files
     _load_code_graph --> _resolve_callee
+    _load_code_graph --> _detect_stack
+    _load_code_graph --> _select_analyzer
+    _load_code_graph --> _load_scan_excludes
+    _load_code_graph --> _build_suffix_index
+    _load_code_graph --> _scan_files
+    _load_code_graph --> _resolve_callee
     build_unified_graph --> build_workflow_graph
     build_unified_graph --> _load_code_graph
     build_unified_graph --> _build_bridge_edges
     build_unified_graph --> build_workflow_graph
     build_unified_graph --> _load_code_graph
     build_unified_graph --> _build_bridge_edges
+    build_unified_graph --> build_workflow_graph
+    build_unified_graph --> _load_code_graph
+    build_unified_graph --> _build_bridge_edges
+    export_focus_graphs --> _atomic_mmd_write
     export_focus_graphs --> _atomic_mmd_write
     export_focus_graphs --> _atomic_mmd_write
     _find_section --> _line_number
+    _find_section --> _line_number
+    _section_text --> _find_section
     _section_text --> _find_section
     _check_requirements_section --> _section_text
+    _check_requirements_section --> _section_text
+    _check_acceptance_criteria --> _section_text
+    _check_acceptance_criteria --> _section_text
     _check_acceptance_criteria --> _section_text
     _check_acceptance_criteria --> _section_text
     _check_req_ac_coverage --> _section_text
     _check_req_ac_coverage --> _section_text
     _check_req_ac_coverage --> _extract_requirement_ids
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _section_text
+    _check_req_ac_coverage --> _extract_requirement_ids
+    _check_implementation_steps --> _section_text
     _check_implementation_steps --> _section_text
     _check_optional_sections --> _section_text
     _check_optional_sections --> _section_text
     _check_optional_sections --> _section_text
     _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
+    _check_optional_sections --> _section_text
     _check_security_scope --> _section_text
+    _check_security_scope --> _section_text
+    validate_spec --> _strip_code_blocks
+    validate_spec --> _check_metadata
+    validate_spec --> _check_requirements_section
+    validate_spec --> _check_acceptance_criteria
+    validate_spec --> _check_optional_sections
+    validate_spec --> _check_implementation_steps
+    validate_spec --> _check_req_ac_coverage
+    validate_spec --> _check_security_scope
     validate_spec --> _strip_code_blocks
     validate_spec --> _check_metadata
     validate_spec --> _check_requirements_section
@@ -725,22 +941,32 @@ graph TD
     validate_spec --> _check_security_scope
     git_start --> _inject_developer_prefix
     git_start --> _inject_developer_prefix
+    git_start --> _inject_developer_prefix
+    create_test_file --> nl
     create_test_file --> nl
     create_test_file --> nl
     create_e2e --> _inject_developer_prefix
     create_e2e --> nl
     create_e2e --> _inject_developer_prefix
     create_e2e --> nl
+    create_e2e --> _inject_developer_prefix
+    create_e2e --> nl
+    _inject_developer_prefix --> _read_developer_prefix
     _inject_developer_prefix --> _read_developer_prefix
     _inject_developer_prefix --> _read_developer_prefix
     create_spec --> _inject_developer_prefix
     create_spec --> _inject_developer_prefix
+    create_spec --> _inject_developer_prefix
+    create_skill --> nl
+    create_skill --> nl
     create_skill --> nl
     create_skill --> nl
     create_skill --> nl
     create_skill --> nl
     create_board --> nl
     create_board --> nl
+    create_board --> nl
+    create_prd --> nl
     create_prd --> nl
     create_prd --> nl
     _render_skill_md --> _rewrite_skills_prefix
@@ -771,6 +997,7 @@ graph TD
     _deploy_classic --> auto_merge_config_file
     _deploy_classic --> load_config
     _deploy_classic --> _generate_project_claude_md
+    _deploy_classic --> _update_stack_if_stale
     _deploy_plugin --> _deploy_skills
     _deploy_plugin --> _deploy_claude_md_inline
     _deploy_plugin --> _deploy_agents
@@ -812,10 +1039,13 @@ graph TD
     _deploy_ci --> atomic_write
     _deploy_ci --> _detect_ghe
     _deploy_hooks --> atomic_write
+    _generate_config_if_missing --> detect_stacks
     _generate_config_if_missing --> resolve_pactkit_yaml_dir
     _generate_config_if_missing --> atomic_write
     _generate_config_if_missing --> find_pactkit_yaml
     _generate_config_if_missing --> generate_default_yaml
+    _update_stack_if_stale --> detect_stacks
+    _update_stack_if_stale --> update_yaml_stack
     _upsert_venv_managed_block --> atomic_write
     _generate_claude_local_md_if_missing --> atomic_write
     _generate_project_claude_md --> _generate_claude_local_md_if_missing
