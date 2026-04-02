@@ -45,12 +45,25 @@ Before modifying code:
 ## Strict TDD
 - Write tests first (RED), then write implementation (GREEN)
 - The agent MUST NOT skip TDD except when running `/project-hotfix`
-- All tests must pass before committing
+- All tests MUST pass before committing
 
 ## Language Matching
 - Match the user's language (Chinese→Chinese, English→English).
 - Technical terms (function names, file paths, git commands) stay in original form.
 
+## Signal Strength Convention
+All rules and playbooks MUST use signal keywords consistently per this 4-level hierarchy:
+
+| Level | Keywords | Semantics | Use When |
+|-------|----------|-----------|----------|
+| **L1 Absolute** | `NEVER` / `MUST NOT` | Violation = bug, zero tolerance | Security red lines, data loss, Spec tampering |
+| **L2 Strong** | `CRITICAL` / `MUST` / `ALWAYS` | Violation = must-fix issue | Phase gates, TDD enforcement, regression blocking |
+| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Violation = warning, non-blocking | Best practices, performance advice, style |
+| **L4 Advisory** | `Prefer` / `Consider` / `If possible` | Suggestion, skip by judgment | Optimization hints, optional enhancements |
+
+- `NEVER` and `MUST NOT` are reserved for L1 — do not use them for anything less than absolute prohibition.
+- `DO NOT` is ambiguous — replace with `NEVER` (L1) or `MUST NOT` (L1) for prohibitions, or rephrase as `SHOULD NOT` (L3) for recommendations.
+- When writing an L1 or L2 rule, append a consequence clause: `— {what goes wrong if violated}`.
 
 # Workflow Conventions
 

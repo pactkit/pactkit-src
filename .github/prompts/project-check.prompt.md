@@ -7,7 +7,12 @@ description: "QA verification: security scan, code quality scan, Spec alignment"
 - **Usage**: `/project-check $ARGUMENTS`
 - **Agent**: QA Engineer
 
-> **PRINCIPLE**: Check is a verification-only operation; identify issues but do not fix them.
+> **PRINCIPLE**: Check is a verification-only operation; identify issues but NEVER modify code — fixes made during QA bypass the TDD loop and produce untested changes.
+
+> **TOOL RESTRICTION**: This entire command is analysis-only.
+> NEVER use Edit, Write, or Bash write operations (e.g., `sed -i`, `tee`, `>`, `>>`) in any phase.
+> Tool calls that modify files will produce incorrect analysis — the QA verdict
+> must reflect the code AS-IS, not code you changed during review.
 
 ## Severity Levels
 
@@ -200,12 +205,25 @@ Before modifying code:
 ## Strict TDD
 - Write tests first (RED), then write implementation (GREEN)
 - The agent MUST NOT skip TDD except when running `/project-hotfix`
-- All tests must pass before committing
+- All tests MUST pass before committing
 
 ## Language Matching
 - Match the user's language (Chinese→Chinese, English→English).
 - Technical terms (function names, file paths, git commands) stay in original form.
 
+## Signal Strength Convention
+All rules and playbooks MUST use signal keywords consistently per this 4-level hierarchy:
+
+| Level | Keywords | Semantics | Use When |
+|-------|----------|-----------|----------|
+| **L1 Absolute** | `NEVER` / `MUST NOT` | Violation = bug, zero tolerance | Security red lines, data loss, Spec tampering |
+| **L2 Strong** | `CRITICAL` / `MUST` / `ALWAYS` | Violation = must-fix issue | Phase gates, TDD enforcement, regression blocking |
+| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Violation = warning, non-blocking | Best practices, performance advice, style |
+| **L4 Advisory** | `Prefer` / `Consider` / `If possible` | Suggestion, skip by judgment | Optimization hints, optional enhancements |
+
+- `NEVER` and `MUST NOT` are reserved for L1 — do not use them for anything less than absolute prohibition.
+- `DO NOT` is ambiguous — replace with `NEVER` (L1) or `MUST NOT` (L1) for prohibitions, or rephrase as `SHOULD NOT` (L3) for recommendations.
+- When writing an L1 or L2 rule, append a consequence clause: `— {what goes wrong if violated}`.
 
 # The Hierarchy of Truth
 > **CRITICAL**: Code is NOT the law.
@@ -224,9 +242,9 @@ Before modifying code:
 - This exception does NOT weaken the general principle (Spec > Code) — it adds a safety valve for genuinely impossible requirements
 
 ## Pre-existing Test Protocol
-- If a pre-existing test fails during regression, **do not modify** the failing test or the code it tests
+- If a pre-existing test fails during regression, NEVER modify the failing test or the code it tests — doing so silently corrupts the regression baseline and the failure will only surface in CI
 - STOP and report: which test failed, what it tests, which change caused it
-- You MUST NOT assume you understand the design intent behind pre-existing tests
+- MUST NOT assume you understand the design intent behind pre-existing tests — misinterpreting intent leads to tests that pass but verify the wrong behavior
 
 ## Operating Guidelines
 - Before modifying code, you must first read the relevant Spec (`docs/specs/`)

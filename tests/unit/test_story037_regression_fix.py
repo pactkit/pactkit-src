@@ -120,7 +120,7 @@ class TestAC4ActExplicitCriteria:
         """The pre-existing test failure STOP protocol must be preserved."""
         p = _prompts()
         act = p.COMMANDS_CONTENT['project-act.md']
-        assert 'DO NOT modify' in act
+        assert 'NEVER modify' in act
         assert 'STOP' in act
 
 

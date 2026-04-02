@@ -57,3 +57,22 @@
 > Spec: docs/specs/STORY-slim-084.md
 
 - [x] R2: has_pactkit_cli field,R1: validate_deployed_content(),R3: Core deploy integration,R6: Core unit tests,R4: Copilot integration test,R5: Codex integration test
+
+### [STORY-slim-086] Prompt Writing Quality — Signal Strength, Consequence Language, NO_TOOLS Mode
+> Spec: docs/specs/STORY-slim-086.md
+
+- [x] R1: Signal Strength Convention 追加到 01-core-protocol.md
+- [x] R2: 校准现有规则文件信号词 (01, 02, 10)
+- [x] R3: 7 条关键禁止规则添加后果语言
+- [x] R4: project-check.md 添加 NO_TOOLS restriction
+
+## ✅ Done
+
+- **STORY-slim-059**: Remove dead codex profile and slim down core package
+- **STORY-slim-058**: Extract pactkit-opencode as independent adapter package
+- **STORY-slim-057**: Refactor deployer.py: extract DeployerProtocol and DeployerBase
+
+### [HOTFIX-slim-085] Add Duplication Audit to Plan phase
+> Spec: docs/specs/HOTFIX-slim-085.md
+
+- [x] system-architect agent + Plan playbook

@@ -176,7 +176,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
-1.  **Constraint**: DO NOT write source code yet.
+1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
 2.  **Action**: Create a reproduction test case in `tests/unit/`.
     - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
 
@@ -192,7 +192,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
     - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
-    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
+    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
 
 ## 🎬 Phase 4: Sync & Document
@@ -209,7 +209,12 @@ allowed-tools: [Read, Bash, Grep, Glob]
 - **Usage**: `/project-check $ARGUMENTS`
 - **Agent**: QA Engineer
 
-> **PRINCIPLE**: Check is a verification-only operation; identify issues but do not fix them.
+> **PRINCIPLE**: Check is a verification-only operation; identify issues but NEVER modify code — fixes made during QA bypass the TDD loop and produce untested changes.
+
+> **TOOL RESTRICTION**: This entire command is analysis-only.
+> NEVER use Edit, Write, or Bash write operations (e.g., `sed -i`, `tee`, `>`, `>>`) in any phase.
+> Tool calls that modify files will produce incorrect analysis — the QA verdict
+> must reflect the code AS-IS, not code you changed during review.
 
 ## Severity Levels
 

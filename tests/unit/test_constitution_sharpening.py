@@ -112,8 +112,9 @@ class TestTokenReduction:
     """S4: Core protocol should stay within reasonable word limit."""
 
     # Baseline updated: 400 words (post-STORY-008 reduction + subagent section).
-    # 30% headroom → max 280 words. Increase baseline if adding valuable content.
-    BASELINE_WORD_COUNT = 400
+    # 30% headroom → max words. Increase baseline if adding valuable content.
+    # Raised from 400 to 600 for STORY-slim-086: Signal Strength Convention table added.
+    BASELINE_WORD_COUNT = 600
 
     def test_core_protocol_within_limit(self):
         p = _prompts()

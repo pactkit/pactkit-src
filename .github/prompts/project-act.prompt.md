@@ -49,7 +49,7 @@ description: "Implement code per Spec, strict TDD"
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
-1.  **Constraint**: DO NOT write source code yet.
+1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
 2.  **Action**: Create a reproduction test case in `tests/unit/`.
     - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
 
@@ -65,7 +65,7 @@ description: "Implement code per Spec, strict TDD"
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run the project test suite (e.g., `pytest tests/ -q` for Python, `npm test` for Node) (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
     - If IMPACT: run `pactkit test-map <changed-files>` (run from terminal) for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
-    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, **DO NOT modify** it. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
+    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run the project linter (e.g., `ruff check src/ tests/` for Python, `npm run lint` for Node) to check code style. If lint errors are found, fix them before proceeding. If run the project linter is unavailable, run the stack's lint command directly.
 
 ## 🎬 Phase 4: Sync & Document
@@ -98,12 +98,25 @@ Before modifying code:
 ## Strict TDD
 - Write tests first (RED), then write implementation (GREEN)
 - The agent MUST NOT skip TDD except when running `/project-hotfix`
-- All tests must pass before committing
+- All tests MUST pass before committing
 
 ## Language Matching
 - Match the user's language (Chinese→Chinese, English→English).
 - Technical terms (function names, file paths, git commands) stay in original form.
 
+## Signal Strength Convention
+All rules and playbooks MUST use signal keywords consistently per this 4-level hierarchy:
+
+| Level | Keywords | Semantics | Use When |
+|-------|----------|-----------|----------|
+| **L1 Absolute** | `NEVER` / `MUST NOT` | Violation = bug, zero tolerance | Security red lines, data loss, Spec tampering |
+| **L2 Strong** | `CRITICAL` / `MUST` / `ALWAYS` | Violation = must-fix issue | Phase gates, TDD enforcement, regression blocking |
+| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Violation = warning, non-blocking | Best practices, performance advice, style |
+| **L4 Advisory** | `Prefer` / `Consider` / `If possible` | Suggestion, skip by judgment | Optimization hints, optional enhancements |
+
+- `NEVER` and `MUST NOT` are reserved for L1 — do not use them for anything less than absolute prohibition.
+- `DO NOT` is ambiguous — replace with `NEVER` (L1) or `MUST NOT` (L1) for prohibitions, or rephrase as `SHOULD NOT` (L3) for recommendations.
+- When writing an L1 or L2 rule, append a consequence clause: `— {what goes wrong if violated}`.
 
 # Sectional Write Protocol
 
@@ -152,9 +165,9 @@ Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint �
 - This exception does NOT weaken the general principle (Spec > Code) — it adds a safety valve for genuinely impossible requirements
 
 ## Pre-existing Test Protocol
-- If a pre-existing test fails during regression, **do not modify** the failing test or the code it tests
+- If a pre-existing test fails during regression, NEVER modify the failing test or the code it tests — doing so silently corrupts the regression baseline and the failure will only surface in CI
 - STOP and report: which test failed, what it tests, which change caused it
-- You MUST NOT assume you understand the design intent behind pre-existing tests
+- MUST NOT assume you understand the design intent behind pre-existing tests — misinterpreting intent leads to tests that pass but verify the wrong behavior
 
 ## Operating Guidelines
 - Before modifying code, you must first read the relevant Spec (`docs/specs/`)
