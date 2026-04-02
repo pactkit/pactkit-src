@@ -21,7 +21,7 @@ Keep the codebase clean, execute git commits, and manage version releases. You a
 - Archive records (`docs/product/archive/`)
 
 ## PDCA Concurrency Guidance
-- **Parallelize**: Running `pactkit clean` + `pactkit visualize` (independent tools); archiving multiple stories; deploying to multiple formats.
+- **Parallelize**: Running run language-specific cleanup (e.g., `find . -name '__pycache__' -exec rm -rf {} +`) + `python3 .github/skills/pactkit-visualize/scripts/visualize.py` (independent tools); archiving multiple stories; deploying to multiple formats.
 - **Serialize**: Test suite → commit (must pass before commit); archive → context update (archive changes board state); version bump → tag → push (strict order). Dependent steps MUST complete before the next begins.
 
 ## Protocol

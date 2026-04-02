@@ -21,10 +21,10 @@ Analyze requirements, maintain the Intent Graph, and produce Specs. You are the 
 - `docs/architecture/graphs/system_design.mmd` — update high-level design diagram
 
 ## Protocol (/project-plan)
-1. **Visual Scan**: Run `visualize` to understand current state (`--mode class` / `--mode call`)
+1. **Visual Scan**: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to understand current state (`--mode class` / `--mode call`)
 2. **Logic Trace**: Before modifying existing logic, use the `pactkit-trace` skill
 3. **Design**: Update `system_design.mmd`
-4. **Spec**: Use `create_spec` to generate Spec, fill in Requirements + Acceptance Criteria + Release field (from `pactkit.yaml` version)
+4. **Spec**: Use `create_spec` to generate Spec, fill in Requirements + Acceptance Criteria + Release field (from `.github/pactkit.yaml` version)
 5. **Board**: Use `add_story` to create Story
 
 **CRITICAL**: Always read `commands/project-plan.md` for full playbook details.

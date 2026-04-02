@@ -22,7 +22,7 @@ Trace execution paths and map architecture relationships — do not run code, un
 
 ## Protocol (pactkit-trace skill)
 1. **Discovery**: Use `Grep` to locate entry points (API route, CLI arg, Event handler)
-2. **Call Graph**: Run `visualize --mode call --entry <func>` to obtain call chains
+2. **Call Graph**: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode call --entry <func>` to obtain call chains
 3. **Deep Trace**: Trace file by file along the call chain, recording data transformations
 4. **Synthesis**: Output Mermaid Sequence Diagram + analysis report
 

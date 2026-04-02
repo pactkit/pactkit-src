@@ -208,6 +208,7 @@ graph TD
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
+    _warn_deploy_violations["_warn_deploy_violations"]
     _write_board["_write_board"]
     add_story["add_story"]
     api_convention_summary["api_convention_summary"]
@@ -1001,10 +1002,14 @@ graph TD
     _deploy_skills --> load_script
     _deploy_skills --> load_script
     _deploy_skills --> load_script
+    _deploy_skills --> _warn_deploy_violations
+    _deploy_skills --> _warn_deploy_violations
     _deploy_rules --> _build_rule_id_to_key
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt
+    _deploy_rules --> _warn_deploy_violations
     _deploy_claude_md --> atomic_write
+    _deploy_agents --> _warn_deploy_violations
     _deploy_agents --> atomic_write
     _deploy_agents --> get_profile
     _deploy_agents --> get_profile
@@ -1012,6 +1017,7 @@ graph TD
     _deploy_agents --> _rewrite_skills_prefix
     _build_command_rules_header --> _get_command_rules
     _build_command_rules_header --> _build_rule_id_to_filename
+    _deploy_commands --> _warn_deploy_violations
     _deploy_commands --> get_profile
     _deploy_commands --> get_profile
     _deploy_commands --> _convert_command_frontmatter_opencode

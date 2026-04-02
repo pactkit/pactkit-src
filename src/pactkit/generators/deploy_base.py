@@ -36,6 +36,34 @@ class DeployerProtocol(Protocol):
     def deploy(self, config=None, target=None) -> None: ...
 
 
+# ---------------------------------------------------------------------------
+# Forbidden patterns for deploy-output validation (STORY-slim-084)
+# ---------------------------------------------------------------------------
+
+# Path patterns: each tuple is (pattern_substring, owning_global_config_dir_prefix)
+_FORBIDDEN_PATH_PATTERNS: list[tuple[str, str]] = [
+    ("~/.claude/skills/", "~/.claude"),
+    ("~/.claude/rules/", "~/.claude"),
+    ("~/.claude/commands/", "~/.claude"),
+    ("~/.config/opencode/skills/", "~/.config/opencode"),
+    ("~/.config/opencode/commands/", "~/.config/opencode"),
+    ("~/.codex/skills/", "~/.codex"),
+    ("~/.codex/rules/", "~/.codex"),
+]
+
+# CLI command patterns (checked only when has_pactkit_cli is False)
+_FORBIDDEN_CLI_PATTERNS: list[str] = [
+    "`pactkit visualize",
+    "`pactkit clean",
+    "`pactkit guard",
+    "`pactkit lint",
+    "`pactkit regression",
+    "`pactkit context",
+    "`pactkit doctor",
+    "`pactkit update",
+]
+
+
 class DeployerBase:
     """Base class providing shared deployment methods.
 
@@ -45,6 +73,43 @@ class DeployerBase:
     """
 
     profile: FormatProfile = None  # type: ignore[assignment]  # subclass must set
+
+    # --- Deploy-output validation (STORY-slim-084) ---
+
+    @staticmethod
+    def validate_deployed_content(content: str, profile: FormatProfile) -> list[str]:
+        """Check deployed content for patterns that should not appear in this profile.
+
+        Returns a list of violation descriptions (empty = clean).
+        Pure function — no side effects, safe for testing.
+        """
+        violations: list[str] = []
+
+        # 1. Path patterns — skip if the pattern belongs to this profile's own config dir
+        for pattern, owner_prefix in _FORBIDDEN_PATH_PATTERNS:
+            if profile.global_config_dir.rstrip("/").startswith(owner_prefix):
+                continue
+            if pattern in content:
+                violations.append(f"Foreign path reference: {pattern}")
+
+        # 2. CLI command patterns — only check when profile lacks pactkit CLI
+        if not profile.has_pactkit_cli:
+            for line in content.splitlines():
+                # Skip install instructions (pactkit init --format is guidance)
+                if "pactkit init --format" in line:
+                    continue
+                # Skip lines already annotated as terminal-only guidance:
+                # adapters convert unreachable CLI refs to "run from terminal" notes.
+                if "from the terminal" in line or "(run from terminal)" in line or "(terminal only)" in line:
+                    continue
+                for cli_pat in _FORBIDDEN_CLI_PATTERNS:
+                    # Use word-boundary check: the pattern must not be followed by a
+                    # hyphen or alphanumeric character (which would indicate a different
+                    # hyphenated subcommand, e.g. `pactkit lint-context` ≠ `pactkit lint`).
+                    if re.search(re.escape(cli_pat) + r"(?![-\w])", line):
+                        violations.append(f"CLI reference in CLI-less profile: {cli_pat}")
+
+        return violations
 
     def deploy(self, config=None, target=None) -> None:
         """Override in subclass."""

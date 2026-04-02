@@ -65,6 +65,7 @@ classDiagram
     }
     Protocol <|-- DeployerProtocol
     class DeployerBase {
+        +validate_deployed_content(content, profile)
         +deploy(config, target)
         +render_prompt(template, profile)
         +deploy_skills(skills_dir, enabled_skills, profile, _legacy_prefix)

@@ -52,3 +52,8 @@
 > Spec: docs/specs/STORY-slim-083.md
 
 - [x] CopilotDeployer class + entry_point registration + deploy to .github/ + OCP fix for rules_import_style dispatch
+
+### [STORY-slim-084] Adapter deploy-output validation guard
+> Spec: docs/specs/STORY-slim-084.md
+
+- [x] R2: has_pactkit_cli field,R1: validate_deployed_content(),R3: Core deploy integration,R6: Core unit tests,R4: Copilot integration test,R5: Codex integration test

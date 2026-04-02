@@ -26,7 +26,7 @@ Health check report, format:
 
 ## Protocol (pactkit-doctor skill)
 1. **Config**: Verify that the `.github/skills/` directory and SKILL.md files are complete
-2. **Graphs**: Run `visualize` to check whether architecture graphs can be generated
+2. **Graphs**: Run `python3 .github/skills/pactkit-visualize/scripts/visualize.py` to check whether architecture graphs can be generated
 3. **Data**: Verify that Specs and Board Stories correspond
 4. **Tests**: Check whether the project's test suite can run (see `LANG_PROFILES`)
 

@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+import warnings
 from pathlib import Path
 
 import yaml
@@ -41,6 +42,14 @@ from pactkit.utils import atomic_write
 # For classic/opencode: use profile.skills_path_var instead
 CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
+
+
+def _warn_deploy_violations(content: str, profile: FormatProfile, label: str) -> None:
+    """Run validate_deployed_content and emit warnings for any violations (STORY-slim-084 R3)."""
+    violations = DeployerBase.validate_deployed_content(content, profile)
+    if violations:
+        detail = "; ".join(violations)
+        warnings.warn(f"[{label}] Deploy content violations for {profile.name}: {detail}", stacklevel=3)
 
 
 def _render_prompt(template: str, profile: FormatProfile) -> str:
@@ -501,6 +510,8 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         scripts_dir.mkdir(parents=True, exist_ok=True)
 
         skill_md = _render_skill_md(sd, profile, _prefix)
+        if profile is not None:
+            _warn_deploy_violations(skill_md, profile, f"skill:{sd['name']}")
         atomic_write(skill_dir / "SKILL.md", skill_md)
         atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
@@ -513,6 +524,8 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         skill_dir.mkdir(parents=True, exist_ok=True)
 
         skill_md = _render_skill_md(sd, profile, _prefix)
+        if profile is not None:
+            _warn_deploy_violations(skill_md, profile, f"skill:{sd['name']}")
         atomic_write(skill_dir / "SKILL.md", skill_md)
         deployed += 1
 
@@ -608,6 +621,8 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
                 frontmatter = f'---\nincludeFiles: ["{scope}"]\n---\n\n'
             content = frontmatter + content
 
+        if profile is not None:
+            _warn_deploy_violations(content, profile, f"rule:{rule_id}")
         atomic_write(rules_dir / filename, content)
         deployed += 1
 
@@ -736,6 +751,7 @@ def _deploy_agents(
         rendered = (
             _render_prompt(raw, profile) if _legacy_prefix is None else _rewrite_skills_prefix(raw, _effective_prefix)
         )
+        _warn_deploy_violations(rendered, profile, f"agent:{name}")
         atomic_write(agent_path, rendered)
         deployed += 1
 
@@ -892,6 +908,7 @@ def _deploy_commands(
             if _legacy_prefix is None
             else _rewrite_skills_prefix(content, _effective_prefix)
         )
+        _warn_deploy_violations(rendered, profile, f"command:{cmd_name}")
 
         if _deploy_as_skill:
             # STORY-slim-063: Write as skills_dir/{name}/SKILL.md

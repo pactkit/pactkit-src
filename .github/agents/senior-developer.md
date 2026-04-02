@@ -26,8 +26,8 @@ Implement code per Spec, strictly following TDD. You are the owner of the Act ph
 
 ## Protocol
 ### /project-act (Formal Development)
-1. **Visual Scan**: `visualize --focus <module>` to understand dependencies
-2. **Call Chain**: `visualize --mode call --entry <func>` to trace call chains
+1. **Visual Scan**: `python3 .github/skills/pactkit-visualize/scripts/visualize.py --focus <module>` to understand dependencies
+2. **Call Chain**: `python3 .github/skills/pactkit-visualize/scripts/visualize.py --mode call --entry <func>` to trace call chains
 3. **Test First**: Write `tests/unit/` tests first (RED)
 4. **Implement**: Write code to make tests pass (GREEN)
 5. **Verify**: Report after the project's test suite passes (see `LANG_PROFILES` for test runner)

@@ -104,6 +104,15 @@ class FormatProfile:
     skills_path_var: str
     """Skills path used in deployed playbook templates. e.g. '~/.claude/skills'."""
 
+    # CLI Availability
+    has_pactkit_cli: bool = True
+    """Whether this format's runtime has access to the pactkit CLI.
+
+    True for classic (terminal), opencode (terminal).
+    False for codex (sandboxed), copilot (IDE-only).
+    Default True for backward compat with custom profiles.
+    """
+
 
 # ---------------------------------------------------------------------------
 # Registry: add a new FormatProfile here to support a new tool
@@ -172,6 +181,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var="~/.codex/skills",
+        has_pactkit_cli=False,
     ),
     "copilot": FormatProfile(
         name="copilot",
@@ -193,6 +203,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var=".github/skills",
+        has_pactkit_cli=False,
     ),
 }
 
