@@ -75,7 +75,8 @@ description: "Analyze requirements, create Spec and Story"
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
-2.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
+2.  **Duplication Audit**: Run the Duplication Audit from system-architect protocol — if this is the Nth same-kind implementation, grep existing implementations and assess shared abstraction needs before writing Spec.
+3.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
