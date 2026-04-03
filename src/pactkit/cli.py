@@ -209,8 +209,12 @@ def main():
     )
     schema_parser.add_argument("--all", action="store_true", dest="all_types", help="Show all schemas")
 
-    # pactkit guard (STORY-slim-014 R1)
-    subparsers.add_parser("guard", help="Check project init markers")
+    # pactkit guard (STORY-slim-014 R1, HOTFIX-slim-087)
+    guard_parser = subparsers.add_parser("guard", help="Check project init markers")
+    guard_parser.add_argument(
+        "-C", "--project-root", type=str, default=None,
+        help="Project root directory (defaults to CWD)",
+    )
 
     # pactkit next-id (STORY-slim-014 R1)
     subparsers.add_parser("next-id", help="Generate next Story ID")
@@ -371,7 +375,7 @@ def main():
 
         from pactkit.guards import check_init_markers, check_version_mismatch
 
-        project_root = Path.cwd()
+        project_root = Path(args.project_root) if args.project_root else Path.cwd()
         ok, missing = check_init_markers(project_root)
         if ok:
             print("Guard: PASS — all init markers present")
