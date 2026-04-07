@@ -1,14 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-04-02T21:09:42+08:00 by pactkit context
+> Last updated: 2026-04-03T13:58:47+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 0 | In Progress: 0 | Done: 1 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- HOTFIX-slim-087: guard 添加 -C 参数
 
 ## Active Branches
 codex-integration
