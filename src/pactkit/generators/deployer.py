@@ -639,17 +639,16 @@ def _is_pactkit_managed_global_md(content):
 
 
 def _deploy_claude_md(claude_root, enabled_rules):
-    """Generate CLAUDE.md — rules now loaded per-command (STORY-slim-011).
+    """Generate global CLAUDE.md — header only (STORY-slim-011).
 
-    AC11: CLAUDE.md no longer @imports rules globally. Rule loading has been
-    moved to command-level @import headers in _build_command_rules_header().
-    Only @./docs/product/context.md is retained.
+    Rules are auto-loaded by Claude Code from ~/.claude/rules/.
+    Context.md reference removed — invalid at global level (BUG-slim-089).
 
     BUG-slim-089: Read-before-write guard to preserve user-modified content.
     """
     claude_md_path = claude_root / "CLAUDE.md"
     new_header = f"# PactKit Global Constitution (v{__version__} Modular)"
-    new_content = f"{new_header}\n\n@./docs/product/context.md\n"
+    new_content = f"{new_header}\n"
 
     # Fresh install — no existing file
     if not claude_md_path.exists():

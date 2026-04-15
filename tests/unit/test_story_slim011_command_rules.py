@@ -286,8 +286,8 @@ class TestAC11ClassicClaudeMd:
         _deploy_claude_md(tmp_path, sorted(RULES_FILES.keys()))
 
         content = (tmp_path / "CLAUDE.md").read_text()
-        # Should still have context.md
-        assert "@./docs/product/context.md" in content
+        # Should have version header
+        assert "# PactKit Global Constitution" in content
         # Should NOT have rule @imports
         for filename in RULES_FILES.values():
             assert f"@~/.claude/rules/{filename}" not in content, (
