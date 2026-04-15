@@ -173,7 +173,7 @@ class TestClassicModeUnchanged:
         out = _run_deploy_classic(tmp_path)
         content = (out / "CLAUDE.md").read_text()
         assert "@~/.claude/rules/" not in content
-        assert "@./docs/product/context.md" in content
+        assert "# PactKit Global Constitution" in content
 
     def test_classic_has_rules_dir(self, tmp_path):
         out = _run_deploy_classic(tmp_path)

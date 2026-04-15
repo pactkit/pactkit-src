@@ -171,7 +171,7 @@ class TestSelectiveRules:
         # STORY-slim-011: CLAUDE.md should have no rule filenames at all
         assert "01-core-protocol.md" not in content
         assert "05-workflow-conventions.md" not in content
-        assert "@./docs/product/context.md" in content
+        assert "# PactKit Global Constitution" in content
 
     def test_only_enabled_rule_files_exist(self, tmp_path):
         cfg = get_default_config()

@@ -338,7 +338,7 @@ class TestDeploymentCompleteness:
         rule_lines = [ln for ln in content.splitlines() if ln.startswith("@~/.claude/rules/")]
         assert len(rule_lines) == 0, \
             f"CLAUDE.md should not have global rule imports, found: {rule_lines}"
-        assert "@./docs/product/context.md" in content
+        assert "# PactKit Global Constitution" in content
 
 
 @pytest.mark.e2e

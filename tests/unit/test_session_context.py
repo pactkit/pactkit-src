@@ -76,8 +76,8 @@ class TestClaudeMdContextReference:
         context_pos = template.find("@./docs/product/context.md")
         assert context_pos > last_rule_pos
 
-    def test_deployer_classic_includes_context(self):
-        """_deploy_claude_md should produce CLAUDE.md with context reference."""
+    def test_deployer_classic_produces_header(self):
+        """_deploy_claude_md should produce CLAUDE.md with version header."""
         import tempfile
         from pathlib import Path
 
@@ -88,7 +88,7 @@ class TestClaudeMdContextReference:
             tmp_path = Path(tmp)
             _deploy_claude_md(tmp_path, list(RULES_FILES.keys()))
             content = (tmp_path / "CLAUDE.md").read_text()
-            assert "@./docs/product/context.md" in content
+            assert "# PactKit Global Constitution" in content
 
 
 # ==============================================================================

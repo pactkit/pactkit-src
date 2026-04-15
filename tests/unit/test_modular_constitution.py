@@ -17,16 +17,16 @@ def _deploy(tmp_path):
 class TestClaudeMdUsesImport:
     """Scenario 1: CLAUDE.md 使用 @import 语法"""
 
-    def test_claude_md_contains_import_refs(self, tmp_path):
+    def test_claude_md_contains_version_header(self, tmp_path):
         _deploy(tmp_path)
         content = (tmp_path / '.claude' / 'CLAUDE.md').read_text()
-        assert '@' in content, 'CLAUDE.md 不包含 @ 导入语句'
+        assert '# PactKit Global Constitution' in content
 
-    def test_claude_md_has_context_import(self, tmp_path):
-        """STORY-slim-011: CLAUDE.md no longer has rule @imports, but keeps context.md."""
+    def test_claude_md_no_context_import(self, tmp_path):
+        """BUG-slim-089: Global CLAUDE.md no longer has @./docs/product/context.md (invalid path)."""
         _deploy(tmp_path)
         content = (tmp_path / '.claude' / 'CLAUDE.md').read_text()
-        assert '@./docs/product/context.md' in content
+        assert '@./docs/product/context.md' not in content
 
     def test_claude_md_is_slim(self, tmp_path):
         _deploy(tmp_path)
