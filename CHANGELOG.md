@@ -4,6 +4,13 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.9.13] - 2026-04-15
+
+### Fixed
+- **Slim core dependencies** (STORY-slim-088) — Moved adapter packages (`pactkit-opencode`, `pactkit-codex`) and tree-sitter bindings to `[project.optional-dependencies]`. Core `pip install pactkit` now only requires `pyyaml`. Install extras with `pip install pactkit[all]`, `pactkit[visualize]`, `pactkit[opencode]`, or `pactkit[codex]`.
+- **Spec-lint CLI fallback** (STORY-slim-088) — Playbooks now include `python3 -m pactkit spec-lint` fallback for environments where `pactkit` is not on `$PATH`, preventing P.A.C.T. violation (AI "manual lint" replacing deterministic code validation).
+- **Board add_story signature** (STORY-slim-088) — Plan playbook Phase 3.3 now shows complete `add_story` invocation with required ID, title, and tasks arguments.
+
 ## [2.9.12] - 2026-04-01
 
 ### Added
