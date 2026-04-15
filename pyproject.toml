@@ -11,14 +11,7 @@ license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0",
-    "pactkit-opencode>=2.9.0",
-    "pactkit-codex>=2.9.0",
-    "tree-sitter>=0.25",
-    "tree-sitter-go>=0.25",
-    "tree-sitter-java>=0.23",
-    "tree-sitter-typescript>=0.23",
 ]
-
 authors = [
     { name = "Slim" },
 ]
@@ -59,6 +52,19 @@ Issues = "https://github.com/pactkit/pactkit-public/issues"
 
 [project.scripts]
 pactkit = "pactkit.cli:main"
+
+[project.optional-dependencies]
+opencode = ["pactkit-opencode>=2.9.0"]
+codex = ["pactkit-codex>=2.9.0"]
+visualize = [
+    "tree-sitter>=0.25",
+    "tree-sitter-go>=0.25",
+    "tree-sitter-java>=0.23",
+    "tree-sitter-typescript>=0.23",
+]
+all = [
+    "pactkit[opencode,codex,visualize]",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pactkit"]

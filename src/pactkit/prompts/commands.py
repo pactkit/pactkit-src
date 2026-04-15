@@ -113,13 +113,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4.  **Output checkpoint**: Print "Security scope filled. Running lint."
 
 ## 🎬 Phase 3.2d: Spec Lint Self-Check
-1.  Run `pactkit spec-lint docs/specs/{ID}.md`.
+1.  Run `pactkit spec-lint docs/specs/{ID}.md`. If `pactkit` is not on `$PATH`, use `python3 -m pactkit spec-lint docs/specs/{ID}.md` instead.
 2.  If any ERROR or WARNING rules fire, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until `pactkit spec-lint` reports 0 errors AND 0 warnings.
 3.  This prevents the Spec from being rejected at Act Phase 0.5.
 4.  **Output checkpoint**: Print "Spec lint passed (0 errors AND 0 warnings)."
 
 ## 🎬 Phase 3.3: Board, Memory & Handover
-1.  **Board**: Add Story using `add_story`.
+1.  **Board**: Add Story: `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|{task2}|..."` (all three arguments are required).
 2.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
 3.  **Session Context Update**: Run `pactkit context` to generate `docs/product/context.md`. Set "Last updated by" to `/project-plan`.
 4.  **Handover**: "Trace complete. Spec created. Ready for Act."
@@ -152,6 +152,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     ```bash
     pactkit spec-lint docs/specs/{STORY_ID}.md
     ```
+    If `pactkit` is not on `$PATH`, use `python3 -m pactkit spec-lint docs/specs/{STORY_ID}.md` instead.
     Replace `{STORY_ID}` with the actual Story ID from `$ARGUMENTS` (e.g., `STORY-042`).
 2.  **If ERRORs found**: **STOP**. Output all ERROR and WARN items. Instruct the user:
     > "Spec Lint failed. Fix the issues above in `docs/specs/{STORY_ID}.md`, then re-run `/project-act`."
@@ -279,7 +280,7 @@ Apply a code quality checklist to all code related to the Story:
 For each finding, assign a severity (P0-P3). Flag issues that may cause silent failures.
 
 ## Phase 3: Spec Verification & Test Case Definition (The Law)
-1.  **Verify Spec Structure**: Run `pactkit spec-lint docs/specs/{STORY_ID}.md` to validate Spec structure (E006 checks for `## Acceptance Criteria`).
+1.  **Verify Spec Structure**: Run `pactkit spec-lint docs/specs/{STORY_ID}.md` (or `python3 -m pactkit spec-lint docs/specs/{STORY_ID}.md` if `pactkit` is not on `$PATH`) to validate Spec structure (E006 checks for `## Acceptance Criteria`).
     * *If ERRORs*: WARN the user — "Spec structure issues found. Run `/project-plan` to fix."
     * *If WARNs only*: Note warnings and continue.
 2.  **Extract Scenarios**: List all Scenarios from the Spec's `## Acceptance Criteria` section.

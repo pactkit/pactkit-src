@@ -76,3 +76,15 @@
 > Spec: docs/specs/HOTFIX-slim-085.md
 
 - [x] system-architect agent + Plan playbook
+
+### [STORY-slim-088] Slim dependencies and robust CLI fallback
+> Spec: docs/specs/STORY-slim-088.md
+
+- [x] Move adapters+tree-sitter to optional-dependencies
+- [x] Add python3 -m fallback for spec-lint in playbooks
+- [x] Fix add_story call signature in Plan playbook
+
+### [HOTFIX-slim-087] guard 添加 -C 参数
+> Spec: docs/specs/HOTFIX-slim-087.md
+
+- [x] Fix guard CWD false alarm in subagent
