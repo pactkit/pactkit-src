@@ -332,15 +332,15 @@ class TestR1FunctionRenamedAndAlwaysRegenerates:
 # ===========================================================================
 
 class TestR5GlobalClaudeMdUnchanged:
-    """R5: _deploy_claude_md (global) behavior must remain unchanged."""
+    """R5: _deploy_claude_md (global) preserves user-modified content (BUG-slim-089)."""
 
-    def test_global_claude_md_always_overwrites(self, tmp_path):
-        """Global CLAUDE.md at ~/.claude is always overwritten."""
+    def test_global_claude_md_preserves_user_content(self, tmp_path):
+        """Global CLAUDE.md with user content is NOT overwritten (BUG-slim-089)."""
         claude_root = tmp_path
         rules_dir = claude_root / 'rules'
         rules_dir.mkdir()
 
-        # Create existing global CLAUDE.md
+        # Create existing global CLAUDE.md with user content
         claude_md = claude_root / 'CLAUDE.md'
         claude_md.write_text("# Old global content")
 
@@ -348,10 +348,9 @@ class TestR5GlobalClaudeMdUnchanged:
         enabled_rules = ['01-core-protocol']
         _deployer()._deploy_claude_md(claude_root, enabled_rules)
 
-        # Should be overwritten
+        # User content should be preserved (BUG-slim-089 read-before-write guard)
         content = claude_md.read_text()
-        assert 'Old global content' not in content
-        assert 'PactKit Global Constitution' in content
+        assert 'Old global content' in content
 
 
 # ===========================================================================

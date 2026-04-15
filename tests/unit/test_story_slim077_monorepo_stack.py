@@ -149,12 +149,13 @@ class TestUpdateYamlStack:
 
         update_yaml_stack(yaml_path, ["go", "node"])
 
+        from pactkit import __version__
         content = yaml_path.read_text()
         assert "stack:" in content
         assert "  - go" in content
         assert "  - node" in content
         # version and root preserved
-        assert 'version: "2.9.11"' in content
+        assert f'version: "{__version__}"' in content
         assert "root: ." in content
 
     def test_ac4_single_stack_unwrap(self, tmp_path):
