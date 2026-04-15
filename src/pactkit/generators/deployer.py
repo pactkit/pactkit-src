@@ -629,17 +629,55 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     return deployed
 
 
+def _is_pactkit_managed_global_md(content):
+    """Detect if CLAUDE.md content is a PactKit-managed template (BUG-slim-089).
+
+    Returns True if the first line starts with '# PactKit Global Constitution'.
+    """
+    first_line = content.split("\n", 1)[0] if content else ""
+    return first_line.startswith("# PactKit Global Constitution")
+
+
 def _deploy_claude_md(claude_root, enabled_rules):
     """Generate CLAUDE.md — rules now loaded per-command (STORY-slim-011).
 
     AC11: CLAUDE.md no longer @imports rules globally. Rule loading has been
     moved to command-level @import headers in _build_command_rules_header().
     Only @./docs/product/context.md is retained.
+
+    BUG-slim-089: Read-before-write guard to preserve user-modified content.
     """
-    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
-    lines.append("@./docs/product/context.md")
-    lines.append("")  # trailing newline
-    atomic_write(claude_root / "CLAUDE.md", "\n".join(lines))
+    claude_md_path = claude_root / "CLAUDE.md"
+    new_header = f"# PactKit Global Constitution (v{__version__} Modular)"
+    new_content = f"{new_header}\n\n@./docs/product/context.md\n"
+
+    # Fresh install — no existing file
+    if not claude_md_path.exists():
+        atomic_write(claude_md_path, new_content)
+        return
+
+    # Read existing content
+    try:
+        existing = claude_md_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        # Unreadable file — overwrite as fresh install
+        atomic_write(claude_md_path, new_content)
+        return
+
+    # User-modified content — do not touch (R1)
+    if not _is_pactkit_managed_global_md(existing):
+        return
+
+    # PactKit-managed — update version header in-place if changed (R2)
+    updated = re.sub(
+        r"^# PactKit Global Constitution \(v[^\)]+\)",
+        new_header,
+        existing,
+        count=1,
+    )
+    if updated != existing:
+        atomic_write(claude_md_path, updated)
+    # else: idempotent — skip write (AC5)
 
 
 def _deploy_agents(

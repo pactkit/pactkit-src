@@ -139,6 +139,7 @@ graph TD
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
     _is_local_import["_is_local_import"]
+    _is_pactkit_managed_global_md["_is_pactkit_managed_global_md"]
     _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
@@ -1008,6 +1009,9 @@ graph TD
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt
     _deploy_rules --> _warn_deploy_violations
+    _deploy_claude_md --> atomic_write
+    _deploy_claude_md --> _is_pactkit_managed_global_md
+    _deploy_claude_md --> atomic_write
     _deploy_claude_md --> atomic_write
     _deploy_agents --> _warn_deploy_violations
     _deploy_agents --> atomic_write

@@ -88,3 +88,10 @@
 > Spec: docs/specs/HOTFIX-slim-087.md
 
 - [x] Fix guard CWD false alarm in subagent
+
+### [BUG-slim-089] Global CLAUDE.md overwritten on every deploy
+> Spec: docs/specs/BUG-slim-089.md
+
+- [x] Add _is_pactkit_managed_global_md helper
+- [x] Refactor _deploy_claude_md with read-before-write guard
+- [x] Add unit tests for AC1-AC5
