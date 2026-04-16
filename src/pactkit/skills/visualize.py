@@ -805,14 +805,25 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         relevant = set()
         rel_edges = []
 
+        # STORY-slim-095 R1: Fix focus filter — use path prefix matching
+        # focus is a directory path (str); func_registry values are file paths
+        focus_prefix = (str(focus).rstrip('/') + '/') if focus else None
+
         for caller, callees in call_edges.items():
-            if focus and focus not in func_registry.get(caller, ''): continue
+            if focus_prefix:
+                caller_file = str(func_registry.get(caller, ''))
+                if not caller_file.startswith(focus_prefix) and focus_prefix.rstrip('/') != caller_file:
+                    continue
             for callee in callees:
                 resolved = _resolve_callee(callee, all_func_names, suffix_index)
                 if resolved:
                     relevant.add(caller)
                     relevant.add(resolved)
                     rel_edges.append((caller, resolved))
+
+        # STORY-slim-095 R1: Diagnostic when focus produces 0 results
+        if focus and not relevant:
+            lines.append(f'    _diag["0 functions matched focus: {_mermaid_escape(str(focus))}"]')
 
         for fn in sorted(relevant): lines.append(f'    {safe(fn)}["{_mermaid_escape(fn)}"]')
         for src, dst in rel_edges: lines.append(f'    {safe(src)} --> {safe(dst)}')
@@ -1126,6 +1137,8 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
 
     # --- STORY-slim-081 R4: Scoped focus — resolve module name to directory ---
     scan_root = root
+    original_focus = focus  # STORY-slim-095: preserve for output file naming
+    focus_via_fallback = False  # True when resolved via subdirectory fallback, not mod_map
     if focus and mode in ('file', 'class', 'call'):
         modules = _detect_modules(root, scan_excludes=scan_excludes)
         mod_map = {m[0]: m for m in modules}
@@ -1134,10 +1147,40 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
             scan_root = mod_dir
             focus = None  # Clear focus so _scan_files scans all files within module dir
         elif modules:
-            # focus didn't match a module — check if it's a partial match or suggest
-            available = sorted(m[0] for m in modules if m[0] != '.')
-            if available:
-                return f'❌ Module \'{focus}\' not found. Available modules: {", ".join(available)}'
+            # STORY-slim-095 R1: Fallback — resolve focus as subdirectory within a module
+            resolved_focus = False
+            for _mn, mod_dir, mod_stack in modules:
+                # Check if focus matches a subdirectory or package name within the module
+                candidate = mod_dir / focus
+                if candidate.is_dir():
+                    scan_root = candidate
+                    focus = None  # Resolved to directory — clear focus
+                    focus_via_fallback = True
+                    resolved_focus = True
+                    break
+                # Use LANG_PROFILES source_dirs for the detected stack
+                from pactkit.prompts.workflows import LANG_PROFILES
+                source_dirs = LANG_PROFILES.get(mod_stack, {}).get('source_dirs', [])
+                for sd in source_dirs:
+                    candidate = mod_dir / sd / focus
+                    if candidate.is_dir():
+                        scan_root = candidate
+                        focus = None  # Resolved to directory — clear focus
+                        focus_via_fallback = True
+                        resolved_focus = True
+                        break
+                if resolved_focus:
+                    break
+            if not resolved_focus:
+                # Single root module fallback: use root as scan_root, pass focus as-is
+                if len(modules) == 1 and modules[0][0] == '.':
+                    scan_root = modules[0][1]
+                    focus = None  # Scan entire project
+                    focus_via_fallback = True
+                else:
+                    available = sorted(m[0] for m in modules if m[0] != '.')
+                    if available:
+                        return f'❌ Module \'{focus}\' not found. Available modules: {", ".join(available)}'
 
     # STORY-slim-076: Multi-stack scanning
     stacks = _detect_stacks(scan_root)
@@ -1199,6 +1242,19 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
     else:
         dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes, analyzer=analyzer, analyzer_file_groups=analyzer_file_groups, show_layers=show_layers)
         if dest is None: return content  # error message
+
+    # STORY-slim-095: When focus was resolved via subdirectory fallback, dest lacks focus_ prefix.
+    # Only applies to fallback resolution, not direct mod_map match (STORY-slim-081 behavior).
+    if focus_via_fallback and not focus:
+        prefix_map = {
+            'call_graph.mmd': 'focus_call_graph.mmd',
+            'class_graph.mmd': 'focus_class_graph.mmd',
+            'code_graph.mmd': 'focus_file_graph.mmd',
+        }
+        for base, focus_name in prefix_map.items():
+            if dest.name == base:
+                dest = dest.with_name(focus_name)
+                break
 
     if not dest.parent.exists(): dest.parent.mkdir(parents=True, exist_ok=True)
     _atomic_mmd_write(dest, content)

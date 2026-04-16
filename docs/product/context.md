@@ -1,14 +1,15 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-04-16T17:59:42+08:00 by pactkit context
+> Last updated: 2026-04-16T19:00:44+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 2 | In Progress: 0 | Done: 2 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- HOTFIX-slim-096: Report --all filter core graphs only
+- STORY-slim-094: Unified HTML Report — single aggregated dashboard
 
 ## Active Branches
 develop
@@ -22,7 +23,7 @@ develop
 - Weighted hotspot formula (complexity 25% + docstring 15% + smells 15% + layers 10% + test 20% + blast 15%) gives meaningful scores across different project profiles; _generate_suggested_tasks auto-scaffolds BUG/HOTFIX specs with Done-completed filter for idempotency
 
 ## Next Recommended Action
-`/project-design`
+`/project-plan`
 
 ## Agent Continuation
 No active work session.

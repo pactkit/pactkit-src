@@ -291,6 +291,12 @@ def main():
     audit_parser.add_argument("--if-needed", dest="if_needed", action="store_true", default=False, help="Skip if harness_audit.json already covers the given story ID")
     audit_parser.add_argument("story_id", nargs="?", default=None, help="Story ID for --if-needed dedup (e.g. STORY-slim-014)")
 
+    # pactkit report (STORY-slim-094)
+    report_parser = subparsers.add_parser("report", help="Generate unified HTML architecture dashboard")
+    report_parser.add_argument("--input", default=None, help="Single .mmd file (generates individual .html)")
+    report_parser.add_argument("--output", default=None, help="Output .html path (default: same name as input)")
+    report_parser.add_argument("--all", dest="all_mode", action="store_true", default=False, help="Generate unified report from all .mmd files")
+
     # pactkit backfill-release (STORY-slim-015 R4)
     backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")
     backfill_parser.add_argument("version", help="Version string to backfill (e.g. 2.3.0)")
@@ -560,6 +566,17 @@ def main():
         output, exit_code = run_observe(report=args.report, json_output=args.json)
         print(output)
         raise SystemExit(exit_code)
+
+    elif args.command == "report":
+        from pactkit.skills.report import generate as run_report
+
+        # Default: --all mode (convenience entry per R7)
+        all_mode = args.all_mode or (not args.input)
+        output = run_report(
+            input_file=args.input, output_file=args.output, all_mode=all_mode,
+        )
+        if output:
+            print(output)
 
     elif args.command == "audit":
         from pactkit.audit import audit as run_audit

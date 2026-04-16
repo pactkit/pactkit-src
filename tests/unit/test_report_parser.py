@@ -172,13 +172,19 @@ class TestGenerate:
         assert 'world' in content
 
     def test_generate_all(self, tmp_path):
+        """STORY-slim-094: --all generates single report.html.
+        HOTFIX-slim-096: only core PDCA graphs are included."""
         graphs_dir = tmp_path / 'docs' / 'architecture' / 'graphs'
         graphs_dir.mkdir(parents=True)
-        (graphs_dir / 'a.mmd').write_text('graph TD\n    X["x"]\n', encoding='utf-8')
-        (graphs_dir / 'b.mmd').write_text('graph TD\n    Y["y"]\n', encoding='utf-8')
+        (graphs_dir / 'code_graph.mmd').write_text('graph TD\n    X["x"]\n', encoding='utf-8')
+        (graphs_dir / 'class_graph.mmd').write_text('graph TD\n    Y["y"]\n', encoding='utf-8')
+        # Non-core graph should be excluded
+        (graphs_dir / 'focus_call_graph.mmd').write_text('graph TD\n    Z["z"]\n', encoding='utf-8')
         generate(target=str(tmp_path), all_mode=True)
-        assert (graphs_dir / 'a.html').exists()
-        assert (graphs_dir / 'b.html').exists()
+        assert (graphs_dir / 'report.html').exists()
+        content = (graphs_dir / 'report.html').read_text()
+        assert 'x' in content
+        assert 'y' in content
 
     def test_generate_custom_output(self, tmp_path):
         mmd = tmp_path / 'input.mmd'

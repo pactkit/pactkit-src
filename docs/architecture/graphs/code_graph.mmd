@@ -9,6 +9,8 @@ graph TD
     click src_pactkit_lessons_py href "src/pactkit/lessons.py"
     src_pactkit_guards_py["guards.py"]
     click src_pactkit_guards_py href "src/pactkit/guards.py"
+    src_pactkit_audit_py["audit.py"]
+    click src_pactkit_audit_py href "src/pactkit/audit.py"
     src_pactkit_sec_scope_py["sec_scope.py"]
     click src_pactkit_sec_scope_py href "src/pactkit/sec_scope.py"
     src_pactkit_garden_py["garden.py"]
@@ -116,6 +118,11 @@ graph TD
     src_pactkit_lessons_py --> src_pactkit_schemas_py
     src_pactkit_guards_py --> src_pactkit___init___py
     src_pactkit_guards_py --> src_pactkit_config_py
+    src_pactkit_audit_py --> src_pactkit_skills_spec_linter_py
+    src_pactkit_audit_py --> src_pactkit_skills_visualize_py
+    src_pactkit_audit_py --> src_pactkit_garden_py
+    src_pactkit_audit_py --> src_pactkit_config_py
+    src_pactkit_audit_py --> src_pactkit_id_generator_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
     src_pactkit_lint_runner_py --> src_pactkit_config_py
@@ -140,6 +147,8 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_lazy_visualize_py
     src_pactkit_cli_py --> src_pactkit_garden_py
     src_pactkit_cli_py --> src_pactkit_observe_py
+    src_pactkit_cli_py --> src_pactkit_skills_report_py
+    src_pactkit_cli_py --> src_pactkit_audit_py
     src_pactkit_cli_py --> src_pactkit_doctor_py
     src_pactkit_cli_py --> src_pactkit_backfill_py
     src_pactkit_cli_py --> src_pactkit_issue_sync_py
@@ -163,6 +172,7 @@ graph TD
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py
     src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers___init___py
     src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers_python_analyzer_py
+    src_pactkit_skills_visualize_py --> src_pactkit_prompts_workflows_py
     src_pactkit_skills_spec_linter_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_config_py
@@ -180,4 +190,5 @@ graph TD
     src_pactkit_skills_analyzers_ts_analyzer_py --> src_pactkit_skills_analyzers___init___py
     src_pactkit_skills_analyzers_python_analyzer_py --> src_pactkit_skills_analyzers___init___py
     _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_skills_visualize_py
+    _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_prompts_workflows_py
     _github_skills_pactkit_scaffold_scripts_spec_linter_py --> src_pactkit_schemas_py

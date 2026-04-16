@@ -68,6 +68,7 @@ graph TD
     _add_fix_flag["_add_fix_flag"]
     _atomic_mmd_write["_atomic_mmd_write"]
     _best_match["_best_match"]
+    _build_audit_panel_html["_build_audit_panel_html"]
     _build_bridge_edges["_build_bridge_edges"]
     _build_call_graph["_build_call_graph"]
     _build_class_graph["_build_class_graph"]
@@ -81,21 +82,36 @@ graph TD
     _build_rule_id_to_key["_build_rule_id_to_key"]
     _build_suffix_index["_build_suffix_index"]
     _check_acceptance_criteria["_check_acceptance_criteria"]
+    _check_code_smells["_check_code_smells"]
+    _check_dependency_health["_check_dependency_health"]
+    _check_docstring_coverage["_check_docstring_coverage"]
     _check_gh_available["_check_gh_available"]
+    _check_h1["_check_h1"]
+    _check_h2["_check_h2"]
+    _check_h3["_check_h3"]
+    _check_h4["_check_h4"]
+    _check_h5["_check_h5"]
+    _check_h6["_check_h6"]
+    _check_h7["_check_h7"]
     _check_implementation_steps["_check_implementation_steps"]
     _check_metadata["_check_metadata"]
     _check_optional_sections["_check_optional_sections"]
     _check_req_ac_coverage["_check_req_ac_coverage"]
     _check_requirements_section["_check_requirements_section"]
     _check_security_scope["_check_security_scope"]
+    _check_test_coverage["_check_test_coverage"]
     _classify_complexity["_classify_complexity"]
     _classify_coverage["_classify_coverage"]
     _classify_file["_classify_file"]
     _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
+    _collect_findings["_collect_findings"]
+    _collect_insights["_collect_insights"]
     _collect_signals["_collect_signals"]
+    _compute_hotspots["_compute_hotspots"]
     _compute_python_complexity["_compute_python_complexity"]
+    _compute_score["_compute_score"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
@@ -126,6 +142,7 @@ graph TD
     _find_enclosing_class["_find_enclosing_class"]
     _find_enclosing_func_name["_find_enclosing_func_name"]
     _find_entry_func["_find_entry_func"]
+    _find_existing_spec["_find_existing_spec"]
     _find_section["_find_section"]
     _format_result["_format_result"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
@@ -133,12 +150,15 @@ graph TD
     _generate_continuation["_generate_continuation"]
     _generate_one["_generate_one"]
     _generate_project_claude_md["_generate_project_claude_md"]
+    _generate_suggested_tasks["_generate_suggested_tasks"]
     _get_command_rules["_get_command_rules"]
+    _get_d3_source["_get_d3_source"]
     _get_done_ids["_get_done_ids"]
     _get_git_branches["_get_git_branches"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
     _get_used_fetch_functions["_get_used_fetch_functions"]
+    _has_dir_with_files["_has_dir_with_files"]
     _inject_developer_prefix["_inject_developer_prefix"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
@@ -151,6 +171,7 @@ graph TD
     _jaccard_similarity["_jaccard_similarity"]
     _langgraph_process_call["_langgraph_process_call"]
     _line_number["_line_number"]
+    _load_audit_data["_load_audit_data"]
     _load_code_graph["_load_code_graph"]
     _load_entry_point_deployers["_load_entry_point_deployers"]
     _load_layer_config["_load_layer_config"]
@@ -158,6 +179,7 @@ graph TD
     _load_scan_excludes["_load_scan_excludes"]
     _load_stub_edges["_load_stub_edges"]
     _mark_done["_mark_done"]
+    _max_nesting_depth["_max_nesting_depth"]
     _mermaid_escape["_mermaid_escape"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
@@ -196,6 +218,7 @@ graph TD
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
+    _render_unified_html["_render_unified_html"]
     _repair_table_structure["_repair_table_structure"]
     _resolve_callee["_resolve_callee"]
     _resolve_scope["_resolve_scope"]
@@ -205,6 +228,7 @@ graph TD
     _rotate_if_needed["_rotate_if_needed"]
     _run_pytest_cov["_run_pytest_cov"]
     _sanitize_text["_sanitize_text"]
+    _scaffold_audit_spec["_scaffold_audit_spec"]
     _scan_call_edges["_scan_call_edges"]
     _scan_files["_scan_files"]
     _scan_hooks["_scan_hooks"]
@@ -216,17 +240,21 @@ graph TD
     _section_text["_section_text"]
     _select_analyzer["_select_analyzer"]
     _select_analyzers["_select_analyzers"]
+    _should_refresh_audit["_should_refresh_audit"]
     _strip_code_blocks["_strip_code_blocks"]
+    _suggest_action["_suggest_action"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _warn_deploy_violations["_warn_deploy_violations"]
+    _write_audit_json["_write_audit_json"]
     _write_board["_write_board"]
     add_story["add_story"]
     api_convention_summary["api_convention_summary"]
     append_lesson["append_lesson"]
     archive_stories["archive_stories"]
     atomic_write["atomic_write"]
+    audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
     blast_radius["blast_radius"]
     build_report["build_report"]
@@ -330,6 +358,43 @@ graph TD
     check_config_completeness --> find_pactkit_yaml
     check_version_mismatch --> find_pactkit_yaml
     check_version_mismatch --> load_config
+    _check_h1 --> _has_dir_with_files
+    _check_h1 --> _has_dir_with_files
+    _collect_findings --> check_dead_imports
+    _check_test_coverage --> _resolve_test_path
+    _check_code_smells --> _max_nesting_depth
+    _max_nesting_depth --> _max_nesting_depth
+    _max_nesting_depth --> _max_nesting_depth
+    _compute_hotspots --> _load_scan_excludes
+    _compute_hotspots --> _detect_stacks
+    _compute_hotspots --> _load_layer_config
+    _compute_hotspots --> _check_test_coverage
+    _compute_hotspots --> _check_docstring_coverage
+    _compute_hotspots --> _check_code_smells
+    _compute_hotspots --> _suggest_action
+    _compute_hotspots --> _select_analyzer
+    _compute_hotspots --> _classify_file
+    _compute_hotspots --> _scan_files
+    _compute_hotspots --> _classify_file
+    _generate_suggested_tasks --> _find_existing_spec
+    _generate_suggested_tasks --> next_story_id
+    _generate_suggested_tasks --> _scaffold_audit_spec
+    audit --> _compute_score
+    audit --> _write_audit_json
+    audit --> _compute_hotspots
+    audit --> _check_dependency_health
+    audit --> _collect_findings
+    audit --> _collect_insights
+    audit --> _should_refresh_audit
+    audit --> _check_h1
+    audit --> _check_h2
+    audit --> _check_h3
+    audit --> _check_h4
+    audit --> _check_h5
+    audit --> _check_h6
+    audit --> _check_h7
+    audit --> load_config
+    audit --> _generate_suggested_tasks
     detect_security_scope --> _is_docs_or_tests_only
     detect_security_scope --> _read_content
     detect_security_scope --> _path_ends_with_ext
@@ -631,6 +696,7 @@ graph TD
     _build_call_graph --> nl
     _build_call_graph --> nl
     _build_call_graph --> _mermaid_escape
+    _build_call_graph --> _mermaid_escape
     _build_call_graph --> _build_suffix_index
     _build_call_graph --> _resolve_callee
     _build_call_graph --> _resolve_callee
@@ -645,6 +711,7 @@ graph TD
     _build_call_graph --> _resolve_callee
     _build_call_graph --> nl
     _build_call_graph --> nl
+    _build_call_graph --> _mermaid_escape
     _build_call_graph --> _mermaid_escape
     _render_nested_call_graph --> nl
     _render_nested_call_graph --> _mermaid_escape
@@ -1027,9 +1094,13 @@ graph TD
     create_prd --> nl
     _parse_mmd --> _parse_graph_td
     _parse_mmd --> _parse_class_diagram
+    _render_unified_html --> _get_d3_source
+    _render_unified_html --> _build_audit_panel_html
     generate --> _generate_one
+    generate --> _load_audit_data
+    generate --> _render_unified_html
     generate --> _load_overlay
-    generate --> _generate_one
+    generate --> _parse_mmd
     _generate_one --> _parse_mmd
     _generate_one --> _render_html
     _render_skill_md --> _rewrite_skills_prefix
@@ -1074,6 +1145,7 @@ graph TD
     _deploy_skills --> atomic_write
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
+    _deploy_skills --> load_script
     _deploy_skills --> load_script
     _deploy_skills --> load_script
     _deploy_skills --> load_script
