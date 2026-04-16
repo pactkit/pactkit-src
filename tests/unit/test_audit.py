@@ -13,6 +13,9 @@ from pactkit.audit import (
     _compute_score,
     _collect_findings, _collect_insights,
     _compute_hotspots, _suggest_action,
+    _check_test_coverage, _check_docstring_coverage,
+    _check_code_smells, _check_dependency_health,
+    _generate_suggested_tasks,
     audit,
 )
 
@@ -357,3 +360,186 @@ class TestVerboseMode:
         data = json.loads(result)
         assert 'findings' in data
         assert 'insights' in data
+
+
+# --- STORY-slim-093: Multi-Signal + Suggested Tasks ---
+
+def _setup_project_with_source(tmp_path):
+    """Create a project with actual Python source files for signal testing."""
+    root = _setup_full_project(tmp_path)
+    src = root / 'src'
+    src.mkdir(exist_ok=True)
+    (src / '__init__.py').write_text('', encoding='utf-8')
+
+    # File with no test, no docstring, long function, deep nesting
+    (src / 'bad.py').write_text(
+        'def no_docs(x):\n'
+        + ''.join(f'    line_{i} = {i}\n' for i in range(55))
+        + '    if x > 0:\n'
+        + '        for i in range(10):\n'
+        + '            while True:\n'
+        + '                if i > 5:\n'
+        + '                    if i > 8:\n'
+        + '                        break\n'
+        + '\n'
+        + 'def also_no_docs(y):\n'
+        + '    pass\n',
+        encoding='utf-8',
+    )
+
+    # File with test, good docstring
+    (src / 'good.py').write_text(
+        'def well_documented():\n'
+        '    """This function has a docstring."""\n'
+        '    return 42\n'
+        '\n'
+        'def also_documented():\n'
+        '    """Another documented function."""\n'
+        '    return 0\n',
+        encoding='utf-8',
+    )
+    tests_dir = root / 'tests' / 'unit'
+    tests_dir.mkdir(parents=True, exist_ok=True)
+    (tests_dir / 'test_good.py').write_text('def test_one(): pass\n', encoding='utf-8')
+
+    return root
+
+
+class TestTestCoverageSignal:
+    """AC1/AC2: Test coverage detection (R1)."""
+
+    def test_no_test_file(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        result = _check_test_coverage(root, root / 'src' / 'bad.py', 'python')
+        assert result is False
+
+    def test_has_test_file(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        result = _check_test_coverage(root, root / 'src' / 'good.py', 'python')
+        assert result is True
+
+
+class TestDocstringCoverage:
+    """AC3: Docstring coverage (R2)."""
+
+    def test_no_docstrings(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        pct = _check_docstring_coverage(root / 'src' / 'bad.py')
+        assert pct == 0
+
+    def test_all_docstrings(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        pct = _check_docstring_coverage(root / 'src' / 'good.py')
+        assert pct == 100
+
+
+class TestCodeSmells:
+    """AC4/AC5: Code smell detection (R3)."""
+
+    def test_long_function_detected(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        long_funcs, deep = _check_code_smells(root / 'src' / 'bad.py')
+        assert long_funcs >= 1
+
+    def test_deep_nesting_detected(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        long_funcs, deep = _check_code_smells(root / 'src' / 'bad.py')
+        assert deep >= 1
+
+    def test_clean_file_no_smells(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        long_funcs, deep = _check_code_smells(root / 'src' / 'good.py')
+        assert long_funcs == 0
+        assert deep == 0
+
+
+class TestActionPriority093:
+    """AC7: Action priority with new signals (R7)."""
+
+    def test_no_test_highest_priority(self):
+        action = _suggest_action({
+            'has_test': False, 'complexity_avg': 35,
+            'long_funcs': 0, 'deep_nesting': 0,
+            'layer_violations': 0, 'docstring_pct': 80,
+            'fan_in': 1, 'blast_pct': 10, 'function_count': 5,
+        })
+        assert action.startswith('Add tests')
+
+
+class TestDependencyHealth:
+    """AC5: Dependency health (R5)."""
+
+    def test_returns_dict(self, tmp_path):
+        result = _check_dependency_health(tmp_path)
+        assert isinstance(result, dict)
+        assert 'vulns' in result
+
+
+class TestSuggestedTasks:
+    """AC8/AC9: Suggested tasks generation (R8, R9)."""
+
+    def test_tasks_generated_for_hotspots(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        # Create pactkit.yaml for developer prefix
+        (root / '.claude' / 'pactkit.yaml').write_text(
+            'stack: python\ndeveloper: test\n', encoding='utf-8',
+        )
+        hotspots = [
+            {'file': 'src/bad.py', 'score': 20, 'has_test': False,
+             'complexity_avg': 5, 'layer_violations': 0,
+             'action': 'Add tests'},
+        ]
+        tasks = _generate_suggested_tasks(root, hotspots, 'test')
+        assert len(tasks) >= 1
+        task = tasks[0]
+        assert 'type' in task
+        assert 'spec' in task
+        assert 'command' in task
+        assert task['type'] in ('BUG', 'HOTFIX')
+
+    def test_done_spec_excluded(self, tmp_path):
+        """AC12: Completed specs are filtered out."""
+        root = _setup_project_with_source(tmp_path)
+        specs = root / 'docs' / 'specs'
+        specs.mkdir(parents=True, exist_ok=True)
+        # Create a Done spec for bad.py
+        (specs / 'BUG-test-100.md').write_text(
+            '# BUG-test-100\n| Status | Done |\n## Background\nsrc/bad.py\n',
+            encoding='utf-8',
+        )
+        hotspots = [
+            {'file': 'src/bad.py', 'score': 20, 'has_test': False,
+             'complexity_avg': 5, 'layer_violations': 0,
+             'action': 'Add tests'},
+        ]
+        tasks = _generate_suggested_tasks(root, hotspots, 'test')
+        # Should not create a duplicate — reuse or skip the Done one
+        for t in tasks:
+            assert 'BUG-test-100' not in t.get('spec', '')
+
+
+class TestFullAuditJson093:
+    """AC8 + AC11: JSON schema updated."""
+
+    def test_json_has_suggested_tasks(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        (root / '.claude' / 'pactkit.yaml').write_text(
+            'stack: python\ndeveloper: test\n', encoding='utf-8',
+        )
+        audit(str(root))
+        f = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(f.read_text(encoding='utf-8'))
+        assert 'suggested_tasks' in data
+        assert 'dependency_health' in data
+
+    def test_hotspots_have_new_fields(self, tmp_path):
+        root = _setup_project_with_source(tmp_path)
+        audit(str(root))
+        f = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(f.read_text(encoding='utf-8'))
+        for h in data.get('hotspots', []):
+            assert 'has_test' in h
+            assert 'docstring_pct' in h
+            assert 'long_funcs' in h
+            assert 'deep_nesting' in h
+            assert 'layer_violations' in h

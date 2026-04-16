@@ -138,3 +138,17 @@
 - [x] Slim _write_audit_json() to scorecard + hotspots only
 - [x] Add --verbose flag for full details
 - [x] Update tests for hotspot + slim JSON
+
+### [STORY-slim-093] Audit: Multi-Signal Hotspots + Suggested Tasks Generation
+> Spec: docs/specs/STORY-slim-093.md
+
+- [x] Add test coverage signal (_check_test_coverage)
+- [x] Add docstring coverage signal (_check_docstring_coverage)
+- [x] Add code smell signal (_check_code_smells)
+- [x] Add layer violation signal (_count_layer_violations)
+- [x] Add dependency health check (_check_dependency_health)
+- [x] Update hotspot score formula (weighted multi-dimensional)
+- [x] Update action suggestions (7-level priority)
+- [x] Add suggested tasks generation (_generate_suggested_tasks)
+- [x] Update JSON schema (suggested_tasks + dependency_health)
+- [x] Write unit tests for all new signals + tasks

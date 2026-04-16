@@ -497,18 +497,155 @@ def _collect_insights(root):
     return insights
 
 
+# --- Signal Functions (STORY-slim-093 R1-R5) ---
+
+
+def _check_test_coverage(root, source_file, stack='python'):
+    """R1: Check if a source file has a corresponding test file."""
+    root = Path(root)
+    try:
+        from pactkit.skills.visualize import _resolve_test_path
+        test_path = _resolve_test_path(root, source_file.stem, source_file, stack)
+        if test_path:
+            return True
+    except Exception:
+        pass
+    # Fallback: glob for test_{stem}
+    for pattern in [f'tests/**/test_{source_file.stem}.py', f'tests/**/test_{source_file.stem}.*']:
+        if list(root.glob(pattern)):
+            return True
+    return False
+
+
+def _check_docstring_coverage(file_path):
+    """R2: Return percentage of functions with docstrings (0-100)."""
+    import ast as _ast
+    try:
+        tree = _ast.parse(Path(file_path).read_text(encoding='utf-8'))
+        total = 0
+        with_doc = 0
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                total += 1
+                if _ast.get_docstring(node):
+                    with_doc += 1
+        return round(with_doc / total * 100) if total > 0 else 100
+    except Exception:
+        return 0
+
+
+def _check_code_smells(file_path):
+    """R3: Return (long_funcs_count, deep_nesting_count)."""
+    import ast as _ast
+    try:
+        tree = _ast.parse(Path(file_path).read_text(encoding='utf-8'))
+        long_funcs = 0
+        deep_nesting = 0
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                # Long function: >50 lines
+                if hasattr(node, 'end_lineno') and node.end_lineno:
+                    lines = node.end_lineno - node.lineno
+                    if lines > 50:
+                        long_funcs += 1
+                # Deep nesting: count max depth of control flow
+                max_depth = _max_nesting_depth(node, 0)
+                if max_depth > 4:
+                    deep_nesting += 1
+        return long_funcs, deep_nesting
+    except Exception:
+        return 0, 0
+
+
+def _max_nesting_depth(node, current):
+    """Recursively compute max control flow nesting depth."""
+    import ast as _ast
+    _NESTING_TYPES = (_ast.If, _ast.For, _ast.While, _ast.With,
+                      _ast.AsyncFor, _ast.AsyncWith, _ast.Try)
+    if hasattr(_ast, 'TryStar'):
+        _NESTING_TYPES = (*_NESTING_TYPES, _ast.TryStar)
+    max_d = current
+    for child in _ast.iter_child_nodes(node):
+        if isinstance(child, _NESTING_TYPES):
+            d = _max_nesting_depth(child, current + 1)
+            max_d = max(max_d, d)
+        else:
+            d = _max_nesting_depth(child, current)
+            max_d = max(max_d, d)
+    return max_d
+
+
+def _check_dependency_health(root):
+    """R5: Project-level dependency vulnerability check."""
+    root = Path(root)
+    # Python: pip audit
+    if (root / 'pyproject.toml').exists() or (root / 'requirements.txt').exists():
+        try:
+            result = subprocess.run(
+                ['pip-audit', '--format', 'json'],
+                capture_output=True, text=True, cwd=str(root), timeout=10,
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                vulns = data if isinstance(data, list) else []
+                critical = sum(1 for v in vulns if v.get('fix_versions'))
+                return {'vulns': len(vulns), 'critical': critical, 'details': vulns[:5]}
+        except FileNotFoundError:
+            return {'vulns': -1, 'error': 'pip-audit not installed'}
+        except subprocess.TimeoutExpired:
+            return {'vulns': -1, 'error': 'pip-audit timed out'}
+        except Exception:
+            return {'vulns': -1, 'error': 'pip-audit failed'}
+
+    # Node: npm audit
+    if (root / 'package-lock.json').exists():
+        try:
+            result = subprocess.run(
+                ['npm', 'audit', '--json'],
+                capture_output=True, text=True, cwd=str(root), timeout=10,
+            )
+            data = json.loads(result.stdout)
+            total = data.get('metadata', {}).get('vulnerabilities', {})
+            vulns = sum(total.values()) if isinstance(total, dict) else 0
+            critical = total.get('critical', 0) + total.get('high', 0)
+            return {'vulns': vulns, 'critical': critical, 'details': []}
+        except FileNotFoundError:
+            return {'vulns': -1, 'error': 'npm not installed'}
+        except Exception:
+            return {'vulns': -1, 'error': 'npm audit failed'}
+
+    return {'vulns': 0, 'critical': 0, 'details': []}
+
+
 # --- Hotspot Aggregation (STORY-slim-092 R1, R2) ---
 
 
 def _suggest_action(hotspot):
-    """Generate actionable suggestion string from dominant risk signals."""
+    """Generate actionable suggestion string from dominant risk signals.
+
+    STORY-slim-093 R7: Priority order for combining top 2.
+    """
     actions = []
+    if not hotspot.get('has_test', True):
+        actions.append('Add tests: no test file found')
     if hotspot.get('complexity_avg', 0) > 30:
         actions.append('Split: extract high-complexity functions')
+    if hotspot.get('long_funcs', 0) > 0 or hotspot.get('deep_nesting', 0) > 0:
+        parts = []
+        if hotspot.get('long_funcs', 0) > 0:
+            parts.append(f"{hotspot['long_funcs']} long functions")
+        if hotspot.get('deep_nesting', 0) > 0:
+            parts.append(f"{hotspot['deep_nesting']} deeply nested")
+        actions.append(f"Refactor: {', '.join(parts)}")
+    if hotspot.get('layer_violations', 0) > 0:
+        actions.append(f"Fix layers: {hotspot['layer_violations']} violations")
+    if hotspot.get('docstring_pct', 100) < 30:
+        pct = 100 - hotspot.get('docstring_pct', 0)
+        actions.append(f"Document: {pct}% lack docstrings")
     if hotspot.get('fan_in', 0) >= 5:
-        actions.append(f"Stabilize: changes affect {hotspot['fan_in']} dependents")
+        actions.append(f"Stabilize: {hotspot['fan_in']} dependents")
     if hotspot.get('blast_pct', 0) > 50:
-        actions.append(f"Isolate: blast radius covers {hotspot['blast_pct']}%")
+        actions.append(f"Isolate: blast radius {hotspot['blast_pct']}%")
     if hotspot.get('function_count', 0) > 15:
         actions.append(f"Decompose: {hotspot['function_count']} functions")
     if not actions:
@@ -559,6 +696,9 @@ def _compute_hotspots(root):
         return []
 
     # 2. Collect fan-in from code_graph.mmd
+    label_to_rel = {}
+    re_edge = None
+    content = ''
     code_graph = root / 'docs' / 'architecture' / 'graphs' / 'code_graph.mmd'
     if code_graph.exists():
         try:
@@ -594,7 +734,57 @@ def _compute_hotspots(root):
         else:
             data['blast_pct'] = 0
 
-    # 4. Compute hotspot scores
+    # 4. Collect new signals per file (R1-R4)
+    try:
+        from pactkit.skills.visualize import (  # noqa: I001
+            _detect_stacks as _ds2, _load_layer_config, _classify_file,
+        )
+        stacks = _ds2(root)
+        primary_stack = stacks[0] if stacks else 'python'
+        layer_config = _load_layer_config(root)
+    except Exception:
+        primary_stack = 'python'
+        layer_config = []
+
+    # Build file-level edges for layer violation counting
+    file_edges = []
+    if re_edge and content:
+        try:
+            for m in re_edge.finditer(content):
+                file_edges.append((m.group(1), m.group(2)))
+        except Exception:
+            pass
+
+    for rel, data in file_data.items():
+        source_file = root / rel
+        data['has_test'] = _check_test_coverage(root, source_file, primary_stack)
+        data['docstring_pct'] = _check_docstring_coverage(source_file)
+        long_f, deep_n = _check_code_smells(source_file)
+        data['long_funcs'] = long_f
+        data['deep_nesting'] = deep_n
+        # Layer violations: count edges where this file is importer into higher layer
+        violations = 0
+        if layer_config and label_to_rel:
+            my_layer, my_idx = _classify_file(rel, layer_config)
+            if my_idx >= 0:
+                my_nids = [nid for nid, r in label_to_rel.items() if r == rel]
+                for src_nid, dst_nid in file_edges:
+                    if src_nid in my_nids:
+                        dst_rel = label_to_rel.get(dst_nid)
+                        if dst_rel:
+                            _, dst_idx = _classify_file(dst_rel, layer_config)
+                            if dst_idx >= 0 and my_idx > dst_idx:
+                                violations += 1
+        data['layer_violations'] = violations
+
+    # 5. Compute weighted hotspot scores (R6)
+    _W_COMPLEXITY = 0.25
+    _W_DOCSTRING = 0.15
+    _W_SMELLS = 0.15
+    _W_LAYERS = 0.10
+    _W_TEST = 0.20
+    _W_BLAST = 0.15
+
     hotspots = []
     for rel, data in file_data.items():
         func_count = data['func_count']
@@ -603,9 +793,22 @@ def _compute_hotspots(root):
         complexity_avg = round(data['complexity_sum'] / func_count, 1)
         fan_in = data['fan_in']
         blast_pct = data['blast_pct']
-        score = round(complexity_avg * (blast_pct / 100) * max(fan_in, 1))
-        # Normalize to 0-100
-        score = min(score, 100)
+        docstring_pct = data.get('docstring_pct', 100)
+        long_funcs = data.get('long_funcs', 0)
+        deep_nesting = data.get('deep_nesting', 0)
+        layer_violations = data.get('layer_violations', 0)
+        has_test = data.get('has_test', True)
+
+        score = (
+            complexity_avg * _W_COMPLEXITY
+            + (1 - docstring_pct / 100) * 10 * _W_DOCSTRING
+            + (long_funcs + deep_nesting) * 3 * _W_SMELLS
+            + layer_violations * 5 * _W_LAYERS
+            + (0 if has_test else 10) * _W_TEST
+            + blast_pct / 100 * max(fan_in, 1) * 10 * _W_BLAST
+        )
+        score = min(round(score), 100)
+
         hotspot = {
             'file': rel,
             'score': score,
@@ -613,6 +816,11 @@ def _compute_hotspots(root):
             'blast_pct': blast_pct,
             'fan_in': fan_in,
             'function_count': func_count,
+            'has_test': has_test,
+            'docstring_pct': docstring_pct,
+            'long_funcs': long_funcs,
+            'deep_nesting': deep_nesting,
+            'layer_violations': layer_violations,
         }
         hotspot['action'] = _suggest_action(hotspot)
         hotspots.append(hotspot)
@@ -621,13 +829,142 @@ def _compute_hotspots(root):
     return hotspots[:10]
 
 
+# --- Suggested Tasks Generation (STORY-slim-093 R8, R9) ---
+
+
+def _generate_suggested_tasks(root, hotspots, developer):
+    """Generate BUG/HOTFIX tasks from hotspots, scaffold Specs."""
+    root = Path(root)
+    specs_dir = root / 'docs' / 'specs'
+    specs_dir.mkdir(parents=True, exist_ok=True)
+    tasks = []
+
+    for hotspot in hotspots:
+        if hotspot['score'] == 0 and hotspot.get('has_test', True):
+            continue  # No action needed
+
+        # Determine type
+        task_type = 'BUG' if (hotspot['score'] >= 15 or hotspot.get('layer_violations', 0) > 0) else 'HOTFIX'
+        severity = 'high' if hotspot['score'] >= 15 else ('medium' if hotspot['score'] >= 5 else 'low')
+
+        # Check for existing spec for this file+type (idempotent, R8)
+        existing_spec = _find_existing_spec(specs_dir, hotspot['file'], task_type)
+        if existing_spec:
+            # Check if Done — if so, skip (Done-completed filter)
+            try:
+                content = existing_spec.read_text(encoding='utf-8')
+                if '| Status | Done |' in content:
+                    continue  # Already fixed
+            except Exception:
+                pass
+            spec_path = str(existing_spec.relative_to(root))
+            spec_id = existing_spec.stem
+        else:
+            # Generate new spec
+            try:
+                from pactkit.id_generator import next_story_id
+                raw_id = next_story_id(specs_dir=specs_dir, developer=developer)
+                # Replace STORY prefix with BUG or HOTFIX
+                num = raw_id.split('-')[-1]
+                spec_id = f'{task_type}-{developer}-{num}'
+                spec_path = f'docs/specs/{spec_id}.md'
+                _scaffold_audit_spec(root, spec_id, hotspot)
+            except Exception:
+                continue
+
+        title = hotspot['action'].split('+')[0].strip()
+        file_name = hotspot['file'].rsplit('/', 1)[-1] if '/' in hotspot['file'] else hotspot['file']
+        desc = f"{title} in {file_name}"
+
+        cmd_prefix = '/project-act' if task_type == 'BUG' else '/project-hotfix'
+        tasks.append({
+            'type': task_type,
+            'severity': severity,
+            'title': f"{title}: {file_name}",
+            'file': hotspot['file'],
+            'signals': {
+                k: hotspot[k] for k in [
+                    'score', 'complexity_avg', 'fan_in', 'has_test',
+                    'docstring_pct', 'long_funcs', 'deep_nesting', 'layer_violations',
+                ] if k in hotspot
+            },
+            'spec': spec_path,
+            'command': f'{cmd_prefix} {spec_id} {desc}',
+        })
+
+    return tasks
+
+
+def _find_existing_spec(specs_dir, file_path, task_type):
+    """Find an existing BUG/HOTFIX spec that references this file."""
+    for spec in specs_dir.glob(f'{task_type}-*.md'):
+        try:
+            content = spec.read_text(encoding='utf-8', errors='ignore')
+            if file_path in content:
+                return spec
+        except Exception:
+            pass
+    return None
+
+
+def _scaffold_audit_spec(root, spec_id, hotspot):
+    """Create a minimal spec file for an audit-generated task."""
+    specs_dir = root / 'docs' / 'specs'
+    dest = specs_dir / f'{spec_id}.md'
+    action = hotspot.get('action', 'Fix issue')
+    file_path = hotspot.get('file', 'unknown')
+    signals = []
+    if not hotspot.get('has_test', True):
+        signals.append("- No test file found")
+    if hotspot.get('complexity_avg', 0) > 20:
+        signals.append(f"- High avg complexity: {hotspot['complexity_avg']}")
+    if hotspot.get('long_funcs', 0) > 0:
+        signals.append(f"- {hotspot['long_funcs']} functions exceed 50 lines")
+    if hotspot.get('deep_nesting', 0) > 0:
+        signals.append(f"- {hotspot['deep_nesting']} functions nested >4 levels")
+    if hotspot.get('layer_violations', 0) > 0:
+        signals.append(f"- {hotspot['layer_violations']} layer violations")
+    if hotspot.get('docstring_pct', 100) < 50:
+        signals.append(f"- Only {hotspot['docstring_pct']}% functions documented")
+    signals_text = '\n'.join(signals) if signals else '- Hotspot score > threshold'
+
+    content = (
+        f"# {spec_id}: {action}\n\n"
+        f"| Field | Value |\n|-------|-------|\n"
+        f"| ID | {spec_id} |\n| Status | Draft |\n"
+        f"| Priority | P2 |\n| Release | TBD |\n\n"
+        f"## Background\n\n"
+        f"Auto-generated by `pactkit audit`. Target file: `{file_path}`\n\n"
+        f"Detected signals:\n{signals_text}\n\n"
+        f"## Requirements\n\n"
+        f"### R1: {action} (MUST)\n\n"
+        f"Address the issues in `{file_path}` identified by audit.\n\n"
+        f"## Acceptance Criteria\n\n"
+        f"### AC1: Issue Resolved (R1)\n\n"
+        f"- **Given** `{file_path}` with the detected signals\n"
+        f"- **When** the fix is applied\n"
+        f"- **Then** re-running `pactkit audit` shows improved score for this file\n\n"
+        f"## Target Call Chain\n\n(See audit signals above)\n\n"
+        f"## Implementation Steps\n\n"
+        f"| Step | File | Action | Dependencies | Risk |\n"
+        f"|------|------|--------|-------------|------|\n"
+        f"| 1 | `{file_path}` | {action} | None | Low |\n\n"
+        f"## Security Scope\n\n"
+        f"| Check | Applicable | Reason |\n"
+        f"|-------|------------|--------|\n"
+        f"| SEC-1 | N/A | Auto-generated audit task |\n\n"
+        f"## Out of Scope\n\n- Other files not flagged by this audit\n"
+    )
+    dest.write_text(content, encoding='utf-8')
+
+
 # --- File Output (R11) ---
 
 def _write_audit_json(result, root):
     """Write slim audit result to docs/architecture/governance/harness_audit.json.
 
-    STORY-slim-092: Only scorecard + layers (level/name) + hotspots.
-    No findings/insights — those are stdout-only.
+    STORY-slim-092: Scorecard + layers (level/name) + hotspots.
+    STORY-slim-093: + suggested_tasks + dependency_health.
     """
     root = Path(root)
     scorecard = {
@@ -641,6 +978,8 @@ def _write_audit_json(result, root):
             for k, v in result['layers'].items()
         },
         'hotspots': result.get('hotspots', []),
+        'suggested_tasks': result.get('suggested_tasks', []),
+        'dependency_health': result.get('dependency_health', {}),
     }
     dest = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -684,8 +1023,23 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
 
     scoring = _compute_score(layers)
 
-    # Compute hotspots (always, for JSON file)
-    hotspots = [] if (layer or append) else _compute_hotspots(root)
+    # Compute hotspots (R11: --append now runs full re-audit)
+    hotspots = [] if layer else _compute_hotspots(root)
+
+    # Dependency health (R5)
+    dep_health = {} if layer else _check_dependency_health(root)
+
+    # Suggested tasks (R8) — generate specs + task entries
+    suggested_tasks = []
+    if not layer and hotspots:
+        try:
+            from pactkit.config import load_config
+            cfg = load_config(root)
+            developer = cfg.get('developer', '')
+        except Exception:
+            developer = ''
+        if developer:
+            suggested_tasks = _generate_suggested_tasks(root, hotspots, developer)
 
     # Verbose: collect full findings/insights
     findings = []
@@ -713,6 +1067,8 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
         'weakest': scoring.get('weakest'),
         'layers': layers,
         'hotspots': hotspots,
+        'suggested_tasks': suggested_tasks,
+        'dependency_health': dep_health,
     }
     # Verbose fields (not written to JSON file)
     if verbose:
@@ -725,7 +1081,7 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
     if json_only:
         if verbose:
             return json.dumps(result, indent=2, ensure_ascii=False)
-        # Slim: same as file
+        # Slim: same as file (includes suggested_tasks + dependency_health)
         scorecard = {
             'timestamp': result['timestamp'],
             'commit': result['commit'],
@@ -737,6 +1093,8 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
                 for k, v in layers.items()
             },
             'hotspots': hotspots,
+            'suggested_tasks': suggested_tasks,
+            'dependency_health': dep_health,
         }
         return json.dumps(scorecard, indent=2, ensure_ascii=False)
 
