@@ -44,9 +44,9 @@ class TestGetDefaultConfig:
 
     def test_default_skills_count(self):
         # STORY-slim-063: VALID_SKILLS now includes 11 commands migrated to skills/ subdirs
-        # STORY-slim-070: +pactkit-garden = 22 total
+        # +pactkit-audit, +pactkit-report = 24 total
         cfg = _config().get_default_config()
-        assert len(cfg["skills"]) == 22
+        assert len(cfg["skills"]) == 24
 
     def test_default_rules_count(self):
         """9 rule modules (added 09-sectional-write)."""

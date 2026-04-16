@@ -126,7 +126,7 @@ class TestPromptModuleCounts:
         assert len(prompts.AGENTS_EXPERT) == 9
 
     def test_skill_count(self):
-        """Should have 11 skill definitions (STORY-slim-070: +garden)."""
+        """Should have 13 skill definitions (+pactkit-audit, +pactkit-report)."""
         # Count skill constants
         skill_attrs = [a for a in dir(prompts) if a.startswith("SKILL_") and a.endswith("_MD")]
-        assert len(skill_attrs) == 11
+        assert len(skill_attrs) == 13

@@ -288,6 +288,8 @@ def main():
     audit_parser.add_argument("--layer", default=None, help="Check single layer (H1-H7)")
     audit_parser.add_argument("--append", action="store_true", default=False, help="Silent update for Done integration")
     audit_parser.add_argument("--verbose", action="store_true", default=False, help="Full detail")
+    audit_parser.add_argument("--if-needed", dest="if_needed", action="store_true", default=False, help="Skip if harness_audit.json already covers the given story ID")
+    audit_parser.add_argument("story_id", nargs="?", default=None, help="Story ID for --if-needed dedup (e.g. STORY-slim-014)")
 
     # pactkit backfill-release (STORY-slim-015 R4)
     backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")
@@ -562,7 +564,11 @@ def main():
     elif args.command == "audit":
         from pactkit.audit import audit as run_audit
 
-        output = run_audit(json_only=args.json, layer=args.layer, append=args.append, verbose=args.verbose)
+        output = run_audit(
+            json_only=args.json, layer=args.layer, append=args.append,
+            verbose=args.verbose, if_needed=args.if_needed,
+            story_id=args.story_id,
+        )
         if output and not args.append:
             print(output)
 

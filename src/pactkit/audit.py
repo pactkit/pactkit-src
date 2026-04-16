@@ -970,6 +970,7 @@ def _write_audit_json(result, root):
     scorecard = {
         'timestamp': result['timestamp'],
         'commit': result['commit'],
+        'story_id': result.get('story_id', ''),
         'score': result['score'],
         'ready': result['ready'],
         'weakest': result.get('weakest'),
@@ -989,13 +990,42 @@ def _write_audit_json(result, root):
 
 # --- Entry Point (R14) ---
 
-def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
+def _should_refresh_audit(root, story_id=None):
+    """Decide whether Done should refresh harness_audit.json.
+
+    Returns True only when all three conditions are met:
+    1. harness_audit.json exists (audit was run at least once)
+    2. story_id is provided (Done knows which story it's closing)
+    3. The JSON's story_id matches the current story (this story owns the audit)
+
+    If the file doesn't exist or story_id doesn't match, Done skips —
+    the audit belongs to a different story or was never run.
+    """
+    audit_file = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+    if not audit_file.exists():
+        return False
+    if not story_id:
+        return False
+    try:
+        data = json.loads(audit_file.read_text(encoding='utf-8'))
+        return data.get('story_id', '') == story_id
+    except Exception:
+        return False
+
+
+def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
+          if_needed=False, story_id=None):
     """Run the H1-H7 harness audit.
 
     STORY-slim-092: Default output is concise (scorecard + hotspots).
     Use verbose=True for full findings/insights detail.
+    if_needed=True: only refresh when harness_audit.json exists and its
+    story_id matches the provided story_id (Done owns this audit).
     """
     root = Path(target).resolve()
+
+    if if_needed and not _should_refresh_audit(root, story_id):
+        return None
 
     # Run layer checks
     if layer:
@@ -1062,6 +1092,7 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
     result = {
         'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'commit': commit,
+        'story_id': story_id or '',
         'score': scoring['score'],
         'ready': scoring['ready'],
         'weakest': scoring.get('weakest'),

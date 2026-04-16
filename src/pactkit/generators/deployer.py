@@ -82,6 +82,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "VISUALIZE_CMD": f"python3 {skills_root}/pactkit-visualize/scripts/visualize.py",
         "BOARD_CMD": f"python3 {skills_root}/pactkit-board/scripts/board.py",
         "SCAFFOLD_CMD": f"python3 {skills_root}/pactkit-scaffold/scripts/scaffold.py",
+        "REPORT_CMD": f"python3 {skills_root}/pactkit-report/scripts/report.py",
         "GLOBAL_INSTRUCTIONS": f"{profile.global_config_dir}/{profile.global_instructions_file}",
         # Document schema variables (STORY-slim-007)
         "CONTEXT_SECTIONS": CONTEXT_SECTIONS_TEXT,
@@ -484,6 +485,12 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
             "script_name": "scaffold.py",
             "script_source": load_script("scaffold.py"),
         },
+        {
+            "name": "pactkit-report",
+            "skill_md": prompts.SKILL_REPORT_MD,
+            "script_name": "report.py",
+            "script_source": load_script("report.py"),
+        },
     ]
 
     # Prompt-only skills (SKILL.md only, no executable script) — STORY-011
@@ -496,6 +503,7 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         {"name": "pactkit-review", "skill_md": prompts.SKILL_REVIEW_MD},
         {"name": "pactkit-release", "skill_md": prompts.SKILL_RELEASE_MD},
         {"name": "pactkit-analyze", "skill_md": prompts.SKILL_ANALYZE_MD},
+        {"name": "pactkit-audit", "skill_md": prompts.SKILL_AUDIT_MD},
     ]
 
     enabled_set = set(enabled_skills)

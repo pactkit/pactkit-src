@@ -59,6 +59,8 @@ VALID_SKILLS = frozenset(
         "pactkit-review",
         "pactkit-release",
         "pactkit-analyze",
+        "pactkit-audit",
+        "pactkit-report",
         # PDCA commands (STORY-slim-063: migrated from commands/ to skills/)
         "project-plan",
         "project-act",
