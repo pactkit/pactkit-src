@@ -71,13 +71,18 @@ class GoAnalyzer(TreeSitterAnalyzer):
         except Exception:
             return []
 
-    def extract_functions_and_calls(self, file_path):
+    def extract_functions_and_calls(self, file_path, include_complexity=False):
         try:
             source = file_path.read_bytes()
             tree = self._parser.parse(source)
-            return self._extract_funcs_and_calls(tree, file_path.stem)
+            result = self._extract_funcs_and_calls(tree, file_path.stem)
+            if include_complexity:
+                func_registry, call_edges = result
+                complexity_map = self._compute_complexity(tree)
+                return func_registry, call_edges, complexity_map
+            return result
         except Exception:
-            return {}, {}
+            return ({}, {}, {}) if include_complexity else ({}, {})
 
     def _extract_calls_from_body(self, body_node):
         calls = []

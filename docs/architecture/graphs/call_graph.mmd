@@ -57,6 +57,7 @@ graph TD
     TopologyParser_parse["TopologyParser.parse"]
     TreeSitterAnalyzer___init__["TreeSitterAnalyzer.__init__"]
     TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
+    TreeSitterAnalyzer__compute_complexity["TreeSitterAnalyzer._compute_complexity"]
     TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
     TreeSitterAnalyzer__extract_funcs_and_calls["TreeSitterAnalyzer._extract_funcs_and_calls"]
     TreeSitterAnalyzer__matches["TreeSitterAnalyzer._matches"]
@@ -87,11 +88,14 @@ graph TD
     _check_req_ac_coverage["_check_req_ac_coverage"]
     _check_requirements_section["_check_requirements_section"]
     _check_security_scope["_check_security_scope"]
+    _classify_complexity["_classify_complexity"]
     _classify_coverage["_classify_coverage"]
+    _classify_file["_classify_file"]
     _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
     _collect_signals["_collect_signals"]
+    _compute_python_complexity["_compute_python_complexity"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _deploy_agents["_deploy_agents"]
@@ -127,6 +131,7 @@ graph TD
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
     _generate_continuation["_generate_continuation"]
+    _generate_one["_generate_one"]
     _generate_project_claude_md["_generate_project_claude_md"]
     _get_command_rules["_get_command_rules"]
     _get_done_ids["_get_done_ids"]
@@ -148,6 +153,8 @@ graph TD
     _line_number["_line_number"]
     _load_code_graph["_load_code_graph"]
     _load_entry_point_deployers["_load_entry_point_deployers"]
+    _load_layer_config["_load_layer_config"]
+    _load_overlay["_load_overlay"]
     _load_scan_excludes["_load_scan_excludes"]
     _load_stub_edges["_load_stub_edges"]
     _mark_done["_mark_done"]
@@ -156,15 +163,18 @@ graph TD
     _parse_active_stories["_parse_active_stories"]
     _parse_app_router_pages["_parse_app_router_pages"]
     _parse_board["_parse_board"]
+    _parse_class_diagram["_parse_class_diagram"]
     _parse_commands["_parse_commands"]
     _parse_component_imports["_parse_component_imports"]
     _parse_coverage_output["_parse_coverage_output"]
     _parse_docker_compose["_parse_docker_compose"]
+    _parse_graph_td["_parse_graph_td"]
     _parse_hook_store_imports["_parse_hook_store_imports"]
     _parse_item_type["_parse_item_type"]
     _parse_langgraph_ast["_parse_langgraph_ast"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_mcp_settings["_parse_mcp_settings"]
+    _parse_mmd["_parse_mmd"]
     _parse_mq_config["_parse_mq_config"]
     _parse_openapi["_parse_openapi"]
     _parse_pages_router["_parse_pages_router"]
@@ -181,6 +191,7 @@ graph TD
     _python_files["_python_files"]
     _read_content["_read_content"]
     _read_developer_prefix["_read_developer_prefix"]
+    _render_html["_render_html"]
     _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
@@ -217,6 +228,7 @@ graph TD
     archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     auto_merge_config_file["auto_merge_config_file"]
+    blast_radius["blast_radius"]
     build_report["build_report"]
     build_unified_graph["build_unified_graph"]
     build_workflow_graph["build_workflow_graph"]
@@ -234,6 +246,7 @@ graph TD
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
+    complexity["complexity"]
     create_board["create_board"]
     create_e2e["create_e2e"]
     create_prd["create_prd"]
@@ -250,6 +263,7 @@ graph TD
     find_pactkit_yaml["find_pactkit_yaml"]
     fix_board["fix_board"]
     format_markdown_table["format_markdown_table"]
+    generate["generate"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     get_default_config["get_default_config"]
@@ -259,6 +273,7 @@ graph TD
     init_architecture["init_architecture"]
     is_environment_format["is_environment_format"]
     issue_sync["issue_sync"]
+    layers["layers"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
@@ -583,7 +598,9 @@ graph TD
     _build_module_graph --> _select_analyzer
     _select_analyzers --> _select_analyzer
     _select_analyzers --> _select_analyzer
+    _build_file_graph --> _load_layer_config
     _build_file_graph --> _extract_node_id
+    _build_file_graph --> _classify_file
     _build_file_graph --> _best_match
     _build_file_graph --> _extract_node_id
     _build_file_graph --> nl
@@ -595,7 +612,9 @@ graph TD
     _build_file_graph --> nl
     _build_file_graph --> _mermaid_escape
     _build_file_graph --> _extract_node_id
+    _build_file_graph --> _load_layer_config
     _build_file_graph --> _extract_node_id
+    _build_file_graph --> _classify_file
     _build_file_graph --> _best_match
     _build_file_graph --> _extract_node_id
     _build_file_graph --> nl
@@ -884,6 +903,54 @@ graph TD
     export_focus_graphs --> _atomic_mmd_write
     export_focus_graphs --> _atomic_mmd_write
     export_focus_graphs --> _atomic_mmd_write
+    blast_radius --> _load_scan_excludes
+    blast_radius --> _detect_stacks
+    blast_radius --> _select_analyzer
+    blast_radius --> _scan_call_edges
+    blast_radius --> _build_suffix_index
+    blast_radius --> _find_entry_func
+    blast_radius --> _select_analyzer
+    blast_radius --> _scan_files
+    blast_radius --> _scan_files
+    blast_radius --> _resolve_callee
+    blast_radius --> _best_match
+    blast_radius --> _load_scan_excludes
+    blast_radius --> _detect_stacks
+    blast_radius --> _select_analyzer
+    blast_radius --> _scan_call_edges
+    blast_radius --> _build_suffix_index
+    blast_radius --> _find_entry_func
+    blast_radius --> _select_analyzer
+    blast_radius --> _scan_files
+    blast_radius --> _scan_files
+    blast_radius --> _resolve_callee
+    blast_radius --> _best_match
+    complexity --> _load_scan_excludes
+    complexity --> _detect_stacks
+    complexity --> _select_analyzer
+    complexity --> _scan_files
+    complexity --> nl
+    complexity --> _classify_complexity
+    complexity --> _load_scan_excludes
+    complexity --> _detect_stacks
+    complexity --> _select_analyzer
+    complexity --> _scan_files
+    complexity --> nl
+    complexity --> _classify_complexity
+    layers --> _load_scan_excludes
+    layers --> _load_layer_config
+    layers --> _detect_stacks
+    layers --> _select_analyzer
+    layers --> _classify_file
+    layers --> _scan_files
+    layers --> _best_match
+    layers --> _load_scan_excludes
+    layers --> _load_layer_config
+    layers --> _detect_stacks
+    layers --> _select_analyzer
+    layers --> _classify_file
+    layers --> _scan_files
+    layers --> _best_match
     _find_section --> _line_number
     _find_section --> _line_number
     _section_text --> _find_section
@@ -958,6 +1025,13 @@ graph TD
     create_prd --> nl
     create_prd --> nl
     create_prd --> nl
+    _parse_mmd --> _parse_graph_td
+    _parse_mmd --> _parse_class_diagram
+    generate --> _generate_one
+    generate --> _load_overlay
+    generate --> _generate_one
+    _generate_one --> _parse_mmd
+    _generate_one --> _render_html
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
@@ -1165,8 +1239,10 @@ graph TD
     TreeSitterAnalyzer_extract_imports --> TSAnalyzer_extract_imports
     TreeSitterAnalyzer_extract_imports --> JavaAnalyzer_extract_imports
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__compute_complexity
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__compute_complexity
     TreeSitterAnalyzer_extract_functions_and_calls --> GoAnalyzer_extract_functions_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> TSAnalyzer_extract_functions_and_calls
     TreeSitterAnalyzer_extract_functions_and_calls --> JavaAnalyzer_extract_functions_and_calls
@@ -1176,6 +1252,10 @@ graph TD
     TreeSitterAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_funcs_and_calls
     TreeSitterAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_funcs_and_calls
+    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
+    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
+    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
+    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
     TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
@@ -1185,8 +1265,12 @@ graph TD
     TreeSitterAnalyzer__extract_calls_from_body --> TSAnalyzer__extract_calls_from_body
     TreeSitterAnalyzer__extract_calls_from_body --> JavaAnalyzer__extract_calls_from_body
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity
+    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity
     PythonAnalyzer_extract_functions_and_calls --> _extract_calls
-    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
+    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity

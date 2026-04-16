@@ -95,3 +95,25 @@
 - [x] Add _is_pactkit_managed_global_md helper
 - [x] Refactor _deploy_claude_md with read-before-write guard
 - [x] Add unit tests for AC1-AC5
+
+### [STORY-slim-090] Interactive HTML Report Skill (D3 Force Graph)
+> Spec: docs/specs/STORY-slim-090.md
+
+- [x] Implement MMD parser (graph TD + classDiagram)
+- [x] Create D3 HTML template with force simulation
+- [x] Implement render_html with zoom/pan/drag/hover/search/theme
+- [x] Add overlay support (blast radius, complexity, layers)
+- [x] Create skill entry point + CLI
+- [x] Write unit tests
+
+### [STORY-slim-089] Enterprise Code Analysis: Blast Radius, Cyclomatic Complexity, Layer Violations
+> Spec: docs/specs/STORY-slim-089.md
+
+- [x] Add complexity counting to LanguageAnalyzer interface
+- [x] Implement Python complexity in PythonAnalyzer
+- [x] Implement TS/Go/Java complexity in TreeSitterAnalyzer subclasses
+- [x] Add blast_radius() with bidirectional BFS
+- [x] Add complexity() report function
+- [x] Add layers() with configurable layer model
+- [x] Add CLI subcommands (blast_radius, complexity, layers)
+- [x] Write unit tests for all 3 features

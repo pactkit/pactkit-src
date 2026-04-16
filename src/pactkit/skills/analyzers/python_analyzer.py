@@ -33,24 +33,27 @@ class PythonAnalyzer(LanguageAnalyzer):
         except (SyntaxError, UnicodeDecodeError, ValueError):
             return []
 
-    def extract_functions_and_calls(self, file_path):
-        """Parse a Python file and return (func_registry, call_edges) for that file."""
+    def extract_functions_and_calls(self, file_path, include_complexity=False):
+        """Parse a Python file and return (func_registry, call_edges) or 3-tuple with complexity_map."""
         try:
             if file_path.stat().st_size > MAX_FILE_BYTES:
                 import sys as _sys
                 print(f"\u26a0\ufe0f Skipping large file: {file_path} ({file_path.stat().st_size} bytes)", file=_sys.stderr)
-                return {}, {}
+                return ({}, {}, {}) if include_complexity else ({}, {})
             source_text = file_path.read_text(encoding='utf-8')
             tree = ast.parse(source_text)
             rel = file_path.stem
             func_registry = {}
             call_edges = {}
+            complexity_map = {}
             class_defs = {}
             for node in ast.iter_child_nodes(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     qname = node.name
                     func_registry[qname] = rel
                     call_edges[qname] = _extract_calls(node, current_class=None, source_text=source_text)
+                    if include_complexity:
+                        complexity_map[qname] = _compute_python_complexity(node)
                 elif isinstance(node, ast.ClassDef):
                     class_defs[node.name] = node
                     for item in node.body:
@@ -58,6 +61,8 @@ class PythonAnalyzer(LanguageAnalyzer):
                             qname = f'{node.name}.{item.name}'
                             func_registry[qname] = rel
                             call_edges[qname] = _extract_calls(item, current_class=node.name, source_text=source_text)
+                            if include_complexity:
+                                complexity_map[qname] = _compute_python_complexity(item)
             # STORY-slim-068 R3: Add virtual edges for inheritance overrides
             for cls_name, cls_node in class_defs.items():
                 sub_methods = {item.name for item in cls_node.body
@@ -78,9 +83,11 @@ class PythonAnalyzer(LanguageAnalyzer):
                                 call_edges[base_qname].append(sub_qname)
                             else:
                                 call_edges[base_qname] = [sub_qname]
+            if include_complexity:
+                return func_registry, call_edges, complexity_map
             return func_registry, call_edges
         except (SyntaxError, UnicodeDecodeError, ValueError):
-            return {}, {}
+            return ({}, {}, {}) if include_complexity else ({}, {})
 
     def extract_classes(self, file_path, root):
         """Extract class definitions from a Python file using ast."""
@@ -129,6 +136,35 @@ class PythonAnalyzer(LanguageAnalyzer):
     def normalize_import(self, import_str, consumer_path, root):
         """Python imports are already in dot notation — return as-is."""
         return import_str
+
+
+def _compute_python_complexity(func_node):
+    """Compute cyclomatic complexity for a Python function AST node.
+
+    Counts: if, for, while, and, or, except, match/case. Base = 1.
+    STORY-slim-089 R3.
+    """
+    count = 1  # base complexity
+    for node in ast.walk(func_node):
+        if isinstance(node, ast.If):
+            count += 1
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            count += 1
+        elif isinstance(node, (ast.While,)):
+            count += 1
+        elif isinstance(node, ast.BoolOp):
+            # Each 'and'/'or' adds one per operator (n values = n-1 operators)
+            count += len(node.values) - 1
+        elif isinstance(node, ast.ExceptHandler):
+            count += 1
+        elif isinstance(node, ast.IfExp):  # ternary: x if cond else y
+            count += 1
+        # Python 3.10+ match/case
+        elif hasattr(ast, 'Match') and isinstance(node, ast.Match):
+            pass  # The match itself doesn't add; each case does
+        elif hasattr(ast, 'match_case') and isinstance(node, ast.match_case):
+            count += 1
+    return count
 
 
 _BUILTIN_CALLEES = {

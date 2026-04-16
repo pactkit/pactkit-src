@@ -513,7 +513,7 @@ def _select_analyzers(stacks):
 
 
 # --- MODE: FILE (v1.3.0) ---
-def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0, analyzer=None, analyzer_file_groups=None):
+def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=0, max_nodes=0, analyzer=None, analyzer_file_groups=None, show_layers=False):
     # STORY-slim-078: Build file→analyzer mapping for multi-stack dispatch
     file_analyzer_map = {}
     if analyzer_file_groups:
@@ -651,6 +651,46 @@ def _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=
                 final_lines = filtered
 
         dest = root / 'docs/architecture/graphs/code_graph.mmd'
+
+    # STORY-slim-089 R6: Layer violation Mermaid annotation
+    if show_layers:
+        layer_config = _load_layer_config(root)
+        # Build node_id → rel_path reverse map
+        node_to_file = {nid: f for f, nid in file_to_node.items()}
+        # Classify each node
+        node_layers = {}
+        for nid, f in node_to_file.items():
+            rel = str(f.relative_to(root))
+            name, idx = _classify_file(rel, layer_config)
+            node_layers[nid] = (name, idx)
+        # Find violation edges and add red styling
+        violation_edge_ids = []
+        edge_counter = 0
+        for line in final_lines:
+            if '-->' in line and 'subgraph' not in line:
+                parts = line.strip().split('-->')
+                if len(parts) == 2:
+                    src_id = parts[0].strip()
+                    dst_id = parts[1].strip()
+                    src_layer, src_idx = node_layers.get(src_id, ('unclassified', -1))
+                    dst_layer, dst_idx = node_layers.get(dst_id, ('unclassified', -1))
+                    if src_idx != -1 and dst_idx != -1 and src_idx > dst_idx:
+                        violation_edge_ids.append(edge_counter)
+                edge_counter += 1
+        # Apply red link styles for violations
+        for vid in violation_edge_ids:
+            final_lines.append(f'    linkStyle {vid} stroke:red,stroke-width:2px')
+        # Add legend subgraph
+        if layer_config:
+            final_lines.append('    subgraph "Layer Model (top=highest)"')
+            for i, layer in enumerate(layer_config):
+                lid = f'_legend_{i}'
+                final_lines.append(f'        {lid}["{layer["name"]}"]')
+            for i in range(len(layer_config) - 1):
+                final_lines.append(f'        _legend_{i} --> _legend_{i + 1}')
+            final_lines.append('    end')
+            final_lines.append('    style _legend_0 fill:#e6f3ff,stroke:#2980b9')
+
     return dest, nl().join(final_lines)
 
 # --- MODE: CLASS (classDiagram) ---
@@ -1032,7 +1072,7 @@ def impact(target='.', entry=None):
 
 
 # --- MAIN VISUALIZE (v1.3.0 Multi-Mode) ---
-def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False, lazy=False, split=False):
+def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_nodes=0, reverse=False, lazy=False, split=False, show_layers=False):
     root = Path(target).resolve()
 
     # --- Unified mode (STORY-slim-049) ---
@@ -1157,7 +1197,7 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
         else:
             dest, content = _build_call_graph(root, all_files, focus, entry, analyzer=analyzer)
     else:
-        dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes, analyzer=analyzer, analyzer_file_groups=analyzer_file_groups)
+        dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes, analyzer=analyzer, analyzer_file_groups=analyzer_file_groups, show_layers=show_layers)
         if dest is None: return content  # error message
 
     if not dest.parent.exists(): dest.parent.mkdir(parents=True, exist_ok=True)
@@ -2722,6 +2762,377 @@ def export_focus_graphs(graph: WorkflowGraph, output_dir) -> list:
     return written
 
 
+# --- STORY-slim-089: Enterprise Code Analysis ---
+
+# Layer model defaults (R5)
+_DEFAULT_LAYERS = [
+    {'name': 'ui', 'patterns': ['*/ui/*', '*/views/*', '*/pages/*', '*/components/*']},
+    {'name': 'services', 'patterns': ['*/service/*', '*/services/*', '*/api/*']},
+    {'name': 'data', 'patterns': ['*/data/*', '*/models/*', '*/db/*', '*/repositories/*']},
+    {'name': 'config', 'patterns': ['*/config/*', '*/settings/*']},
+    {'name': 'utils', 'patterns': ['*/util/*', '*/utils/*', '*/helpers/*', '*/lib/*']},
+]
+
+_COMPLEXITY_THRESHOLDS = [(30, 'critical'), (20, 'high'), (10, 'medium'), (0, 'low')]
+
+
+def _classify_complexity(score):
+    for threshold, label in _COMPLEXITY_THRESHOLDS:
+        if score > threshold:
+            return label
+    return 'low'
+
+
+def _load_layer_config(root):
+    """Load layer configuration from pactkit.yaml or return default."""
+    candidates = [
+        root / '.claude' / 'pactkit.yaml',
+        root / '.opencode' / 'pactkit.yaml',
+        root / '.codex' / 'pactkit.yaml',
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    viz = data.get('visualize', {})
+                    if isinstance(viz, dict) and 'layers' in viz:
+                        layers = viz['layers']
+                        if isinstance(layers, list) and layers:
+                            return layers
+            except Exception:
+                pass
+    return _DEFAULT_LAYERS
+
+
+def _classify_file(rel_path_str, layers):
+    """Classify a file into an architectural layer by matching patterns.
+
+    Returns (layer_name, layer_index) or ('unclassified', -1).
+    """
+    from fnmatch import fnmatch
+    for idx, layer in enumerate(layers):
+        for pattern in layer.get('patterns', []):
+            if fnmatch(rel_path_str, pattern):
+                return layer['name'], idx
+    return 'unclassified', -1
+
+
+def blast_radius(target='.', target_file=None, entry=None, depth=0):
+    """Compute blast radius — all files/functions affected by a change.
+
+    STORY-slim-089 R1 (file-level) and R2 (function-level).
+    """
+    import json as _json
+    root = Path(target).resolve()
+    scan_excludes = _load_scan_excludes(root)
+    stacks = _detect_stacks(root)
+
+    if entry:
+        # R2: Function-level blast radius
+        all_files = []
+        for stk in stacks:
+            exts = [_LANG_FILE_EXT.get(stk, '.py')]
+            if stk == 'node':
+                exts.extend(['.js', '.tsx', '.jsx'])
+            for ext in exts:
+                files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
+                all_files.extend(files)
+        analyzer = _select_analyzer(stacks[0])
+        func_registry, call_edges = _scan_call_edges(root, all_files, analyzer=analyzer)
+
+        all_func_names = set(func_registry.keys())
+        suffix_index = _build_suffix_index(all_func_names)
+
+        # Build forward adjacency: caller → callees
+        forward_map = {}
+        reverse_map = {}
+        for caller, callees in call_edges.items():
+            for callee in callees:
+                resolved = _resolve_callee(callee, all_func_names, suffix_index)
+                if resolved:
+                    forward_map.setdefault(caller, []).append(resolved)
+                    reverse_map.setdefault(resolved, []).append(caller)
+
+        start = _find_entry_func(entry, all_func_names)
+        if not start:
+            return _json.dumps({'entry': entry, 'affected_functions': [], 'affected_files': [], 'depth': 0, 'total_count': 0})
+
+        # Bidirectional BFS
+        visited = set()
+        queue = deque([(start, 0)])
+        max_depth_reached = 0
+        while queue:
+            current, d = queue.popleft()
+            if current in visited:
+                continue
+            if depth > 0 and d > depth:
+                continue
+            visited.add(current)
+            max_depth_reached = max(max_depth_reached, d)
+            for neighbor in forward_map.get(current, []) + reverse_map.get(current, []):
+                if neighbor not in visited:
+                    queue.append((neighbor, d + 1))
+
+        visited.discard(start)
+        affected_files = sorted({func_registry[f] for f in visited if f in func_registry})
+        return _json.dumps({
+            'entry': entry,
+            'affected_functions': sorted(visited),
+            'affected_files': affected_files,
+            'depth': max_depth_reached,
+            'total_count': len(visited),
+        })
+
+    # R1: File-level blast radius
+    if not target_file:
+        return _json.dumps({'error': 'Either --target or --entry is required'})
+
+    all_files = []
+    module_index = {}
+    file_to_node = {}
+    analyzer_file_groups = []
+    for stk in stacks:
+        stk_analyzer = _select_analyzer(stk)
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.extend(['.js', '.tsx', '.jsx'])
+        stk_files = []
+        for ext in exts:
+            files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext, analyzer=stk_analyzer)
+            stk_files.extend(files)
+            module_index.update(mi)
+            file_to_node.update(ftn)
+        all_files.extend(stk_files)
+        analyzer_file_groups.append((stk, stk_analyzer, stk_files))
+    analyzer = analyzer_file_groups[0][1] if analyzer_file_groups else PythonAnalyzer()
+
+    # Build edges via _build_file_graph internal logic (extract edges only)
+    file_analyzer_map = {}
+    if analyzer_file_groups:
+        for _stk, a, files in analyzer_file_groups:
+            for f in files:
+                file_analyzer_map[f] = a
+
+    forward_adj = {}  # file → files it imports
+    reverse_adj = {}  # file → files that import it
+    for p in all_files:
+        a = file_analyzer_map.get(p, analyzer)
+        for imported_module in a.extract_imports(p):
+            normalized = a.normalize_import(imported_module, p, root) if hasattr(a, 'normalize_import') else imported_module
+            if normalized is None:
+                continue
+            candidates = module_index.get(normalized, [])
+            if not candidates:
+                parts = normalized.split('.')
+                for i in range(len(parts), 0, -1):
+                    sub = '.'.join(parts[:i])
+                    if sub in module_index:
+                        candidates = module_index[sub]
+                        break
+            if not candidates:
+                parts = normalized.split('/')
+                for i in range(len(parts), 0, -1):
+                    sub = '/'.join(parts[:i])
+                    if sub in module_index:
+                        candidates = module_index[sub]
+                        break
+            tf = _best_match(candidates, p) if len(candidates) > 1 else (candidates[0] if candidates else None)
+            if tf and tf != p:
+                forward_adj.setdefault(p, set()).add(tf)
+                reverse_adj.setdefault(tf, set()).add(p)
+
+    # Find the target file
+    target_path = root / target_file
+    if not target_path.exists():
+        # Try fuzzy match
+        for f in all_files:
+            rel = str(f.relative_to(root))
+            if rel == target_file or rel.endswith('/' + target_file) or f.name == target_file:
+                target_path = f
+                break
+    if target_path not in file_to_node:
+        return _json.dumps({'target': target_file, 'affected_files': [], 'depth': 0, 'total_count': 0})
+
+    # Bidirectional BFS on file graph
+    visited = set()
+    queue = deque([(target_path, 0)])
+    max_depth_reached = 0
+    while queue:
+        current, d = queue.popleft()
+        if current in visited:
+            continue
+        if depth > 0 and d > depth:
+            continue
+        visited.add(current)
+        max_depth_reached = max(max_depth_reached, d)
+        neighbors = set()
+        neighbors.update(forward_adj.get(current, set()))
+        neighbors.update(reverse_adj.get(current, set()))
+        for neighbor in neighbors:
+            if neighbor not in visited:
+                queue.append((neighbor, d + 1))
+
+    visited.discard(target_path)
+    affected = sorted(str(f.relative_to(root)) for f in visited)
+    return _json.dumps({
+        'target': target_file,
+        'affected_files': affected,
+        'depth': max_depth_reached,
+        'total_count': len(affected),
+    })
+
+
+def complexity(target='.', threshold=0, fmt='table', show_all=False):
+    """Scan all source files and report cyclomatic complexity.
+
+    STORY-slim-089 R4.
+    """
+    import json as _json
+    root = Path(target).resolve()
+    scan_excludes = _load_scan_excludes(root)
+    stacks = _detect_stacks(root)
+
+    all_entries = []
+    for stk in stacks:
+        stk_analyzer = _select_analyzer(stk)
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.extend(['.js', '.tsx', '.jsx'])
+        for ext in exts:
+            files, _mi, _ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext)
+            for f in files:
+                result = stk_analyzer.extract_functions_and_calls(f, include_complexity=True)
+                if len(result) == 3:
+                    _fr, _ce, cm = result
+                    for func_name, score in cm.items():
+                        if threshold > 0 and score < threshold:
+                            continue
+                        rel_file = str(f.relative_to(root))
+                        all_entries.append({
+                            'function': func_name,
+                            'file': rel_file,
+                            'complexity': score,
+                            'classification': _classify_complexity(score),
+                        })
+
+    # Sort descending by complexity
+    all_entries.sort(key=lambda e: e['complexity'], reverse=True)
+
+    if not show_all:
+        all_entries = all_entries[:20]
+
+    if fmt == 'json':
+        return _json.dumps(all_entries, indent=2)
+
+    # Table format
+    if not all_entries:
+        return 'No functions found.'
+    lines = [f'{"Function":<50} {"File":<40} {"Complexity":>10} {"Level":<10}']
+    lines.append('-' * 112)
+    for e in all_entries:
+        lines.append(f'{e["function"]:<50} {e["file"]:<40} {e["complexity"]:>10} {e["classification"]:<10}')
+    return nl().join(lines)
+
+
+def layers(target='.'):
+    """Detect architectural layer violations.
+
+    STORY-slim-089 R5.
+    """
+    import json as _json
+    root = Path(target).resolve()
+    scan_excludes = _load_scan_excludes(root)
+    layer_config = _load_layer_config(root)
+    stacks = _detect_stacks(root)
+
+    all_files = []
+    module_index = {}
+    file_to_node = {}
+    analyzer_file_groups = []
+    for stk in stacks:
+        stk_analyzer = _select_analyzer(stk)
+        exts = [_LANG_FILE_EXT.get(stk, '.py')]
+        if stk == 'node':
+            exts.extend(['.js', '.tsx', '.jsx'])
+        stk_files = []
+        for ext in exts:
+            files, mi, ftn = _scan_files(root, scan_excludes=scan_excludes, file_ext=ext, analyzer=stk_analyzer)
+            stk_files.extend(files)
+            module_index.update(mi)
+            file_to_node.update(ftn)
+        all_files.extend(stk_files)
+        analyzer_file_groups.append((stk, stk_analyzer, stk_files))
+    analyzer = analyzer_file_groups[0][1] if analyzer_file_groups else PythonAnalyzer()
+
+    file_analyzer_map = {}
+    if analyzer_file_groups:
+        for _stk, a, files in analyzer_file_groups:
+            for f in files:
+                file_analyzer_map[f] = a
+
+    # Build edges
+    edges = []
+    for p in all_files:
+        a = file_analyzer_map.get(p, analyzer)
+        for imported_module in a.extract_imports(p):
+            normalized = a.normalize_import(imported_module, p, root) if hasattr(a, 'normalize_import') else imported_module
+            if normalized is None:
+                continue
+            candidates = module_index.get(normalized, [])
+            if not candidates:
+                parts = normalized.split('.')
+                for i in range(len(parts), 0, -1):
+                    sub = '.'.join(parts[:i])
+                    if sub in module_index:
+                        candidates = module_index[sub]
+                        break
+            if not candidates:
+                parts = normalized.split('/')
+                for i in range(len(parts), 0, -1):
+                    sub = '/'.join(parts[:i])
+                    if sub in module_index:
+                        candidates = module_index[sub]
+                        break
+            tf = _best_match(candidates, p) if len(candidates) > 1 else (candidates[0] if candidates else None)
+            if tf and tf != p:
+                edges.append((p, tf))
+
+    # Classify files and detect violations
+    violations = []
+    layer_summary = {}
+    file_layers = {}  # cache
+    for f in all_files:
+        rel = str(f.relative_to(root))
+        name, idx = _classify_file(rel, layer_config)
+        file_layers[f] = (name, idx)
+        if name != 'unclassified':
+            layer_summary[name] = layer_summary.get(name, 0) + 1
+
+    for importer, importee in edges:
+        imp_layer, imp_idx = file_layers.get(importer, ('unclassified', -1))
+        tgt_layer, tgt_idx = file_layers.get(importee, ('unclassified', -1))
+        if imp_idx == -1 or tgt_idx == -1:
+            continue  # Skip unclassified files
+        if imp_idx == tgt_idx:
+            continue  # Same layer — OK
+        if imp_idx > tgt_idx:
+            # Lower layer importing higher layer = violation
+            violations.append({
+                'importer': str(importer.relative_to(root)),
+                'importee': str(importee.relative_to(root)),
+                'importer_layer': imp_layer,
+                'importee_layer': tgt_layer,
+            })
+
+    return _json.dumps({
+        'violations': violations,
+        'total_count': len(violations),
+        'layer_summary': layer_summary,
+    }, indent=2)
+
+
 # --- CLI ---
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -2737,11 +3148,27 @@ if __name__ == '__main__':
     p_viz.add_argument('--reverse', action='store_true', default=False, help='Reverse BFS: find callers of entry function (STORY-053)')
     p_viz.add_argument('--lazy', action='store_true', default=False, help='Skip regeneration if graph is up-to-date')
     p_viz.add_argument('--split', action='store_true', default=False, help='Generate per-entry-point focus graphs (unified mode only)')
+    p_viz.add_argument('--layers', action='store_true', default=False, help='Annotate file graph with layer violations (STORY-slim-089 R6)')
     p_impact = sub.add_parser('impact', help='Find test files impacted by a changed function (STORY-053)')
     p_impact.add_argument('--entry', required=True, help='Changed function name')
 
+    p_blast = sub.add_parser('blast_radius', help='Compute blast radius for a file or function (STORY-slim-089)')
+    p_blast.add_argument('--target', help='Target file path (relative to project root)')
+    p_blast.add_argument('--entry', help='Target function name (for function-level analysis)')
+    p_blast.add_argument('--depth', type=int, default=0, help='Limit BFS hops (0=unlimited)')
+
+    p_cx = sub.add_parser('complexity', help='Report cyclomatic complexity (STORY-slim-089)')
+    p_cx.add_argument('--threshold', type=int, default=0, help='Only show functions with complexity >= N')
+    p_cx.add_argument('--format', dest='fmt', choices=['table', 'json'], default='table')
+    p_cx.add_argument('--all', dest='show_all', action='store_true', default=False, help='Show all (not just top 20)')
+
+    p_layers = sub.add_parser('layers', help='Detect architectural layer violations (STORY-slim-089)')
+
     a = parser.parse_args()
     if a.cmd == 'init_arch': print(init_architecture())
-    elif a.cmd == 'visualize': print(visualize('.', a.focus, a.mode, a.entry, depth=a.depth, max_nodes=a.max_nodes, reverse=a.reverse, lazy=a.lazy, split=a.split))
+    elif a.cmd == 'visualize': print(visualize('.', a.focus, a.mode, a.entry, depth=a.depth, max_nodes=a.max_nodes, reverse=a.reverse, lazy=a.lazy, split=a.split, show_layers=a.layers))
     elif a.cmd == 'impact': print(impact('.', a.entry))
+    elif a.cmd == 'blast_radius': print(blast_radius('.', target_file=a.target, entry=a.entry, depth=a.depth))
+    elif a.cmd == 'complexity': print(complexity('.', threshold=a.threshold, fmt=a.fmt, show_all=a.show_all))
+    elif a.cmd == 'layers': print(layers('.'))
     elif a.cmd == 'list_rules': print(list_rules())
