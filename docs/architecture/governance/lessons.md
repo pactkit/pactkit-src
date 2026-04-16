@@ -55,3 +55,4 @@
 | 2026-04-15 | _deploy_claude_md must read-before-write: user-modified global CLAUDE.md was silently destroyed on every pactkit init/update. Project-level _generate_project_claude_md had 3 protection layers; global had zero. | deployer.py:_deploy_claude_md |
 | 2026-04-16 | TreeSitterAnalyzer._compute_complexity() can serve as a universal base for all tree-sitter languages; only PythonAnalyzer needs a separate implementation using stdlib ast | analyzers/__init__.py:_compute_complexity |
 | 2026-04-16 | Parsing Mermaid .mmd files to JSON (nodes+edges) is straightforward with regex; the D3 force-directed HTML template works well as a single-file self-contained skill | report.py:_parse_mmd,_render_html |
+| 2026-04-16 | D3 force graph selectNode() computes blast radius via in-browser BFS — no backend needed; folder-based coloring via d3.scaleOrdinal on path prefix gives CodeFlow-quality visuals | src/pactkit/skills/report.py:selectNode |
