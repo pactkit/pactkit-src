@@ -18,301 +18,395 @@ _LEVEL_NAMES = {0: 'None', 1: 'Basic', 2: 'Structured', 3: 'Advanced'}
 _CONFIG_DIRS = ['.claude', '.opencode', '.codex']
 
 
+def _all_config_dirs(root):
+    """Return config directories to scan: project-level + user-global ~/.claude/.
+
+    STORY-slim-097 R1: Claude Code uses ~/.claude/ for global rules/agents/commands.
+    Audit checks both project-level and global configuration.
+    """
+    root = Path(root)
+    dirs = [root / d for d in _CONFIG_DIRS]
+    home_claude = Path.home() / '.claude'
+    if home_claude.is_dir() and home_claude not in dirs:
+        dirs.append(home_claude)
+    return dirs
+
+
 def _has_dir_with_files(root, subdir):
-    """Check if any config dir has a non-empty subdirectory."""
+    """Check if any config dir (project or global) has a non-empty subdirectory."""
     return any(
-        (root / d / subdir).is_dir() and any((root / d / subdir).iterdir())
-        for d in _CONFIG_DIRS if (root / d / subdir).is_dir()
+        (d / subdir).is_dir() and any((d / subdir).iterdir())
+        for d in _all_config_dirs(root)
     )
+
+
+def _compute_layer_level(config_checks, code_checks):
+    """Compute layer level from config + code checks (STORY-slim-097 R4).
+
+    L0: no checks pass
+    L1: any 1 check passes
+    L2: all config checks pass OR all code checks pass
+    L3: all config AND all code checks pass
+    """
+    all_config = all(config_checks.values()) if config_checks else True
+    all_code = all(code_checks.values()) if code_checks else True
+    any_pass = any(config_checks.values()) or any(code_checks.values()) if (config_checks or code_checks) else False
+
+    if all_config and all_code:
+        return 3
+    if all_config or all_code:
+        return 2
+    if any_pass:
+        return 1
+    return 0
 
 
 def _check_h1(root):
-    """Check H1: System prompts, rules, agent roles."""
+    """Check H1: System prompts, rules, agent roles.
+    STORY-slim-097: Config-only layer — scans project + global dirs.
+    """
     root = Path(root)
-    checks = {}
-    checks['claude_md'] = any(
+    config_checks = {}
+    config_checks['claude_md'] = any(
         (root / d / 'CLAUDE.md').exists() for d in [*_CONFIG_DIRS, '.']
     )
-    checks['rules'] = _has_dir_with_files(root, 'rules')
-    checks['agents'] = _has_dir_with_files(root, 'agents')
-    checks['commands'] = any(
-        (root / d / 'commands').is_dir()
-        and len(list((root / d / 'commands').glob('*.md'))) >= 3
-        for d in _CONFIG_DIRS if (root / d / 'commands').is_dir()
+    config_checks['rules'] = _has_dir_with_files(root, 'rules')
+    config_checks['agents'] = _has_dir_with_files(root, 'agents')
+    # Skills: check for skills dir in any config location
+    config_checks['skills'] = any(
+        (d / 'skills').is_dir() and any((d / 'skills').iterdir())
+        for d in _all_config_dirs(root)
     )
-    # TODO: signal strength check for L3
 
-    level = 0
-    if checks['claude_md']:
-        level = 1
-    if level >= 1 and checks['rules'] and checks['agents']:
-        level = 2
-    if level >= 2 and checks['commands']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    code_checks = {}  # H1 has no code checks
+
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H2: Context Engineering (Auto-scan) ---
 
 def _check_h2(root):
-    """Check H2: Project context, memory, hierarchy of truth."""
+    """Check H2: Project context, memory, hierarchy of truth.
+    STORY-slim-097: Config (memory, hierarchy) + Code (specs, context_fresh).
+    """
     root = Path(root)
-    checks = {}
-    checks['context_md'] = (root / 'docs' / 'product' / 'context.md').exists()
-    checks['specs_exist'] = (root / 'docs' / 'specs').is_dir() and any((root / 'docs' / 'specs').glob('*.md'))
-    checks['hierarchy_of_truth'] = any(
+    config_checks = {}
+    config_checks['hierarchy_of_truth'] = any(
         any(f.read_text(encoding='utf-8', errors='ignore').lower().count('hierarchy') > 0
-            for f in (root / d / 'rules').glob('*.md'))
-        for d in ['.claude', '.opencode', '.codex']
-        if (root / d / 'rules').is_dir()
+            for f in (d / 'rules').glob('*.md'))
+        for d in _all_config_dirs(root)
+        if (d / 'rules').is_dir()
     )
-    checks['memory_config'] = (
-        (root / '.claude' / 'projects').is_dir()
-        or any((root / d / 'MEMORY.md').exists() for d in ['.claude', '.opencode', '.codex'])
+    config_checks['memory_config'] = any(
+        (d / 'projects').is_dir() or (d / 'MEMORY.md').exists()
+        for d in _all_config_dirs(root)
     )
-    # Context freshness: updated within 7 days
+
+    code_checks = {}
+    code_checks['context_md'] = (root / 'docs' / 'product' / 'context.md').exists()
+    code_checks['specs_exist'] = (root / 'docs' / 'specs').is_dir() and any((root / 'docs' / 'specs').glob('*.md'))
     ctx = root / 'docs' / 'product' / 'context.md'
-    checks['context_fresh'] = False
+    code_checks['context_fresh'] = False
     if ctx.exists():
         import time
         age_days = (time.time() - ctx.stat().st_mtime) / 86400
-        checks['context_fresh'] = age_days <= 7
+        code_checks['context_fresh'] = age_days <= 7
 
-    level = 0
-    if checks['context_md']:
-        level = 1
-    if level >= 1 and checks['specs_exist'] and checks['hierarchy_of_truth']:
-        level = 2
-    if level >= 2 and checks['context_fresh'] and checks['memory_config']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H3: Process Governance (Auto-scan) ---
 
 def _check_h3(root):
-    """Check H3: PDCA workflow, TDD, quality gates."""
+    """Check H3: PDCA workflow, TDD, quality gates.
+    STORY-slim-097: Config (quality_gate) + Code (tests, CI, coverage ratio).
+    """
     root = Path(root)
-    checks = {}
-    checks['sprint_board'] = (root / 'docs' / 'product' / 'sprint_board.md').exists()
-    checks['tests_exist'] = (root / 'tests').is_dir() and any((root / 'tests').rglob('test_*.py'))
-    checks['ci_config'] = (
-        (root / '.github' / 'workflows').is_dir()
-        or (root / '.gitlab-ci.yml').exists()
-        or (root / 'Jenkinsfile').exists()
-    )
-    # L3: spec-lint, quality gate config
-    checks['spec_lint'] = False
-    try:
-        from pactkit.skills.spec_linter import lint_spec  # noqa: F401
-        checks['spec_lint'] = True
-    except ImportError:
-        pass
-    checks['quality_gate'] = False
-    for d in ['.claude', '.opencode', '.codex']:
-        cfg = root / d / 'pactkit.yaml'
+    config_checks = {}
+    config_checks['quality_gate'] = False
+    for d in _all_config_dirs(root):
+        cfg = d / 'pactkit.yaml'
         if cfg.exists():
             try:
                 content = cfg.read_text(encoding='utf-8')
                 if 'lint_blocking' in content:
-                    checks['quality_gate'] = True
+                    config_checks['quality_gate'] = True
             except Exception:
                 pass
 
-    level = 0
-    if checks['sprint_board']:
-        level = 1
-    if level >= 1 and checks['tests_exist'] and checks['ci_config']:
-        level = 2
-    if level >= 2 and checks['spec_lint'] and checks['quality_gate']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    code_checks = {}
+    code_checks['sprint_board'] = (root / 'docs' / 'product' / 'sprint_board.md').exists()
+    code_checks['tests_exist'] = (root / 'tests').is_dir() and any((root / 'tests').rglob('test_*.py'))
+    code_checks['ci_config'] = (
+        (root / '.github' / 'workflows').is_dir()
+        or (root / '.gitlab-ci.yml').exists()
+        or (root / 'Jenkinsfile').exists()
+    )
+    # Test coverage ratio: test files / source files >= 0.3
+    code_checks['test_coverage_ratio'] = False
+    src_count = 0
+    test_count = 0
+    for ext in ['*.py', '*.ts', '*.go', '*.java']:
+        src_count += len([f for f in root.rglob(ext)
+                         if 'test' not in str(f).lower() and 'node_modules' not in str(f)
+                         and '.venv' not in str(f) and '__pycache__' not in str(f)])
+        test_count += len([f for f in root.rglob(ext)
+                          if 'test' in str(f).lower() and 'node_modules' not in str(f)
+                          and '.venv' not in str(f)])
+    if src_count > 0:
+        code_checks['test_coverage_ratio'] = (test_count / src_count) >= 0.3
+
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H4: Tool Governance (Partial auto-scan) ---
 
 def _check_h4(root, manual=None):
-    """Check H4: MCP config, permissions, tool whitelist."""
+    """Check H4: MCP config, permissions, tool whitelist.
+    STORY-slim-097: Config (yaml, settings, mcp) + Code (lint_clean).
+    """
     root = Path(root)
-    checks = {}
-    checks['pactkit_yaml'] = any((root / d / 'pactkit.yaml').exists() for d in ['.claude', '.opencode', '.codex'])
-    # settings.json (Claude Code) or equivalent
-    checks['settings_json'] = (
-        (root / '.claude' / 'settings.json').exists()
-        or (root / '.claude' / 'settings.local.json').exists()
+    config_checks = {}
+    config_checks['pactkit_yaml'] = any((root / d / 'pactkit.yaml').exists() for d in _CONFIG_DIRS)
+    config_checks['settings_json'] = any(
+        (d / 'settings.json').exists() or (d / 'settings.local.json').exists()
+        for d in _all_config_dirs(root)
     )
-    # MCP config
-    checks['mcp_config'] = False
-    for d in ['.claude', '.opencode', '.codex']:
-        settings = root / d / 'settings.json'
-        if settings.exists():
-            try:
-                content = settings.read_text(encoding='utf-8')
-                if 'mcpServers' in content or 'mcp' in content:
-                    checks['mcp_config'] = True
-            except Exception:
-                pass
-    # Manual overrides
-    if manual:
-        checks.update(manual)
+    config_checks['mcp_config'] = False
+    for d in _all_config_dirs(root):
+        for name in ['settings.json', 'settings.local.json']:
+            sf = d / name
+            if sf.exists():
+                try:
+                    content = sf.read_text(encoding='utf-8')
+                    if 'mcpServers' in content or 'enabledMcp' in content or 'mcp_servers' in content:
+                        config_checks['mcp_config'] = True
+                except Exception:
+                    pass
 
-    level = 0
-    if checks['pactkit_yaml']:
-        level = 1
-    if level >= 1 and checks['settings_json']:
-        level = 2
-    if level >= 2 and checks['mcp_config']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    code_checks = {}
+    # Lint clean: try ruff or eslint
+    code_checks['lint_clean'] = False
+    try:
+        result = subprocess.run(
+            ['ruff', 'check', 'src/', 'tests/', '--quiet'],
+            capture_output=True, text=True, cwd=str(root), timeout=30,
+        )
+        code_checks['lint_clean'] = result.returncode == 0
+    except Exception:
+        pass
+
+    if manual:
+        config_checks.update(manual)
+
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H5: Safety & Guardrails (Auto-scan) ---
 
 def _check_h5(root):
-    """Check H5: .gitignore, safety rules, hooks."""
+    """Check H5: Safety & Guardrails.
+    STORY-slim-097: Config (safety_rules, hooks) + Code (gitignore, no_secrets).
+    """
     root = Path(root)
-    checks = {}
-    checks['gitignore'] = (root / '.gitignore').exists()
-    # Safety rules: scan rules for keywords
-    checks['safety_rules'] = False
+    config_checks = {}
+    config_checks['safety_rules'] = False
     _safety_keywords = {'secret', 'password', 'token', 'data loss', 'never print', 'credential'}
-    for d in ['.claude', '.opencode', '.codex']:
-        rules_dir = root / d / 'rules'
+    for d in _all_config_dirs(root):
+        rules_dir = d / 'rules'
         if rules_dir.is_dir():
             for f in rules_dir.glob('*.md'):
                 try:
                     content = f.read_text(encoding='utf-8', errors='ignore').lower()
                     if any(kw in content for kw in _safety_keywords):
-                        checks['safety_rules'] = True
+                        config_checks['safety_rules'] = True
                         break
                 except Exception:
                     pass
-    # Hooks
-    checks['hooks_config'] = False
-    for d in ['.claude', '.opencode', '.codex']:
+    config_checks['hooks_config'] = False
+    for d in _all_config_dirs(root):
         for name in ['settings.json', 'settings.local.json']:
-            sf = root / d / name
+            sf = d / name
             if sf.exists():
                 try:
                     content = sf.read_text(encoding='utf-8')
                     if 'hook' in content.lower():
-                        checks['hooks_config'] = True
+                        config_checks['hooks_config'] = True
                 except Exception:
                     pass
 
-    level = 0
-    if checks['gitignore']:
-        level = 1
-    if level >= 1 and checks['safety_rules']:
-        level = 2
-    if level >= 2 and checks['hooks_config']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    code_checks = {}
+    code_checks['gitignore'] = (root / '.gitignore').exists()
+    # No secrets committed: check git for tracked .env/.key files
+    code_checks['no_secrets'] = True
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', '--cached', '*.env', '.env*', '*.key', '*credentials*'],
+            capture_output=True, text=True, cwd=str(root), timeout=5,
+        )
+        if result.stdout.strip():
+            code_checks['no_secrets'] = False
+    except Exception:
+        pass
+
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H6: Observability (Partial auto-scan) ---
 
 def _check_h6(root, manual=None):
-    """Check H6: Logging, cost tracking, lessons, self-audit."""
+    """Check H6: Observability.
+    STORY-slim-097: Config (self_audit_rule) + Code (changelog, lessons, commit_recent).
+    """
     root = Path(root)
-    checks = {}
-    checks['lessons_md'] = (root / 'docs' / 'architecture' / 'governance' / 'lessons.md').exists()
-    # Self-audit rule
-    checks['self_audit_rule'] = False
-    for d in ['.claude', '.opencode', '.codex']:
-        rules_dir = root / d / 'rules'
+    config_checks = {}
+    config_checks['self_audit_rule'] = False
+    for d in _all_config_dirs(root):
+        rules_dir = d / 'rules'
         if rules_dir.is_dir():
             for f in rules_dir.glob('*.md'):
                 try:
                     content = f.read_text(encoding='utf-8', errors='ignore').lower()
                     if 'self-audit' in content or 'operational discipline' in content:
-                        checks['self_audit_rule'] = True
+                        config_checks['self_audit_rule'] = True
                         break
                 except Exception:
                     pass
-    # Retro history
-    checks['retro_exists'] = False
-    for pattern in ['retro*.md', 'retro-*.md']:
-        for d in ['.claude/projects', 'docs']:
-            search_dir = root / d
-            if search_dir.is_dir():
-                if any(search_dir.rglob(pattern)):
-                    checks['retro_exists'] = True
-                    break
-    if manual:
-        checks.update(manual)
 
-    level = 0
-    if checks['lessons_md']:
-        level = 1
-    if level >= 1 and checks['self_audit_rule']:
-        level = 2
-    if level >= 2 and checks['retro_exists']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    code_checks = {}
+    code_checks['lessons_md'] = (root / 'docs' / 'architecture' / 'governance' / 'lessons.md').exists()
+    code_checks['changelog'] = (root / 'CHANGELOG.md').exists()
+    # Commit recent: any commit in last 7 days
+    code_checks['commit_recent'] = False
+    try:
+        result = subprocess.run(
+            ['git', 'log', '--oneline', '--since=7 days ago', '-1'],
+            capture_output=True, text=True, cwd=str(root), timeout=5,
+        )
+        code_checks['commit_recent'] = bool(result.stdout.strip())
+    except Exception:
+        pass
+    # Retro history
+    code_checks['retro_exists'] = False
+    search_dirs = [root / 'docs']
+    for d in _all_config_dirs(root):
+        if (d / 'projects').is_dir():
+            search_dirs.append(d / 'projects')
+    for pattern in ['retro*.md', 'retro-*.md']:
+        for search_dir in search_dirs:
+            if search_dir.is_dir() and any(search_dir.rglob(pattern)):
+                code_checks['retro_exists'] = True
+                break
+
+    if manual:
+        config_checks.update(manual)
+
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- H7: Evolution (Auto-scan) ---
 
 def _check_h7(root):
-    """Check H7: Version management, changelog, automation."""
+    """Check H7: Version management, changelog, automation.
+    STORY-slim-097: Code-only layer.
+    """
     root = Path(root)
-    checks = {}
-    # Version in pyproject.toml or package.json
-    checks['version_managed'] = False
+    config_checks = {}  # H7 has no config checks
+    code_checks = {}
+    code_checks['version_managed'] = False
     for name in ['pyproject.toml', 'package.json']:
         vf = root / name
         if vf.exists():
             try:
                 content = vf.read_text(encoding='utf-8')
                 if 'version' in content:
-                    checks['version_managed'] = True
+                    code_checks['version_managed'] = True
             except Exception:
                 pass
-    checks['changelog'] = (root / 'CHANGELOG.md').exists()
-    # Git tags
-    checks['git_tags'] = False
+    code_checks['git_tags'] = False
     try:
         result = subprocess.run(['git', 'tag', '--list'], capture_output=True, text=True, cwd=str(root), timeout=5)
-        checks['git_tags'] = bool(result.stdout.strip())
+        code_checks['git_tags'] = bool(result.stdout.strip())
     except Exception:
         pass
-    # CI/CD publish workflow
-    checks['ci_publish'] = False
+    code_checks['ci_publish'] = False
     wf_dir = root / '.github' / 'workflows'
     if wf_dir.is_dir():
         for f in wf_dir.glob('*.yml'):
             try:
                 content = f.read_text(encoding='utf-8', errors='ignore').lower()
                 if 'publish' in content or 'release' in content or 'deploy' in content:
-                    checks['ci_publish'] = True
+                    code_checks['ci_publish'] = True
                     break
             except Exception:
                 pass
 
-    level = 0
-    if checks['version_managed']:
-        level = 1
-    if level >= 1 and checks['changelog'] and checks['git_tags']:
-        level = 2
-    if level >= 2 and checks['ci_publish']:
-        level = 3
-    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks}
+    level = _compute_layer_level(config_checks, code_checks)
+    checks = {**config_checks, **code_checks}
+    return {'level': level, 'name': _LEVEL_NAMES[level], 'checks': checks,
+            'config_checks': config_checks, 'code_checks': code_checks}
 
 
 # --- Scoring (R8) ---
 
-def _compute_score(layers):
-    """Compute Harness Score and AI Ready status."""
-    total = sum(v['level'] for v in layers.values())
-    max_total = len(layers) * 3  # 7 layers × 3 max = 21
-    score = round(total / max_total * 100) if max_total > 0 else 0
+def _compute_score(layers, config_passed=None, config_total=None,
+                   code_passed=None, code_total=None):
+    """Compute Harness Score and AI Ready status.
+
+    STORY-slim-097 R3: Dual-dimension scoring.
+    If config/code counts provided: score = config_pct×50 + code_pct×50.
+    Otherwise: fallback to legacy layer-level formula for backward compat.
+    """
     ready = all(v['level'] >= 1 for v in layers.values())
     min_layer = min(layers.items(), key=lambda x: x[1]['level'])
+
+    if config_total is not None and code_total is not None:
+        config_pct = config_passed / config_total if config_total > 0 else 0
+        code_pct = code_passed / code_total if code_total > 0 else 0
+        score = round(config_pct * 50 + code_pct * 50)
+    else:
+        # Auto-aggregate from layer data
+        all_config = {}
+        all_code = {}
+        for v in layers.values():
+            all_config.update(v.get('config_checks', {}))
+            all_code.update(v.get('code_checks', {}))
+        cp = sum(1 for v in all_config.values() if v)
+        ct = len(all_config) if all_config else 1
+        cdp = sum(1 for v in all_code.values() if v)
+        cdt = len(all_code) if all_code else 1
+        score = round((cp / ct) * 50 + (cdp / cdt) * 50)
+        config_passed, config_total = cp, ct
+        code_passed, code_total = cdp, cdt
+
     return {
         'score': score,
         'ready': ready,
         'weakest': min_layer[0] if not ready else None,
+        'dimensions': {
+            'config': {'score': round((config_passed / config_total) * 50) if config_total else 0,
+                       'passed': config_passed, 'total': config_total},
+            'code': {'score': round((code_passed / code_total) * 50) if code_total else 0,
+                     'passed': code_passed, 'total': code_total},
+        },
     }
 
 
@@ -978,6 +1072,7 @@ def _write_audit_json(result, root):
             k: {'level': v['level'], 'name': v['name']}
             for k, v in result['layers'].items()
         },
+        'dimensions': result.get('dimensions', {}),
         'hotspots': result.get('hotspots', []),
         'suggested_tasks': result.get('suggested_tasks', []),
         'dependency_health': result.get('dependency_health', {}),
@@ -1096,6 +1191,7 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
         'score': scoring['score'],
         'ready': scoring['ready'],
         'weakest': scoring.get('weakest'),
+        'dimensions': scoring.get('dimensions', {}),
         'layers': layers,
         'hotspots': hotspots,
         'suggested_tasks': suggested_tasks,
@@ -1123,6 +1219,7 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
                 k: {'level': v['level'], 'name': v['name']}
                 for k, v in layers.items()
             },
+            'dimensions': scoring.get('dimensions', {}),
             'hotspots': hotspots,
             'suggested_tasks': suggested_tasks,
             'dependency_health': dep_health,

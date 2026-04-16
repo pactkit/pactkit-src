@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-095 |
-| Status | Draft |
+| Status | Done |
 | Priority | P1 |
 | Release | 2.9.14 |
 

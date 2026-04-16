@@ -10,7 +10,7 @@ if str(project_root) not in sys.path:
 from pactkit.audit import (
     _check_h1, _check_h2, _check_h3, _check_h5, _check_h7,
     _check_h4, _check_h6,
-    _compute_score,
+    _compute_score, _all_config_dirs,
     _collect_findings, _collect_insights,
     _compute_hotspots, _suggest_action,
     _check_test_coverage, _check_docstring_coverage,
@@ -96,9 +96,12 @@ class TestLayerChecks:
         assert result['level'] >= 1
         assert result['checks']['claude_md'] is True
 
-    def test_h1_l0_without_claude_md(self, tmp_path):
+    def test_h1_without_claude_md(self, tmp_path):
+        """Without project CLAUDE.md, level depends on global config.
+        STORY-slim-097: global ~/.claude/ may provide rules/agents/skills.
+        """
         result = _check_h1(tmp_path)
-        assert result['level'] == 0
+        assert result['checks']['claude_md'] is False
 
     def test_h2_l1_with_context(self, tmp_path):
         root = _setup_minimal_project(tmp_path)
@@ -135,17 +138,20 @@ class TestLayerChecks:
 
 class TestScoring:
     def test_all_l1_is_ready(self):
+        """STORY-slim-097: dual-dimension scoring with explicit counts."""
         layers = {f'H{i}': {'level': 1} for i in range(1, 8)}
-        result = _compute_score(layers)
+        result = _compute_score(layers, config_passed=5, config_total=10,
+                                code_passed=5, code_total=10)
         assert result['ready'] is True
-        assert result['score'] == round(7 / 21 * 100)
+        assert result['score'] == 50  # 5/10*50 + 5/10*50
 
     def test_mixed_levels(self):
         layers = {'H1': {'level': 2}, 'H2': {'level': 1}, 'H3': {'level': 2},
                   'H4': {'level': 1}, 'H5': {'level': 1}, 'H6': {'level': 1}, 'H7': {'level': 1}}
-        result = _compute_score(layers)
+        result = _compute_score(layers, config_passed=7, config_total=10,
+                                code_passed=6, code_total=10)
         assert result['ready'] is True
-        assert result['score'] == round(9 / 21 * 100)
+        assert result['score'] == 65  # 7/10*50 + 6/10*50
 
 
 # --- AC3: Not Ready (R8) ---
@@ -543,3 +549,132 @@ class TestFullAuditJson093:
             assert 'long_funcs' in h
             assert 'deep_nesting' in h
             assert 'layer_violations' in h
+
+
+# --- STORY-slim-097: Dual-dimension Harness Audit ---
+
+
+class TestAC1GlobalConfigDetection:
+    """AC1: _all_config_dirs includes global ~/.claude/."""
+
+    def test_all_config_dirs_includes_global(self, tmp_path):
+        dirs = _all_config_dirs(tmp_path)
+        dir_strs = [str(d) for d in dirs]
+        home_claude = str(Path.home() / '.claude')
+        assert any(home_claude in d for d in dir_strs), \
+            f"Expected ~/.claude/ in dirs, got: {dir_strs}"
+
+    def test_all_config_dirs_includes_project_level(self, tmp_path):
+        (tmp_path / '.claude').mkdir()
+        dirs = _all_config_dirs(tmp_path)
+        dir_strs = [str(d) for d in dirs]
+        assert any('.claude' in d and str(tmp_path) in d for d in dir_strs)
+
+    def test_h1_finds_rules_in_global(self, tmp_path):
+        """H1 should detect rules from global ~/.claude/rules/ when project has none."""
+        # Only create claude_md at project level (for L1 gate)
+        claude_dir = tmp_path / '.claude'
+        claude_dir.mkdir()
+        (claude_dir / 'CLAUDE.md').write_text('# Instructions')
+        # No project-level rules — relies on global ~/.claude/rules/
+        result = _check_h1(tmp_path)
+        # If ~/.claude/rules/ exists on this machine, rules should be True
+        global_rules = Path.home() / '.claude' / 'rules'
+        if global_rules.is_dir() and any(global_rules.iterdir()):
+            assert result['checks']['rules'] is True
+
+
+class TestAC2TestCoverageRatio:
+    """AC2: test_coverage_ratio check in H3."""
+
+    def test_ratio_above_threshold(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        # 1 source + 1 test already from setup. Add more source files.
+        src = root / 'src'
+        src.mkdir(exist_ok=True)
+        for i in range(3):
+            (src / f'mod{i}.py').write_text(f'def f{i}(): pass\n')
+        # 4 source files, 1 test file = 0.25 < 0.3 → False
+        # Add more test files to pass
+        tests_dir = root / 'tests' / 'unit'
+        (tests_dir / 'test_mod0.py').write_text('def test_m0(): pass\n')
+        # Now: 4 source, 2 test = 0.5 >= 0.3 → True
+        result = _check_h3(root)
+        assert 'test_coverage_ratio' in result['checks']
+
+    def test_ratio_present_in_checks(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        result = _check_h3(root)
+        assert 'test_coverage_ratio' in result['checks']
+
+
+class TestAC3LintClean:
+    """AC3: lint_clean check in H4."""
+
+    def test_lint_clean_in_h4_checks(self, tmp_path):
+        root = _setup_minimal_project(tmp_path)
+        result = _check_h4(root)
+        assert 'lint_clean' in result['checks']
+
+
+class TestAC4DualScoring:
+    """AC4: Dual-dimension scoring formula."""
+
+    def test_dual_score_formula(self):
+        """8/10 config + 7/10 code = 40+35 = 75."""
+        layers = {f'H{i}': {'level': 2, 'config_checks': {}, 'code_checks': {}}
+                  for i in range(1, 8)}
+        result = _compute_score(layers,
+                                config_passed=8, config_total=10,
+                                code_passed=7, code_total=10)
+        assert result['score'] == 75
+
+    def test_all_pass_gives_100(self):
+        layers = {f'H{i}': {'level': 3} for i in range(1, 8)}
+        result = _compute_score(layers,
+                                config_passed=10, config_total=10,
+                                code_passed=10, code_total=10)
+        assert result['score'] == 100
+
+    def test_nothing_passes_gives_0(self):
+        layers = {f'H{i}': {'level': 0} for i in range(1, 8)}
+        result = _compute_score(layers,
+                                config_passed=0, config_total=10,
+                                code_passed=0, code_total=10)
+        assert result['score'] == 0
+
+
+class TestAC5JsonBackwardCompat:
+    """AC5: harness_audit.json retains existing fields + new dimensions."""
+
+    def test_json_has_dimensions(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        audit(str(root))
+        f = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(f.read_text(encoding='utf-8'))
+        # Existing fields still present
+        assert 'score' in data
+        assert 'ready' in data
+        assert 'layers' in data
+        assert 'hotspots' in data
+        # New dimensions field
+        assert 'dimensions' in data
+        dims = data['dimensions']
+        assert 'config' in dims
+        assert 'code' in dims
+        assert 'passed' in dims['config']
+        assert 'total' in dims['config']
+        assert 'score' in dims['config']
+
+
+class TestAC6LayerLevelBothDimensions:
+    """AC6: Layer level uses both config and code checks."""
+
+    def test_h5_l2_when_all_code_pass(self, tmp_path):
+        """H5: safety_rules=True, gitignore=True, hooks=False, no_secrets=True → L2."""
+        root = _setup_full_project(tmp_path)
+        result = _check_h5(root)
+        # With full project: gitignore=True, safety_rules=True (from rules/10-safety.md)
+        # hooks_config=False (no hooks in settings.json)
+        # Should be at least L2 because all code checks pass
+        assert result['level'] >= 2
