@@ -558,11 +558,15 @@ class TestAC1GlobalConfigDetection:
     """AC1: _all_config_dirs includes global ~/.claude/."""
 
     def test_all_config_dirs_includes_global(self, tmp_path):
+        """Global ~/.claude/ is included only when it exists on disk."""
         dirs = _all_config_dirs(tmp_path)
         dir_strs = [str(d) for d in dirs]
-        home_claude = str(Path.home() / '.claude')
-        assert any(home_claude in d for d in dir_strs), \
-            f"Expected ~/.claude/ in dirs, got: {dir_strs}"
+        home_claude = Path.home() / '.claude'
+        if home_claude.is_dir():
+            assert any(str(home_claude) in d for d in dir_strs)
+        else:
+            # CI environments may not have ~/.claude/ — verify it's not added
+            assert all('.claude' not in d or str(tmp_path) in d for d in dir_strs)
 
     def test_all_config_dirs_includes_project_level(self, tmp_path):
         (tmp_path / '.claude').mkdir()
