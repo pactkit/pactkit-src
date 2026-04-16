@@ -2,10 +2,75 @@
 # Edit this file to customize which components are deployed.
 # Remove items from a list to disable them. Default: all enabled.
 
-version: "2.9.13"
+version: "2.10.1"
 stack: python
 root: .
 developer: "slim"
+
+# Agents — AI role definitions
+agents:
+  - code-explorer
+  - product-designer
+  - qa-engineer
+  - repo-maintainer
+  - security-auditor
+  - senior-developer
+  - system-architect
+  - system-medic
+  - visual-architect
+
+# Commands — PDCA playbooks
+commands:
+  - project-act
+  - project-check
+  - project-clarify
+  - project-design
+  - project-done
+  - project-hotfix
+  - project-init
+  - project-plan
+  - project-pr
+  - project-release
+  - project-sprint
+
+# Skills — tool scripts
+skills:
+  - pactkit-analyze
+  - pactkit-board
+  - pactkit-doctor
+  - pactkit-draw
+  - pactkit-release
+  - pactkit-review
+  - pactkit-scaffold
+  - pactkit-status
+  - pactkit-trace
+  - pactkit-visualize
+  - pactkit-garden
+  - project-act
+  - project-check
+  - project-clarify
+  - project-design
+  - project-done
+  - project-hotfix
+  - project-init
+  - project-plan
+  - project-pr
+  - project-release
+  - project-sprint
+  - pactkit-audit
+  - pactkit-report
+
+# Rules — constitution modules
+rules:
+  - 01-core-protocol
+  - 02-hierarchy-of-truth
+  - 03-file-atlas
+  - 04-routing-table
+  - 05-workflow-conventions
+  - 06-mcp-integration
+  - 07-shared-protocols
+  - 08-architecture-principles
+  - 09-sectional-write
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
@@ -46,6 +111,16 @@ regression:
 check:
   security_checklist: true
   security_scope_override: none
+  pactguard:
+    enabled: false
+    mode: all
+    ruleset: ""
+    blocking: false
+  observe:
+    enabled: false
+    sources: auto
+    max_console: 100
+    max_network: 200
 
 # Done — configure commit and lesson quality behavior
 done:

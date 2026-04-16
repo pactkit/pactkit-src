@@ -288,14 +288,23 @@ def main():
     audit_parser.add_argument("--layer", default=None, help="Check single layer (H1-H7)")
     audit_parser.add_argument("--append", action="store_true", default=False, help="Silent update for Done integration")
     audit_parser.add_argument("--verbose", action="store_true", default=False, help="Full detail")
-    audit_parser.add_argument("--if-needed", dest="if_needed", action="store_true", default=False, help="Skip if harness_audit.json already covers the given story ID")
-    audit_parser.add_argument("story_id", nargs="?", default=None, help="Story ID for --if-needed dedup (e.g. STORY-slim-014)")
+    audit_parser.add_argument(
+        "--if-needed", dest="if_needed", action="store_true", default=False,
+        help="Skip if harness_audit.json already covers the given story ID",
+    )
+    audit_parser.add_argument(
+        "story_id", nargs="?", default=None,
+        help="Story ID for --if-needed dedup (e.g. STORY-slim-014)",
+    )
 
     # pactkit report (STORY-slim-094)
     report_parser = subparsers.add_parser("report", help="Generate unified HTML architecture dashboard")
     report_parser.add_argument("--input", default=None, help="Single .mmd file (generates individual .html)")
     report_parser.add_argument("--output", default=None, help="Output .html path (default: same name as input)")
-    report_parser.add_argument("--all", dest="all_mode", action="store_true", default=False, help="Generate unified report from all .mmd files")
+    report_parser.add_argument(
+        "--all", dest="all_mode", action="store_true", default=False,
+        help="Generate unified report from all .mmd files",
+    )
 
     # pactkit backfill-release (STORY-slim-015 R4)
     backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")

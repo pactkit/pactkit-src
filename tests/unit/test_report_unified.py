@@ -7,7 +7,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from pactkit.skills.report import _parse_mmd, generate
+from pactkit.skills.report import generate
 
 
 _CODE_MMD = 'graph TD\n    A["cli.py"]\n    B["config.py"]\n    A --> B\n'

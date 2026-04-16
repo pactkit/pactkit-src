@@ -879,9 +879,7 @@ def _build_audit_panel_html(audit_data):
         name = layer_names.get(key, key)
         html += f'<div class="layer-bar"><span style="width:24px">{key}</span><span style="width:55px;font-size:11px">{_html_mod.escape(name)}</span><div class="bar"><div class="fill" style="width:{fill_pct:.0f}%;background:{color}"></div></div><span style="font-size:11px">L{level}</span></div>\n'
 
-    # Stats
-    total_nodes = 0
-    total_edges = 0
+    # Stats (populated by JS from graph data)
     html += '<h3>Stats</h3><div class="stat-grid" id="stat-grid"></div>'
 
     # Hotspots

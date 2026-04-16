@@ -1,44 +1,57 @@
 {
-  "timestamp": "2026-04-16T09:22:54Z",
-  "commit": "677fc35",
-  "score": 52,
+  "timestamp": "2026-04-16T12:48:17Z",
+  "commit": "517b0d0",
+  "story_id": "",
+  "score": 97,
   "ready": true,
   "weakest": null,
   "layers": {
     "H1": {
-      "level": 1,
-      "name": "Basic"
+      "level": 3,
+      "name": "Advanced"
     },
     "H2": {
-      "level": 1,
-      "name": "Basic"
+      "level": 3,
+      "name": "Advanced"
     },
     "H3": {
-      "level": 2,
-      "name": "Structured"
+      "level": 3,
+      "name": "Advanced"
     },
     "H4": {
       "level": 2,
       "name": "Structured"
     },
     "H5": {
-      "level": 1,
-      "name": "Basic"
+      "level": 3,
+      "name": "Advanced"
     },
     "H6": {
-      "level": 1,
-      "name": "Basic"
+      "level": 3,
+      "name": "Advanced"
     },
     "H7": {
       "level": 3,
       "name": "Advanced"
     }
   },
+  "dimensions": {
+    "config": {
+      "score": 50,
+      "passed": 13,
+      "total": 13
+    },
+    "code": {
+      "score": 47,
+      "passed": 16,
+      "total": 17
+    }
+  },
   "hotspots": [
     {
       "file": ".github/skills/pactkit-visualize/scripts/visualize.py",
       "score": 29,
-      "complexity_avg": 9.4,
+      "complexity_avg": 9.5,
       "blast_pct": 0,
       "fan_in": 0,
       "function_count": 140,
@@ -51,8 +64,8 @@
     },
     {
       "file": "src/pactkit/skills/visualize.py",
-      "score": 19,
-      "complexity_avg": 10.6,
+      "score": 20,
+      "complexity_avg": 10.8,
       "blast_pct": 0,
       "fan_in": 0,
       "function_count": 85,
@@ -66,7 +79,7 @@
     {
       "file": "src/pactkit/cli.py",
       "score": 16,
-      "complexity_avg": 48.5,
+      "complexity_avg": 50.0,
       "blast_pct": 2,
       "fan_in": 1,
       "function_count": 2,
@@ -95,29 +108,29 @@
       "file": "src/pactkit/config.py",
       "score": 9,
       "complexity_avg": 15.6,
-      "blast_pct": 14,
-      "fan_in": 6,
+      "blast_pct": 16,
+      "fan_in": 7,
       "function_count": 12,
       "has_test": true,
       "docstring_pct": 100,
       "long_funcs": 6,
       "deep_nesting": 2,
       "layer_violations": 0,
-      "action": "Refactor: 6 long functions, 2 deeply nested + Stabilize: 6 dependents"
+      "action": "Refactor: 6 long functions, 2 deeply nested + Stabilize: 7 dependents"
     },
     {
       "file": "src/pactkit/audit.py",
       "score": 8,
-      "complexity_avg": 12.3,
-      "blast_pct": 0,
-      "fan_in": 0,
-      "function_count": 23,
+      "complexity_avg": 10.9,
+      "blast_pct": 2,
+      "fan_in": 1,
+      "function_count": 26,
       "has_test": true,
       "docstring_pct": 96,
       "long_funcs": 5,
-      "deep_nesting": 5,
+      "deep_nesting": 6,
       "layer_violations": 0,
-      "action": "Refactor: 5 long functions, 5 deeply nested + Decompose: 23 functions"
+      "action": "Refactor: 5 long functions, 6 deeply nested + Decompose: 26 functions"
     },
     {
       "file": "src/pactkit/skills/analyzers/go_analyzer.py",
@@ -132,6 +145,20 @@
       "deep_nesting": 3,
       "layer_violations": 0,
       "action": "Add tests: no test file found + Refactor: 2 long functions, 3 deeply nested"
+    },
+    {
+      "file": "src/pactkit/skills/report.py",
+      "score": 7,
+      "complexity_avg": 9.1,
+      "blast_pct": 2,
+      "fan_in": 1,
+      "function_count": 11,
+      "has_test": false,
+      "docstring_pct": 100,
+      "long_funcs": 5,
+      "deep_nesting": 0,
+      "layer_violations": 0,
+      "action": "Add tests: no test file found + Refactor: 5 long functions"
     },
     {
       "file": "src/pactkit/generators/deployer.py",
@@ -160,20 +187,6 @@
       "deep_nesting": 3,
       "layer_violations": 0,
       "action": "Add tests: no test file found + Refactor: 1 long functions, 3 deeply nested"
-    },
-    {
-      "file": "src/pactkit/skills/analyzers/python_analyzer.py",
-      "score": 7,
-      "complexity_avg": 10.7,
-      "blast_pct": 2,
-      "fan_in": 1,
-      "function_count": 7,
-      "has_test": false,
-      "docstring_pct": 100,
-      "long_funcs": 1,
-      "deep_nesting": 5,
-      "layer_violations": 0,
-      "action": "Add tests: no test file found + Refactor: 1 long functions, 5 deeply nested"
     }
   ],
   "suggested_tasks": [],

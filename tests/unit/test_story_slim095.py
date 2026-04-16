@@ -1,5 +1,4 @@
 """Tests for STORY-slim-095 — Fix focus call graph + report empty tab."""
-import json
 import sys
 from pathlib import Path
 

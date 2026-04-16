@@ -1137,7 +1137,6 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
 
     # --- STORY-slim-081 R4: Scoped focus — resolve module name to directory ---
     scan_root = root
-    original_focus = focus  # STORY-slim-095: preserve for output file naming
     focus_via_fallback = False  # True when resolved via subdirectory fallback, not mod_map
     if focus and mode in ('file', 'class', 'call'):
         modules = _detect_modules(root, scan_excludes=scan_excludes)

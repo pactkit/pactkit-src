@@ -4,6 +4,17 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.1] - 2026-04-16
+
+### Added
+- **Dual-dimension Harness Audit** (STORY-slim-097) — Audit now scores two dimensions: Config (project + global `~/.claude/` config, 50pts) and Code (tests, lint, complexity, git hygiene, 50pts). Score went from 52 to 97/100 for PactKit itself. JSON output includes `dimensions` breakdown field.
+- **Unified HTML Report Dashboard** (STORY-slim-094) — Single `report.html` with tab switching, D3 force-directed graph, harness score ring, layer bars, and hotspot panel. Self-contained offline HTML with inline D3.js.
+
+### Fixed
+- **Focus call graph empty output** (STORY-slim-095) — Fixed focus resolution to use `LANG_PROFILES[stack].source_dirs` instead of hardcoded `src/` prefix. Added subdirectory and single-root-module fallback.
+- **Report --all tab overload** (HOTFIX-slim-096) — Filtered unified dashboard to core PDCA graphs only (code_graph, class_graph, call_graph, system_design). Reduced from 9 tabs to 4.
+- **Mermaid `<br/>` tag rendering** (HOTFIX-slim-096) — Strip Mermaid `<br/>` tags from node labels before HTML escape, preventing `&lt;br/&gt;` raw text in SVG.
+
 ## [2.9.13] - 2026-04-15
 
 ### Fixed

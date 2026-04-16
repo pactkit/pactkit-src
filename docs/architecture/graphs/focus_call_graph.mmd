@@ -55,6 +55,7 @@ graph TD
     WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
     WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
     _add_fix_flag["_add_fix_flag"]
+    _all_config_dirs["_all_config_dirs"]
     _atomic_mmd_write["_atomic_mmd_write"]
     _best_match["_best_match"]
     _build_audit_panel_html["_build_audit_panel_html"]
@@ -99,6 +100,7 @@ graph TD
     _collect_insights["_collect_insights"]
     _collect_signals["_collect_signals"]
     _compute_hotspots["_compute_hotspots"]
+    _compute_layer_level["_compute_layer_level"]
     _compute_python_complexity["_compute_python_complexity"]
     _compute_score["_compute_score"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
@@ -347,8 +349,26 @@ graph TD
     check_config_completeness --> find_pactkit_yaml
     check_version_mismatch --> find_pactkit_yaml
     check_version_mismatch --> load_config
+    _has_dir_with_files --> _all_config_dirs
     _check_h1 --> _has_dir_with_files
     _check_h1 --> _has_dir_with_files
+    _check_h1 --> _compute_layer_level
+    _check_h1 --> _all_config_dirs
+    _check_h2 --> _compute_layer_level
+    _check_h2 --> _all_config_dirs
+    _check_h2 --> _all_config_dirs
+    _check_h3 --> _all_config_dirs
+    _check_h3 --> _compute_layer_level
+    _check_h4 --> _all_config_dirs
+    _check_h4 --> _compute_layer_level
+    _check_h4 --> _all_config_dirs
+    _check_h5 --> _all_config_dirs
+    _check_h5 --> _all_config_dirs
+    _check_h5 --> _compute_layer_level
+    _check_h6 --> _all_config_dirs
+    _check_h6 --> _all_config_dirs
+    _check_h6 --> _compute_layer_level
+    _check_h7 --> _compute_layer_level
     _collect_findings --> check_dead_imports
     _check_test_coverage --> _resolve_test_path
     _check_code_smells --> _max_nesting_depth
