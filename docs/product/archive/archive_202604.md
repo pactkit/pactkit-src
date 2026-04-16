@@ -117,3 +117,15 @@
 - [x] Add layers() with configurable layer model
 - [x] Add CLI subcommands (blast_radius, complexity, layers)
 - [x] Write unit tests for all 3 features
+
+### [STORY-slim-091] Harness Audit Skill: H1-H7 AI Readiness Assessment
+> Spec: docs/specs/STORY-slim-091.md
+
+- [x] Implement H1-H7 layer checks
+- [x] Implement scoring model (sum/21 + min≥L1)
+- [x] Implement findings aggregator
+- [x] Implement insights (fan-in, blast top10, circular deps, god objects)
+- [x] Register CLI subcommand (audit --json/--layer/--append)
+- [x] Integrate into Done Phase 3.x
+- [x] Integrate into Plan Phase 1 (optional read)
+- [x] Write unit tests

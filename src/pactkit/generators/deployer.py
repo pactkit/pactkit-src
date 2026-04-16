@@ -1416,6 +1416,8 @@ def _generate_project_claude_md(config):
 
     # Resolve stack and get profile from LANG_PROFILES (BUG-021 R3, R4)
     stack = config.get("stack", "auto")
+    if isinstance(stack, list):
+        stack = stack[0] if stack else "python"
     if stack == "auto":
         stack = "python"  # default fallback
     profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))

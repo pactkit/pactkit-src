@@ -201,7 +201,8 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-066: bumped +1005 for topology-aware trace gate (Plan/Act/Skill)
 # HOTFIX: bumped +167 for init lessons.md canonical table header enforcement
 # STORY-slim-072/073: bumped +2489 for Check Phase 4.5/4.7 (PactGuard + Observe)
-BASELINE_TOTAL_CHARS = 78736
+# STORY-slim-091: bumped +248 for Done Phase 3.8 harness audit refresh
+BASELINE_TOTAL_CHARS = 78984
 
 
 class TestAC7PromptSizeReduced:

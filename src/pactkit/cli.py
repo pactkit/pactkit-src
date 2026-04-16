@@ -282,6 +282,12 @@ def main():
     # pactkit doctor (STORY-slim-015 R1-R3)
     subparsers.add_parser("doctor", help="Diagnose project health")
 
+    # pactkit audit (STORY-slim-091)
+    audit_parser = subparsers.add_parser("audit", help="H1-H7 AI Readiness Assessment")
+    audit_parser.add_argument("--json", action="store_true", default=False, help="JSON output only")
+    audit_parser.add_argument("--layer", default=None, help="Check single layer (H1-H7)")
+    audit_parser.add_argument("--append", action="store_true", default=False, help="Silent update for Done integration")
+
     # pactkit backfill-release (STORY-slim-015 R4)
     backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")
     backfill_parser.add_argument("version", help="Version string to backfill (e.g. 2.3.0)")
@@ -551,6 +557,13 @@ def main():
         output, exit_code = run_observe(report=args.report, json_output=args.json)
         print(output)
         raise SystemExit(exit_code)
+
+    elif args.command == "audit":
+        from pactkit.audit import audit as run_audit
+
+        output = run_audit(json_only=args.json, layer=args.layer, append=args.append)
+        if output and not args.append:
+            print(output)
 
     elif args.command == "doctor":
         from pathlib import Path
