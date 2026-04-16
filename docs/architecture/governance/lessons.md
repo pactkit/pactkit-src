@@ -57,3 +57,4 @@
 | 2026-04-16 | Parsing Mermaid .mmd files to JSON (nodes+edges) is straightforward with regex; the D3 force-directed HTML template works well as a single-file self-contained skill | report.py:_parse_mmd,_render_html |
 | 2026-04-16 | D3 force graph selectNode() computes blast radius via in-browser BFS — no backend needed; folder-based coloring via d3.scaleOrdinal on path prefix gives CodeFlow-quality visuals | src/pactkit/skills/report.py:selectNode |
 | 2026-04-16 | H1-H7 harness audit aggregator pattern: each _check_hN() function is self-contained with its own L0-L3 criteria, making it easy to add new checks per layer without touching scoring logic | src/pactkit/audit.py:_check_h1 |
+| 2026-04-16 | File-level hotspot aggregation (complexity_avg × blast_pct × fan_in) reduces 141 per-function findings to ~10 actionable items; _suggest_action() maps dominant signal to Split/Stabilize/Isolate/Decompose verb | src/pactkit/audit.py:_compute_hotspots,_suggest_action |

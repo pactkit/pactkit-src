@@ -12,6 +12,7 @@ from pactkit.audit import (
     _check_h4, _check_h6,
     _compute_score,
     _collect_findings, _collect_insights,
+    _compute_hotspots, _suggest_action,
     audit,
 )
 
@@ -232,3 +233,127 @@ class TestLayerSpecific:
         assert 'H1' in data['layers']
         # Only H1 should be checked; others should be absent or L0
         assert data['layers']['H1']['level'] >= 1
+
+
+# --- STORY-slim-092: Hotspot Aggregation ---
+
+class TestHotspotAggregation:
+    """AC1: File-level hotspot aggregation (R1)."""
+
+    def test_hotspots_are_list(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        hotspots = _compute_hotspots(root)
+        assert isinstance(hotspots, list)
+
+    def test_hotspots_have_required_fields(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        # Add some source files with functions
+        src = root / 'src'
+        src.mkdir(exist_ok=True)
+        (src / '__init__.py').write_text('', encoding='utf-8')
+        (src / 'big.py').write_text(
+            'def a():\n  if True:\n    if True:\n      pass\n'
+            'def b():\n  for i in range(10):\n    while True:\n      break\n',
+            encoding='utf-8'
+        )
+        hotspots = _compute_hotspots(root)
+        for h in hotspots:
+            assert 'file' in h
+            assert 'score' in h
+            assert 'complexity_avg' in h
+            assert 'blast_pct' in h
+            assert 'fan_in' in h
+            assert 'action' in h
+
+    def test_hotspots_max_10(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        hotspots = _compute_hotspots(root)
+        assert len(hotspots) <= 10
+
+    def test_hotspots_sorted_descending(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        hotspots = _compute_hotspots(root)
+        if len(hotspots) >= 2:
+            assert hotspots[0]['score'] >= hotspots[1]['score']
+
+
+class TestSuggestAction:
+    """AC2: Actionable suggestions (R2)."""
+
+    def test_high_complexity_suggests_split(self):
+        action = _suggest_action({'complexity_avg': 35, 'fan_in': 1, 'blast_pct': 10, 'function_count': 5})
+        assert 'Split' in action
+
+    def test_high_fan_in_suggests_stabilize(self):
+        action = _suggest_action({'complexity_avg': 5, 'fan_in': 7, 'blast_pct': 10, 'function_count': 5})
+        assert 'Stabilize' in action
+
+    def test_high_blast_suggests_isolate(self):
+        action = _suggest_action({'complexity_avg': 5, 'fan_in': 1, 'blast_pct': 60, 'function_count': 5})
+        assert 'Isolate' in action
+
+    def test_god_object_suggests_decompose(self):
+        action = _suggest_action({'complexity_avg': 5, 'fan_in': 1, 'blast_pct': 10, 'function_count': 20})
+        assert 'Decompose' in action
+
+
+class TestSlimJson:
+    """AC3: Slim JSON file (R3)."""
+
+    def test_json_no_findings_key(self, tmp_path):
+        root = _setup_minimal_project(tmp_path)
+        audit(str(root))
+        audit_file = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(audit_file.read_text(encoding='utf-8'))
+        assert 'findings' not in data
+        assert 'insights' not in data
+
+    def test_json_has_hotspots(self, tmp_path):
+        root = _setup_minimal_project(tmp_path)
+        audit(str(root))
+        audit_file = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(audit_file.read_text(encoding='utf-8'))
+        assert 'hotspots' in data
+        assert isinstance(data['hotspots'], list)
+
+    def test_layers_slim_no_checks(self, tmp_path):
+        root = _setup_minimal_project(tmp_path)
+        audit(str(root))
+        audit_file = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
+        data = json.loads(audit_file.read_text(encoding='utf-8'))
+        for layer_data in data['layers'].values():
+            assert 'checks' not in layer_data
+            assert 'level' in layer_data
+            assert 'name' in layer_data
+
+
+class TestVerboseMode:
+    """AC4/AC5: Verbose vs concise (R4)."""
+
+    def test_default_concise(self, tmp_path):
+        root = _setup_minimal_project(tmp_path)
+        result = audit(str(root))
+        # Should NOT contain per-function detail lines
+        assert 'CRITICAL' not in result or result.count('\n') < 30
+
+    def test_verbose_shows_findings(self, tmp_path):
+        root = _setup_full_project(tmp_path)
+        result = audit(str(root), verbose=True)
+        # Verbose should include findings section
+        assert 'Findings' in result or 'findings' in result.lower()
+
+    def test_json_default_slim(self, tmp_path):
+        """AC7: --json without --verbose matches harness_audit.json format."""
+        root = _setup_minimal_project(tmp_path)
+        result = audit(str(root), json_only=True)
+        data = json.loads(result)
+        assert 'findings' not in data
+        assert 'hotspots' in data
+
+    def test_json_verbose_full(self, tmp_path):
+        """AC6: --json --verbose includes findings + insights."""
+        root = _setup_full_project(tmp_path)
+        result = audit(str(root), json_only=True, verbose=True)
+        data = json.loads(result)
+        assert 'findings' in data
+        assert 'insights' in data

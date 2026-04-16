@@ -1,80 +1,38 @@
 {
-  "timestamp": "2026-04-16T07:59:35Z",
-  "commit": "a160785",
+  "timestamp": "2026-04-16T08:21:20Z",
+  "commit": "f929d95",
   "score": 52,
   "ready": true,
   "weakest": null,
   "layers": {
     "H1": {
       "level": 1,
-      "name": "Basic",
-      "checks": {
-        "claude_md": true,
-        "rules": false,
-        "agents": false,
-        "commands": false
-      }
+      "name": "Basic"
     },
     "H2": {
       "level": 1,
-      "name": "Basic",
-      "checks": {
-        "context_md": true,
-        "specs_exist": true,
-        "hierarchy_of_truth": false,
-        "memory_config": false,
-        "context_fresh": true
-      }
+      "name": "Basic"
     },
     "H3": {
       "level": 2,
-      "name": "Structured",
-      "checks": {
-        "sprint_board": true,
-        "tests_exist": true,
-        "ci_config": true,
-        "spec_lint": false,
-        "quality_gate": true
-      }
+      "name": "Structured"
     },
     "H4": {
       "level": 2,
-      "name": "Structured",
-      "checks": {
-        "pactkit_yaml": true,
-        "settings_json": true,
-        "mcp_config": false
-      }
+      "name": "Structured"
     },
     "H5": {
       "level": 1,
-      "name": "Basic",
-      "checks": {
-        "gitignore": true,
-        "safety_rules": false,
-        "hooks_config": false
-      }
+      "name": "Basic"
     },
     "H6": {
       "level": 1,
-      "name": "Basic",
-      "checks": {
-        "lessons_md": true,
-        "self_audit_rule": false,
-        "retro_exists": false
-      }
+      "name": "Basic"
     },
     "H7": {
       "level": 3,
-      "name": "Advanced",
-      "checks": {
-        "version_managed": true,
-        "changelog": true,
-        "git_tags": true,
-        "ci_publish": true
-      }
+      "name": "Advanced"
     }
   },
-  "findings": [],
-  "insights": {}
+  "hotspots": []
 }

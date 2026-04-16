@@ -287,6 +287,7 @@ def main():
     audit_parser.add_argument("--json", action="store_true", default=False, help="JSON output only")
     audit_parser.add_argument("--layer", default=None, help="Check single layer (H1-H7)")
     audit_parser.add_argument("--append", action="store_true", default=False, help="Silent update for Done integration")
+    audit_parser.add_argument("--verbose", action="store_true", default=False, help="Full detail")
 
     # pactkit backfill-release (STORY-slim-015 R4)
     backfill_parser = subparsers.add_parser("backfill-release", help="Replace Release: TBD in completed specs")
@@ -561,7 +562,7 @@ def main():
     elif args.command == "audit":
         from pactkit.audit import audit as run_audit
 
-        output = run_audit(json_only=args.json, layer=args.layer, append=args.append)
+        output = run_audit(json_only=args.json, layer=args.layer, append=args.append, verbose=args.verbose)
         if output and not args.append:
             print(output)
 

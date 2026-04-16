@@ -497,26 +497,169 @@ def _collect_insights(root):
     return insights
 
 
+# --- Hotspot Aggregation (STORY-slim-092 R1, R2) ---
+
+
+def _suggest_action(hotspot):
+    """Generate actionable suggestion string from dominant risk signals."""
+    actions = []
+    if hotspot.get('complexity_avg', 0) > 30:
+        actions.append('Split: extract high-complexity functions')
+    if hotspot.get('fan_in', 0) >= 5:
+        actions.append(f"Stabilize: changes affect {hotspot['fan_in']} dependents")
+    if hotspot.get('blast_pct', 0) > 50:
+        actions.append(f"Isolate: blast radius covers {hotspot['blast_pct']}%")
+    if hotspot.get('function_count', 0) > 15:
+        actions.append(f"Decompose: {hotspot['function_count']} functions")
+    if not actions:
+        actions.append('Monitor: no critical signals')
+    return ' + '.join(actions[:2])
+
+
+def _compute_hotspots(root):
+    """Compute file-level hotspots from complexity, blast radius, and fan-in."""
+    root = Path(root)
+    file_data = {}  # rel_path -> {complexity_sum, func_count, fan_in, blast_pct}
+
+    # 1. Collect per-file complexity data
+    try:
+        from pactkit.skills.visualize import (  # noqa: I001
+            _LANG_FILE_EXT, _detect_stacks, _load_scan_excludes,
+            _scan_files, _select_analyzer,
+        )
+        scan_excludes = _load_scan_excludes(root)
+        stacks = _detect_stacks(root)
+        for stk in stacks:
+            analyzer = _select_analyzer(stk)
+            exts = [_LANG_FILE_EXT.get(stk, '.py')]
+            if stk == 'node':
+                exts.extend(['.js', '.tsx', '.jsx'])
+            for ext in exts:
+                files, _mi, _ftn = _scan_files(
+                    root, scan_excludes=scan_excludes, file_ext=ext,
+                )
+                for f in files:
+                    result = analyzer.extract_functions_and_calls(
+                        f, include_complexity=True,
+                    )
+                    if len(result) == 3:
+                        _fr, _ce, cm = result
+                        if cm:
+                            rel = str(f.relative_to(root))
+                            entry = file_data.setdefault(rel, {
+                                'complexity_sum': 0, 'func_count': 0,
+                                'fan_in': 0, 'blast_pct': 0,
+                            })
+                            entry['complexity_sum'] += sum(cm.values())
+                            entry['func_count'] += len(cm)
+    except Exception:
+        pass
+
+    if not file_data:
+        return []
+
+    # 2. Collect fan-in from code_graph.mmd
+    code_graph = root / 'docs' / 'architecture' / 'graphs' / 'code_graph.mmd'
+    if code_graph.exists():
+        try:
+            import re as _re
+            content = code_graph.read_text(encoding='utf-8')
+            re_edge = _re.compile(r'^\s*(\w+)\s+-->\s*(\w+)', _re.MULTILINE)
+            re_node = _re.compile(r'^\s*(\w+)\["([^"]+)"\]', _re.MULTILINE)
+            node_labels = {m.group(1): m.group(2) for m in re_node.finditer(content)}
+            label_to_rel = {}
+            for nid, label in node_labels.items():
+                # Match label to file_data keys by filename
+                for rel in file_data:
+                    if rel.endswith(label) or label in rel:
+                        label_to_rel[nid] = rel
+                        break
+            fan_in_count = {}
+            for m in re_edge.finditer(content):
+                dst = m.group(2)
+                fan_in_count[dst] = fan_in_count.get(dst, 0) + 1
+            for nid, count in fan_in_count.items():
+                rel = label_to_rel.get(nid)
+                if rel and rel in file_data:
+                    file_data[rel]['fan_in'] = count
+        except Exception:
+            pass
+
+    # 3. Compute blast_pct per file (simplified: fan_in based estimate)
+    total_files = len(file_data)
+    for rel, data in file_data.items():
+        # Rough blast estimate: fan_in / total * 100
+        if total_files > 1:
+            data['blast_pct'] = round(data['fan_in'] / (total_files - 1) * 100)
+        else:
+            data['blast_pct'] = 0
+
+    # 4. Compute hotspot scores
+    hotspots = []
+    for rel, data in file_data.items():
+        func_count = data['func_count']
+        if func_count == 0:
+            continue
+        complexity_avg = round(data['complexity_sum'] / func_count, 1)
+        fan_in = data['fan_in']
+        blast_pct = data['blast_pct']
+        score = round(complexity_avg * (blast_pct / 100) * max(fan_in, 1))
+        # Normalize to 0-100
+        score = min(score, 100)
+        hotspot = {
+            'file': rel,
+            'score': score,
+            'complexity_avg': complexity_avg,
+            'blast_pct': blast_pct,
+            'fan_in': fan_in,
+            'function_count': func_count,
+        }
+        hotspot['action'] = _suggest_action(hotspot)
+        hotspots.append(hotspot)
+
+    hotspots.sort(key=lambda h: h['score'], reverse=True)
+    return hotspots[:10]
+
+
 # --- File Output (R11) ---
 
 def _write_audit_json(result, root):
-    """Write audit result to docs/architecture/governance/harness_audit.json."""
+    """Write slim audit result to docs/architecture/governance/harness_audit.json.
+
+    STORY-slim-092: Only scorecard + layers (level/name) + hotspots.
+    No findings/insights — those are stdout-only.
+    """
     root = Path(root)
+    scorecard = {
+        'timestamp': result['timestamp'],
+        'commit': result['commit'],
+        'score': result['score'],
+        'ready': result['ready'],
+        'weakest': result.get('weakest'),
+        'layers': {
+            k: {'level': v['level'], 'name': v['name']}
+            for k, v in result['layers'].items()
+        },
+        'hotspots': result.get('hotspots', []),
+    }
     dest = root / 'docs' / 'architecture' / 'governance' / 'harness_audit.json'
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
+    dest.write_text(json.dumps(scorecard, indent=2, ensure_ascii=False), encoding='utf-8')
     return dest
 
 
 # --- Entry Point (R14) ---
 
-def audit(target='.', layer=None, json_only=False, append=False):
-    """Run the H1-H7 harness audit."""
+def audit(target='.', layer=None, json_only=False, append=False, verbose=False):
+    """Run the H1-H7 harness audit.
+
+    STORY-slim-092: Default output is concise (scorecard + hotspots).
+    Use verbose=True for full findings/insights detail.
+    """
     root = Path(target).resolve()
 
     # Run layer checks
     if layer:
-        # Single layer mode
         check_map = {
             'H1': _check_h1, 'H2': _check_h2, 'H3': _check_h3,
             'H4': _check_h4, 'H5': _check_h5, 'H6': _check_h6, 'H7': _check_h7,
@@ -525,7 +668,6 @@ def audit(target='.', layer=None, json_only=False, append=False):
         if not fn:
             return json.dumps({'error': f'Unknown layer: {layer}'})
         layers = {layer.upper(): fn(root)}
-        # Fill others as L0
         for k in check_map:
             if k not in layers:
                 layers[k] = {'level': 0, 'name': 'None', 'checks': {}}
@@ -542,11 +684,13 @@ def audit(target='.', layer=None, json_only=False, append=False):
 
     scoring = _compute_score(layers)
 
-    # Collect findings and insights (skip in single-layer and append modes for speed)
-    if layer or append:
-        findings = []
-        insights = {}
-    else:
+    # Compute hotspots (always, for JSON file)
+    hotspots = [] if (layer or append) else _compute_hotspots(root)
+
+    # Verbose: collect full findings/insights
+    findings = []
+    insights = {}
+    if verbose and not layer and not append:
         findings = _collect_findings(root)
         insights = _collect_insights(root)
 
@@ -568,15 +712,33 @@ def audit(target='.', layer=None, json_only=False, append=False):
         'ready': scoring['ready'],
         'weakest': scoring.get('weakest'),
         'layers': layers,
-        'findings': findings,
-        'insights': insights,
+        'hotspots': hotspots,
     }
+    # Verbose fields (not written to JSON file)
+    if verbose:
+        result['findings'] = findings
+        result['insights'] = insights
 
-    # Write JSON file
+    # Write slim JSON file
     dest = _write_audit_json(result, root)
 
     if json_only:
-        return json.dumps(result, indent=2, ensure_ascii=False)
+        if verbose:
+            return json.dumps(result, indent=2, ensure_ascii=False)
+        # Slim: same as file
+        scorecard = {
+            'timestamp': result['timestamp'],
+            'commit': result['commit'],
+            'score': result['score'],
+            'ready': result['ready'],
+            'weakest': result.get('weakest'),
+            'layers': {
+                k: {'level': v['level'], 'name': v['name']}
+                for k, v in layers.items()
+            },
+            'hotspots': hotspots,
+        }
+        return json.dumps(scorecard, indent=2, ensure_ascii=False)
 
     # Human-readable report
     lines = []
@@ -593,24 +755,56 @@ def audit(target='.', layer=None, json_only=False, append=False):
     for k in ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7']:
         v = layers[k]
         bar = '█' * v['level'] + '░' * (3 - v['level'])
-        lines.append(f"  {k} {_layer_names.get(k, k):<24} [{bar}] L{v['level']} {v['name']}")
-    lines.append('')
+        lines.append(
+            f"  {k} {_layer_names.get(k, k):<24} "
+            f"[{bar}] L{v['level']} {v['name']}"
+        )
 
-    if findings:
-        lines.append(f'Findings ({len(findings)}):')
-        for f in findings[:10]:
-            lines.append(f"  [{f['severity'].upper():>8}] {f['category']}: {f['message']}")
-        if len(findings) > 10:
-            lines.append(f'  ... and {len(findings) - 10} more')
+    # Hotspots (default concise output)
+    if hotspots:
         lines.append('')
+        lines.append('Top Hotspots:')
+        lines.append(
+            f'  {"#":<3} {"File":<40} {"Score":>5} '
+            f'{"Cx":>5} {"Blast":>6} {"Fan":>4}  Action'
+        )
+        for i, h in enumerate(hotspots, 1):
+            fname = h['file']
+            if len(fname) > 38:
+                fname = '...' + fname[-35:]
+            lines.append(
+                f"  {i:<3} {fname:<40} {h['score']:>5} "
+                f"{h['complexity_avg']:>5} {h['blast_pct']:>5}% "
+                f"{h['fan_in']:>4}  {h['action']}"
+            )
 
-    if insights:
+    # Verbose: full findings + insights
+    if verbose and findings:
+        lines.append('')
+        lines.append(f'Findings ({len(findings)}):')
+        for f in findings:
+            lines.append(
+                f"  [{f['severity'].upper():>8}] "
+                f"{f['category']}: {f['message']}"
+            )
+
+    if verbose and insights:
+        lines.append('')
         if insights.get('circular_deps'):
-            lines.append(f"Circular Dependencies: {len(insights['circular_deps'])} cycles detected")
+            lines.append(
+                f"Circular Dependencies: "
+                f"{len(insights['circular_deps'])} cycles"
+            )
         if insights.get('god_objects'):
-            lines.append(f"God Objects: {len(insights['god_objects'])} files with >15 functions")
+            lines.append(
+                f"God Objects: "
+                f"{len(insights['god_objects'])} files with >15 functions"
+            )
         if insights.get('high_fan_in'):
-            lines.append(f"High Fan-In: {len(insights['high_fan_in'])} files with ≥5 importers")
+            lines.append(
+                f"High Fan-In: "
+                f"{len(insights['high_fan_in'])} files with ≥5 importers"
+            )
 
     lines.append(f'\nAudit saved: {dest}')
     return '\n'.join(lines)

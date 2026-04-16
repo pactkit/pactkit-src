@@ -129,3 +129,12 @@
 - [x] Integrate into Done Phase 3.x
 - [x] Integrate into Plan Phase 1 (optional read)
 - [x] Write unit tests
+
+### [STORY-slim-092] Audit Findings: File-Level Hotspot Aggregation
+> Spec: docs/specs/STORY-slim-092.md
+
+- [x] Add _compute_hotspots() file-level aggregation
+- [x] Add _suggest_action() actionable suggestions
+- [x] Slim _write_audit_json() to scorecard + hotspots only
+- [x] Add --verbose flag for full details
+- [x] Update tests for hotspot + slim JSON
