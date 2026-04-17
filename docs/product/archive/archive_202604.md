@@ -185,3 +185,11 @@
 - [x] R1: Fix focus filter in _build_call_graph
 - [x] R2: Report empty Tab placeholder
 - [x] R3: Skip empty .mmd in unified report
+
+### [STORY-slim-098] PDCA Nudge Protocol — AI主动推荐PDCA命令
+> Spec: docs/specs/STORY-slim-098.md
+
+- [x] 创建11-pdca-nudge.md规则模板
+- [x] 在VALID_RULES注册新规则
+- [x] 添加部署测试
+- [x] 运行deploy验证

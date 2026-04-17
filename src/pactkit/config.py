@@ -87,6 +87,7 @@ VALID_RULES = frozenset(
         "07-shared-protocols",
         "08-architecture-principles",
         "09-sectional-write",
+        "11-pdca-nudge",
     }
 )
 

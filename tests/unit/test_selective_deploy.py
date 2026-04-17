@@ -247,7 +247,7 @@ class TestDeploymentSummary:
         assert "24/24 Skills" in output
         assert "13 embedded" in output
         assert "11 commands" in output
-        assert "8/8 Rules" in output or "9/9 Rules" in output  # 9 rules after 09-sectional-write
+        assert "10/10 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)

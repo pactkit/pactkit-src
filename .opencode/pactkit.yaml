@@ -71,6 +71,7 @@ rules:
   - 07-shared-protocols
   - 08-architecture-principles
   - 09-sectional-write
+  - 11-pdca-nudge
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:

@@ -85,6 +85,9 @@ class TestAC8AllRulesMapped:
         # credential is special (not in RULES_FILES) — exclude from check
         mapped_keys.discard("credential")
 
+        # nudge is conversation-scoped (suppressed inside PDCA context) — not command-mapped
+        all_rule_keys.discard("nudge")
+
         unmapped = all_rule_keys - mapped_keys
         assert not unmapped, f"Rules not mapped to any command: {unmapped}"
 

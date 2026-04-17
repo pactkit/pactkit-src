@@ -10,6 +10,9 @@ Then read `docs/product/context.md` to understand project state before taking ac
 If the file is missing, suggest `/project-init` to bootstrap the project.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
+## PDCA Nudge
+When AI analysis in free conversation (outside PDCA command context) yields actionable conclusions — bugs, architecture improvements, new feature needs — SHOULD recommend the appropriate PDCA command at the end of the reply. See `11-pdca-nudge.md` for trigger matrix and suppression rules.
+
 ## Visual First
 Before modifying code:
 - Run `visualize` to view file dependency graph
@@ -403,6 +406,50 @@ Compose entire file in head → one Write call at the end
 Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint → ...
 ```
 """,
+    "nudge": """# PDCA Nudge Protocol
+
+> **Signal Level**: L3 Recommended (SHOULD) — non-blocking suggestion.
+
+## When to Nudge
+
+When AI analysis in **free conversation** (outside any PDCA command context) produces actionable conclusions, SHOULD append a PDCA command recommendation at the end of the reply.
+
+## Trigger Matrix
+
+| Signal | Command | Condition |
+|--------|---------|-----------|
+| Bug / error found (single file) | `/project-hotfix` | Single-file fix, no design decision needed |
+| Bug + design change needed | `/project-plan` | Multi-file or unclear requirements |
+| Architecture improvement identified | `/project-plan` | Involves 2+ file changes |
+| New feature need identified | `/project-plan` | Single feature |
+| New product / multi-feature need | `/project-design` | 3+ independent stories, greenfield |
+| Existing Spec ready to implement | `/project-act STORY-XXX` | Story is on the Board |
+| 3+ independent improvement items | `/project-sprint` | Multiple stories can run in parallel |
+| Code quality issue (quick fix) | `/project-hotfix` | No behavior change |
+
+## Nudge Format
+
+Place at the **end** of the reply, after all analysis content:
+
+```
+💡 This analysis can be tracked via `{command}`:
+> {one-sentence reason why this command fits}
+```
+
+When replying in Chinese, use:
+
+```
+💡 这个分析结果可以通过 `{command}` 来跟踪实现：
+> {一句话说明为什么推荐这个命令}
+```
+
+## Suppression Rules (MUST NOT nudge when)
+
+- **In PDCA context**: A PDCA command is already active (Plan/Act/Check/Done/Sprint/Hotfix/Design)
+- **User opted out**: User explicitly said they just want to chat, not follow a workflow
+- **No issue found**: Analysis confirms the current implementation is correct
+- **Dedup**: The same command was already nudged earlier in this conversation
+""",
 }
 
 # STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
@@ -427,6 +474,7 @@ RULES_ONDEMAND_FILES = {
     "mcp": "06-mcp-integration.md",
     "shared": "07-shared-protocols.md",
     "architecture": "08-architecture-principles.md",
+    "nudge": "11-pdca-nudge.md",
 }
 
 # Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
@@ -469,7 +517,7 @@ COMMAND_RULES_MAP = {
 }
 
 # Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-"]
+RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-", "11-"]
 
 # CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
 # Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)

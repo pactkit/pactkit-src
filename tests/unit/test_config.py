@@ -49,9 +49,9 @@ class TestGetDefaultConfig:
         assert len(cfg["skills"]) == 24
 
     def test_default_rules_count(self):
-        """9 rule modules (added 09-sectional-write)."""
+        """10 rule modules (added 11-pdca-nudge)."""
         cfg = _config().get_default_config()
-        assert len(cfg["rules"]) == 9
+        assert len(cfg["rules"]) == 10
 
     def test_default_stack_is_auto(self):
         cfg = _config().get_default_config()
