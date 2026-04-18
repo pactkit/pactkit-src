@@ -407,7 +407,6 @@ def main():
             version_warn = check_version_mismatch(project_root)
             if version_warn:
                 print(f"  ⚠️  {version_warn}")
-                print("     Run `pactkit update` to sync")
         else:
             for m in missing:
                 print(f"  ✗ {m}")

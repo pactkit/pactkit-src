@@ -68,6 +68,14 @@ def check_config_completeness(project_root: Path) -> list[str]:
     return warnings
 
 
+def _parse_version(v: str) -> tuple[int, ...]:
+    """Parse dotted version string into comparable tuple."""
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except (ValueError, AttributeError):
+        return ()
+
+
 def check_version_mismatch(project_root: Path) -> str | None:
     """Check if pactkit.yaml version differs from installed __version__.
 
@@ -80,6 +88,21 @@ def check_version_mismatch(project_root: Path) -> str | None:
 
     cfg = load_config(yaml_path)
     yaml_version = cfg.get("version", "")
-    if yaml_version and yaml_version != __version__:
+    if not yaml_version or yaml_version == __version__:
+        return None
+
+    yaml_v = _parse_version(yaml_version)
+    installed_v = _parse_version(__version__)
+
+    if not yaml_v or not installed_v:
         return f"Version mismatch: pactkit.yaml {yaml_version} vs installed {__version__}"
-    return None
+
+    if yaml_v > installed_v:
+        return (
+            f"Version mismatch: pactkit.yaml {yaml_version} > installed {__version__}\n"
+            f"         Run `pipx upgrade pactkit` to update the CLI"
+        )
+    return (
+        f"Version mismatch: pactkit.yaml {yaml_version} < installed {__version__}\n"
+        f"         Run `pactkit update` to sync"
+    )

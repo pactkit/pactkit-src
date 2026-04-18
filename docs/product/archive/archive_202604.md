@@ -193,3 +193,8 @@
 - [x] 在VALID_RULES注册新规则
 - [x] 添加部署测试
 - [x] 运行deploy验证
+
+### [HOTFIX-slim-099] Fix version mismatch guard semantic comparison
+> Spec: docs/specs/HOTFIX-slim-099.md
+
+- [x] Use packaging.version for directional version comparison in guards.py
