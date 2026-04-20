@@ -138,6 +138,43 @@ class TestBackwardCompatibility:
             assert agent in p.AGENTS_EXPERT, f"Missing agent {agent}"
 
 
+class TestImpactCheckPhase:
+    """Scenario 8: Phase 0.5 Impact Check exists (STORY-slim-100)"""
+
+    def test_has_phase_05(self):
+        p = _prompts()
+        assert 'Phase 0.5' in p.HOTFIX_PROMPT
+
+    def test_has_impact_check_title(self):
+        p = _prompts()
+        assert 'Impact Check' in p.HOTFIX_PROMPT
+
+    def test_references_mmd_files(self):
+        p = _prompts()
+        text = p.HOTFIX_PROMPT
+        assert 'call_graph.mmd' in text or 'reverse_call_graph.mmd' in text or 'code_graph.mmd' in text
+
+    def test_has_fan_in_threshold(self):
+        p = _prompts()
+        assert '3+' in p.HOTFIX_PROMPT or '3 or more' in p.HOTFIX_PROMPT
+
+    def test_suggests_project_act(self):
+        p = _prompts()
+        assert '/project-act' in p.HOTFIX_PROMPT
+
+    def test_graceful_skip_when_no_graphs(self):
+        p = _prompts()
+        text = p.HOTFIX_PROMPT.lower()
+        assert 'skip' in text and ('no call graph' in text or 'do not exist' in text or 'not exist' in text)
+
+    def test_non_blocking_advisory(self):
+        """Impact check must not use blocking language."""
+        p = _prompts()
+        text = p.HOTFIX_PROMPT
+        assert 'MUST STOP' not in text or text.index('Phase 0.5') > text.index('MUST STOP')
+        assert 'advisory' in text.lower() or 'non-blocking' in text.lower() or 'SHOULD' in text
+
+
 class TestDeployment:
     """Scenario 7: 部署后文件存在"""
 

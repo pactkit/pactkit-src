@@ -205,3 +205,10 @@
 - [x] Update Shared Protocols Referenced-by line
 - [x] Redeploy via pactkit update
 - [x] Verify deployed plugin sync
+
+### [STORY-slim-100] Hotfix impact check via .mmd call graph
+> Spec: docs/specs/STORY-slim-100.md
+
+- [x] Add Phase 0.5 Impact Check to HOTFIX_PROMPT
+- [x] Add tests for new phase
+- [x] Deploy verification
