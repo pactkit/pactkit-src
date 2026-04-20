@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.2] - 2026-04-20
+
+### Added
+- **PDCA Nudge Protocol** (STORY-slim-098) — AI proactively recommends PDCA commands when free conversation yields actionable conclusions. Trigger matrix maps signals to commands; suppression rules prevent noise.
+
+### Fixed
+- **Shared Protocols Context.md reference** (STORY-slim-099) — Added missing `Act Phase 4` to the Context.md Canonical Format "Referenced by" line. Ensures context.md reflects Act progress for session continuity.
+- **Semantic version comparison** (HOTFIX-slim-099) — Version mismatch warning now uses tuple comparison instead of string equality, giving correct upgrade/downgrade direction.
+
 ## [2.10.1] - 2026-04-16
 
 ### Added
