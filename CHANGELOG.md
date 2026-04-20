@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.4] - 2026-04-20
+
+### Added
+- **Hotfix Impact Check** (STORY-slim-100) — `/project-hotfix` now includes Phase 0.5 that reads existing `.mmd` call graph files before fixing. Warns when target function has 3+ callers. Advisory (L3), non-blocking, gracefully skips when no graphs exist.
+
 ## [2.10.3] - 2026-04-20
 
 ### Fixed

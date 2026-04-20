@@ -1,0 +1,147 @@
+classDiagram
+    class EnterpriseConfig {
+    }
+    class PactKitConfig {
+    }
+    class FormatProfile {
+    }
+    class WorkflowNode {
+    }
+    class WorkflowEdge {
+    }
+    class WorkflowGraph {
+        -__init__()
+        +add_node(node)
+        +add_edge(edge)
+        -_sanitize_id(raw)
+        +to_mermaid(max_render_nodes)
+        +forward_reach(entry_id)
+        +reverse_reach(entry_id)
+    }
+    class TopologyParser {
+        +detect(root)
+        +parse(root)
+    }
+    ABC <|-- TopologyParser
+    class PdcaParser {
+        +detect(root)
+        +parse(root, commands_dir, rules_dir, skills_dir)
+    }
+    TopologyParser <|-- PdcaParser
+    class ServiceParser {
+        +parse(root)
+    }
+    TopologyParser <|-- ServiceParser
+    class FrontendParser {
+        +parse(root)
+    }
+    TopologyParser <|-- FrontendParser
+    class ApiCallParser {
+        -__init__(fetch_functions)
+        +detect(root)
+        +parse(root)
+    }
+    TopologyParser <|-- ApiCallParser
+    class AgentParser {
+        +detect(root)
+        +parse(root)
+    }
+    TopologyParser <|-- AgentParser
+    class LintIssue {
+    }
+    class LintResult {
+        +passed()
+    }
+    class ClassicDeployer {
+        +deploy(config, target)
+    }
+    DeployerBase <|-- ClassicDeployer
+    class PluginDeployer {
+        +deploy(config, target)
+    }
+    DeployerBase <|-- PluginDeployer
+    class DeployerProtocol {
+        +deploy(config, target)
+    }
+    Protocol <|-- DeployerProtocol
+    class DeployerBase {
+        +validate_deployed_content(content, profile)
+        +deploy(config, target)
+        +render_prompt(template, profile)
+        +deploy_skills(skills_dir, enabled_skills, profile, _legacy_prefix)
+        +deploy_rules(claude_root, enabled_rules, rule_scopes, profile)
+        +deploy_agents(agents_dir, enabled_agents, profile, agent_models, _legacy_prefix)
+        +deploy_commands(commands_dir, enabled_commands, profile, config, _legacy_prefix)
+        +deploy_ci(provider, project_root, config)
+        +strip_excluded_command_references(content, profile)
+    }
+    class JavaAnalyzer {
+        -__init__()
+        -_captures(query, node)
+        -_matches(query, node)
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        -_extract_calls_from_body(body_node)
+        -_extract_funcs_and_calls(tree, stem)
+        +extract_classes(file_path, root)
+        +build_module_keys(rel_path, root)
+        +normalize_import(import_str, consumer_path, root)
+    }
+    TreeSitterAnalyzer <|-- JavaAnalyzer
+    class GoAnalyzer {
+        -__init__()
+        -_captures(query, node)
+        -_matches(query, node)
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        -_extract_calls_from_body(body_node)
+        -_extract_funcs_and_calls(tree, stem)
+        +extract_classes(file_path, root)
+        +build_module_keys(rel_path, root)
+        +normalize_import(import_str, consumer_path, root)
+        -_find_nearest_go_mod(file_path, root)
+    }
+    TreeSitterAnalyzer <|-- GoAnalyzer
+    class TSAnalyzer {
+        -__init__()
+        -_captures(query, node)
+        -_matches(query, node)
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        -_extract_calls_from_body(body_node)
+        -_extract_funcs_and_calls(tree, stem)
+        +extract_classes(file_path, root)
+        +build_module_keys(rel_path, root)
+        +normalize_import(import_str, consumer_path, root)
+        -_load_tsconfig_paths_for(consumer_path, root)
+        -_find_nearest_config(file_path, root)
+        -_load_tsconfig_paths(tsconfig_path, root)
+    }
+    TreeSitterAnalyzer <|-- TSAnalyzer
+    class LanguageAnalyzer {
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        +extract_classes(file_path, root)
+        +build_module_keys(rel_path, root)
+        +normalize_import(import_str, consumer_path, root)
+    }
+    ABC <|-- LanguageAnalyzer
+    class TreeSitterAnalyzer {
+        -__init__(language, import_query, func_query, call_query, method_query)
+        -_captures(query, node)
+        -_matches(query, node)
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        -_extract_funcs_and_calls(tree, stem)
+        -_compute_complexity(tree)
+        -_extract_calls_from_body(body_node)
+    }
+    LanguageAnalyzer <|-- TreeSitterAnalyzer
+    class PythonAnalyzer {
+        +extract_imports(file_path)
+        +extract_functions_and_calls(file_path, include_complexity)
+        +extract_classes(file_path, root)
+        +build_module_keys(rel_path, root)
+        +normalize_import(import_str, consumer_path, root)
+    }
+    LanguageAnalyzer <|-- PythonAnalyzer
