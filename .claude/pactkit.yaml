@@ -10,7 +10,7 @@ developer: "slim"
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
   provider: github
-  install_cmd: "python -m pip install --upgrade pip\n          pip install -e .\n          pip install pytest ruff\n          pactkit init"
+  install_cmd: "python -m pip install --upgrade pip\n          pip install -e \".[visualize]\"\n          pip install pytest ruff\n          pactkit init"
   # runner: ubuntu-latest
   # language_version: 2.4.1
   # github_host: ""  # GHE server (empty = github.com)
