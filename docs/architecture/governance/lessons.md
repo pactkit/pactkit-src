@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-24 | Standalone scripts (visualize.py) need try/except ImportError guards for yaml.safe_load when reading pactkit.yaml — they cannot import from pactkit library | visualize.py:_load_scan_excludes |
 | 2026-03-24 | Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1 | visualize.py:_STACK_MARKERS |
 | 2026-03-24 | Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers | visualize.py:_scan_files |
 | 2026-03-24 | Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring | visualize.py:_detect_stack |
@@ -53,3 +52,4 @@
 | 2026-04-16 | Dual-dimension audit (config+code 50/50) gives accurate project health picture; scanning ~/.claude/ global config catches harness setup invisible at project level | audit.py:_all_config_dirs |
 | 2026-04-17 | Dual-anchor pattern: declare principle in RULES_MODULES['core'] (01-core-protocol.md), detail in dedicated module (11-pdca-nudge.md). Prevents attention dilution when rules/ has 10+ files — Core Protocol acts as behavioral constitution anchor. | src/pactkit/prompts/rules.py:RULES_MODULES |
 | 2026-04-18 | Version comparison guards must use semantic (tuple) comparison, not string equality — string != treats 2.10.1 != 2.5.0 without direction, giving wrong upgrade advice | guards.py:check_version_mismatch |
+| 2026-04-20 | Plugin deployer (_deploy_commands in deployer.py:952-954) uses _rewrite_skills_prefix instead of _render_prompt, keeping raw placeholders like {BOARD_CMD} — not a deploy drift bug but by-design template behavior | src/pactkit/generators/deployer.py:_deploy_commands |

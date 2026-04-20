@@ -277,7 +277,7 @@ If source files changed (per `LANG_PROFILES[stack].source_dirs`) OR `code_graph.
 Map changed source files to test files via `LANG_PROFILES[stack].test_map_pattern`. If no mapping can be determined, fall back to the full test suite.
 
 ## Context.md Canonical Format
-> Referenced by: Init Phase 6, Plan Phase 3, Done Phase 4.5
+> Referenced by: Init Phase 6, Plan Phase 3, Act Phase 4, Done Phase 4.5
 
 Write `docs/product/context.md` using this format:
 ```markdown
