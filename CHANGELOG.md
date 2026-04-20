@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.3] - 2026-04-20
+
+### Fixed
+- **Protected parent dirs in `pactkit clean`** — `rglob("dist")` was matching `node_modules/*/dist`, destroying npm dependency internals. Added `_inside_protected()` guard for `node_modules/` and `.git/`; explicit path patterns (e.g., `node_modules/.cache`) now use direct matching instead of rglob.
+
 ## [2.10.2] - 2026-04-20
 
 ### Added
