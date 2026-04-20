@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-24 | Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1 | visualize.py:_STACK_MARKERS |
 | 2026-03-24 | Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers | visualize.py:_scan_files |
 | 2026-03-24 | Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring | visualize.py:_detect_stack |
 | 2026-03-24 | Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section | skills/__init__.py:_SHARED_HEADER |
@@ -53,3 +52,4 @@
 | 2026-04-17 | Dual-anchor pattern: declare principle in RULES_MODULES['core'] (01-core-protocol.md), detail in dedicated module (11-pdca-nudge.md). Prevents attention dilution when rules/ has 10+ files — Core Protocol acts as behavioral constitution anchor. | src/pactkit/prompts/rules.py:RULES_MODULES |
 | 2026-04-18 | Version comparison guards must use semantic (tuple) comparison, not string equality — string != treats 2.10.1 != 2.5.0 without direction, giving wrong upgrade advice | guards.py:check_version_mismatch |
 | 2026-04-20 | Plugin deployer (_deploy_commands in deployer.py:952-954) uses _rewrite_skills_prefix instead of _render_prompt, keeping raw placeholders like {BOARD_CMD} — not a deploy drift bug but by-design template behavior | src/pactkit/generators/deployer.py:_deploy_commands |
+| 2026-04-20 | pactkit clean rglob patterns must exclude protected parent dirs (node_modules, .git) — recursive pattern matching deletes dependency internals | cleaners.py:_inside_protected |

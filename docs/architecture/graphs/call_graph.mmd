@@ -162,6 +162,7 @@ graph TD
     _get_used_fetch_functions["_get_used_fetch_functions"]
     _has_dir_with_files["_has_dir_with_files"]
     _inject_developer_prefix["_inject_developer_prefix"]
+    _inside_protected["_inside_protected"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
@@ -498,6 +499,8 @@ graph TD
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
+    clean_artifacts --> _inside_protected
+    clean_artifacts --> _inside_protected
     _parse_coverage_output --> _classify_coverage
     check_coverage --> _parse_coverage_output
     check_coverage --> _extract_module_path

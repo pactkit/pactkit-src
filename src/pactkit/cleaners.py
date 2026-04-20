@@ -15,6 +15,9 @@ _CLEANUP_PATTERNS: dict[str, list[str]] = {
     "java": ["target/", "build/", ".gradle/"],
 }
 
+# Directories whose contents must never be cleaned by rglob patterns
+_PROTECTED_PARENTS = {"node_modules", ".git"}
+
 # Stack detection markers (ordered by priority)
 _STACK_MARKERS: list[tuple[str, str]] = [
     ("pyproject.toml", "python"),
@@ -25,6 +28,12 @@ _STACK_MARKERS: list[tuple[str, str]] = [
     ("pom.xml", "java"),
     ("build.gradle", "java"),
 ]
+
+
+def _inside_protected(path: Path, project_root: Path) -> bool:
+    """Return True if path is inside a protected parent directory."""
+    rel = path.relative_to(project_root)
+    return bool(_PROTECTED_PARENTS & set(rel.parts[:-1]))
 
 
 def detect_stacks(project_root: Path) -> list[str]:
@@ -84,9 +93,21 @@ def clean_artifacts(
     removed: list[Path] = []
 
     for pattern in patterns:
-        if "*" in pattern:
+        if "/" in pattern:
+            # Explicit path (e.g., "node_modules/.cache") — match directly
+            target = project_root / pattern
+            if target.exists():
+                removed.append(target)
+                if not dry_run:
+                    if target.is_dir():
+                        shutil.rmtree(target)
+                    else:
+                        target.unlink()
+        elif "*" in pattern:
             # Glob pattern (e.g., "*.pyc")
             for match in project_root.rglob(pattern):
+                if _inside_protected(match, project_root):
+                    continue
                 removed.append(match)
                 if not dry_run:
                     if match.is_dir():
@@ -94,9 +115,11 @@ def clean_artifacts(
                     else:
                         match.unlink()
         else:
-            # Directory or file name (e.g., "__pycache__", ".pytest_cache")
+            # Directory or file name (e.g., "__pycache__", "dist")
             clean_name = pattern.rstrip("/")
             for match in project_root.rglob(clean_name):
+                if _inside_protected(match, project_root):
+                    continue
                 removed.append(match)
                 if not dry_run:
                     if match.is_dir():
