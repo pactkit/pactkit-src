@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/pactkit/pactkit/main/docs/assets/logo.png" alt="PactKit" width="480" />
+  <img src="https://raw.githubusercontent.com/pactkit/pactkit-src/main/docs/assets/logo.png" alt="PactKit" width="480" />
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/pactkit/"><img src="https://img.shields.io/pypi/v/pactkit" alt="PyPI version" /></a>
   <a href="https://pypi.org/project/pactkit/"><img src="https://img.shields.io/pypi/pyversions/pactkit" alt="Python" /></a>
-  <a href="https://github.com/pactkit/pactkit/actions/workflows/ci.yml"><img src="https://github.com/pactkit/pactkit/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/pactkit/pactkit-src/actions"><img src="https://github.com/pactkit/pactkit-src/actions/workflows/pactkit.yml/badge.svg" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
 </p>
 
