@@ -212,3 +212,10 @@
 - [x] Add Phase 0.5 Impact Check to HOTFIX_PROMPT
 - [x] Add tests for new phase
 - [x] Deploy verification
+
+### [STORY-slim-101] Solution Design Protocol Rule
+> Spec: docs/specs/STORY-slim-101.md
+
+- [x] Add RULE_12_SOLUTION_DESIGN to rules.py
+- [x] Add to VALID_RULES in config.py
+- [x] Add unit test

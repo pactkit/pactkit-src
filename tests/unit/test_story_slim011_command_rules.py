@@ -42,9 +42,9 @@ from pactkit.prompts.rules import (
 # 06=mcp, 07=shared, 08=architecture, 09=credential
 SPEC_TABLE = {
     "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential", "solution"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential", "solution"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],

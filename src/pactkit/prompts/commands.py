@@ -79,6 +79,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` and include path prefixes, fetch function names, and total call count in the Archaeologist Report. This prevents API path convention bugs in downstream implementation.
     - For **agent**: Note orchestration edges from AgentParser (LangGraph/YAML/MCP) in the report so downstream changes respect agent flow.
+4.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
+    - Execute the **Solution Design Protocol** from `12-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
+    - Include the Capability Assessment output in Phase 2 Spec writing.
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
@@ -175,6 +178,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
+4.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
+    - Execute the **Solution Design Protocol** from `12-solution-design.md` to evaluate capability delta before writing code.
+    - Output brief capability assessment before proceeding to Phase 2.
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.

@@ -25,8 +25,8 @@ class TestR6RuleExists:
     def test_valid_rules_contains_sectional_write(self):
         assert "09-sectional-write" in VALID_RULES
 
-    def test_valid_rules_count_is_10(self):
-        assert len(VALID_RULES) == 10
+    def test_valid_rules_count_is_11(self):
+        assert len(VALID_RULES) == 11
 
     def test_rules_modules_contains_sectional(self):
         assert "sectional" in RULES_MODULES

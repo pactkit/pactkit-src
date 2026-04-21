@@ -114,8 +114,8 @@ class TestPromptModuleCounts:
     """Verify expected counts of prompt modules."""
 
     def test_rule_count(self):
-        """10 rule modules (added 11-pdca-nudge)."""
-        assert len(prompts.RULES_MODULES) == 10
+        """11 rule modules (added 12-solution-design)."""
+        assert len(prompts.RULES_MODULES) == 11
 
     def test_command_count(self):
         """STORY-051: Should have 11 command playbooks (added project-release, project-pr)."""

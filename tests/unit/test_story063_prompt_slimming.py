@@ -204,7 +204,8 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-091: bumped +248 for Done Phase 3.8 harness audit refresh
 # audit --if-needed in Done playbook
 # STORY-slim-100: bumped +1212 for Hotfix Phase 0.5 Impact Check
-BASELINE_TOTAL_CHARS = 80355
+# STORY-slim-101: bumped +800 for Solution Design Protocol in Plan/Act
+BASELINE_TOTAL_CHARS = 81155
 
 
 class TestAC7PromptSizeReduced:

@@ -450,6 +450,250 @@ When replying in Chinese, use:
 - **No issue found**: Analysis confirms the current implementation is correct
 - **Dedup**: The same command was already nudged earlier in this conversation
 """,
+    "solution": """# Solution Design Protocol
+
+> Referenced by: Plan Phase 1, Act Phase 1
+
+## Purpose
+Evaluate the capability delta (framework native + project existing vs. needs implementation) before implementation to avoid reinventing the wheel or ignoring framework capabilities.
+
+## Anti-Patterns (Problems This Protocol Solves)
+
+| Anti-Pattern | Example | Consequence |
+|--------------|---------|-------------|
+| **Framework Blindness** | LangGraph has memory store, but writing custom context storage | High maintenance cost, missing framework optimizations |
+| **Project Blindness** | Project has `get_precise_llm()`, but instantiating AzureChatOpenAI directly | Configuration inconsistency, singleton bypass |
+| **Hardcoded Dependencies** | Writing `from langchain_openai import ...` directly | Bypasses project abstraction layer, couples to framework details |
+
+## Trigger Conditions
+
+This protocol **MUST** be executed when:
+- New feature involves frameworks already used by the project (LLM, ORM, Web framework, state management, etc.)
+- Requirement keywords detected: `integrate`, `extend`, `add...capability`, `support...feature`
+
+This protocol **MAY** be skipped when:
+- Pure business logic implementation not involving framework capabilities
+- Documentation, configuration, or style changes only
+
+## Protocol Execution
+
+### Step 1: Identify Relevant Frameworks
+> **Goal**: Know which frameworks the project uses, extract those relevant to the requirement.
+
+**1.1 Read Dependency Configuration**
+
+Read the appropriate file based on project stack:
+
+| Stack | Dependency File | Parse Location |
+|-------|-----------------|----------------|
+| Python | `pyproject.toml` | `[project.dependencies]` |
+| Python (legacy) | `requirements.txt` | One package per line |
+| Node | `package.json` | `dependencies` + `devDependencies` |
+| Go | `go.mod` | `require (...)` block |
+| Java/Kotlin | `pom.xml` | `<dependencies>` |
+| Java/Kotlin | `build.gradle` | `dependencies { }` |
+| Rust | `Cargo.toml` | `[dependencies]` |
+
+**1.2 Filter Relevant Frameworks**
+
+Identify frameworks relevant to the current requirement from the dependency list. Common categories:
+
+| Capability Domain | Common Frameworks |
+|-------------------|-------------------|
+| LLM/AI | langchain, langgraph, openai, anthropic, llama-index |
+| Web | fastapi, flask, django, express, gin, spring |
+| ORM/DB | sqlalchemy, prisma, gorm, hibernate, typeorm |
+| State Management | langgraph (checkpointer/memory), redux, vuex |
+| Authentication | jose, passport, jwt-go, spring-security |
+| Message Queue | celery, bull, kafka-python |
+
+**Output checkpoint**: `"Relevant frameworks: {framework} v{version}, {framework} v{version}"`
+
+### Step 2: Query Framework Native Capabilities
+> **Goal**: Understand what native capabilities the framework provides relevant to the requirement.
+
+**2.1 Query Path (by priority)**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Priority 1: Context7 MCP (real-time, authoritative)             │
+│   IF mcp__context7 tools available:                             │
+│     1. resolve-library-id("{framework}")                        │
+│     2. get-library-docs(library_id, topic="{requirement keywords}") │
+├─────────────────────────────────────────────────────────────────┤
+│ Priority 2: WebFetch (real-time, requires parsing)              │
+│   IF Context7 unavailable AND network available:                │
+│     WebFetch official documentation URL                         │
+├─────────────────────────────────────────────────────────────────┤
+│ Priority 3: Training Data (may be outdated)                     │
+│   IF none of the above available:                               │
+│     Use training data, but MUST declare framework version       │
+│     Example: "Based on langgraph 0.4.x documentation..."        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**2.2 Query Focus**
+
+For the requirement, focus on:
+- Does the framework natively support this capability?
+- If supported, what is the API? What are the implementation options?
+- What prerequisites or configuration are needed?
+
+**Output checkpoint**: `"Framework capability: {framework} natively supports {capability} via {API/pattern}"`
+
+### Step 3: Query Project Existing Capabilities
+> **Goal**: Know what the project has already used from the framework and what it has encapsulated.
+
+**3.1 Framework Usage Scan**
+
+```bash
+# Check which framework modules the project imports
+grep -r "from {framework}" src/ --include="*.py"
+grep -r "import {framework}" src/ --include="*.py"
+
+# Node projects
+grep -r "require('{framework}')" src/ --include="*.js" --include="*.ts"
+grep -r "from '{framework}'" src/ --include="*.js" --include="*.ts"
+```
+
+**3.2 Project Abstraction Layer Scan**
+
+```bash
+# Factory functions / singleton getters (Python)
+grep -rn "^def get_|^def build_|^def create_|^async def get_|^async def build_" src/
+
+# Node/TS
+grep -rn "^export function get|^export function build|^export function create" src/
+
+# Wiring layer files (pattern recognition)
+# Common names: wiring.py, deps.py, container.*, di.*, providers.*, factories.*, bootstrap.*
+```
+
+**3.3 Call Chain Analysis** (if Step 3.1-3.2 insufficient)
+
+```bash
+visualize --mode call --entry {relevant module or function}
+```
+
+**Output checkpoint**:
+```
+Project existing:
+- Framework usage: {framework}.{module} used in {file}
+- Encapsulated function: {function}() in {file} — {brief purpose}
+```
+
+### Step 4: Delta Assessment
+> **Goal**: Decide to reuse or implement.
+
+**4.1 Assessment Matrix**
+
+| Framework Native | Project Used | Project Encapsulated | Decision |
+|------------------|--------------|----------------------|----------|
+| Yes | No | — | **Prefer enabling framework capability** unless clear reason not to |
+| Yes | Yes | Yes | **Reuse project encapsulation**, do not bypass abstraction layer |
+| Yes | Yes | No | Evaluate if encapsulation needed, or use directly |
+| No | — | Has similar | **Reuse or extend** project existing implementation |
+| No | — | No | **Needs new implementation** |
+
+**4.2 Decision Constraints**
+
+- **MUST NOT** bypass project abstraction layer to use framework directly — abstraction exists for unified configuration, testability, and isolation of change
+- **SHOULD** prefer enabling framework native capability over custom implementation — framework capabilities are better tested and community-maintained
+- **MUST** state reasoning in Spec or before implementation — if not using framework capability, explain why
+
+### Step 5: Output Format
+
+**Plan Phase**: Write to `## Technical Design` section in Spec
+
+```markdown
+## Technical Design
+
+### Capability Assessment
+| Capability Need | Source | Decision |
+|-----------------|--------|----------|
+| Context persistence | langgraph.checkpointer (framework native) | Project already enabled PostgresSaver, reuse |
+| Cross-session memory | langgraph.memory (framework native) | Project not enabled, enable in this story |
+| Token budget management | No framework support | Needs new implementation |
+
+### Reuse Points
+- `get_precise_llm()` — services/wiring.py
+- `_get_chat_checkpointer()` — services/wiring.py
+
+### New Implementation Required
+- TokenBudgetManager: manage context window allocation
+```
+
+**Act Phase**: Output brief assessment in Phase 1
+
+```
+Capability assessment complete:
+- Reuse: langgraph.checkpointer (existing), get_precise_llm()
+- Enable: langgraph.memory store (framework native, first use)
+- New implementation: TokenBudgetManager
+```
+
+## Implementation Constraints
+
+When writing new implementation code (Step 4 "Needs new implementation"), apply these constraints:
+
+### No Magic Values
+- **MUST NOT** hardcode values that may change (URLs, thresholds, timeouts, feature flags)
+- **Pattern**: Extract to named constants at module level, or configuration if environment-specific
+- **Exception**: Values that are truly invariant (e.g., `HTTP_OK = 200`, mathematical constants)
+
+```python
+# Bad
+if retry_count > 3:  # magic number
+    url = "https://api.example.com/v1"  # hardcoded URL
+
+# Good
+MAX_RETRIES = 3
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.example.com/v1")
+```
+
+### Open-Closed Principle
+- **SHOULD** design new code to be extensible without modification
+- **Pattern**: Use strategy pattern, plugin registries, or configuration-driven behavior
+- **Signal**: If adding a new variant requires `if/elif` chains or modifying existing functions, consider refactoring
+
+```python
+# Bad — adding new format requires modifying function
+def export(data, format):
+    if format == "json": ...
+    elif format == "csv": ...
+    elif format == "xml": ...  # new format = code change
+
+# Good — adding new format requires only registration
+EXPORTERS = {"json": JsonExporter, "csv": CsvExporter}
+def export(data, format):
+    return EXPORTERS[format]().export(data)
+# new format = EXPORTERS["xml"] = XmlExporter
+```
+
+### Single Responsibility
+- **SHOULD** keep functions/classes focused on one concern
+- **Signal**: Function name contains "and" or does multiple unrelated things
+- **Pattern**: Extract sub-operations into helper functions; compose at call site
+
+### Dependency Direction
+- **MUST NOT** import from higher-level modules into lower-level modules
+- **Pattern**: Domain/core modules import nothing from infrastructure; infrastructure imports from domain
+- **Signal**: Circular import errors indicate layering violation
+
+## Signal Level
+
+- **Step 1-3** (information gathering): SHOULD — skipping increases reinvention risk
+- **Step 4 decision constraints**: MUST — violation causes architectural inconsistency
+- **Step 5 output**: SHOULD — facilitates review and traceability
+
+## Interaction with Other Protocols
+
+| Protocol | Relationship |
+|----------|--------------|
+| **pactkit-trace** | Trace focuses on call chains (vertical), this protocol focuses on capability reuse (horizontal). Run Trace first to understand current state, then this protocol to assess capabilities. |
+| **Hierarchy of Truth** | Output of this protocol goes into Spec (Tier 1), implementation MUST follow Technical Design in Spec. |
+| **Architecture Principles** | This protocol operationalizes the DRY principle — identify reuse points, avoid duplicate implementation. |
+""",
 }
 
 # STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
@@ -475,6 +719,7 @@ RULES_ONDEMAND_FILES = {
     "shared": "07-shared-protocols.md",
     "architecture": "08-architecture-principles.md",
     "nudge": "11-pdca-nudge.md",
+    "solution": "12-solution-design.md",
 }
 
 # Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
@@ -501,9 +746,9 @@ CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
 #        mcp=06, shared=07, architecture=08, credential=09
 COMMAND_RULES_MAP = {
     "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential"],
+    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],
@@ -517,7 +762,7 @@ COMMAND_RULES_MAP = {
 }
 
 # Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-", "11-"]
+RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-", "11-", "12-"]
 
 # CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
 # Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)

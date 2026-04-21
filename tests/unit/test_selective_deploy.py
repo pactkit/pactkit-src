@@ -241,13 +241,14 @@ class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # STORY-slim-063: summary format changed to unified Skills count
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)
+        # STORY-slim-101: added 12-solution-design → 11 rules
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
         assert "24/24 Skills" in output
         assert "13 embedded" in output
         assert "11 commands" in output
-        assert "10/10 Rules" in output
+        assert "11/11 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)
