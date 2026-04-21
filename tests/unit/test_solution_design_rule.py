@@ -62,8 +62,9 @@ class TestSolutionDesignContent:
         p = _prompts()
         solution = p.RULES_MODULES["solution"]
         text = solution.lower()
-        assert "grep" in text
+        assert "import" in text or "usage" in text
         assert "get_" in solution or "build_" in solution or "create_" in solution
+        assert "abstraction" in text or "wrapper" in text or "factory" in text
 
     def test_has_delta_assessment(self):
         """R4: Delta assessment matrix defined."""

@@ -455,244 +455,128 @@ When replying in Chinese, use:
 > Referenced by: Plan Phase 1, Act Phase 1
 
 ## Purpose
-Evaluate the capability delta (framework native + project existing vs. needs implementation) before implementation to avoid reinventing the wheel or ignoring framework capabilities.
+Evaluate the capability delta (framework native + project existing vs. needs implementation) before writing code — to avoid reinventing what the framework already provides or bypassing what the project has already encapsulated.
 
-## Anti-Patterns (Problems This Protocol Solves)
+## Anti-Patterns This Protocol Prevents
 
 | Anti-Pattern | Example | Consequence |
 |--------------|---------|-------------|
-| **Framework Blindness** | LangGraph has memory store, but writing custom context storage | High maintenance cost, missing framework optimizations |
-| **Project Blindness** | Project has `get_precise_llm()`, but instantiating AzureChatOpenAI directly | Configuration inconsistency, singleton bypass |
-| **Hardcoded Dependencies** | Writing `from langchain_openai import ...` directly | Bypasses project abstraction layer, couples to framework details |
+| **Framework Blindness** | Framework has a caching layer, but writing custom cache from scratch | Duplicated logic, misses framework optimizations and bug fixes |
+| **Project Blindness** | Project has `get_db_connection()`, but creating a new connection directly | Configuration drift, bypasses pooling/retry/logging the project already wired |
+| **Hardcoded Coupling** | Importing a framework's internal module directly instead of using the project's wrapper | Tight coupling to framework internals; breaks when framework upgrades |
 
 ## Trigger Conditions
 
-This protocol **MUST** be executed when:
-- New feature involves frameworks already used by the project (LLM, ORM, Web framework, state management, etc.)
-- Requirement keywords detected: `integrate`, `extend`, `add...capability`, `support...feature`
+This protocol **MUST** be executed when (SHOULD — skipping increases reinvention risk):
+- New feature involves frameworks already used by the project
+- Requirement involves capabilities that frameworks commonly provide (auth, caching, scheduling, ORM, state management, etc.)
 
 This protocol **MAY** be skipped when:
-- Pure business logic implementation not involving framework capabilities
+- Pure business logic not involving framework capabilities
 - Documentation, configuration, or style changes only
 
 ## Protocol Execution
 
-### Step 1: Identify Relevant Frameworks
-> **Goal**: Know which frameworks the project uses, extract those relevant to the requirement.
+### Step 1: Identify Relevant Frameworks (SHOULD)
+> **Goal**: Know which frameworks the project depends on, filter to those relevant to the requirement.
 
-**1.1 Read Dependency Configuration**
+Read the project's dependency file (`pyproject.toml`, `package.json`, `go.mod`, `pom.xml`, `build.gradle`, `Cargo.toml`, etc.) and identify frameworks related to the current requirement.
 
-Read the appropriate file based on project stack:
+**Early exit**: If no frameworks are relevant to the requirement, skip to Step 4 — the answer is "Needs new implementation."
 
-| Stack | Dependency File | Parse Location |
-|-------|-----------------|----------------|
-| Python | `pyproject.toml` | `[project.dependencies]` |
-| Python (legacy) | `requirements.txt` | One package per line |
-| Node | `package.json` | `dependencies` + `devDependencies` |
-| Go | `go.mod` | `require (...)` block |
-| Java/Kotlin | `pom.xml` | `<dependencies>` |
-| Java/Kotlin | `build.gradle` | `dependencies { }` |
-| Rust | `Cargo.toml` | `[dependencies]` |
+**Output checkpoint**: `"Relevant frameworks: {name} v{version}, ..."`
 
-**1.2 Filter Relevant Frameworks**
+### Step 2: Query Framework Native Capabilities (SHOULD)
+> **Goal**: Does the framework already provide what we need?
 
-Identify frameworks relevant to the current requirement from the dependency list. Common categories:
+**Query path (by priority):**
+1. **Context7 MCP** (if available) — real-time, authoritative
+2. **WebFetch** official docs (if Context7 unavailable) — real-time, requires parsing
+3. **Training data** (fallback) — MUST declare framework version to avoid outdated APIs
 
-| Capability Domain | Common Frameworks |
-|-------------------|-------------------|
-| LLM/AI | langchain, langgraph, openai, anthropic, llama-index |
-| Web | fastapi, flask, django, express, gin, spring |
-| ORM/DB | sqlalchemy, prisma, gorm, hibernate, typeorm |
-| State Management | langgraph (checkpointer/memory), redux, vuex |
-| Authentication | jose, passport, jwt-go, spring-security |
-| Message Queue | celery, bull, kafka-python |
+**Focus**: Does the framework natively support this capability? What API or pattern? What config is needed?
 
-**Output checkpoint**: `"Relevant frameworks: {framework} v{version}, {framework} v{version}"`
+**Output checkpoint**: `"Framework capability: {name} supports {capability} via {API/pattern}"` or `"No native support found."`
 
-### Step 2: Query Framework Native Capabilities
-> **Goal**: Understand what native capabilities the framework provides relevant to the requirement.
+### Step 3: Query Project Existing Capabilities (SHOULD)
+> **Goal**: What has the project already built or encapsulated from the framework?
 
-**2.1 Query Path (by priority)**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Priority 1: Context7 MCP (real-time, authoritative)             │
-│   IF mcp__context7 tools available:                             │
-│     1. resolve-library-id("{framework}")                        │
-│     2. get-library-docs(library_id, topic="{requirement keywords}") │
-├─────────────────────────────────────────────────────────────────┤
-│ Priority 2: WebFetch (real-time, requires parsing)              │
-│   IF Context7 unavailable AND network available:                │
-│     WebFetch official documentation URL                         │
-├─────────────────────────────────────────────────────────────────┤
-│ Priority 3: Training Data (may be outdated)                     │
-│   IF none of the above available:                               │
-│     Use training data, but MUST declare framework version       │
-│     Example: "Based on langgraph 0.4.x documentation..."        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**2.2 Query Focus**
-
-For the requirement, focus on:
-- Does the framework natively support this capability?
-- If supported, what is the API? What are the implementation options?
-- What prerequisites or configuration are needed?
-
-**Output checkpoint**: `"Framework capability: {framework} natively supports {capability} via {API/pattern}"`
-
-### Step 3: Query Project Existing Capabilities
-> **Goal**: Know what the project has already used from the framework and what it has encapsulated.
-
-**3.1 Framework Usage Scan**
-
-```bash
-# Check which framework modules the project imports
-grep -r "from {framework}" src/ --include="*.py"
-grep -r "import {framework}" src/ --include="*.py"
-
-# Node projects
-grep -r "require('{framework}')" src/ --include="*.js" --include="*.ts"
-grep -r "from '{framework}'" src/ --include="*.js" --include="*.ts"
-```
-
-**3.2 Project Abstraction Layer Scan**
-
-```bash
-# Factory functions / singleton getters (Python)
-grep -rn "^def get_|^def build_|^def create_|^async def get_|^async def build_" src/
-
-# Node/TS
-grep -rn "^export function get|^export function build|^export function create" src/
-
-# Wiring layer files (pattern recognition)
-# Common names: wiring.py, deps.py, container.*, di.*, providers.*, factories.*, bootstrap.*
-```
-
-**3.3 Call Chain Analysis** (if Step 3.1-3.2 insufficient)
-
-```bash
-visualize --mode call --entry {relevant module or function}
-```
+Scan the project for:
+- **Framework usage**: Search import statements to see which framework modules are already in use
+- **Abstraction layer**: Look for factory functions (`get_*`, `build_*`, `create_*`), wiring/DI files, and wrapper modules that encapsulate framework details
+- **Call chain**: If the above is insufficient, trace the call graph from the relevant module
 
 **Output checkpoint**:
 ```
 Project existing:
-- Framework usage: {framework}.{module} used in {file}
-- Encapsulated function: {function}() in {file} — {brief purpose}
+- Framework usage: {module} used in {file}
+- Encapsulated: {function}() in {file} — {purpose}
 ```
 
-### Step 4: Delta Assessment
+### Step 4: Delta Assessment (MUST)
 > **Goal**: Decide to reuse or implement.
 
-**4.1 Assessment Matrix**
+**Assessment Matrix**
 
-| Framework Native | Project Used | Project Encapsulated | Decision |
-|------------------|--------------|----------------------|----------|
-| Yes | No | — | **Prefer enabling framework capability** unless clear reason not to |
-| Yes | Yes | Yes | **Reuse project encapsulation**, do not bypass abstraction layer |
-| Yes | Yes | No | Evaluate if encapsulation needed, or use directly |
-| No | — | Has similar | **Reuse or extend** project existing implementation |
-| No | — | No | **Needs new implementation** |
+| Framework Has It | Project Uses It | Project Encapsulated | Decision |
+|------------------|-----------------|----------------------|----------|
+| Yes | No | — | **Enable framework capability** — prefer native over custom |
+| Yes | Yes | Yes | **Reuse project wrapper** — do not bypass the abstraction layer |
+| Yes | Yes | No | Evaluate: encapsulate or use directly |
+| No | — | Has similar | **Extend** the existing project implementation |
+| No | — | No | **Implement new** — this is the only case where new code is justified |
 
-**4.2 Decision Constraints**
-
+**Decision Constraints**
 - **MUST NOT** bypass project abstraction layer to use framework directly — abstraction exists for unified configuration, testability, and isolation of change
-- **SHOULD** prefer enabling framework native capability over custom implementation — framework capabilities are better tested and community-maintained
-- **MUST** state reasoning in Spec or before implementation — if not using framework capability, explain why
+- **SHOULD** prefer framework native capability over custom implementation — framework code is better tested and community-maintained
+- **MUST** state reasoning if not using an available framework capability
 
 ### Step 5: Output Format
 
-**Plan Phase**: Write to `## Technical Design` section in Spec
-
+**Plan Phase** — write to `## Technical Design` in Spec:
 ```markdown
-## Technical Design
-
 ### Capability Assessment
-| Capability Need | Source | Decision |
-|-----------------|--------|----------|
-| Context persistence | langgraph.checkpointer (framework native) | Project already enabled PostgresSaver, reuse |
-| Cross-session memory | langgraph.memory (framework native) | Project not enabled, enable in this story |
-| Token budget management | No framework support | Needs new implementation |
+| Need | Source | Decision |
+|------|--------|----------|
+| {capability} | {framework}.{module} (native) | Reuse / Enable / New |
 
 ### Reuse Points
-- `get_precise_llm()` — services/wiring.py
-- `_get_chat_checkpointer()` — services/wiring.py
+- `{function}()` — {file}
 
 ### New Implementation Required
-- TokenBudgetManager: manage context window allocation
+- {component}: {brief purpose}
 ```
 
-**Act Phase**: Output brief assessment in Phase 1
-
+**Act Phase** — brief assessment in Phase 1:
 ```
-Capability assessment complete:
-- Reuse: langgraph.checkpointer (existing), get_precise_llm()
-- Enable: langgraph.memory store (framework native, first use)
-- New implementation: TokenBudgetManager
+Capability assessment: Reuse {N}, Enable {N}, New {N}
+- Reuse: {list}
+- Enable: {list}
+- New: {list}
 ```
 
 ## Implementation Constraints
 
-When writing new implementation code (Step 4 "Needs new implementation"), apply these constraints:
+When writing new code (Step 4 "Implement new"), apply these constraints:
 
-### No Magic Values
-- **MUST NOT** hardcode values that may change (URLs, thresholds, timeouts, feature flags)
-- **Pattern**: Extract to named constants at module level, or configuration if environment-specific
-- **Exception**: Values that are truly invariant (e.g., `HTTP_OK = 200`, mathematical constants)
+### No Magic Values (MUST NOT)
+Do not hardcode values that may change (URLs, thresholds, timeouts, feature flags). Extract to named constants or configuration. Exception: truly invariant values (HTTP status codes, math constants).
 
-```python
-# Bad
-if retry_count > 3:  # magic number
-    url = "https://api.example.com/v1"  # hardcoded URL
+### Open-Closed Principle (SHOULD)
+Design new code to be extensible without modification. If adding a new variant requires `if/elif` chains, consider a registry or strategy pattern instead.
 
-# Good
-MAX_RETRIES = 3
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.example.com/v1")
-```
+### Single Responsibility (SHOULD)
+Keep functions/classes focused on one concern. If a function name contains "and" or does multiple unrelated things, extract sub-operations.
 
-### Open-Closed Principle
-- **SHOULD** design new code to be extensible without modification
-- **Pattern**: Use strategy pattern, plugin registries, or configuration-driven behavior
-- **Signal**: If adding a new variant requires `if/elif` chains or modifying existing functions, consider refactoring
-
-```python
-# Bad — adding new format requires modifying function
-def export(data, format):
-    if format == "json": ...
-    elif format == "csv": ...
-    elif format == "xml": ...  # new format = code change
-
-# Good — adding new format requires only registration
-EXPORTERS = {"json": JsonExporter, "csv": CsvExporter}
-def export(data, format):
-    return EXPORTERS[format]().export(data)
-# new format = EXPORTERS["xml"] = XmlExporter
-```
-
-### Single Responsibility
-- **SHOULD** keep functions/classes focused on one concern
-- **Signal**: Function name contains "and" or does multiple unrelated things
-- **Pattern**: Extract sub-operations into helper functions; compose at call site
-
-### Dependency Direction
-- **MUST NOT** import from higher-level modules into lower-level modules
-- **Pattern**: Domain/core modules import nothing from infrastructure; infrastructure imports from domain
-- **Signal**: Circular import errors indicate layering violation
-
-## Signal Level
-
-- **Step 1-3** (information gathering): SHOULD — skipping increases reinvention risk
-- **Step 4 decision constraints**: MUST — violation causes architectural inconsistency
-- **Step 5 output**: SHOULD — facilitates review and traceability
+### Dependency Direction (MUST NOT)
+Do not import from higher-level modules into lower-level modules. Domain/core imports nothing from infrastructure; infrastructure imports from domain. Circular imports indicate a layering violation.
 
 ## Interaction with Other Protocols
 
 | Protocol | Relationship |
 |----------|--------------|
-| **pactkit-trace** | Trace focuses on call chains (vertical), this protocol focuses on capability reuse (horizontal). Run Trace first to understand current state, then this protocol to assess capabilities. |
-| **Hierarchy of Truth** | Output of this protocol goes into Spec (Tier 1), implementation MUST follow Technical Design in Spec. |
-| **Architecture Principles** | This protocol operationalizes the DRY principle — identify reuse points, avoid duplicate implementation. |
+| **pactkit-trace** | Trace = call chains (vertical). This protocol = capability reuse (horizontal). Run Trace first, then this. |
+| **Hierarchy of Truth** | Output goes into Spec (Tier 1). Implementation MUST follow Technical Design in Spec. |
 """,
 }
 
