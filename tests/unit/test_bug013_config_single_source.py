@@ -157,7 +157,8 @@ class TestAC2NewConfigAtProjectPath:
         # Component lists (agents, commands, skills, rules) are no longer in yaml —
         # default is "deploy all" from VALID_* sets. Only operational config remains.
         assert 'stack' in generated, 'Generated config should have stack'
-        assert 'version' in generated, 'Generated config should have version'
+        # STORY-slim-102: version removed from project yaml, tracked globally
+        assert 'version' not in generated, 'Generated config should NOT have version'
 
     def test_no_config_at_global_path(self, tmp_path):
         from pactkit.generators.deployer import deploy

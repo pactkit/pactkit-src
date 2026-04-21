@@ -13,8 +13,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pactkit import __version__
-
 # Get the pactkit executable path
 PACTKIT_BIN = sys.executable.replace('python', 'pactkit').replace('python3', 'pactkit')
 # Fallback: use python -m pactkit.cli
@@ -393,10 +391,10 @@ class TestSpecLintCommand:
 
 @pytest.mark.e2e
 class TestVersionSync:
-    """BUG-026: pactkit.yaml version must be synced to __version__ on init/update."""
+    """STORY-slim-102: version removed from project yaml, tracked via ~/.claude/.pactkit-version."""
 
-    def test_init_updates_stale_version(self, tmp_path):
-        """AC1: pactkit init updates stale version in pactkit.yaml to installed version."""
+    def test_init_removes_stale_version(self, tmp_path):
+        """AC1: pactkit init removes version field from pactkit.yaml (STORY-slim-102)."""
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         yaml_file = claude_dir / "pactkit.yaml"
@@ -410,12 +408,12 @@ class TestVersionSync:
 
         assert exit_code == 0, f"init failed: {stderr}"
         result = yaml.safe_load(yaml_file.read_text())
-        assert result["version"] == __version__, (
-            f"Expected version {__version__!r} after init, got {result['version']!r}"
+        assert "version" not in result, (
+            f"version should be removed from pactkit.yaml after init; got: {result}"
         )
 
-    def test_update_updates_stale_version(self, tmp_path):
-        """AC2: pactkit update updates stale version in pactkit.yaml to installed version."""
+    def test_update_removes_stale_version(self, tmp_path):
+        """AC2: pactkit update removes version field from pactkit.yaml (STORY-slim-102)."""
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         yaml_file = claude_dir / "pactkit.yaml"
@@ -429,12 +427,12 @@ class TestVersionSync:
 
         assert exit_code == 0, f"update failed: {stderr}"
         result = yaml.safe_load(yaml_file.read_text())
-        assert result["version"] == __version__, (
-            f"Expected version {__version__!r} after update, got {result['version']!r}"
+        assert "version" not in result, (
+            f"version should be removed from pactkit.yaml after update; got: {result}"
         )
 
-    def test_fresh_init_uses_current_version(self, tmp_path):
-        """AC3: Fresh pactkit init creates pactkit.yaml with installed __version__."""
+    def test_fresh_init_has_no_version(self, tmp_path):
+        """AC3: Fresh pactkit init creates pactkit.yaml WITHOUT version field (STORY-slim-102)."""
         deploy_target = tmp_path / "deploy"
         stdout, stderr, exit_code = run_pactkit(
             "init", "-t", str(deploy_target),
@@ -445,8 +443,8 @@ class TestVersionSync:
         yaml_file = tmp_path / ".claude" / "pactkit.yaml"
         assert yaml_file.exists(), "pactkit.yaml was not created"
         result = yaml.safe_load(yaml_file.read_text())
-        assert result["version"] == __version__, (
-            f"Expected version {__version__!r} in fresh pactkit.yaml, got {result['version']!r}"
+        assert "version" not in result, (
+            f"Fresh pactkit.yaml should NOT have version field; got: {result}"
         )
 
 

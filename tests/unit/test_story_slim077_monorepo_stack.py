@@ -149,13 +149,14 @@ class TestUpdateYamlStack:
 
         update_yaml_stack(yaml_path, ["go", "node"])
 
-        from pactkit import __version__
         content = yaml_path.read_text()
         assert "stack:" in content
         assert "  - go" in content
         assert "  - node" in content
-        # version and root preserved
-        assert f'version: "{__version__}"' in content
+        # STORY-slim-102: version removed from project yaml (tracked globally)
+        import yaml as _yaml
+        data = _yaml.safe_load(content)
+        assert "version" not in data, "version must be removed from project yaml after rewrite"
         assert "root: ." in content
 
     def test_ac4_single_stack_unwrap(self, tmp_path):

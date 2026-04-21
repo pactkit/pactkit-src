@@ -1,13 +1,12 @@
 """
-BUG-026: Version Sync on Init/Update
+BUG-026 / STORY-slim-102: Version tracking moved off project yaml.
 
-Verify:
-- R1: __version__ is importable in config.py
-- R2: _rewrite_yaml() writes __version__, not the old value from user's yaml
-- R3: auto_merge_config_file() syncs stale version to __version__
-- AC1: version updated on init (stale -> current)
-- AC2: version updated on update (older stale -> current)
-- AC3: fresh-init yaml contains __version__
+New behavior (STORY-slim-102):
+- version is NOT in get_default_config()
+- _rewrite_yaml() does NOT write a version: line
+- auto_merge_config_file() REMOVES the version field when present
+- generate_default_yaml() does NOT contain version:
+- Global deploy marker: ~/.claude/.pactkit-version tracks the deployed version
 """
 from pathlib import Path
 
@@ -26,7 +25,7 @@ _STALE_V2 = "1.4.0"
 
 
 def _write_minimal(tmp_path: Path, version: str) -> Path:
-    """Write a minimal pactkit.yaml with given version."""
+    """Write a minimal pactkit.yaml with given version (legacy format)."""
     p = tmp_path / "pactkit.yaml"
     p.write_text(
         f'version: "{version}"\nstack: auto\nroot: .\n',
@@ -36,118 +35,152 @@ def _write_minimal(tmp_path: Path, version: str) -> Path:
 
 
 def _write_complete(tmp_path: Path, version: str) -> Path:
-    """Write a complete pactkit.yaml (all sections) with given version."""
-    cfg = get_default_config()
-    cfg["version"] = version
+    """Write a complete pactkit.yaml (all sections) with given version (legacy format)."""
+    from pactkit.config import VALID_AGENTS, VALID_COMMANDS, VALID_RULES, VALID_SKILLS
+    cfg = {
+        "version": version,
+        "stack": "auto",
+        "root": ".",
+        "agents": sorted(VALID_AGENTS),
+        "commands": sorted(VALID_COMMANDS),
+        "skills": sorted(VALID_SKILLS),
+        "rules": sorted(VALID_RULES),
+        "ci": {"provider": "none"},
+        "issue_tracker": {"provider": "none"},
+        "hooks": {"pre_commit_lint": False, "post_test_coverage": False, "pre_push_check": False},
+        "lint_blocking": False,
+        "auto_fix": False,
+        "e2e": {"type": "none", "blocking": False, "test_dir": "tests/e2e",
+                "env_file": ".env.test", "api_spec": "", "compose_file": "docker-compose.test.yml"},
+        "venv": {"auto_detect": True},
+        "release": {"github_release": False},
+        "regression": {"strategy": "impact", "max_impact_tests": 50},
+        "check": {"security_checklist": True},
+        "done": {"lesson_quality_threshold": 15},
+        "visualize": {"scan_excludes": ["venv", ".venv"]},
+    }
     p = tmp_path / "pactkit.yaml"
     p.write_text(yaml.dump(cfg), encoding="utf-8")
     return p
 
 
 # ---------------------------------------------------------------------------
-# R1: get_default_config uses __version__
+# R1: get_default_config no longer includes version
 # ---------------------------------------------------------------------------
 
 class TestGetDefaultConfigVersion:
-    """AC3 (partial): get_default_config() must return current __version__."""
+    """STORY-slim-102: get_default_config() must NOT include a version key."""
 
-    def test_version_equals_package_version(self):
-        """get_default_config() version must match installed __version__."""
+    def test_version_not_in_default_config(self):
+        """version is no longer tracked in project yaml."""
         cfg = get_default_config()
-        assert cfg["version"] == __version__, (
-            f"get_default_config() returned {cfg['version']!r}, expected {__version__!r}"
+        assert "version" not in cfg, (
+            f"get_default_config() should not include 'version'; got keys: {list(cfg.keys())}"
         )
 
 
 # ---------------------------------------------------------------------------
-# R2: _rewrite_yaml always writes __version__
+# R2: _rewrite_yaml does NOT write a version: line
 # ---------------------------------------------------------------------------
 
 class TestRewriteYamlVersion:
-    """R2: _rewrite_yaml must use __version__, not the stale version from data."""
+    """R2: _rewrite_yaml must NOT write a version line (STORY-slim-102)."""
 
-    def test_ignores_stale_version_in_data(self, tmp_path):
-        """_rewrite_yaml must write __version__ even if data still has old version."""
+    def test_no_version_line_in_output(self, tmp_path):
+        """_rewrite_yaml output must not contain version: line."""
+        p = tmp_path / "pactkit.yaml"
+        p.write_text("stack: auto\nroot: .\n", encoding="utf-8")
+        data = yaml.safe_load(p.read_text())
+        _rewrite_yaml(p, data)
+        result_text = p.read_text()
+        # No version: line should appear in output
+        for line in result_text.splitlines():
+            stripped = line.strip()
+            assert not stripped.startswith("version:"), (
+                f"_rewrite_yaml should not write a version line; got: {line!r}"
+            )
+
+    def test_existing_version_in_data_not_written(self, tmp_path):
+        """_rewrite_yaml must ignore version in data dict and not write it."""
         p = _write_minimal(tmp_path, _STALE_V1)
         data = yaml.safe_load(p.read_text())
-        assert data["version"] == _STALE_V1  # pre-condition
+        assert data.get("version") == _STALE_V1  # pre-condition: data has version
         _rewrite_yaml(p, data)
-        result = yaml.safe_load(p.read_text())
-        assert result["version"] == __version__, (
-            f"_rewrite_yaml preserved stale version {result['version']!r}; "
-            f"expected {__version__!r}"
-        )
-
-    def test_upgrades_older_stale_version(self, tmp_path):
-        """_rewrite_yaml must upgrade from any old version to __version__."""
-        p = _write_minimal(tmp_path, _STALE_V2)
-        data = yaml.safe_load(p.read_text())
-        _rewrite_yaml(p, data)
-        result = yaml.safe_load(p.read_text())
-        assert result["version"] == __version__
+        result_text = p.read_text()
+        for line in result_text.splitlines():
+            stripped = line.strip()
+            assert not stripped.startswith("version:"), (
+                "_rewrite_yaml should not emit version line even when data contains version"
+            )
 
 
 # ---------------------------------------------------------------------------
-# R3: auto_merge_config_file syncs stale version
+# R3: auto_merge_config_file REMOVES version field
 # ---------------------------------------------------------------------------
 
 class TestAutoMergeVersionSync:
-    """R3: auto_merge_config_file must sync version to __version__."""
+    """R3: auto_merge_config_file must REMOVE the version field (STORY-slim-102)."""
 
-    def test_stale_version_updated_in_file(self, tmp_path):
-        """AC1/AC2: after auto_merge, version in file must equal __version__."""
+    def test_stale_version_removed_from_file(self, tmp_path):
+        """AC1: after auto_merge, version field must be absent from file."""
         p = _write_minimal(tmp_path, _STALE_V1)
         auto_merge_config_file(p)
         result = yaml.safe_load(p.read_text())
-        assert result["version"] == __version__
+        assert "version" not in result, (
+            f"auto_merge should remove version; got: {result}"
+        )
 
-    def test_older_stale_version_updated(self, tmp_path):
-        """AC2: version "1.4.0" is updated to __version__ after auto_merge."""
+    def test_older_stale_version_removed(self, tmp_path):
+        """AC2: version '1.4.0' is removed after auto_merge."""
         p = _write_minimal(tmp_path, _STALE_V2)
         auto_merge_config_file(p)
         result = yaml.safe_load(p.read_text())
-        assert result["version"] == __version__
+        assert "version" not in result
 
-    def test_stale_version_reported_in_added(self, tmp_path):
-        """auto_merge must report a version change in the returned added list."""
+    def test_version_removal_reported_in_added(self, tmp_path):
+        """auto_merge must report version removal in the returned list."""
         p = _write_minimal(tmp_path, _STALE_V1)
         added = auto_merge_config_file(p)
         assert any("version" in item for item in added), (
-            f"Expected version change in added list, got: {added}"
+            f"Expected version removal in added list, got: {added}"
         )
 
-    def test_current_version_not_reported_in_added(self, tmp_path):
-        """No version change reported when yaml already has __version__."""
+    def test_current_version_also_removed(self, tmp_path):
+        """Even current __version__ is removed from project yaml (tracked globally)."""
         p = _write_complete(tmp_path, __version__)
         added = auto_merge_config_file(p)
-        assert not any("version" in item for item in added), (
-            f"Unexpected version change in added list: {added}"
+        result = yaml.safe_load(p.read_text())
+        assert "version" not in result, (
+            f"version should be removed regardless of its value; got: {result}"
+        )
+        assert any("version" in item for item in added), (
+            f"Version removal should be reported in added list: {added}"
         )
 
-    def test_complete_config_stale_version_still_synced(self, tmp_path):
-        """R3: version sync fires even when all sections are present (nothing else to add)."""
+    def test_complete_config_version_removed(self, tmp_path):
+        """R3: version removal fires even when all sections are present."""
         p = _write_complete(tmp_path, _STALE_V1)
         added = auto_merge_config_file(p)
         result = yaml.safe_load(p.read_text())
-        assert result["version"] == __version__, (
-            f"Version not synced for complete config; got {result['version']!r}"
+        assert "version" not in result, (
+            f"Version not removed from complete config; got {result}"
         )
         assert any("version" in item for item in added), (
-            f"Version change not reported in added list: {added}"
+            f"Version removal not reported in added list: {added}"
         )
 
 
 # ---------------------------------------------------------------------------
-# AC3: generate_default_yaml uses __version__
+# AC3: generate_default_yaml does NOT include version
 # ---------------------------------------------------------------------------
 
 class TestGenerateDefaultYamlVersion:
-    """AC3: generate_default_yaml() must output __version__ for fresh init."""
+    """AC3: generate_default_yaml() must NOT output a version field."""
 
-    def test_yaml_string_contains_package_version(self):
-        """generate_default_yaml() must contain version: "__version__"."""
+    def test_yaml_string_has_no_version(self):
+        """generate_default_yaml() must not contain version: line."""
         yaml_str = generate_default_yaml()
         data = yaml.safe_load(yaml_str)
-        assert data["version"] == __version__, (
-            f"generate_default_yaml() wrote {data['version']!r}, expected {__version__!r}"
+        assert "version" not in data, (
+            f"generate_default_yaml() should not write version; got keys: {list(data.keys())}"
         )

@@ -219,3 +219,11 @@
 - [x] Add RULE_12_SOLUTION_DESIGN to rules.py
 - [x] Add to VALID_RULES in config.py
 - [x] Add unit test
+
+### [STORY-slim-102] Move version tracking to global deploy marker
+> Spec: docs/specs/STORY-slim-102.md
+
+- [x] Write .pactkit-version in deployer
+- [x] Update --if-needed to read global marker
+- [x] Remove version from project yaml
+- [x] Update tests

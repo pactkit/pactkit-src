@@ -69,14 +69,14 @@ class TestAC1BackfillMissingSections:
         assert 'auto_fix: false' in content
 
     def test_original_values_preserved(self, tmp_path):
-        """Original stack/root values are preserved; version is synced to __version__ (BUG-026)."""
-        from pactkit import __version__
+        """Original stack/root values are preserved; version is removed (STORY-slim-102)."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: node\nversion: "2.0.0"\nroot: src\n')
         auto_merge_config_file(yaml_path)
         data = yaml.safe_load(yaml_path.read_text())
         assert data['stack'] == 'node'
-        assert data['version'] == __version__
+        # STORY-slim-102: version removed from project yaml (tracked globally)
+        assert 'version' not in data
         assert data['root'] == 'src'
 
 

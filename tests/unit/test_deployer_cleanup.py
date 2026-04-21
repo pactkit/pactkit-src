@@ -12,7 +12,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from pactkit import __version__
 from pactkit.generators.deployer import deploy
 from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
 
@@ -182,21 +181,27 @@ class TestScenario5_ScafpyMigration:
         new_yaml = claude / "pactkit.yaml"
         assert new_yaml.is_file()
         content = new_yaml.read_text()
-        assert f'version: "{__version__}"' in content, \
-            "BUG-026: version must be synced to __version__ after migration"
+        # STORY-slim-102: version is no longer written to project yaml
+        assert "stack:" in content, "pactkit.yaml should contain stack field after migration"
+        import yaml as _yaml
+        data = _yaml.safe_load(content)
+        assert "version" not in data, "version must be removed from project yaml (tracked globally)"
 
     def test_scafpy_yaml_deleted_when_both_exist(self, tmp_path):
         """When both scafpy.yaml and pactkit.yaml exist, scafpy.yaml is deleted."""
         claude = tmp_path / ".claude"
         claude.mkdir(parents=True)
         (claude / "scafpy.yaml").write_text('version: "0.0.1"\n')
-        (claude / "pactkit.yaml").write_text('version: "2.0.0"\n')
+        (claude / "pactkit.yaml").write_text('version: "2.0.0"\nstack: auto\nroot: .\n')
 
         _run_deploy(tmp_path)
 
         assert not (claude / "scafpy.yaml").exists()
         assert (claude / "pactkit.yaml").is_file()
-        assert f'version: "{__version__}"' in (claude / "pactkit.yaml").read_text()
+        # STORY-slim-102: version is removed from project yaml (tracked globally)
+        import yaml as _yaml
+        data = _yaml.safe_load((claude / "pactkit.yaml").read_text())
+        assert "version" not in data, "version must be removed from project yaml"
 
     def test_no_error_when_no_scafpy_remnants(self, tmp_path):
         """Deploy works fine when no scafpy remnants exist."""

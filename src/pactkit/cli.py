@@ -350,20 +350,16 @@ def main():
     args = parser.parse_args()
 
     if args.command in ("init", "update", "upgrade"):
-        # STORY-slim-023: --if-needed skips deploy when versions match
+        # STORY-slim-102: --if-needed checks global deploy marker, not project yaml
         if args.command == "update" and getattr(args, "if_needed", False):
             from pathlib import Path
 
-            from pactkit.config import load_config
-
-            yaml_path = Path.cwd() / ".claude" / "pactkit.yaml"
-            if yaml_path.exists():
-                cfg = load_config(yaml_path)
-                yaml_version = cfg.get("version", "")
-                if yaml_version == __version__:
+            marker = Path.home() / ".claude" / ".pactkit-version"
+            if marker.exists():
+                deployed_version = marker.read_text().strip()
+                if deployed_version == __version__:
                     print(f"PactKit {__version__} up-to-date — skipping redeploy")
                     raise SystemExit(0)
-                print(f"PactKit version mismatch: {yaml_version} → {__version__}. Updating...")
             else:
                 print("No pactkit.yaml found. Running first-time setup...")
 

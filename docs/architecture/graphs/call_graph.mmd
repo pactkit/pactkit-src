@@ -157,6 +157,7 @@ graph TD
     _get_d3_source["_get_d3_source"]
     _get_done_ids["_get_done_ids"]
     _get_git_branches["_get_git_branches"]
+    _get_global_version_marker["_get_global_version_marker"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
     _get_used_fetch_functions["_get_used_fetch_functions"]
@@ -360,8 +361,7 @@ graph TD
     append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml
-    check_version_mismatch --> find_pactkit_yaml
-    check_version_mismatch --> load_config
+    check_version_mismatch --> _get_global_version_marker
     check_version_mismatch --> _parse_version
     check_version_mismatch --> _parse_version
     _has_dir_with_files --> _all_config_dirs
@@ -454,7 +454,6 @@ graph TD
     run_observe --> classify_signals
     run_observe --> build_report
     main --> deploy
-    main --> load_config
     main --> _schema_command
     main --> check_init_markers
     main --> check_version_mismatch
@@ -1208,6 +1207,7 @@ graph TD
     _deploy_classic --> _deploy_ci
     _deploy_classic --> _deploy_hooks
     _deploy_classic --> _generate_config_if_missing
+    _deploy_classic --> atomic_write
     _deploy_classic --> _print_mcp_recommendations
     _deploy_classic --> find_pactkit_yaml
     _deploy_classic --> auto_merge_config_file

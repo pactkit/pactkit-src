@@ -9,8 +9,6 @@ from typing import Union
 
 import yaml
 
-from pactkit import __version__
-
 # ---------------------------------------------------------------------------
 # Valid identifiers (the registry of all known components)
 # ---------------------------------------------------------------------------
@@ -155,7 +153,6 @@ class PactKitConfig:
 def get_default_config() -> dict:
     """Return the default config with all components enabled."""
     return {
-        "version": __version__,
         "stack": "auto",
         "root": ".",
         "developer": "",
@@ -512,10 +509,10 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
             user_data[key] = defaults[key]
             added.append(f"section: {key}")
 
-    # BUG-026: Sync version to installed __version__
-    if user_data.get("version") != __version__:
-        user_data["version"] = __version__
-        added.append(f"version: {__version__}")
+    # STORY-slim-102: Remove stale version field from project yaml
+    if "version" in user_data:
+        del user_data["version"]
+        added.append("removed: version (now tracked globally)")
 
     if added:
         _rewrite_yaml(path, user_data)
@@ -583,7 +580,6 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         "# Edit this file to customize which components are deployed.",
         "# Remove items from a list to disable them. Default: all enabled.",
         "",
-        f'version: "{__version__}"',
         _render_stack_line(data.get('stack', 'auto')),
         f"root: {data.get('root', '.')}",
         f'developer: "{data.get("developer", "")}"',
@@ -997,7 +993,6 @@ def generate_default_yaml(stack=None) -> str:
         "# All agents, commands, skills, and rules are deployed by default.",
         "# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).",
         "",
-        f'version: "{cfg["version"]}"',
         _render_stack_line(cfg['stack']),
         f"root: {cfg['root']}",
         f'developer: "{cfg["developer"]}"',

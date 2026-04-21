@@ -397,6 +397,10 @@ def _deploy_classic(config=None, target=None):
         f"({n_skills} embedded + {n_commands} commands), "
         f"{n_rules}/{total_rules} Rules"
     )
+
+    # STORY-slim-102: Write global version marker
+    atomic_write(claude_root / ".pactkit-version", f"{__version__}\n")
+
     _print_mcp_recommendations()
 
 

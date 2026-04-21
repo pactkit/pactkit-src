@@ -48,3 +48,4 @@
 | 2026-03-24 | Standalone scripts (visualize.py) need try/except ImportError guards for yaml.safe_load when reading pactkit.yaml — they cannot import from pactkit library | visualize.py:_load_scan_excludes |
 | 2026-03-24 | Inline data in standalone scripts must have canonical-source comments pointing to the library module (e.g. _STACK_MARKERS → cleaners.py, _LANG_FILE_EXT → workflows.py) per Architecture Principle 1 | visualize.py:_STACK_MARKERS |
 | 2026-03-24 | Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers | visualize.py:_scan_files |
+| 2026-03-24 | Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring | visualize.py:_detect_stack |

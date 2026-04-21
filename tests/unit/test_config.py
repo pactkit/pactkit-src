@@ -30,7 +30,7 @@ class TestGetDefaultConfig:
 
     def test_has_all_top_level_keys(self):
         cfg = _config().get_default_config()
-        for key in ("version", "stack", "root", "agents", "commands", "skills", "rules"):
+        for key in ("stack", "root", "agents", "commands", "skills", "rules"):
             assert key in cfg, f"Missing key: {key}"
 
     def test_default_agents_count(self):
@@ -58,8 +58,9 @@ class TestGetDefaultConfig:
         assert cfg["stack"] == "auto"
 
     def test_default_version(self):
+        # STORY-slim-102: version removed from project yaml, tracked globally
         cfg = _config().get_default_config()
-        assert isinstance(cfg["version"], str)
+        assert "version" not in cfg
 
     def test_agents_are_strings(self):
         cfg = _config().get_default_config()
@@ -225,11 +226,12 @@ class TestGenerateDefaultYaml:
         assert isinstance(parsed, dict)
 
     def test_roundtrip_contains_core_keys(self):
-        """Generated YAML has operational config but not component lists."""
+        """Generated YAML has operational config but not component lists or version."""
         result = _config().generate_default_yaml()
         parsed = yaml.safe_load(result)
         assert "stack" in parsed
-        assert "version" in parsed
+        # STORY-slim-102: version removed from project yaml, tracked globally
+        assert "version" not in parsed
         # Component lists omitted — default is "deploy all" from VALID_* sets
         for key in ("agents", "commands", "skills", "rules"):
             assert key not in parsed

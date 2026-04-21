@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pactkit import __version__
-from pactkit.config import find_pactkit_yaml, load_config
+from pactkit.config import find_pactkit_yaml
 
 
 def check_init_markers(project_root: Path) -> tuple[bool, list[str]]:
@@ -76,33 +76,37 @@ def _parse_version(v: str) -> tuple[int, ...]:
         return ()
 
 
+def _get_global_version_marker() -> Path:
+    """Return path to the global deploy version marker."""
+    return Path.home() / ".claude" / ".pactkit-version"
+
+
 def check_version_mismatch(project_root: Path) -> str | None:
-    """Check if pactkit.yaml version differs from installed __version__.
+    """Check if global deploy marker version differs from installed __version__.
 
     Returns:
-        Warning message if mismatch, None if versions match or yaml not found.
+        Warning message if mismatch, None if versions match or marker not found.
     """
-    yaml_path = find_pactkit_yaml(project_root)
-    if yaml_path is None:
+    marker = _get_global_version_marker()
+    if not marker.exists():
         return None
 
-    cfg = load_config(yaml_path)
-    yaml_version = cfg.get("version", "")
-    if not yaml_version or yaml_version == __version__:
+    deployed_version = marker.read_text().strip()
+    if not deployed_version or deployed_version == __version__:
         return None
 
-    yaml_v = _parse_version(yaml_version)
+    deployed_v = _parse_version(deployed_version)
     installed_v = _parse_version(__version__)
 
-    if not yaml_v or not installed_v:
-        return f"Version mismatch: pactkit.yaml {yaml_version} vs installed {__version__}"
+    if not deployed_v or not installed_v:
+        return f"Version mismatch: deployed {deployed_version} vs installed {__version__}"
 
-    if yaml_v > installed_v:
+    if deployed_v > installed_v:
         return (
-            f"Version mismatch: pactkit.yaml {yaml_version} > installed {__version__}\n"
+            f"Version mismatch: deployed {deployed_version} > installed {__version__}\n"
             f"         Run `pipx upgrade pactkit` to update the CLI"
         )
     return (
-        f"Version mismatch: pactkit.yaml {yaml_version} < installed {__version__}\n"
+        f"Version mismatch: deployed {deployed_version} < installed {__version__}\n"
         f"         Run `pactkit update` to sync"
     )

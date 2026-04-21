@@ -6,8 +6,6 @@ from unittest.mock import patch
 
 import yaml
 
-from pactkit import __version__
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -266,11 +264,11 @@ class TestBackwardCompatibility:
         assert len(list_backfills) == 0
 
     def test_full_list_nothing_added(self, tmp_path):
-        """If user already has all VALID items and sections, nothing is added."""
+        """If user already has all VALID items and sections (no version), nothing is added."""
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
+        # STORY-slim-102: version must NOT be in yaml; if present it would be removed
         _write_yaml(yaml_path, {
-            'version': __version__,
             'agents': sorted(cfg.VALID_AGENTS),
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),
@@ -393,8 +391,8 @@ class TestDeployerIntegration:
         claude_root.mkdir(parents=True)
         yaml_path = claude_root / 'pactkit.yaml'
         cfg = _config()
+        # STORY-slim-102: version must NOT be in yaml to avoid triggering removal
         _write_yaml(yaml_path, {
-            'version': __version__,
             'agents': sorted(cfg.VALID_AGENTS),
             'commands': sorted(cfg.VALID_COMMANDS),
             'skills': sorted(cfg.VALID_SKILLS),

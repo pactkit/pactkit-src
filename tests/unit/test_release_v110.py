@@ -57,11 +57,11 @@ class TestVersionConsistency:
         assert __version__ == m.group(1)
 
     def test_config_default_version_matches_package(self):
-        """BUG-026: config.py default version must match installed __version__."""
-        from pactkit import __version__
+        """STORY-slim-102: version is no longer in get_default_config() (tracked globally)."""
         from pactkit.config import get_default_config
         cfg = get_default_config()
-        assert cfg['version'] == __version__
+        # Version removed from project yaml per STORY-slim-102
+        assert 'version' not in cfg
 
     def test_cli_version_output(self):
         """CLI version command should reference __version__."""

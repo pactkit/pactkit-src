@@ -40,14 +40,13 @@ class TestAC1VersionSync:
         assert OPENCODE_YAML.exists(), f"{OPENCODE_YAML} does not exist"
 
     def test_opencode_yaml_version_matches_pyproject(self):
-        """AC1: .opencode/pactkit.yaml version must match pyproject.toml."""
+        """AC1: .opencode/pactkit.yaml must NOT contain version (STORY-slim-102)."""
         import yaml
 
-        expected = _read_pyproject_version()
         data = yaml.safe_load(OPENCODE_YAML.read_text())
-        actual = str(data.get("version", ""))
-        assert actual == expected, (
-            f".opencode/pactkit.yaml version={actual!r} does not match pyproject.toml version={expected!r}"
+        # STORY-slim-102: version removed from project yaml, tracked via global marker
+        assert "version" not in data, (
+            f".opencode/pactkit.yaml should not have a version field; got keys: {list(data.keys())}"
         )
 
 
