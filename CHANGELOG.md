@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.5] - 2026-04-21
+
+### Added
+- **Solution Design Protocol** (STORY-slim-101) — New rule `12-solution-design.md` requires capability delta assessment before implementation. Prevents framework blindness, project blindness, and hardcoded coupling. Includes Implementation Constraints (no magic values, OCP, SRP, dependency direction). Integrated into Plan Phase 1 and Act Phase 1.
+
+### Changed
+- **Global version tracking** (STORY-slim-102) — Version tracking moved from project-level `pactkit.yaml` to global `~/.claude/.pactkit-version` marker. Eliminates cross-project desync when PactKit is upgraded. `auto_merge_config_file()` now removes stale `version` field from existing project yamls.
+
 ## [2.10.4] - 2026-04-20
 
 ### Added
