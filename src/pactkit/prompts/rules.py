@@ -48,12 +48,13 @@ All rules and playbooks MUST use signal keywords consistently per this 4-level h
 |-------|----------|-----------|----------|
 | **L1 Absolute** | `NEVER` / `MUST NOT` | Violation = bug, zero tolerance | Security red lines, data loss, Spec tampering |
 | **L2 Strong** | `CRITICAL` / `MUST` / `ALWAYS` | Violation = must-fix issue | Phase gates, TDD enforcement, regression blocking |
-| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Violation = warning, non-blocking | Best practices, performance advice, style |
+| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Default required — skip only with stated reason | Best practices, performance advice, style |
 | **L4 Advisory** | `Prefer` / `Consider` / `If possible` | Suggestion, skip by judgment | Optimization hints, optional enhancements |
 
-- `NEVER` and `MUST NOT` are reserved for L1 — do not use them for anything less than absolute prohibition.
-- `DO NOT` is ambiguous — replace with `NEVER` (L1) or `MUST NOT` (L1) for prohibitions, or rephrase as `SHOULD NOT` (L3) for recommendations.
-- When writing an L1 or L2 rule, append a consequence clause: `— {what goes wrong if violated}`.
+- `SHOULD` (L3) is not optional (RFC 2119) — skipping without a stated reason is a violation.
+- `NEVER` / `MUST NOT` are reserved for L1 — not for lesser prohibitions.
+- `DO NOT` is ambiguous — use `NEVER` (L1) or `SHOULD NOT` (L3) instead.
+- L1/L2 rules: append a consequence clause `— {what goes wrong}`.
 """,
     "hierarchy": """# The Hierarchy of Truth
 > **CRITICAL**: Code is NOT the law.

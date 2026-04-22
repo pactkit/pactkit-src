@@ -234,3 +234,10 @@
 - [x] Add §9 to 08-architecture-principles
 - [x] Expand No Magic Values in 12-solution-design
 - [x] Verify no new rules files
+
+### [STORY-slim-104] Fix L3 SHOULD semantics in Signal Strength Convention
+> Spec: docs/specs/STORY-slim-104.md
+
+- [x] Change L3 Semantics text in rules.py
+- [x] Add SHOULD clarification note
+- [x] Add test for L3 content
