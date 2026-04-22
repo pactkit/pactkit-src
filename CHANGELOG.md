@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.10.6] - 2026-04-22
+
+### Fixed
+- **L3 SHOULD semantics** (STORY-slim-104) — Signal Strength Convention L3 Recommended changed from "Violation = warning, non-blocking" to "Default required — skip only with stated reason" (RFC 2119). Added clarification bullet that SHOULD is not optional. Prevents AI from systematically deferring SHOULD tasks.
+
 ## [2.10.5] - 2026-04-21
 
 ### Added
