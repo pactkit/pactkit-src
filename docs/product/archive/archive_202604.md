@@ -227,3 +227,10 @@
 - [x] Update --if-needed to read global marker
 - [x] Remove version from project yaml
 - [x] Update tests
+
+### [STORY-slim-103] Rules anti-pattern: Merge-over-Replace + Parameterize-over-Hardcode
+> Spec: docs/specs/STORY-slim-103.md
+
+- [x] Add §9 to 08-architecture-principles
+- [x] Expand No Magic Values in 12-solution-design
+- [x] Verify no new rules files

@@ -366,6 +366,20 @@ Write `docs/product/context.md` using this format:
   - context.md, lessons.md, test_case → referenced in playbook text via `{CONTEXT_SECTIONS}`, `{LESSONS_ROW_FORMAT}`
 - When adding a new schema to `schemas.py`, consider whether it needs a linter gate or if prompt-level enforcement is sufficient.
 
+## 9. Merge over Replace (Incremental Sync)
+- When writing to a file that may contain user-modified content or sections managed by other tools, SHOULD use incremental merge (Edit / patch / append) instead of full replacement (Write / overwrite) — full replacement silently destroys content the writer did not generate.
+- **Decision Matrix**:
+
+| Target File Characteristics | Strategy | Rationale |
+|----------------------------|----------|-----------|
+| Generated entirely by this tool, no user sections | Full replace is safe | Writer owns 100% of content |
+| Contains user-modified sections OR mixed ownership | **Incremental merge** | Preserve content this tool did not generate |
+| Config file with default + override pattern | **Merge missing keys only** | Existing values represent user intent |
+| Append-only artifact (changelog, log, history) | **Append** | Never rewrite prior entries |
+
+- **Litmus test**: "Does this file contain content I did not generate?" → If yes, incremental merge. If unsure, incremental merge.
+- **Anti-pattern evidence**: BUG-010 (`_rewrite_yaml` destroyed user config), BUG-slim-089 (`_deploy_claude_md` overwrote user CLAUDE.md), STORY-033/STORY-slim-054 (backfill overwrote existing values). All were full-replace where merge was required.
+
 ## Quick Reference: Where to Make Changes
 
 | Change Type | File to Edit | Auto-Propagation |
@@ -561,6 +575,17 @@ When writing new code (Step 4 "Implement new"), apply these constraints:
 
 ### No Magic Values (MUST NOT)
 Do not hardcode values that may change (URLs, thresholds, timeouts, feature flags). Extract to named constants or configuration. Exception: truly invariant values (HTTP status codes, math constants).
+
+**Scope**: This constraint applies to **all artifacts**, not just source code — including rules files, Specs, configs, playbooks, and prompts. Any value that appears in 2+ places or that a user/project might need to customize SHOULD be parameterized.
+
+**Flexibility Litmus Test**: If changing a value requires `grep` + multi-file edits, it should be a named constant, config key, or template variable instead.
+
+| Artifact Type | Hardcode Anti-Pattern | Parameterized Pattern |
+|---------------|----------------------|----------------------|
+| Source code | `timeout = 30` | `timeout = config.DEFAULT_TIMEOUT` |
+| Rules / playbooks | `run at most 8 files` | `run at most {MAX_TRACE_FILES} files` or define once, reference by name |
+| Specs | `use SQLite for storage` | `use persistent storage (see Technical Design for engine choice)` |
+| Config (YAML/JSON) | Inline URL `https://api.example.com` | `${API_BASE_URL}` or env-resolved placeholder |
 
 ### Open-Closed Principle (SHOULD)
 Design new code to be extensible without modification. If adding a new variant requires `if/elif` chains, consider a registry or strategy pattern instead.
