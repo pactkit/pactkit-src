@@ -201,11 +201,26 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
+5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
+    - URLs (`http://`, `https://`) that should be config
+    - Magic numbers (non-obvious integers like `30000`, `8080`) that should be named constants
+    - Environment-specific paths that should be parameterized
+    - If found, extract to config/constants before proceeding.
 
 ## 🎬 Phase 4: Sync & Document
 1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed).
 2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
 3.  **Update Continuation State**: Run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` to record the agent's stopping point for session handoff.
+4.  **Coverage Table Output (STORY-slim-105)**: Output a coverage table listing each R{N} from the Spec:
+
+    | Spec 条目 | 类型 | 状态 | 位置 |
+    |-----------|------|------|------|
+    | R1 xxx | MUST | ✓ | file.py:line |
+    | R2 xxx | SHOULD | DEFERRED | — reason |
+
+    - For implemented items: show file:line location
+    - For skipped SHOULD items: show DEFERRED with reason (must match comment in code)
+    - User verifies this table — do not claim "done" without it
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"

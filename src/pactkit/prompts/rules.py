@@ -48,13 +48,21 @@ All rules and playbooks MUST use signal keywords consistently per this 4-level h
 |-------|----------|-----------|----------|
 | **L1 Absolute** | `NEVER` / `MUST NOT` | Violation = bug, zero tolerance | Security red lines, data loss, Spec tampering |
 | **L2 Strong** | `CRITICAL` / `MUST` / `ALWAYS` | Violation = must-fix issue | Phase gates, TDD enforcement, regression blocking |
-| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Default required — skip only with stated reason | Best practices, performance advice, style |
+| **L3 Recommended** | `IMPORTANT` / `SHOULD` | Default required — skip requires DEFERRED comment | Best practices, performance advice, style |
 | **L4 Advisory** | `Prefer` / `Consider` / `If possible` | Suggestion, skip by judgment | Optimization hints, optional enhancements |
 
-- `SHOULD` (L3) is not optional (RFC 2119) — skipping without a stated reason is a violation.
+- `SHOULD` (L3) is not optional (RFC 2119) — skipping requires a `# DEFERRED(SHOULD): R{N} — reason` comment in code.
 - `NEVER` / `MUST NOT` are reserved for L1 — not for lesser prohibitions.
 - `DO NOT` is ambiguous — use `NEVER` (L1) or `SHOULD NOT` (L3) instead.
 - L1/L2 rules: append a consequence clause `— {what goes wrong}`.
+
+## DEFERRED Comment Format (STORY-slim-105)
+When skipping a SHOULD requirement, leave a traceable comment:
+```
+# DEFERRED(SHOULD): R{N} {requirement name} — {reason for skipping}
+```
+- Enables `grep -r "DEFERRED(SHOULD)" src/` to find all skipped SHOULDs
+- Reason must explain why skipping is acceptable for this release
 """,
     "hierarchy": """# The Hierarchy of Truth
 > **CRITICAL**: Code is NOT the law.
@@ -126,6 +134,16 @@ Format: `type(scope): description`
 - Title: `feat(scope): short description` (consistent with commit)
 - Body: Summary + Test Plan
 - Must pass CI and Code Review before merging
+
+## Change Type Declaration (STORY-slim-105)
+Before modifying code, declare the change type:
+
+| Type | Meaning | Requirement |
+|------|---------|-------------|
+| `ROOT_CAUSE` | Fixing the root cause | None |
+| `WORKAROUND` | Temporary bypass | MUST create tech-debt Story |
+
+Choosing WORKAROUND is allowed, but incurs the cost of creating a tracking Story — no silent bypasses.
 """,
     "routing": """# Command Reference (Routing Table)
 

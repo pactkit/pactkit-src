@@ -114,7 +114,8 @@ class TestTokenReduction:
     # Baseline updated: 400 words (post-STORY-008 reduction + subagent section).
     # 30% headroom → max words. Increase baseline if adding valuable content.
     # Raised from 600 to 660 for STORY-slim-098: PDCA Nudge anchor section added.
-    BASELINE_WORD_COUNT = 660
+    # Raised from 660 to 730 for STORY-slim-105: DEFERRED Comment Format section added.
+    BASELINE_WORD_COUNT = 730
 
     def test_core_protocol_within_limit(self):
         p = _prompts()

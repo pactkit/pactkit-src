@@ -241,3 +241,13 @@
 - [x] Change L3 Semantics text in rules.py
 - [x] Add SHOULD clarification note
 - [x] Add test for L3 content
+
+### [STORY-slim-105] SHOULD 覆盖追踪与改动类型声明
+> Spec: docs/specs/STORY-slim-105.md
+
+- [x] 更新01-core-protocol.md SHOULD语义
+- [x] 更新05-workflow-conventions.md DEFERRED规范
+- [x] schemas.py新增常量
+- [x] spec_linter.py新增W010
+- [x] project-act.md覆盖表输出
+- [x] 测试用例

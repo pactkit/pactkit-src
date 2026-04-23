@@ -49,6 +49,9 @@ SPEC_RFC_PATTERN = _re.compile(r"\b(" + "|".join(SPEC_RFC_KEYWORDS) + r")\b")
 SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
 SPEC_SEC_PATTERN = r"\|\s*SEC-"
 
+# DEFERRED comment pattern for tracking skipped SHOULD requirements (STORY-slim-105)
+DEFERRED_COMMENT_PATTERN = _re.compile(r"#\s*DEFERRED\(SHOULD\):\s*R\d+")
+
 # ─── Spec Template ──────────────────────────────────────────────────────────
 # Used by scaffold.py create_spec(). Must be consistent with spec_linter rules.
 # IMPORTANT: scaffold.py (deployed as standalone script) inlines a copy of this
