@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-24 | regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts' | visualize.py:regression_workflow_impact |
 | 2026-03-25 | export_focus_graphs() in visualize.py uses forward_reach() (not reverse_reach()) because entry points (command/service/page) are graph roots that invoke downward — forward BFS shows their dependency tree | src/pactkit/skills/visualize.py:export_focus_graphs |
 | 2026-03-26 | board.py update_task: added 3-tier fuzzy fallback (single-task auto-mark, substring match, numeric index) to handle real-world callers that don't know exact task names on the board | src/pactkit/skills/board.py:update_task |
 | 2026-03-26 | Position-based block removal (start, end tuples) is safer than str.find() for board operations — prevents substring false matches on similar story IDs | board.py:_parse_story_blocks |
@@ -53,3 +52,4 @@
 | 2026-04-22 | When the same bug pattern recurs 3+ times across specs (BUG-010, BUG-slim-089, STORY-033, STORY-slim-054), promote the fix from spec-level to a standing rule in 08-architecture-principles.md — ad-hoc spec fixes do not prevent recurrence | ~/.claude/rules/08-architecture-principles.md:§9 |
 | 2026-04-22 | Signal Strength L3 SHOULD semantics in rules.py:RULES_MODULES['core'] must use RFC 2119 wording — 'warning, non-blocking' caused AI to systematically defer all SHOULD tasks during Act | src/pactkit/prompts/rules.py:51 |
 | 2026-04-23 | Rule files deploy from src/pactkit/prompts/rules.py via pactkit deploy — never edit ~/.claude/rules/ directly | src/pactkit/prompts/rules.py:RULES_MODULES |
+| 2026-04-24 | Plan Phase横向扫描(Lateral Scan)比纵向trace更重要——PactSearch的10个技术债中60%源于缺少水平重复检测。修复方向是改Plan playbook引导Architect用已有工具(LSP/visualize/grep)做横向扫描，而非新建CLI | commands.py:Plan_Phase_1 |

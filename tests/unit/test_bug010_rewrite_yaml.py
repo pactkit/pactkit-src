@@ -102,55 +102,6 @@ class TestAC2RuleScopesPreserved:
 
 
 # ===========================================================================
-# AC3: Hooks use correct stack lint command
-# ===========================================================================
-class TestAC3HooksStackAware:
-    """_deploy_hooks must use the project's configured stack lint command."""
-
-    def test_hooks_use_node_lint_for_node_stack(self, tmp_path):
-        """When stack is 'node', pre_commit_lint hook should use node linter."""
-        from pactkit.generators.deployer import _deploy_hooks
-
-        hooks_dir = tmp_path / "hooks"
-        hooks_config = {'pre_commit_lint': True}
-
-        _deploy_hooks(hooks_dir, hooks_config, stack='node')
-
-        hook_file = hooks_dir / "pre-commit-lint"
-        content = hook_file.read_text(encoding='utf-8')
-        # Should NOT contain the python linter
-        assert 'ruff' not in content
-        # Should contain the node linter
-        assert 'eslint' in content
-
-    def test_hooks_use_python_lint_for_python_stack(self, tmp_path):
-        """When stack is 'python', pre_commit_lint hook should use python linter."""
-        from pactkit.generators.deployer import _deploy_hooks
-
-        hooks_dir = tmp_path / "hooks"
-        hooks_config = {'pre_commit_lint': True}
-
-        _deploy_hooks(hooks_dir, hooks_config, stack='python')
-
-        hook_file = hooks_dir / "pre-commit-lint"
-        content = hook_file.read_text(encoding='utf-8')
-        assert 'ruff' in content
-
-    def test_hooks_default_to_python_when_no_stack(self, tmp_path):
-        """When no stack is specified, hooks should default to python lint."""
-        from pactkit.generators.deployer import _deploy_hooks
-
-        hooks_dir = tmp_path / "hooks"
-        hooks_config = {'pre_commit_lint': True}
-
-        _deploy_hooks(hooks_dir, hooks_config)
-
-        hook_file = hooks_dir / "pre-commit-lint"
-        content = hook_file.read_text(encoding='utf-8')
-        assert 'ruff' in content
-
-
-# ===========================================================================
 # AC4: Round-trip fidelity
 # ===========================================================================
 class TestAC4RoundTripFidelity:
@@ -179,7 +130,6 @@ class TestAC4RoundTripFidelity:
         assert second_read['rule_scopes']['01-core-protocol'] == 'src/**/*.py'
         assert 'exclude' in second_read
         assert 'ci' in second_read
-        assert 'hooks' in second_read
         assert 'lint_blocking' in second_read
 
     def test_empty_optional_sections_not_written(self, tmp_path):

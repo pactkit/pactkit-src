@@ -27,14 +27,6 @@ from pactkit.config import (  # noqa: E402
 
 class TestAC1BackfillMissingSections:
 
-    def test_hooks_section_added(self, tmp_path):
-        """Missing hooks section is backfilled with defaults."""
-        yaml_path = tmp_path / 'pactkit.yaml'
-        yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
-        auto_merge_config_file(yaml_path)
-        content = yaml_path.read_text()
-        assert 'hooks:' in content
-
     def test_ci_section_added(self, tmp_path):
         """Missing ci section is backfilled with defaults."""
         yaml_path = tmp_path / 'pactkit.yaml'
@@ -126,16 +118,6 @@ class TestAC2ExistingValuesPreserved:
 
 class TestAC3RewriteYamlComplete:
 
-    def test_rewrite_includes_hooks(self, tmp_path):
-        """_rewrite_yaml output includes hooks section."""
-        from pactkit.config import _rewrite_yaml
-        yaml_path = tmp_path / 'pactkit.yaml'
-        data = get_default_config()
-        _rewrite_yaml(yaml_path, data)
-        content = yaml_path.read_text()
-        assert 'hooks:' in content
-        assert 'pre_commit_lint' in content
-
     def test_rewrite_includes_ci(self, tmp_path):
         """_rewrite_yaml output includes ci section."""
         from pactkit.config import _rewrite_yaml
@@ -181,7 +163,6 @@ class TestAC3RewriteYamlComplete:
         _rewrite_yaml(yaml_path, data)
         reloaded = yaml.safe_load(yaml_path.read_text())
         assert isinstance(reloaded, dict)
-        assert 'hooks' in reloaded
         assert 'ci' in reloaded
         assert 'issue_tracker' in reloaded
 
@@ -191,13 +172,6 @@ class TestAC3RewriteYamlComplete:
 # ===========================================================================
 
 class TestAC4BackfillReport:
-
-    def test_reports_hooks_added(self, tmp_path):
-        """Return value includes 'section: hooks' when hooks was missing."""
-        yaml_path = tmp_path / 'pactkit.yaml'
-        yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
-        result = auto_merge_config_file(yaml_path)
-        assert 'section: hooks' in result
 
     def test_reports_ci_added(self, tmp_path):
         """Return value includes 'section: ci' when ci was missing."""
@@ -238,8 +212,8 @@ class TestAC4BackfillReport:
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
         section_reports = [r for r in result if r.startswith('section:')]
-        # 12 non-list sections only (list-type keys no longer backfilled)
-        assert len(section_reports) == 12
+        # 11 non-list sections (hooks removed in STORY-slim-106)
+        assert len(section_reports) == 11
 
 
 # ===========================================================================
@@ -247,11 +221,6 @@ class TestAC4BackfillReport:
 # ===========================================================================
 
 class TestAC5FreshInit:
-
-    def test_generate_default_yaml_has_hooks(self):
-        """generate_default_yaml() includes hooks section."""
-        content = generate_default_yaml()
-        assert 'hooks:' in content
 
     def test_generate_default_yaml_has_ci(self):
         """generate_default_yaml() includes ci section."""
@@ -273,7 +242,6 @@ class TestAC5FreshInit:
         yaml_path = tmp_path / '.claude' / 'pactkit.yaml'
         assert yaml_path.exists()
         content = yaml_path.read_text()
-        assert 'hooks:' in content
         assert 'ci:' in content
         assert 'issue_tracker:' in content
         assert 'lint_blocking:' in content

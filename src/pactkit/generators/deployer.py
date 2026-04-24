@@ -374,10 +374,6 @@ def _deploy_classic(config=None, target=None):
     project_root = Path.cwd()
     _deploy_ci(ci_provider, project_root, config)
 
-    # Deploy hooks if configured (STORY-027)
-    hooks_config = config.get("hooks", {})
-    _deploy_hooks(claude_root / "hooks", hooks_config, stack=config.get("stack", "auto"))
-
     # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
     _generate_config_if_missing()
 
@@ -733,9 +729,6 @@ def _deploy_agents(
     SIMPLE_OPTIONAL_FIELDS = ["permissionMode", "disallowedTools", "maxTurns", "memory", "skills"]
     # STORY-slim-005: excluded_agent_fields from profile (replaces hardcoded CLAUDE_ONLY_FIELDS)
     excluded_fields = profile.excluded_agent_fields
-    # Fields that require YAML serialization (nested structures)
-    NESTED_FIELDS = ["hooks"]
-
     deployed = 0
     for name, cfg in prompts.AGENTS_EXPERT.items():
         if name not in enabled_set:
@@ -782,16 +775,6 @@ def _deploy_agents(
                 if field in excluded_fields:
                     continue
                 content.append(f"{field}: {cfg[field]}")
-        # Serialize nested fields using PyYAML for correct indentation
-        for field in NESTED_FIELDS:
-            if field in cfg and field not in excluded_fields:
-                nested_yaml = yaml.dump(
-                    {field: cfg[field]},
-                    default_flow_style=False,
-                    allow_unicode=True,
-                ).rstrip()
-                content.append(nested_yaml)
-
         # Routing reference: from profile.global_instructions_file (STORY-slim-005)
         routing_ref = f"{profile.global_config_dir}/{profile.global_instructions_file}"
         content.extend(["---", "", cfg["prompt"], "", f"Please refer to {routing_ref} for routing."])
@@ -1155,96 +1138,6 @@ def _deploy_ci(provider, project_root, config):
         content = _build_gitlab_ci(stack, ci_config, lang_profile)
         atomic_write(project_root / ".gitlab-ci.yml", content)
         print("  -> CI: .gitlab-ci.yml")
-
-
-# ---------------------------------------------------------------------------
-# Hook deployment (STORY-027)
-# ---------------------------------------------------------------------------
-
-_HOOK_PRE_COMMIT_LINT = """\
-#!/bin/sh
-# PactKit pre-commit lint hook (report-only, non-blocking)
-# Runs linter and reports findings. Does NOT block the commit.
-
-echo "[PactKit] Running pre-commit lint check..."
-{lint_command} 2>&1 || true
-echo "[PactKit] Lint check complete (report-only, commit proceeds)."
-exit 0
-"""
-
-_HOOK_POST_TEST_COVERAGE = """\
-#!/bin/sh
-# PactKit post-test coverage hook (report-only)
-# Prints coverage summary if available. Does NOT block anything.
-
-echo "[PactKit] Checking test coverage..."
-if command -v coverage >/dev/null 2>&1; then
-    coverage report --show-missing 2>&1 || true
-elif command -v pytest >/dev/null 2>&1; then
-    echo "[PactKit] Run 'pytest --cov' for coverage data."
-fi
-echo "[PactKit] Coverage check complete."
-exit 0
-"""
-
-_HOOK_PRE_PUSH_CHECK = """\
-#!/bin/sh
-# PactKit pre-push check hook (report-only, non-blocking)
-# Warns about uncommitted changes and branch status.
-
-echo "[PactKit] Running pre-push checks..."
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    echo "[PactKit] WARNING: You have uncommitted changes."
-fi
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-    echo "[PactKit] WARNING: Pushing directly to $BRANCH branch."
-fi
-echo "[PactKit] Pre-push check complete (report-only, push proceeds)."
-exit 0
-"""
-
-_HOOK_TEMPLATES = {
-    "pre_commit_lint": ("pre-commit-lint", _HOOK_PRE_COMMIT_LINT),
-    "post_test_coverage": ("post-test-coverage", _HOOK_POST_TEST_COVERAGE),
-    "pre_push_check": ("pre-push-check", _HOOK_PRE_PUSH_CHECK),
-}
-
-
-def _deploy_hooks(hooks_dir, hooks_config, stack="python"):
-    """Deploy enabled hook scripts.
-
-    Args:
-        hooks_dir: Target directory for hook scripts (.claude/hooks/).
-        hooks_config: Dict of hook_name -> bool from pactkit.yaml.
-        stack: Project stack for resolving lint command (default: 'python').
-    """
-    if not isinstance(hooks_config, dict):
-        return
-
-    enabled = [name for name, val in hooks_config.items() if val]
-    if not enabled:
-        return
-
-    hooks_dir.mkdir(parents=True, exist_ok=True)
-
-    # Detect lint command from LANG_PROFILES using the project's stack (BUG-010)
-    from pactkit.prompts.workflows import LANG_PROFILES
-
-    if stack == "auto":
-        stack = "python"  # default fallback
-    profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
-    lint_command = profile.get("lint_command", 'echo "No linter configured"')
-
-    for hook_name in enabled:
-        if hook_name not in _HOOK_TEMPLATES:
-            continue
-        filename, template = _HOOK_TEMPLATES[hook_name]
-        content = template.format(lint_command=lint_command)
-        script_path = hooks_dir / filename
-        atomic_write(script_path, content)
-        script_path.chmod(0o755)
-        print(f"  -> Hook: {filename}")
 
 
 def _generate_config_if_missing(format: str | None = None):

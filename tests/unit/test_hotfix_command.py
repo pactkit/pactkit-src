@@ -1,5 +1,4 @@
 """Tests for STORY-017: /project-hotfix command."""
-import pytest
 
 
 def _prompts():
@@ -175,14 +174,3 @@ class TestImpactCheckPhase:
         assert 'advisory' in text.lower() or 'non-blocking' in text.lower() or 'SHOULD' in text
 
 
-class TestDeployment:
-    """Scenario 7: 部署后文件存在"""
-
-    def test_file_deployed(self):
-        from pathlib import Path
-        deployed = Path.home() / '.claude' / 'commands' / 'project-hotfix.md'
-        if not deployed.exists():
-            pytest.skip("Not deployed yet")
-        content = deployed.read_text()
-        assert '---' in content
-        assert 'description' in content

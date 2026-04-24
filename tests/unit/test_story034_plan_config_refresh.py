@@ -47,7 +47,6 @@ class TestAC4PromptTemplateUpdated:
     def test_phase05_lists_known_sections(self):
         """Phase 0.5 must mention the known section names to check against."""
         text = self._phase05_text().lower()
-        assert "hooks" in text
         assert "ci" in text
 
     # --- Stale detection flow ---

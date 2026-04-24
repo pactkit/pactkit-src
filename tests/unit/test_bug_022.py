@@ -44,21 +44,6 @@ class TestR1DeepMergeVenv:
         assert result['venv']['auto_detect'] is False
 
 
-class TestR1DeepMergeHooks:
-    """AC3: Partial hooks section preserves defaults."""
-
-    def test_partial_hooks_preserves_other_keys(self, tmp_path):
-        """Given user enables one hook, other hooks should remain False (default)."""
-        cfg = _config()
-        yaml_path = tmp_path / 'pactkit.yaml'
-        _write_yaml(yaml_path, {'hooks': {'pre_commit_lint': True}})
-
-        result = cfg.load_config(yaml_path)
-        assert result['hooks']['pre_commit_lint'] is True
-        assert result['hooks'].get('post_test_coverage') is False  # default
-        assert result['hooks'].get('pre_push_check') is False  # default
-
-
 class TestR1DeepMergeCi:
     """AC4: Full CI section override works as before."""
 

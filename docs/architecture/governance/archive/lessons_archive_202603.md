@@ -50,3 +50,6 @@
 | 2026-03-24 | Worktree isolation diverges from working-tree: verify visualize.py _scan_files() signature is preserved across stories to avoid breaking callers | visualize.py:_scan_files |
 | 2026-03-24 | Extracting _detect_stack() from _detect_file_ext() enables both file discovery and test mapping to share stack detection — DRY refactoring | visualize.py:_detect_stack |
 | 2026-03-24 | Standalone skill scripts using exec() require all imports in _SHARED_HEADER; new stdlib imports (dataclass) must be added to skills/__init__.py _SHARED_HEADER, not just the standalone header section | skills/__init__.py:_SHARED_HEADER |
+| 2026-03-24 | detect_topology() must delegate to _TOPOLOGY_PARSERS parser.detect() first, not _TOPOLOGY_MARKERS alone — parsers and markers can diverge silently causing empty graphs | visualize.py:detect_topology |
+| 2026-03-24 | _scan_hooks() only accepts files with 'use' prefix in hook dirs (src/hooks/, composables/) to prevent utility files from becoming hook nodes | visualize.py:_scan_hooks |
+| 2026-03-24 | regression_workflow_impact hook/store matching uses node.id substring of changed file path, not reverse — e.g. 'useAuth' in 'src/hooks/useAuth.ts' | visualize.py:regression_workflow_impact |

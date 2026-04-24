@@ -251,3 +251,13 @@
 - [x] spec_linter.py新增W010
 - [x] project-act.md覆盖表输出
 - [x] 测试用例
+
+### [STORY-slim-106] Plan 阶段横向扫描强化与 hooks 死代码清理
+> Spec: docs/specs/STORY-slim-106.md
+
+- [x] R1: Plan playbook Lateral Scan 步骤
+- [x] R2: Solution Design Internal Patterns
+- [x] R3: Architecture Principles 通用化
+- [x] R4: 删除 hooks 死代码
+- [x] R5: spec_linter W006
+- [x] 测试覆盖

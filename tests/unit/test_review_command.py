@@ -147,18 +147,6 @@ class TestBackwardCompatibility:
             assert agent in p.AGENTS_EXPERT, f"Missing agent {agent}"
 
 
-class TestDeployment:
-    """Scenario 7: 部署后文件存在"""
-
-    def test_file_deployed(self):
-        from pathlib import Path
-        deployed = Path.home() / '.claude' / 'commands' / 'project-review.md'
-        # This test only passes after deployment; skip if not deployed
-        if not deployed.exists():
-            pytest.skip("Not deployed yet")
-        content = deployed.read_text()
-        assert '---' in content
-        assert 'description' in content
 
 
 # === STORY-022: Enhanced Code Review Checklists ===

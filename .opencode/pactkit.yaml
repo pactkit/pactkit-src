@@ -2,7 +2,6 @@
 # Edit this file to customize which components are deployed.
 # Remove items from a list to disable them. Default: all enabled.
 
-version: "2.10.4"
 stack: python
 root: .
 developer: "slim"
@@ -72,6 +71,7 @@ rules:
   - 08-architecture-principles
   - 09-sectional-write
   - 11-pdca-nudge
+  - 12-solution-design
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:

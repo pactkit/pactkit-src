@@ -98,8 +98,6 @@ VALID_CI_PROVIDERS = frozenset({"github", "gitlab", "none"})
 
 VALID_ISSUE_PROVIDERS = frozenset({"github", "none"})
 
-VALID_HOOK_TEMPLATES = frozenset({"pre_commit_lint", "post_test_coverage", "pre_push_check"})
-
 VALID_E2E_TYPES = frozenset({"none", "cli", "frontend", "backend", "fullstack"})
 
 # Commands deprecated in v1.2.0 — converted to skills (STORY-011)
@@ -162,11 +160,6 @@ def get_default_config() -> dict:
         "rules": sorted(VALID_RULES),
         "ci": {"provider": "none"},
         "issue_tracker": {"provider": "none"},
-        "hooks": {
-            "pre_commit_lint": False,
-            "post_test_coverage": False,
-            "pre_push_check": False,
-        },
         "lint_blocking": False,
         "auto_fix": False,
         "venv": {
@@ -366,7 +359,7 @@ def load_config(path: Path | str | None = None) -> dict:
 
     Missing keys in the user file inherit from defaults.
 
-    BUG-022: For nested dict sections (venv, ci, hooks, issue_tracker),
+    BUG-022: For nested dict sections (venv, ci, issue_tracker),
     performs deep merge to preserve default sub-keys when user specifies partial config.
     """
     if path is None:
@@ -393,7 +386,6 @@ def load_config(path: Path | str | None = None) -> dict:
     DEEP_MERGE_KEYS = {
         "venv",
         "ci",
-        "hooks",
         "issue_tracker",
         "release",
         "regression",
@@ -444,7 +436,7 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     from the VALID_* registry that are missing from the user's list and not
     present in the ``exclude`` section.
 
-    For non-list config sections (ci, issue_tracker, hooks, lint_blocking,
+    For non-list config sections (ci, issue_tracker, lint_blocking,
     auto_fix), backfills missing sections with defaults from
     ``get_default_config()``.  Existing user values are never overwritten.
 
@@ -493,7 +485,6 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     _BACKFILL_KEYS = (
         "ci",
         "issue_tracker",
-        "hooks",
         "lint_blocking",
         "auto_fix",
         "venv",
@@ -561,7 +552,6 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         "exclude",
         "ci",
         "issue_tracker",
-        "hooks",
         "lint_blocking",
         "auto_fix",
         "venv",
@@ -640,15 +630,6 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append("# Issue Tracker — set provider to github to link stories to issues")
         lines.append("issue_tracker:")
         lines.append(f"  provider: {issue_tracker.get('provider', 'none')}")
-        lines.append("")
-
-    # Write hooks section
-    hooks = data.get("hooks", {})
-    if isinstance(hooks, dict):
-        lines.append("# Hooks — safe, report-only hook templates (command-type only)")
-        lines.append("hooks:")
-        for hook_name in sorted(hooks.keys()):
-            lines.append(f"  {hook_name}: {'true' if hooks[hook_name] else 'false'}")
         lines.append("")
 
     # Write lint/auto_fix settings
@@ -853,13 +834,6 @@ def validate_config(config: dict) -> None:
                 f"Invalid issue tracker provider '{provider}'. Valid: {', '.join(sorted(VALID_ISSUE_PROVIDERS))}"
             )
 
-    # Validate hooks section (STORY-027)
-    hooks = config.get("hooks", {})
-    if isinstance(hooks, dict):
-        for hook_name in hooks:
-            if hook_name not in VALID_HOOK_TEMPLATES:
-                warnings.warn(f"Unknown hook template '{hook_name}'. Valid: {', '.join(sorted(VALID_HOOK_TEMPLATES))}")
-
     # Validate rule_scopes section (STORY-028)
     rule_scopes = config.get("rule_scopes", {})
     if isinstance(rule_scopes, dict):
@@ -1015,12 +989,6 @@ def generate_default_yaml(stack=None) -> str:
     lines.extend(["", "# Issue Tracker — set provider to github to link stories to issues"])
     lines.append("issue_tracker:")
     lines.append(f"  provider: {cfg.get('issue_tracker', {}).get('provider', 'none')}")
-
-    hooks = cfg.get("hooks", {})
-    lines.extend(["", "# Hooks — safe, report-only hook templates (command-type only)"])
-    lines.append("hooks:")
-    for hook_name in sorted(hooks.keys()):
-        lines.append(f"  {hook_name}: {'true' if hooks[hook_name] else 'false'}")
 
     lines.extend(["", "# Lint — configure lint behavior in /project-done"])
     lines.append(f"lint_blocking: {'true' if cfg.get('lint_blocking') else 'false'}")

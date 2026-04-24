@@ -26,42 +26,6 @@ def _write_yaml(path, data):
 class TestAC1ProjectConfigBackfilled:
     """Project config with only stack/version/root gets backfilled."""
 
-    def test_project_config_gets_hooks_section(self, tmp_path):
-        from pactkit.generators.deployer import deploy
-
-        home = tmp_path / 'home'
-        project = tmp_path / 'project'
-
-        # Global config (full)
-        home_claude = home / '.claude'
-        home_claude.mkdir(parents=True)
-        cfg = _config()
-        _write_yaml(home_claude / 'pactkit.yaml', {
-            'agents': sorted(cfg.VALID_AGENTS),
-            'commands': sorted(cfg.VALID_COMMANDS),
-            'skills': sorted(cfg.VALID_SKILLS),
-            'rules': sorted(cfg.VALID_RULES),
-            'ci': {'provider': 'none'},
-            'issue_tracker': {'provider': 'none'},
-            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
-            'lint_blocking': False,
-            'auto_fix': False,
-        })
-
-        # Project config (minimal — missing hooks/ci/etc.)
-        project_claude = project / '.claude'
-        project_claude.mkdir(parents=True)
-        _write_yaml(project_claude / 'pactkit.yaml', {
-            'stack': 'python', 'version': '1.0.0', 'root': '.',
-        })
-
-        with patch.object(Path, 'home', return_value=home), \
-             patch('pactkit.generators.deployer.Path.cwd', return_value=project):
-            deploy()
-
-        updated = yaml.safe_load((project_claude / 'pactkit.yaml').read_text())
-        assert 'hooks' in updated
-
     def test_project_config_gets_ci_section(self, tmp_path):
         from pactkit.generators.deployer import deploy
 

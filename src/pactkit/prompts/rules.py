@@ -329,21 +329,15 @@ Write `docs/product/context.md` using this format:
 
 ## 1. Single Source of Truth (DRY)
 - Every configuration value, schema definition, or structural rule MUST be defined in exactly one place.
-- Canonical locations:
-  - Environment paths/capabilities → `profiles.py` (`FormatProfile`)
-  - Document structure rules → `schemas.py` (`SPEC_REQUIRED_SECTIONS`, `BOARD_SECTIONS`, `CONTEXT_SECTIONS`, etc.)
-  - Valid component sets → `config.py` (`VALID_AGENTS`, `VALID_COMMANDS`, `VALID_SKILLS`, `VALID_RULES`)
-- When standalone scripts (board.py, scaffold.py) cannot import the library, they MUST inline the value with a comment pointing to the canonical source:
-  ```python
-  # Canonical: src/pactkit/schemas.py BOARD_SECTION_BACKLOG
-  _BACKLOG = '## 📋 Backlog'
-  ```
+- **Anti-pattern**: The same logic (e.g., a write-then-invalidate workflow, an IRI sanitization routine, a dual-write SQL statement) implemented independently in 3+ files. Each copy drifts over time — one gets a bugfix, the others don't.
+- **Detection**: During Plan Phase 1 Lateral Scan, if `fan-in ≥ 3` or `grep` finds 3+ independent implementations of the same operation, MUST evaluate extracting a shared service/function.
+- When standalone scripts cannot import the library, they MUST inline the value with a comment pointing to the canonical source.
 - When updating a canonical value, search all inline copies with `grep` and update them in the same commit.
 
 ## 2. Open-Closed Principle (OCP)
-- Adding a new tool format (e.g., `cursor`, `trae`) MUST NOT require modifying existing functions.
-- Pattern: add a new `FormatProfile` entry to `FORMAT_PROFILES` in `profiles.py`. All downstream code (`deployer`, `config`, `CLI`) auto-picks it up.
-- Adding a new document type MUST only require adding constants to `schemas.py` and an entry to `SCHEMA_REGISTRY`.
+- Adding a new variant MUST NOT require modifying existing functions — violates OCP when adding the Nth case means editing a growing if/elif chain.
+- **Anti-pattern**: A `db_type` string checked in 13 if/elif branches across 6 files. Adding a new database type requires touching every branch — use a strategy pattern or registry instead.
+- **Pattern**: Define a registry/dispatch table. New variants add an entry; existing code remains unchanged.
 
 ## 3. Dependency Inversion (DIP)
 - Prompt templates MUST NOT contain hardcoded environment-specific paths.
@@ -363,6 +357,7 @@ Write `docs/product/context.md` using this format:
   - `commands_dir = None` for formats without custom commands
   - `excluded_agent_fields` removes fields invalid for that format
 - Consumers MUST check `if profile.has_custom_commands` before deploying commands — not hardcoded format checks.
+- **Module size**: A single file exceeding 500 lines SHOULD be evaluated for splitting. A 565-line route handler mixing 5 resource domains is a sign that responsibilities are not separated.
 
 ## 6. Defense-in-Depth (Security)
 - **Path traversal**: All file writes use `atomic_write()` which creates parent directories safely.
@@ -546,6 +541,18 @@ Project existing:
 - Encapsulated: {function}() in {file} — {purpose}
 ```
 
+### Step 3.5: Query Project Internal Patterns (SHOULD)
+> **Goal**: Does the project already have multiple independent implementations of the same operation?
+
+This step catches **intra-project duplication** that Steps 1-3 miss (they focus on framework-level reuse).
+
+**Scan method** (tiered — use the most precise available):
+1. **LSP** (if available): `incomingCalls` or `findReferences` on the core operation — type-aware, zero false positives
+2. **visualize**: `visualize --mode call --reverse --entry <operation>` — fan-in from call graph
+3. **grep**: `grep -rn "<operation>" src/` — text-level fallback
+
+**Output checkpoint**: `"Internal pattern: {operation} has {N} implementations in {files}"`
+
 ### Step 4: Delta Assessment (MUST)
 > **Goal**: Decide to reuse or implement.
 
@@ -558,6 +565,7 @@ Project existing:
 | Yes | Yes | No | Evaluate: encapsulate or use directly |
 | No | — | Has similar | **Extend** the existing project implementation |
 | No | — | No | **Implement new** — this is the only case where new code is justified |
+| — | — | ≥ 3 independent | **Extract shared service** — MUST evaluate shared abstraction before adding Nth implementation |
 
 **Decision Constraints**
 - **MUST NOT** bypass project abstraction layer to use framework directly — abstraction exists for unified configuration, testability, and isolation of change

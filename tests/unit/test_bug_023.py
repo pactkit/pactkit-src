@@ -199,7 +199,6 @@ class TestR4BackwardCompatibility:
             'rules': sorted(cfg.VALID_RULES),
             'ci': {'provider': 'none'},
             'issue_tracker': {'provider': 'none'},
-            'hooks': {'pre_commit_lint': False, 'post_test_coverage': False, 'pre_push_check': False},
             'lint_blocking': False,
             'auto_fix': False,
             'venv': {'auto_detect': True},

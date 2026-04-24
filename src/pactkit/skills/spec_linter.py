@@ -346,6 +346,17 @@ def _check_security_scope(text: str, result: LintResult) -> None:
         result.errors.append(LintIssue("E009", f"{SPEC_SECURITY_SCOPE_SECTION} section has no SEC-* entries"))
 
 
+def _check_lateral_scan(text: str, result: LintResult) -> None:
+    """W010 — Technical Design should include Lateral Scan Results."""
+    tech_design = _section_text(text, "Technical Design")
+    if tech_design is None:
+        return
+    if "### Lateral Scan Results" not in text:
+        result.warnings.append(
+            LintIssue("W010", "## Technical Design exists but missing '### Lateral Scan Results' subsection")
+        )
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -381,6 +392,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_implementation_steps(text, result)
     _check_req_ac_coverage(text, result)  # STORY-slim-024: W007
     _check_security_scope(text, result)  # STORY-slim-025: E009
+    _check_lateral_scan(text, result)  # STORY-slim-106: W010
     return result
 
 
