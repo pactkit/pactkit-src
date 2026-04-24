@@ -113,40 +113,6 @@ class TestReleaseIsSkill:
 
 
 # ==============================================================================
-# Scenario 5: update_version writes to pactkit.yaml
-# ==============================================================================
-class TestUpdateVersion:
-    def test_update_version_writes_yaml(self, tmp_path):
-        claude_dir = tmp_path / '.claude'
-        claude_dir.mkdir()
-        yaml_file = claude_dir / 'pactkit.yaml'
-        yaml_file.write_text('stack: python\nversion: 0.0.1\nroot: .\n', encoding='utf-8')
-
-        import os
-        old_cwd = os.getcwd()
-        os.chdir(tmp_path)
-        try:
-            g = _exec_board()
-            result = g['update_version']('v1.0.0')
-            content = yaml_file.read_text()
-            assert 'v1.0.0' in content
-            assert '0.0.1' not in content
-        finally:
-            os.chdir(old_cwd)
-
-    def test_update_version_no_yaml_graceful(self, tmp_path):
-        import os
-        old_cwd = os.getcwd()
-        os.chdir(tmp_path)
-        try:
-            g = _exec_board()
-            result = g['update_version']('v1.0.0')
-            assert '⚠' in result or 'skip' in result.lower() or 'No' in result
-        finally:
-            os.chdir(old_cwd)
-
-
-# ==============================================================================
 # Scenario 6: frontmatter compliance
 # ==============================================================================
 class TestReleaseSkillFrontmatter:

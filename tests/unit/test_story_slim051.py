@@ -23,7 +23,6 @@ from pactkit.skills.board import (
     archive_stories,
     fix_board,
     move_story,
-    update_version,
 )
 from pactkit.skills.spec_linter import (
     _check_metadata,
@@ -266,31 +265,6 @@ class TestAC9ArchiveUsesItemIdRe:
             "archive_stories should use ITEM_ID_RE instead of hardcoded prefix list"
         # Should reference ITEM_ID_RE
         assert "ITEM_ID_RE" in source
-
-
-# ============================================================
-# AC10: update_version scoped to top-level (R8)
-# ============================================================
-class TestAC10UpdateVersionScoped:
-    def test_update_version_only_top_level(self, tmp_path, monkeypatch):
-        """AC10: update_version only changes top-level version, not nested."""
-        monkeypatch.chdir(tmp_path)
-        yaml_dir = tmp_path / ".claude"
-        yaml_dir.mkdir()
-        yaml_content = textwrap.dedent("""\
-            version: 2.4.0
-            stack: python
-            tools:
-              version: 1.0
-              name: mytool
-        """)
-        (yaml_dir / "pactkit.yaml").write_text(yaml_content, encoding="utf-8")
-        result = update_version("2.5.0")
-        assert "✅" in result
-        updated = (yaml_dir / "pactkit.yaml").read_text(encoding="utf-8")
-        assert "version: 2.5.0" in updated
-        # Nested version must be untouched
-        assert "version: 1.0" in updated
 
 
 # ============================================================

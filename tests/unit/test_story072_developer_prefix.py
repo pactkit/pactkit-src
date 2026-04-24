@@ -213,29 +213,6 @@ class TestAC8DeveloperValidation:
 
 
 # ===========================================================================
-# board.py update_version uses multi-path
-# ===========================================================================
-
-
-class TestBoardVersionMultiPath:
-    """board.py update_version reads from correct path."""
-
-    def test_board_reads_opencode_yaml(self, tmp_path, monkeypatch):
-        """update_version() finds pactkit.yaml in .opencode/."""
-        from pactkit.skills.board import update_version
-
-        monkeypatch.chdir(tmp_path)
-        opencode_dir = tmp_path / ".opencode"
-        opencode_dir.mkdir()
-        (opencode_dir / "pactkit.yaml").write_text("version: 1.0.0\nstack: python\n")
-
-        result = update_version("2.0.0")
-        assert "✅" in result
-        content = (opencode_dir / "pactkit.yaml").read_text()
-        assert "version: 2.0.0" in content
-
-
-# ===========================================================================
 # Playbook content checks
 # ===========================================================================
 

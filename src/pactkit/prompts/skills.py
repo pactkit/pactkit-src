@@ -124,11 +124,6 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 {BOARD_CMD} list_stories
 ```
 
-### update_version -- Update version number
-```
-{BOARD_CMD} update_version 1.0.0
-```
-
 ### snapshot -- Architecture snapshot
 ```
 {BOARD_CMD} snapshot "v1.0.0"
@@ -149,7 +144,7 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 - `/project-plan`: Use `add_story` to create a Story
 - `/project-act`: Use `update_task` to mark completed tasks
 - `/project-done`: Use `archive` to archive completed Stories
-- `pactkit-release` skill: Use `update_version` + `snapshot` to publish a release
+- `pactkit-release` skill: Use `snapshot` to archive architecture graphs during release
 - `pactkit-doctor` skill: Use `fix_board` to repair misplaced stories
 """
 
@@ -696,8 +691,7 @@ Version release management — update versions, snapshot architecture, create Gi
 ## Protocol
 
 ### 1. Version Update
-- Run `update_version "$VERSION"` via pactkit-board skill.
-- Update the project's package manifest (e.g., `pyproject.toml`, `package.json`).
+- Update the project's package manifest (e.g., `pyproject.toml`, `package.json`, `__init__.py`).
 - Backfill Specs: run `pactkit backfill-release $VERSION` to replace `Release: TBD` in completed specs.
 
 ### 2. Architecture Snapshot

@@ -143,7 +143,7 @@ def main():
         "--if-needed",
         action="store_true",
         default=False,
-        help="Only redeploy if installed version differs from pactkit.yaml version",
+        help="Only redeploy if installed version differs from global deploy marker",
     )
 
     # pactkit upgrade (alias for init, migrates legacy scafpy files)

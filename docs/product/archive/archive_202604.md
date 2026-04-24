@@ -261,3 +261,11 @@
 - [x] R4: 删除 hooks 死代码
 - [x] R5: spec_linter W006
 - [x] 测试覆盖
+
+### [HOTFIX-slim-107] Remove residual pactkit.yaml version operations
+> Spec: docs/specs/HOTFIX-slim-107.md
+
+- [x] Remove update_version function
+- [x] Update CLI help text
+- [x] Clean prompt references
+- [x] Update agent docs

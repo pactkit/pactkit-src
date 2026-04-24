@@ -15,7 +15,6 @@ from pactkit.skills.board import (
     archive_stories,
     fix_board,
     update_task,
-    update_version,
 )
 from pactkit.skills.scaffold import (
     _read_developer_prefix,
@@ -192,25 +191,6 @@ class TestR4ParsePositionContract:
                 f"Position mismatch for {sid}: len(block_text)={len(block_text)}, "
                 f"end-start={end - start}"
             )
-
-
-# ============================================================
-# R5: atomic update_version (AC5)
-# ============================================================
-class TestR5AtomicUpdateVersion:
-    def test_uses_atomic_write(self, tmp_path):
-        """AC5: update_version uses tmp+rename, not direct write_text."""
-        yaml_dir = tmp_path / ".claude"
-        yaml_dir.mkdir()
-        yaml_file = yaml_dir / "pactkit.yaml"
-        yaml_file.write_text("version: 1.0.0\n", encoding="utf-8")
-        with patch("pactkit.skills.board.Path.cwd", return_value=tmp_path):
-            result = update_version("2.0.0")
-        assert "✅" in result
-        content = yaml_file.read_text()
-        assert "version: 2.0.0" in content
-        # After fix, there should be no .tmp file left behind
-        assert not (yaml_dir / "pactkit.yaml.tmp").exists()
 
 
 # ============================================================
