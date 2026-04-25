@@ -122,8 +122,8 @@ class TestScanFilesDefaultExcludes:
 class TestScanFilesCustomExcludes:
     """R4: When scan_excludes param provided → only those dirs are excluded."""
 
-    def test_scan_files_custom_excludes_overrides_defaults(self, tmp_path):
-        """Custom list overrides the SCAN_EXCLUDES constant."""
+    def test_scan_files_custom_excludes_merges_with_defaults(self, tmp_path):
+        """BUG-slim-107: Custom list merges with SCAN_EXCLUDES, not replaces."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "pactkit" / "skills"))
         from visualize import _scan_files
@@ -131,37 +131,45 @@ class TestScanFilesCustomExcludes:
         # Create a src file
         (tmp_path / "main.py").write_text("x = 1")
 
-        # Create a skills dir (normally excluded by SCAN_EXCLUDES constant)
+        # Create a skills dir (excluded by default SCAN_EXCLUDES)
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
         (skills_dir / "tool.py").write_text("y = 2")
 
-        # Create venv (in our custom exclude list)
+        # Create venv (excluded by both default and custom)
         venv_dir = tmp_path / "venv"
         venv_dir.mkdir()
         (venv_dir / "excluded.py").write_text("z = 3")
 
-        # Pass custom excludes that only exclude venv, not skills
-        all_files, _, _ = _scan_files(tmp_path, scan_excludes=["venv"])
+        # Create myvendor (only in custom excludes)
+        vendor_dir = tmp_path / "myvendor"
+        vendor_dir.mkdir()
+        (vendor_dir / "lib.py").write_text("w = 4")
+
+        # Custom excludes add myvendor; defaults still exclude skills and venv
+        all_files, _, _ = _scan_files(tmp_path, scan_excludes=["myvendor"])
         found_names = [f.name for f in all_files]
 
         assert "main.py" in found_names, "main.py should be included"
-        assert "tool.py" in found_names, "skills/tool.py should be included when not in custom excludes"
-        assert "excluded.py" not in found_names, "venv/excluded.py should be excluded"
+        assert "tool.py" not in found_names, "skills/ still excluded by defaults"
+        assert "excluded.py" not in found_names, "venv/ still excluded by defaults"
+        assert "lib.py" not in found_names, "myvendor/ excluded by custom list"
 
-    def test_scan_files_empty_custom_excludes(self, tmp_path):
-        """Empty custom list means nothing is excluded (not even venv)."""
+    def test_scan_files_empty_custom_excludes_keeps_defaults(self, tmp_path):
+        """BUG-slim-107: Empty custom list still applies default excludes."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src" / "pactkit" / "skills"))
         from visualize import _scan_files
 
+        (tmp_path / "main.py").write_text("x = 1")
         venv_dir = tmp_path / "venv"
         venv_dir.mkdir()
         (venv_dir / "script.py").write_text("x = 1")
 
         all_files, _, _ = _scan_files(tmp_path, scan_excludes=[])
         found_names = [f.name for f in all_files]
-        assert "script.py" in found_names, "With empty excludes, venv/script.py should be found"
+        assert "main.py" in found_names, "main.py should be included"
+        assert "script.py" not in found_names, "venv/ still excluded by defaults even with empty custom list"
 
 
 # ===========================================================================
