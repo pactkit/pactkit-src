@@ -4,6 +4,16 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.11.0] - 2026-04-25
+
+### Added
+- **Lateral Scan** (STORY-slim-106) — Plan Phase 1 now scans for duplicate patterns before writing Specs. If overlap > 30% with existing implementations, Spec must include `R0: Extract shared abstraction` or declare tech debt accepted. Removed dead hooks code from rules.
+- **DEFERRED comment mechanism** (STORY-slim-105) — When skipping a SHOULD requirement, code must include `# DEFERRED(SHOULD): R{N} — reason` comment. Coverage table output added to Check phase for tracking deferred items.
+
+### Fixed
+- **Residual pactkit.yaml version operations** (HOTFIX-slim-107) — Removed `update_version()` function and CLI subcommand from board.py, plus all stale references in prompts, agents, and skills docs. Version is now exclusively managed in pyproject.toml + __init__.py with deploy marker at ~/.claude/.pactkit-version.
+- **CI tree-sitter deps** — Install tree-sitter optional dependencies in CI workflow to prevent import failures.
+
 ## [2.10.6] - 2026-04-22
 
 ### Fixed
