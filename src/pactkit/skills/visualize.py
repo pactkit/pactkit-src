@@ -1179,7 +1179,12 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
                 else:
                     available = sorted(m[0] for m in modules if m[0] != '.')
                     if available:
-                        return f'❌ Module \'{focus}\' not found. Available modules: {", ".join(available)}'
+                        return (
+                            f'❌ Module \'{focus}\' not found.\n'
+                            f'Available modules: {", ".join(available)}\n'
+                            f'Hint: use an exact module name from the list above, '
+                            f'or omit --focus to scan the entire project.'
+                        )
 
     # STORY-slim-076: Multi-stack scanning
     stacks = _detect_stacks(scan_root)
