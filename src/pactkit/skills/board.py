@@ -32,11 +32,19 @@ _IN_PROGRESS = "## 🔄 In Progress"
 _DONE = "## ✅ Done"
 
 
-# --- BOARD ---
-def add_story(sid, title, tasks):
+def _board_path():
+    """Return board path and error message if missing."""
     p = Path.cwd() / "docs/product/sprint_board.md"
     if not p.exists():
-        return "❌ No Board"
+        return None, f"❌ No Board at {p} (cwd: {Path.cwd()}). Ensure you are in the project root."
+    return p, None
+
+
+# --- BOARD ---
+def add_story(sid, title, tasks):
+    p, err = _board_path()
+    if err:
+        return err
     content = p.read_text(encoding="utf-8")
     # R6: Duplicate guard — check if story already exists on board
     existing_blocks = _parse_story_blocks(content)
@@ -101,9 +109,9 @@ def _classify_story(block_text):
 
 
 def fix_board():
-    p = Path.cwd() / "docs/product/sprint_board.md"
-    if not p.exists():
-        return "❌ No Board"
+    p, err = _board_path()
+    if err:
+        return err
     content = p.read_text(encoding="utf-8")
     # Find section boundaries
     bp = content.find(_BACKLOG)
@@ -181,9 +189,9 @@ def _mark_done(content, story_match, story_block, old_task):
 
 def update_task(sid, tasks_list):
     task_name = " ".join(tasks_list)
-    p = Path.cwd() / "docs/product/sprint_board.md"
-    if not p.exists():
-        return "❌ No Board"
+    p, err = _board_path()
+    if err:
+        return err
     content = p.read_text(encoding="utf-8")
     # Locate the story block (BUG-027: support ### and ####)
     story_pat = rf"(#{{3,4}} \[?{re.escape(sid)}\]?:?.*?)(?=\n#{{3,4}} |\Z)"
@@ -256,9 +264,9 @@ def move_story(sid, target):
     valid_targets = {"backlog": _BACKLOG, "in_progress": _IN_PROGRESS, "done": _DONE}
     if target not in valid_targets:
         return f"❌ Invalid target: {target}. Use: backlog, in_progress, done"
-    p = Path.cwd() / "docs/product/sprint_board.md"
-    if not p.exists():
-        return "❌ No Board"
+    p, err = _board_path()
+    if err:
+        return err
     content = p.read_text(encoding="utf-8")
     blocks = _parse_story_blocks(content)
     # Find the target story (with position)
@@ -301,9 +309,9 @@ def move_story(sid, target):
 
 # --- LIST ---
 def list_stories():
-    p = Path.cwd() / "docs/product/sprint_board.md"
-    if not p.exists():
-        return "❌ No Board"
+    p, err = _board_path()
+    if err:
+        return err
     content = p.read_text(encoding="utf-8")
     headers = list(re.finditer(_TITLE_RE, content, re.MULTILINE))
     if not headers:
@@ -331,10 +339,10 @@ def list_stories():
 
 # --- ARCHIVE ---
 def archive_stories():
-    board_path = Path.cwd() / "docs/product/sprint_board.md"
+    board_path, err = _board_path()
+    if err:
+        return err
     archive_dir = Path.cwd() / "docs/product/archive"
-    if not board_path.exists():
-        return "❌ No Board"
     content = board_path.read_text(encoding="utf-8")
     # BUG-027: Support both ### and #### for backward compatibility
     # R7: Use ITEM_ID_RE instead of hardcoded prefix list
