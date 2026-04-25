@@ -327,7 +327,6 @@ docs/
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `stack` | string | auto-detected | Project stack (`python`, `node`, `go`, `java`) |
-| `version` | string | current | PactKit version that generated the config |
 | `developer` | string | `""` | Developer prefix for Story IDs (multi-developer collaboration) |
 | `agents` | list | all 9 | Agent definitions to deploy |
 | `commands` | list | all 11 | Command playbooks to deploy |
