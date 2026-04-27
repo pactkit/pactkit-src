@@ -69,18 +69,6 @@ graph TD
     click src_pactkit_prompts_workflows_py href "src/pactkit/prompts/workflows.py"
     src_pactkit_prompts_commands_py["commands.py"]
     click src_pactkit_prompts_commands_py href "src/pactkit/prompts/commands.py"
-    src_pactkit_skills_board_py["board.py"]
-    click src_pactkit_skills_board_py href "src/pactkit/skills/board.py"
-    src_pactkit_skills___init___py["__init__.py"]
-    click src_pactkit_skills___init___py href "src/pactkit/skills/__init__.py"
-    src_pactkit_skills_visualize_py["visualize.py"]
-    click src_pactkit_skills_visualize_py href "src/pactkit/skills/visualize.py"
-    src_pactkit_skills_spec_linter_py["spec_linter.py"]
-    click src_pactkit_skills_spec_linter_py href "src/pactkit/skills/spec_linter.py"
-    src_pactkit_skills_scaffold_py["scaffold.py"]
-    click src_pactkit_skills_scaffold_py href "src/pactkit/skills/scaffold.py"
-    src_pactkit_skills_report_py["report.py"]
-    click src_pactkit_skills_report_py href "src/pactkit/skills/report.py"
     src_pactkit_generators_deployer_py["deployer.py"]
     click src_pactkit_generators_deployer_py href "src/pactkit/generators/deployer.py"
     src_pactkit_generators_adapter_py["adapter.py"]
@@ -89,37 +77,11 @@ graph TD
     click src_pactkit_generators___init___py href "src/pactkit/generators/__init__.py"
     src_pactkit_generators_deploy_base_py["deploy_base.py"]
     click src_pactkit_generators_deploy_base_py href "src/pactkit/generators/deploy_base.py"
-    src_pactkit_skills_analyzers_java_analyzer_py["java_analyzer.py"]
-    click src_pactkit_skills_analyzers_java_analyzer_py href "src/pactkit/skills/analyzers/java_analyzer.py"
-    src_pactkit_skills_analyzers_go_analyzer_py["go_analyzer.py"]
-    click src_pactkit_skills_analyzers_go_analyzer_py href "src/pactkit/skills/analyzers/go_analyzer.py"
-    src_pactkit_skills_analyzers_ts_analyzer_py["ts_analyzer.py"]
-    click src_pactkit_skills_analyzers_ts_analyzer_py href "src/pactkit/skills/analyzers/ts_analyzer.py"
-    src_pactkit_skills_analyzers___init___py["__init__.py"]
-    click src_pactkit_skills_analyzers___init___py href "src/pactkit/skills/analyzers/__init__.py"
-    src_pactkit_skills_analyzers_python_analyzer_py["python_analyzer.py"]
-    click src_pactkit_skills_analyzers_python_analyzer_py href "src/pactkit/skills/analyzers/python_analyzer.py"
-    pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py["visualize.py"]
-    click pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py href "pactkit-plugin/skills/pactkit-visualize/scripts/visualize.py"
-    pactkit_plugin_skills_pactkit_report_scripts_report_py["report.py"]
-    click pactkit_plugin_skills_pactkit_report_scripts_report_py href "pactkit-plugin/skills/pactkit-report/scripts/report.py"
-    pactkit_plugin_skills_pactkit_board_scripts_board_py["board.py"]
-    click pactkit_plugin_skills_pactkit_board_scripts_board_py href "pactkit-plugin/skills/pactkit-board/scripts/board.py"
-    pactkit_plugin_skills_pactkit_scaffold_scripts_scaffold_py["scaffold.py"]
-    click pactkit_plugin_skills_pactkit_scaffold_scripts_scaffold_py href "pactkit-plugin/skills/pactkit-scaffold/scripts/scaffold.py"
-    _github_skills_pactkit_visualize_scripts_visualize_py["visualize.py"]
-    click _github_skills_pactkit_visualize_scripts_visualize_py href ".github/skills/pactkit-visualize/scripts/visualize.py"
-    _github_skills_pactkit_board_scripts_board_py["board.py"]
-    click _github_skills_pactkit_board_scripts_board_py href ".github/skills/pactkit-board/scripts/board.py"
-    _github_skills_pactkit_scaffold_scripts_spec_linter_py["spec_linter.py"]
-    click _github_skills_pactkit_scaffold_scripts_spec_linter_py href ".github/skills/pactkit-scaffold/scripts/spec_linter.py"
-    _github_skills_pactkit_scaffold_scripts_scaffold_py["scaffold.py"]
-    click _github_skills_pactkit_scaffold_scripts_scaffold_py href ".github/skills/pactkit-scaffold/scripts/scaffold.py"
     src_pactkit_config_py --> src_pactkit_profiles_py
     src_pactkit_lessons_py --> src_pactkit_schemas_py
     src_pactkit_guards_py --> src_pactkit___init___py
     src_pactkit_guards_py --> src_pactkit_config_py
-    src_pactkit_audit_py --> src_pactkit_skills_visualize_py
+    src_pactkit_audit_py --> src_pactkit___init___py
     src_pactkit_audit_py --> src_pactkit_garden_py
     src_pactkit_audit_py --> src_pactkit_config_py
     src_pactkit_audit_py --> src_pactkit_id_generator_py
@@ -134,20 +96,17 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_profiles_py
     src_pactkit_cli_py --> src_pactkit_schemas_py
     src_pactkit_cli_py --> src_pactkit_generators_deployer_py
-    src_pactkit_cli_py --> src_pactkit_skills_spec_linter_py
     src_pactkit_cli_py --> src_pactkit_guards_py
     src_pactkit_cli_py --> src_pactkit_config_py
     src_pactkit_cli_py --> src_pactkit_id_generator_py
     src_pactkit_cli_py --> src_pactkit_cleaners_py
     src_pactkit_cli_py --> src_pactkit_regression_py
-    src_pactkit_cli_py --> src_pactkit_skills_visualize_py
     src_pactkit_cli_py --> src_pactkit_context_gen_py
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
     src_pactkit_cli_py --> src_pactkit_lazy_visualize_py
     src_pactkit_cli_py --> src_pactkit_garden_py
     src_pactkit_cli_py --> src_pactkit_observe_py
-    src_pactkit_cli_py --> src_pactkit_skills_report_py
     src_pactkit_cli_py --> src_pactkit_audit_py
     src_pactkit_cli_py --> src_pactkit_doctor_py
     src_pactkit_cli_py --> src_pactkit_backfill_py
@@ -167,30 +126,16 @@ graph TD
     src_pactkit_doctor_py --> src_pactkit_profiles_py
     src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
     src_pactkit___main___py --> src_pactkit_cli_py
-    src_pactkit_prompts_skills_py --> src_pactkit_skills___init___py
+    src_pactkit_prompts_skills_py --> src_pactkit___init___py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py
-    src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers___init___py
-    src_pactkit_skills_visualize_py --> src_pactkit_skills_analyzers_python_analyzer_py
-    src_pactkit_skills_visualize_py --> src_pactkit_prompts_workflows_py
-    src_pactkit_skills_spec_linter_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_config_py
     src_pactkit_generators_deployer_py --> src_pactkit_generators_deploy_base_py
     src_pactkit_generators_deployer_py --> src_pactkit_profiles_py
-    src_pactkit_generators_deployer_py --> src_pactkit_skills___init___py
     src_pactkit_generators_deployer_py --> src_pactkit_utils_py
     src_pactkit_generators_deployer_py --> src_pactkit_schemas_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py
     src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_profiles_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_generators_deployer_py
-    src_pactkit_skills_analyzers_java_analyzer_py --> src_pactkit_skills_analyzers___init___py
-    src_pactkit_skills_analyzers_go_analyzer_py --> src_pactkit_skills_analyzers___init___py
-    src_pactkit_skills_analyzers_ts_analyzer_py --> src_pactkit_skills_analyzers___init___py
-    src_pactkit_skills_analyzers_python_analyzer_py --> src_pactkit_skills_analyzers___init___py
-    pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_skills_visualize_py
-    pactkit_plugin_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_prompts_workflows_py
-    _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_skills_visualize_py
-    _github_skills_pactkit_visualize_scripts_visualize_py --> src_pactkit_prompts_workflows_py
-    _github_skills_pactkit_scaffold_scripts_spec_linter_py --> src_pactkit_schemas_py

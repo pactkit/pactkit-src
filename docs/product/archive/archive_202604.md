@@ -269,3 +269,21 @@
 - [x] Update CLI help text
 - [x] Clean prompt references
 - [x] Update agent docs
+
+### [STORY-slim-107] Integrate tech debt prevention patterns into framework rules
+> Spec: docs/specs/STORY-slim-107.md
+
+- [x] Expand architecture §1 DRY with dual-write
+- [x] Expand architecture §6 Security (deny-by-default, input validation, timing)
+- [x] Add architecture §10 Code Enforces / LLM≠Calculator
+- [x] Add architecture §11 Concurrency & Async Safety
+- [x] Add architecture §12 Cache Lifecycle
+- [x] Add architecture §13 Dead Code Hygiene
+- [x] Add String→Enum to solution module
+- [x] Run test suite
+
+### [BUG-slim-107] Fix scan_excludes replacing defaults and hidden root module
+> Spec: docs/specs/BUG-slim-107.md
+
+- [x] Merge custom excludes with defaults
+- [x] Show root module in available list

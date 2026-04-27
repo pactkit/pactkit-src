@@ -53,3 +53,4 @@
 | 2026-04-23 | Rule files deploy from src/pactkit/prompts/rules.py via pactkit deploy — never edit ~/.claude/rules/ directly | src/pactkit/prompts/rules.py:RULES_MODULES |
 | 2026-04-24 | Plan Phase横向扫描(Lateral Scan)比纵向trace更重要——PactSearch的10个技术债中60%源于缺少水平重复检测。修复方向是改Plan playbook引导Architect用已有工具(LSP/visualize/grep)做横向扫描，而非新建CLI | commands.py:Plan_Phase_1 |
 | 2026-04-24 | When migrating functionality (e.g., version checking from pactkit.yaml to global marker), grep all references across source, prompts, tests, and CLI help text — partial migration leaves ghost behavior | board.py:update_version |
+| 2026-04-27 | When extracting project-specific rules into a framework, generalize by removing project names, library references, and spec IDs — keep only the anti-pattern/fix-pattern structure that applies to any codebase | rules.py:RULES_MODULES |

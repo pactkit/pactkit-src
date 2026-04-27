@@ -334,6 +334,21 @@ Write `docs/product/context.md` using this format:
 - When standalone scripts cannot import the library, they MUST inline the value with a comment pointing to the canonical source.
 - When updating a canonical value, search all inline copies with `grep` and update them in the same commit.
 
+### No Dual-Write
+- The same data MUST exist in exactly one authoritative location — two storage locations for the same truth source guarantees drift.
+- **Anti-patterns**:
+
+| Pattern | Example | Consequence |
+|---------|---------|-------------|
+| Memory + DB | In-memory object graph + relational DB both authoritative | Memory mutation not persisted; DB write silently dropped |
+| Cache + Source | TTL cache + DB both treated as truth | Cache returns stale data after DB update |
+| Frontend + Backend enums | UI status map + server enum defined independently | Values drift; frontend shows invalid state |
+| File + DB | Config file + database storing same records | File overwritten on save; DB orphaned |
+
+- **Fix pattern**: Choose ONE truth source. Others become:
+  - **Read cache**: populated from truth source, invalidated on write
+  - **Projection**: derived view, regenerated on demand
+
 ## 2. Open-Closed Principle (OCP)
 - Adding a new variant MUST NOT require modifying existing functions — violates OCP when adding the Nth case means editing a growing if/elif chain.
 - **Anti-pattern**: A `db_type` string checked in 13 if/elif branches across 6 files. Adding a new database type requires touching every branch — use a strategy pattern or registry instead.
@@ -364,6 +379,17 @@ Write `docs/product/context.md` using this format:
 - **Config isolation**: `_generate_config_if_missing(format=)` writes to the format-specific directory only. Never cross-write.
 - **No secret leakage**: `_render_prompt()` variables are all path-based, never credential-based.
 - **Standalone script safety**: Skill scripts (board.py, scaffold.py) MUST NOT execute arbitrary imports. Use `try/except ImportError` fallback for pactkit imports.
+- **Deny-by-Default**: Sensitive endpoints (metrics, admin, internal, debug) MUST require authentication by default — empty or missing config = denied, not allowed. Anti-pattern: `if settings.token: verify()` skips auth when token is empty.
+- **Input Validation Before External Systems**: User input entering URLs, commands, SQL, or file paths MUST be validated/escaped at the boundary.
+
+| Destination | Validation |
+|-------------|------------|
+| URL | Allowlist scheme + host; reject internal IPs (SSRF prevention) |
+| Shell command | Use list args, not shell=True |
+| SQL | Parameterized queries only |
+| File path | Reject `..`, resolve and check prefix |
+
+- **Security Timing Consistency**: Security-sensitive branches (authentication, authorization) MUST have consistent timing to prevent side-channel attacks — a fast-reject path that skips expensive operations (e.g., hash comparison) reveals information to attackers.
 
 ## 7. Template Rendering Safety
 - Use sequential `str.replace()` in `_render_prompt()` — NOT `str.format_map()` or f-strings.
@@ -393,6 +419,39 @@ Write `docs/product/context.md` using this format:
 
 - **Litmus test**: "Does this file contain content I did not generate?" → If yes, incremental merge. If unsure, incremental merge.
 - **Anti-pattern evidence**: BUG-010 (`_rewrite_yaml` destroyed user config), BUG-slim-089 (`_deploy_claude_md` overwrote user CLAUDE.md), STORY-033/STORY-slim-054 (backfill overwrote existing values). All were full-replace where merge was required.
+
+## 10. Code Enforces, Prompt Instructs
+- Deterministic constraints MUST be enforced by Code, not delegated to Prompt — if the LLM ignores the instruction, the constraint must still hold.
+- **Litmus test**: Remove the prompt instruction. Does the system still enforce the constraint? If no → Code enforcement required.
+
+| Constraint | Prompt-only (BAD) | Code-enforced (GOOD) |
+|------------|-------------------|----------------------|
+| Row limit | "Return at most 100 rows" | `validator.inject_limit(sql, 100)` |
+| Input length | "Keep under 500 chars" | `if len(input) > 500: raise ValidationError` |
+| Output format | "Return valid JSON" | `json.loads(response)` + retry on parse error |
+| Dynamic values | "Use today's date" | `datetime.now()` at runtime, not import time |
+
+- **Corollary (LLM ≠ Calculator)**: If input→output mapping is deterministic, use Code. LLM is for creativity, not computation. When demoting LLM to Code: implement deterministic version first, keep LLM as fallback for edge cases, remove fallback if it triggers <5%.
+
+## 11. Concurrency & Async Safety
+- Background tasks MUST NOT silently fail — every fire-and-forget pattern needs: error visibility (log or propagate), backpressure (queue with max size), and shutdown awareness (register with task manager).
+- Request-scoped state MUST be cleaned up in a finally block — leaked state contaminates subsequent requests on the same worker.
+- Shared mutable state accessed by multiple threads/tasks MUST be protected with appropriate synchronization (locks, semaphores). Semaphores SHOULD be lazily initialized at first use, not at import time.
+
+## 12. Cache Lifecycle
+- Every cache (decorator-based, module-level dict, TTL instance, singleton) MUST be registered in a central invalidation function.
+- Write operations that change cached data MUST declare which caches they affect and trigger invalidation.
+- Cache references MUST use the correct module path — moving a cached value to a different module without updating the invalidation registry silently breaks cache clearing.
+
+## 13. Dead Code Hygiene
+- Unused functions, empty/no-op middleware, and unwired components MUST be deleted or activated — dead code misleads readers into thinking it is load-bearing.
+
+| Type | Example | Action |
+|------|---------|--------|
+| Dead function | Function with 0 callers | Delete |
+| Empty middleware | Sets state that nothing reads | Delete |
+| Unwired component | Initialized but never started | Wire up or delete |
+| Commented code | `# old_impl()` blocks | Delete (git has history) |
 
 ## Quick Reference: Where to Make Changes
 
@@ -613,6 +672,16 @@ Do not hardcode values that may change (URLs, thresholds, timeouts, feature flag
 | Rules / playbooks | `run at most 8 files` | `run at most {MAX_TRACE_FILES} files` or define once, reference by name |
 | Specs | `use SQLite for storage` | `use persistent storage (see Technical Design for engine choice)` |
 | Config (YAML/JSON) | Inline URL `https://api.example.com` | `${API_BASE_URL}` or env-resolved placeholder |
+
+### String Literal → Enum (SHOULD)
+Any string value appearing in 3+ places SHOULD be promoted to a typed enum for IDE autocompletion, refactor safety, and compile-time typo detection.
+
+**Language patterns**:
+- Python: `class XType(str, enum.Enum)` — backward compatible with `==` string comparison
+- TypeScript: `const X = { A: "a", B: "b" } as const`
+- Go: `type X string; const A X = "a"`
+
+**Migration**: Define enum → replace all literals → verify no remaining raw strings with `grep -rn '"old_value"' src/`
 
 ### Open-Closed Principle (SHOULD)
 Design new code to be extensible without modification. If adding a new variant requires `if/elif` chains, consider a registry or strategy pattern instead.
