@@ -102,6 +102,7 @@ When skipping a SHOULD requirement, leave a traceable comment:
 | `docs/architecture/graphs/*.mmd` | Architecture Graphs -- Mermaid Architecture Diagrams |
 | `tests/unit/` | Unit Tests |
 | `tests/e2e/` | E2E Integration Tests |
+| `docs/e2e/journey.md` | User Journey Definitions -- E2E cross-story user flow specs |
 | `docs/product/archive/` | Archived Stories |
 | `docs/product/prd.md` | Product Requirements Document (PRD) |
 """,

@@ -394,3 +394,108 @@ class TestBackwardCompatibilityStory059:
         p = _prompts()
         content = p.COMMANDS_CONTENT['project-design.md']
         assert 'PRD Generation' in content
+
+
+# ===========================================================================
+# STORY-slim-110: User Journey Generation in Design Phase
+# ===========================================================================
+
+
+class TestUserJourneySection:
+    """STORY-slim-110 S1: Section 1.5.5 User Journeys exists in DESIGN_PROMPT."""
+
+    def test_section_exists(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert '### 1.5.5 User Journeys' in content
+
+    def test_section_between_1_5_and_1_6(self):
+        """AC4: Section 1.5.5 is positioned after 1.5 and before 1.6."""
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        idx_15 = content.index('### 1.5 Page/Screen Design')
+        idx_155 = content.index('### 1.5.5 User Journeys')
+        idx_16 = content.index('### 1.6 Prototype Generation')
+        assert idx_15 < idx_155 < idx_16
+
+
+class TestUserJourneyOutputPath:
+    """STORY-slim-110 S2: Section 1.5.5 specifies docs/e2e/journey.md output."""
+
+    def test_output_path_mentioned(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        assert 'docs/e2e/journey.md' in content
+
+
+class TestUserJourneyPersonaCoverage:
+    """STORY-slim-110 S3 (R2): Each Persona should have at least one journey."""
+
+    def test_persona_coverage_instruction(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        # The section must instruct coverage of all personas
+        section_start = content.index('### 1.5.5 User Journeys')
+        section_end = content.index('### 1.6 Prototype Generation')
+        section = content[section_start:section_end]
+        assert 'persona' in section.lower() or 'Persona' in section
+
+
+class TestUserJourneyMvpCap:
+    """STORY-slim-110 S4 (R4): MVP journeys capped at 5."""
+
+    def test_cap_instruction(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        section_start = content.index('### 1.5.5 User Journeys')
+        section_end = content.index('### 1.6 Prototype Generation')
+        section = content[section_start:section_end]
+        assert '5' in section
+
+
+class TestUserJourneyFormatReference:
+    """STORY-slim-110 S5: Section references STORY-slim-109 format spec."""
+
+    def test_format_reference(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        section_start = content.index('### 1.5.5 User Journeys')
+        section_end = content.index('### 1.6 Prototype Generation')
+        section = content[section_start:section_end]
+        # Must reference the format elements from journey.md spec
+        lower = section.lower()
+        assert '[client]' in lower or '[server]' in lower or 'execution layer' in lower
+
+
+class TestUserJourneyStoryAnnotation:
+    """STORY-slim-110 S6 (R3): Phase 3 mentions journey-story mapping."""
+
+    def test_phase3_journey_annotation(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        # Phase 3 is Story Decomposition
+        phase3_start = content.index('## ' + '\U0001f3ac Phase 3')
+        # Find end of Phase 3 (next top-level ## heading at line start)
+        phase3_end = content.index('\n## ', phase3_start + 1)
+        phase3 = content[phase3_start:phase3_end]
+        assert 'journey' in phase3.lower() or 'Journey' in phase3
+
+
+class TestUserJourneySectionExistingOrder:
+    """STORY-slim-110 S7: Existing section order (1.1-2.0) still intact."""
+
+    def test_all_main_sections_sequential(self):
+        p = _prompts()
+        content = p.COMMANDS_CONTENT['project-design.md']
+        expected = [
+            '### 1.1', '### 1.2', '### 1.3', '### 1.4', '### 1.5 ',
+            '### 1.5.5', '### 1.6', '### 1.7', '### 1.8', '### 1.9', '### 2.0',
+        ]
+        indices = []
+        for sec in expected:
+            assert sec in content, f"Missing section {sec}"
+            indices.append(content.index(sec))
+        for i in range(len(indices) - 1):
+            assert indices[i] < indices[i + 1], (
+                f"Section {expected[i]} not before {expected[i+1]}"
+            )

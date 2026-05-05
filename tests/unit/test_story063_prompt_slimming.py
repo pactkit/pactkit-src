@@ -205,7 +205,10 @@ class TestAC6DevRefGhostResolved:
 # audit --if-needed in Done playbook
 # STORY-slim-100: bumped +1212 for Hotfix Phase 0.5 Impact Check
 # STORY-slim-101: bumped +800 for Solution Design Protocol in Plan/Act
-BASELINE_TOTAL_CHARS = 83800
+# STORY-slim-109: bumped +540 for Check Phase 4 Journey-Based Coverage
+# STORY-slim-110: bumped +1160 for Design Phase 1.5.5 User Journeys
+# STORY-slim-111: bumped +1398 for Check Phase 4 Playwright Assertion Strategy
+BASELINE_TOTAL_CHARS = 87103
 
 
 class TestAC7PromptSizeReduced:

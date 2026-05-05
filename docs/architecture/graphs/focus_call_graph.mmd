@@ -1,8 +1,4 @@
 graph TD
-    AgentParser_detect["AgentParser.detect"]
-    AgentParser_parse["AgentParser.parse"]
-    ApiCallParser_detect["ApiCallParser.detect"]
-    ApiCallParser_parse["ApiCallParser.parse"]
     ClassicDeployer_deploy["ClassicDeployer.deploy"]
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
@@ -10,68 +6,14 @@ graph TD
     DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
     DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
     DeployerBase_render_prompt["DeployerBase.render_prompt"]
-    FrontendParser_parse["FrontendParser.parse"]
-    GoAnalyzer__captures["GoAnalyzer._captures"]
-    GoAnalyzer__extract_calls_from_body["GoAnalyzer._extract_calls_from_body"]
-    GoAnalyzer__extract_funcs_and_calls["GoAnalyzer._extract_funcs_and_calls"]
-    GoAnalyzer__find_nearest_go_mod["GoAnalyzer._find_nearest_go_mod"]
-    GoAnalyzer__matches["GoAnalyzer._matches"]
-    GoAnalyzer_extract_classes["GoAnalyzer.extract_classes"]
-    GoAnalyzer_extract_functions_and_calls["GoAnalyzer.extract_functions_and_calls"]
-    GoAnalyzer_extract_imports["GoAnalyzer.extract_imports"]
-    GoAnalyzer_normalize_import["GoAnalyzer.normalize_import"]
-    JavaAnalyzer__captures["JavaAnalyzer._captures"]
-    JavaAnalyzer__extract_calls_from_body["JavaAnalyzer._extract_calls_from_body"]
-    JavaAnalyzer__extract_funcs_and_calls["JavaAnalyzer._extract_funcs_and_calls"]
-    JavaAnalyzer__matches["JavaAnalyzer._matches"]
-    JavaAnalyzer_extract_functions_and_calls["JavaAnalyzer.extract_functions_and_calls"]
-    JavaAnalyzer_extract_imports["JavaAnalyzer.extract_imports"]
-    LanguageAnalyzer_extract_functions_and_calls["LanguageAnalyzer.extract_functions_and_calls"]
-    LanguageAnalyzer_extract_imports["LanguageAnalyzer.extract_imports"]
-    PdcaParser_detect["PdcaParser.detect"]
-    PdcaParser_parse["PdcaParser.parse"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
-    PythonAnalyzer_extract_functions_and_calls["PythonAnalyzer.extract_functions_and_calls"]
-    ServiceParser_parse["ServiceParser.parse"]
-    TSAnalyzer__captures["TSAnalyzer._captures"]
-    TSAnalyzer__extract_calls_from_body["TSAnalyzer._extract_calls_from_body"]
-    TSAnalyzer__extract_funcs_and_calls["TSAnalyzer._extract_funcs_and_calls"]
-    TSAnalyzer__find_nearest_config["TSAnalyzer._find_nearest_config"]
-    TSAnalyzer__load_tsconfig_paths["TSAnalyzer._load_tsconfig_paths"]
-    TSAnalyzer__load_tsconfig_paths_for["TSAnalyzer._load_tsconfig_paths_for"]
-    TSAnalyzer__matches["TSAnalyzer._matches"]
-    TSAnalyzer_extract_functions_and_calls["TSAnalyzer.extract_functions_and_calls"]
-    TSAnalyzer_extract_imports["TSAnalyzer.extract_imports"]
-    TSAnalyzer_normalize_import["TSAnalyzer.normalize_import"]
-    TopologyParser_detect["TopologyParser.detect"]
-    TopologyParser_parse["TopologyParser.parse"]
-    TreeSitterAnalyzer__captures["TreeSitterAnalyzer._captures"]
-    TreeSitterAnalyzer__compute_complexity["TreeSitterAnalyzer._compute_complexity"]
-    TreeSitterAnalyzer__extract_calls_from_body["TreeSitterAnalyzer._extract_calls_from_body"]
-    TreeSitterAnalyzer__extract_funcs_and_calls["TreeSitterAnalyzer._extract_funcs_and_calls"]
-    TreeSitterAnalyzer__matches["TreeSitterAnalyzer._matches"]
-    TreeSitterAnalyzer_extract_functions_and_calls["TreeSitterAnalyzer.extract_functions_and_calls"]
-    TreeSitterAnalyzer_extract_imports["TreeSitterAnalyzer.extract_imports"]
-    WorkflowGraph__sanitize_id["WorkflowGraph._sanitize_id"]
-    WorkflowGraph_to_mermaid["WorkflowGraph.to_mermaid"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
-    _atomic_mmd_write["_atomic_mmd_write"]
-    _best_match["_best_match"]
-    _build_audit_panel_html["_build_audit_panel_html"]
-    _build_bridge_edges["_build_bridge_edges"]
-    _build_call_graph["_build_call_graph"]
-    _build_class_graph["_build_class_graph"]
     _build_command_rules_header["_build_command_rules_header"]
-    _build_file_graph["_build_file_graph"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
-    _build_module_graph["_build_module_graph"]
-    _build_reverse_graph["_build_reverse_graph"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
-    _build_suffix_index["_build_suffix_index"]
-    _check_acceptance_criteria["_check_acceptance_criteria"]
     _check_code_smells["_check_code_smells"]
     _check_dependency_health["_check_dependency_health"]
     _check_docstring_coverage["_check_docstring_coverage"]
@@ -83,17 +25,8 @@ graph TD
     _check_h5["_check_h5"]
     _check_h6["_check_h6"]
     _check_h7["_check_h7"]
-    _check_implementation_steps["_check_implementation_steps"]
-    _check_metadata["_check_metadata"]
-    _check_optional_sections["_check_optional_sections"]
-    _check_req_ac_coverage["_check_req_ac_coverage"]
-    _check_requirements_section["_check_requirements_section"]
-    _check_security_scope["_check_security_scope"]
     _check_test_coverage["_check_test_coverage"]
-    _classify_complexity["_classify_complexity"]
     _classify_coverage["_classify_coverage"]
-    _classify_file["_classify_file"]
-    _classify_story["_classify_story"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
     _collect_findings["_collect_findings"]
@@ -101,7 +34,6 @@ graph TD
     _collect_signals["_collect_signals"]
     _compute_hotspots["_compute_hotspots"]
     _compute_layer_level["_compute_layer_level"]
-    _compute_python_complexity["_compute_python_complexity"]
     _compute_score["_compute_score"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
@@ -111,146 +43,78 @@ graph TD
     _deploy_claude_md["_deploy_claude_md"]
     _deploy_claude_md_inline["_deploy_claude_md_inline"]
     _deploy_commands["_deploy_commands"]
-    _deploy_hooks["_deploy_hooks"]
     _deploy_marketplace["_deploy_marketplace"]
     _deploy_marketplace_json["_deploy_marketplace_json"]
     _deploy_plugin["_deploy_plugin"]
     _deploy_plugin_json["_deploy_plugin_json"]
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
-    _detect_file_ext["_detect_file_ext"]
     _detect_ghe["_detect_ghe"]
-    _detect_modules["_detect_modules"]
-    _detect_stack["_detect_stack"]
-    _detect_stacks["_detect_stacks"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
-    _extract_body["_extract_body"]
-    _extract_calls["_extract_calls"]
     _extract_module_path["_extract_module_path"]
-    _extract_node_id["_extract_node_id"]
-    _extract_requirement_ids["_extract_requirement_ids"]
     _extract_sprint_contract["_extract_sprint_contract"]
-    _find_enclosing_class["_find_enclosing_class"]
-    _find_enclosing_func_name["_find_enclosing_func_name"]
-    _find_entry_func["_find_entry_func"]
     _find_existing_spec["_find_existing_spec"]
-    _find_section["_find_section"]
-    _format_result["_format_result"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
     _generate_continuation["_generate_continuation"]
-    _generate_one["_generate_one"]
     _generate_project_claude_md["_generate_project_claude_md"]
     _generate_suggested_tasks["_generate_suggested_tasks"]
     _get_command_rules["_get_command_rules"]
-    _get_d3_source["_get_d3_source"]
     _get_done_ids["_get_done_ids"]
     _get_git_branches["_get_git_branches"]
+    _get_global_version_marker["_get_global_version_marker"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
-    _get_used_fetch_functions["_get_used_fetch_functions"]
     _has_dir_with_files["_has_dir_with_files"]
-    _inject_developer_prefix["_inject_developer_prefix"]
+    _inside_protected["_inside_protected"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
-    _is_local_import["_is_local_import"]
     _is_pactkit_managed_global_md["_is_pactkit_managed_global_md"]
     _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
-    _langgraph_process_call["_langgraph_process_call"]
-    _line_number["_line_number"]
-    _load_audit_data["_load_audit_data"]
-    _load_code_graph["_load_code_graph"]
     _load_entry_point_deployers["_load_entry_point_deployers"]
-    _load_layer_config["_load_layer_config"]
-    _load_overlay["_load_overlay"]
-    _load_scan_excludes["_load_scan_excludes"]
-    _load_stub_edges["_load_stub_edges"]
-    _mark_done["_mark_done"]
     _max_nesting_depth["_max_nesting_depth"]
-    _mermaid_escape["_mermaid_escape"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _parse_active_stories["_parse_active_stories"]
-    _parse_app_router_pages["_parse_app_router_pages"]
     _parse_board["_parse_board"]
-    _parse_class_diagram["_parse_class_diagram"]
-    _parse_commands["_parse_commands"]
-    _parse_component_imports["_parse_component_imports"]
     _parse_coverage_output["_parse_coverage_output"]
-    _parse_docker_compose["_parse_docker_compose"]
-    _parse_graph_td["_parse_graph_td"]
-    _parse_hook_store_imports["_parse_hook_store_imports"]
     _parse_item_type["_parse_item_type"]
-    _parse_langgraph_ast["_parse_langgraph_ast"]
     _parse_last_lessons["_parse_last_lessons"]
-    _parse_mcp_settings["_parse_mcp_settings"]
-    _parse_mmd["_parse_mmd"]
-    _parse_mq_config["_parse_mq_config"]
-    _parse_openapi["_parse_openapi"]
-    _parse_pages_router["_parse_pages_router"]
-    _parse_pdca_sequence["_parse_pdca_sequence"]
-    _parse_proto_files["_parse_proto_files"]
     _parse_recent_completions["_parse_recent_completions"]
-    _parse_routing_table["_parse_routing_table"]
-    _parse_story_blocks["_parse_story_blocks"]
-    _parse_vue_routes["_parse_vue_routes"]
-    _parse_yaml_agents["_parse_yaml_agents"]
+    _parse_version["_parse_version"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _python_files["_python_files"]
     _read_content["_read_content"]
-    _read_developer_prefix["_read_developer_prefix"]
-    _render_html["_render_html"]
-    _render_nested_call_graph["_render_nested_call_graph"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
-    _render_unified_html["_render_unified_html"]
     _repair_table_structure["_repair_table_structure"]
-    _resolve_callee["_resolve_callee"]
     _resolve_scope["_resolve_scope"]
-    _resolve_test_path["_resolve_test_path"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
     _rewrite_yaml["_rewrite_yaml"]
     _rotate_if_needed["_rotate_if_needed"]
     _run_pytest_cov["_run_pytest_cov"]
     _sanitize_text["_sanitize_text"]
     _scaffold_audit_spec["_scaffold_audit_spec"]
-    _scan_call_edges["_scan_call_edges"]
-    _scan_files["_scan_files"]
-    _scan_hooks["_scan_hooks"]
-    _scan_mq_source_patterns["_scan_mq_source_patterns"]
-    _scan_skill_files["_scan_skill_files"]
-    _scan_stores["_scan_stores"]
     _schema_command["_schema_command"]
     _search_issue["_search_issue"]
-    _section_text["_section_text"]
-    _select_analyzer["_select_analyzer"]
-    _select_analyzers["_select_analyzers"]
     _should_refresh_audit["_should_refresh_audit"]
-    _strip_code_blocks["_strip_code_blocks"]
     _suggest_action["_suggest_action"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _warn_deploy_violations["_warn_deploy_violations"]
     _write_audit_json["_write_audit_json"]
-    _write_board["_write_board"]
-    add_story["add_story"]
-    api_convention_summary["api_convention_summary"]
     append_lesson["append_lesson"]
-    archive_stories["archive_stories"]
     atomic_write["atomic_write"]
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
-    blast_radius["blast_radius"]
     build_report["build_report"]
-    build_unified_graph["build_unified_graph"]
-    build_workflow_graph["build_workflow_graph"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
     check_coverage["check_coverage"]
@@ -265,48 +129,28 @@ graph TD
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
-    complexity["complexity"]
-    create_board["create_board"]
-    create_e2e["create_e2e"]
-    create_prd["create_prd"]
-    create_skill["create_skill"]
-    create_spec["create_spec"]
-    create_test_file["create_test_file"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_stack["detect_stack"]
     detect_stacks["detect_stacks"]
-    detect_topology["detect_topology"]
     detect_venv["detect_venv"]
-    export_focus_graphs["export_focus_graphs"]
     find_pactkit_yaml["find_pactkit_yaml"]
-    fix_board["fix_board"]
     format_markdown_table["format_markdown_table"]
-    generate["generate"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     get_default_config["get_default_config"]
     get_profile["get_profile"]
-    git_start["git_start"]
-    impact["impact"]
-    init_architecture["init_architecture"]
     is_environment_format["is_environment_format"]
     issue_sync["issue_sync"]
-    layers["layers"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
-    list_stories["list_stories"]
     load_config["load_config"]
-    load_script["load_script"]
     main["main"]
     map_to_tests["map_to_tests"]
-    move_story["move_story"]
     next_story_id["next_story_id"]
-    nl["nl"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
-    regression_workflow_impact["regression_workflow_impact"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_garden["run_garden"]
     run_lint["run_lint"]
@@ -318,12 +162,8 @@ graph TD
     strip_frontmatter["strip_frontmatter"]
     transform["transform"]
     update_spec_status["update_spec_status"]
-    update_task["update_task"]
     update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
-    validate_spec["validate_spec"]
-    visualize["visualize"]
-    workflow_impact["workflow_impact"]
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
     resolve_pactkit_yaml_dir --> is_environment_format
@@ -347,8 +187,9 @@ graph TD
     append_lesson --> _is_specific
     check_init_markers --> find_pactkit_yaml
     check_config_completeness --> find_pactkit_yaml
-    check_version_mismatch --> find_pactkit_yaml
-    check_version_mismatch --> load_config
+    check_version_mismatch --> _get_global_version_marker
+    check_version_mismatch --> _parse_version
+    check_version_mismatch --> _parse_version
     _has_dir_with_files --> _all_config_dirs
     _check_h1 --> _has_dir_with_files
     _check_h1 --> _has_dir_with_files
@@ -370,21 +211,13 @@ graph TD
     _check_h6 --> _compute_layer_level
     _check_h7 --> _compute_layer_level
     _collect_findings --> check_dead_imports
-    _check_test_coverage --> _resolve_test_path
     _check_code_smells --> _max_nesting_depth
     _max_nesting_depth --> _max_nesting_depth
     _max_nesting_depth --> _max_nesting_depth
-    _compute_hotspots --> _load_scan_excludes
-    _compute_hotspots --> _detect_stacks
-    _compute_hotspots --> _load_layer_config
     _compute_hotspots --> _check_test_coverage
     _compute_hotspots --> _check_docstring_coverage
     _compute_hotspots --> _check_code_smells
     _compute_hotspots --> _suggest_action
-    _compute_hotspots --> _select_analyzer
-    _compute_hotspots --> _classify_file
-    _compute_hotspots --> _scan_files
-    _compute_hotspots --> _classify_file
     _generate_suggested_tasks --> _find_existing_spec
     _generate_suggested_tasks --> next_story_id
     _generate_suggested_tasks --> _scaffold_audit_spec
@@ -439,7 +272,6 @@ graph TD
     run_observe --> classify_signals
     run_observe --> build_report
     main --> deploy
-    main --> load_config
     main --> _schema_command
     main --> check_init_markers
     main --> check_version_mismatch
@@ -447,7 +279,6 @@ graph TD
     main --> next_story_id
     main --> clean_artifacts
     main --> classify_changes
-    main --> regression_workflow_impact
     main --> generate_context
     main --> detect_security_scope
     main --> format_markdown_table
@@ -473,13 +304,11 @@ graph TD
     main --> update_spec_status
     main --> detect_stacks
     main --> update_yaml_stack
-    main --> validate_spec
-    main --> _format_result
-    main --> validate_spec
-    main --> _format_result
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
+    clean_artifacts --> _inside_protected
+    clean_artifacts --> _inside_protected
     _parse_coverage_output --> _classify_coverage
     check_coverage --> _parse_coverage_output
     check_coverage --> _extract_module_path
@@ -493,242 +322,6 @@ graph TD
     map_to_tests --> detect_stack
     check_config_drift --> find_pactkit_yaml
     check_stale_graphs --> load_config
-    add_story --> _parse_story_blocks
-    add_story --> nl
-    add_story --> nl
-    add_story --> nl
-    add_story --> nl
-    add_story --> nl
-    add_story --> nl
-    add_story --> nl
-    fix_board --> _parse_story_blocks
-    fix_board --> _classify_story
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    fix_board --> nl
-    update_task --> _mark_done
-    update_task --> _write_board
-    update_task --> fix_board
-    move_story --> _parse_story_blocks
-    move_story --> nl
-    move_story --> nl
-    move_story --> nl
-    move_story --> nl
-    move_story --> nl
-    move_story --> nl
-    move_story --> nl
-    list_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    archive_stories --> nl
-    load_script --> _extract_body
-    load_script --> _extract_body
-    init_architecture --> nl
-    init_architecture --> nl
-    _detect_stack --> _detect_stacks
-    _detect_file_ext --> _detect_stack
-    _build_module_graph --> _atomic_mmd_write
-    _build_module_graph --> _select_analyzer
-    _select_analyzers --> _select_analyzer
-    _build_file_graph --> _load_layer_config
-    _build_file_graph --> _extract_node_id
-    _build_file_graph --> _classify_file
-    _build_file_graph --> _best_match
-    _build_file_graph --> _extract_node_id
-    _build_file_graph --> nl
-    _build_file_graph --> _mermaid_escape
-    _build_file_graph --> _extract_node_id
-    _build_class_graph --> nl
-    _build_call_graph --> _load_stub_edges
-    _build_call_graph --> _build_suffix_index
-    _build_call_graph --> _render_nested_call_graph
-    _build_call_graph --> _resolve_callee
-    _build_call_graph --> _resolve_callee
-    _build_call_graph --> nl
-    _build_call_graph --> nl
-    _build_call_graph --> _mermaid_escape
-    _build_call_graph --> _mermaid_escape
-    _render_nested_call_graph --> nl
-    _render_nested_call_graph --> _mermaid_escape
-    _build_reverse_graph --> _build_suffix_index
-    _build_reverse_graph --> _find_entry_func
-    _build_reverse_graph --> _resolve_callee
-    impact --> _load_scan_excludes
-    impact --> _detect_stacks
-    impact --> _select_analyzer
-    impact --> _scan_call_edges
-    impact --> _build_reverse_graph
-    impact --> _scan_files
-    impact --> _resolve_test_path
-    visualize --> _load_scan_excludes
-    visualize --> _detect_stacks
-    visualize --> _atomic_mmd_write
-    visualize --> build_unified_graph
-    visualize --> _atomic_mmd_write
-    visualize --> build_workflow_graph
-    visualize --> _atomic_mmd_write
-    visualize --> _detect_modules
-    visualize --> _build_module_graph
-    visualize --> _detect_modules
-    visualize --> _select_analyzer
-    visualize --> _detect_modules
-    visualize --> _build_class_graph
-    visualize --> export_focus_graphs
-    visualize --> _scan_files
-    visualize --> _build_module_graph
-    visualize --> _build_file_graph
-    visualize --> _scan_call_edges
-    visualize --> _build_reverse_graph
-    visualize --> _find_entry_func
-    visualize --> _render_nested_call_graph
-    visualize --> _build_call_graph
-    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
-    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
-    WorkflowGraph_to_mermaid --> nl
-    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
-    WorkflowGraph_to_mermaid --> WorkflowGraph__sanitize_id
-    WorkflowGraph_to_mermaid --> _mermaid_escape
-    WorkflowGraph_to_mermaid --> _mermaid_escape
-    TopologyParser_detect --> PdcaParser_detect
-    TopologyParser_detect --> ApiCallParser_detect
-    TopologyParser_detect --> AgentParser_detect
-    TopologyParser_parse --> PdcaParser_parse
-    TopologyParser_parse --> ServiceParser_parse
-    TopologyParser_parse --> FrontendParser_parse
-    TopologyParser_parse --> ApiCallParser_parse
-    TopologyParser_parse --> AgentParser_parse
-    PdcaParser_parse --> _parse_commands
-    PdcaParser_parse --> _parse_routing_table
-    PdcaParser_parse --> _scan_skill_files
-    PdcaParser_parse --> _parse_pdca_sequence
-    ServiceParser_parse --> _parse_docker_compose
-    ServiceParser_parse --> _parse_openapi
-    ServiceParser_parse --> _parse_proto_files
-    ServiceParser_parse --> _parse_mq_config
-    ServiceParser_parse --> _scan_mq_source_patterns
-    _parse_component_imports --> _is_local_import
-    _parse_component_imports --> _is_local_import
-    _parse_hook_store_imports --> _is_local_import
-    _parse_hook_store_imports --> _is_local_import
-    FrontendParser_parse --> _parse_component_imports
-    FrontendParser_parse --> _scan_hooks
-    FrontendParser_parse --> _scan_stores
-    FrontendParser_parse --> _parse_hook_store_imports
-    FrontendParser_parse --> _parse_app_router_pages
-    FrontendParser_parse --> _parse_pages_router
-    FrontendParser_parse --> _parse_vue_routes
-    ApiCallParser_parse --> _find_enclosing_func_name
-    _parse_langgraph_ast --> _langgraph_process_call
-    _parse_langgraph_ast --> _langgraph_process_call
-    AgentParser_parse --> _parse_yaml_agents
-    AgentParser_parse --> _parse_langgraph_ast
-    AgentParser_parse --> _parse_mcp_settings
-    api_convention_summary --> _get_used_fetch_functions
-    regression_workflow_impact --> build_workflow_graph
-    workflow_impact --> build_workflow_graph
-    workflow_impact --> nl
-    build_workflow_graph --> detect_topology
-    _load_code_graph --> _detect_stacks
-    _load_code_graph --> _load_scan_excludes
-    _load_code_graph --> _build_suffix_index
-    _load_code_graph --> _select_analyzer
-    _load_code_graph --> _resolve_callee
-    _load_code_graph --> _scan_files
-    build_unified_graph --> build_workflow_graph
-    build_unified_graph --> _load_code_graph
-    build_unified_graph --> _build_bridge_edges
-    export_focus_graphs --> _atomic_mmd_write
-    blast_radius --> _load_scan_excludes
-    blast_radius --> _detect_stacks
-    blast_radius --> _select_analyzer
-    blast_radius --> _scan_call_edges
-    blast_radius --> _build_suffix_index
-    blast_radius --> _find_entry_func
-    blast_radius --> _select_analyzer
-    blast_radius --> _scan_files
-    blast_radius --> _scan_files
-    blast_radius --> _resolve_callee
-    blast_radius --> _best_match
-    complexity --> _load_scan_excludes
-    complexity --> _detect_stacks
-    complexity --> _select_analyzer
-    complexity --> _scan_files
-    complexity --> nl
-    complexity --> _classify_complexity
-    layers --> _load_scan_excludes
-    layers --> _load_layer_config
-    layers --> _detect_stacks
-    layers --> _select_analyzer
-    layers --> _classify_file
-    layers --> _scan_files
-    layers --> _best_match
-    _find_section --> _line_number
-    _section_text --> _find_section
-    _check_requirements_section --> _section_text
-    _check_acceptance_criteria --> _section_text
-    _check_acceptance_criteria --> _section_text
-    _check_req_ac_coverage --> _section_text
-    _check_req_ac_coverage --> _section_text
-    _check_req_ac_coverage --> _extract_requirement_ids
-    _check_implementation_steps --> _section_text
-    _check_optional_sections --> _section_text
-    _check_optional_sections --> _section_text
-    _check_optional_sections --> _section_text
-    _check_optional_sections --> _section_text
-    _check_security_scope --> _section_text
-    validate_spec --> _strip_code_blocks
-    validate_spec --> _check_metadata
-    validate_spec --> _check_requirements_section
-    validate_spec --> _check_acceptance_criteria
-    validate_spec --> _check_optional_sections
-    validate_spec --> _check_implementation_steps
-    validate_spec --> _check_req_ac_coverage
-    validate_spec --> _check_security_scope
-    git_start --> _inject_developer_prefix
-    create_test_file --> nl
-    create_e2e --> _inject_developer_prefix
-    create_e2e --> nl
-    _inject_developer_prefix --> _read_developer_prefix
-    create_spec --> _inject_developer_prefix
-    create_skill --> nl
-    create_skill --> nl
-    create_board --> nl
-    create_prd --> nl
-    _parse_mmd --> _parse_graph_td
-    _parse_mmd --> _parse_class_diagram
-    _render_unified_html --> _get_d3_source
-    _render_unified_html --> _build_audit_panel_html
-    generate --> _generate_one
-    generate --> _load_audit_data
-    generate --> _render_unified_html
-    generate --> _load_overlay
-    generate --> _parse_mmd
-    _generate_one --> _parse_mmd
-    _generate_one --> _render_html
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
@@ -750,8 +343,8 @@ graph TD
     _deploy_classic --> _cleanup_legacy_commands
     _deploy_classic --> _deploy_commands
     _deploy_classic --> _deploy_ci
-    _deploy_classic --> _deploy_hooks
     _deploy_classic --> _generate_config_if_missing
+    _deploy_classic --> atomic_write
     _deploy_classic --> _print_mcp_recommendations
     _deploy_classic --> find_pactkit_yaml
     _deploy_classic --> auto_merge_config_file
@@ -771,10 +364,6 @@ graph TD
     _deploy_skills --> atomic_write
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
-    _deploy_skills --> load_script
-    _deploy_skills --> load_script
-    _deploy_skills --> load_script
-    _deploy_skills --> load_script
     _deploy_skills --> _warn_deploy_violations
     _deploy_skills --> _warn_deploy_violations
     _deploy_rules --> _build_rule_id_to_key
@@ -807,7 +396,6 @@ graph TD
     _deploy_ci --> _build_gitlab_ci
     _deploy_ci --> atomic_write
     _deploy_ci --> _detect_ghe
-    _deploy_hooks --> atomic_write
     _generate_config_if_missing --> detect_stacks
     _generate_config_if_missing --> resolve_pactkit_yaml_dir
     _generate_config_if_missing --> atomic_write
@@ -835,45 +423,3 @@ graph TD
     DeployerBase_deploy_agents --> _deploy_agents
     DeployerBase_deploy_commands --> _deploy_commands
     DeployerBase_deploy_ci --> _deploy_ci
-    JavaAnalyzer_extract_imports --> JavaAnalyzer__captures
-    JavaAnalyzer_extract_functions_and_calls --> JavaAnalyzer__extract_funcs_and_calls
-    JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
-    JavaAnalyzer__extract_calls_from_body --> JavaAnalyzer__captures
-    JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__matches
-    JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__matches
-    JavaAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
-    JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_calls_from_body
-    JavaAnalyzer__extract_funcs_and_calls --> JavaAnalyzer__extract_calls_from_body
-    GoAnalyzer_extract_imports --> GoAnalyzer__captures
-    GoAnalyzer_extract_functions_and_calls --> GoAnalyzer__extract_funcs_and_calls
-    GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
-    GoAnalyzer__extract_calls_from_body --> GoAnalyzer__captures
-    GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__matches
-    GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__matches
-    GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
-    GoAnalyzer__extract_funcs_and_calls --> GoAnalyzer__extract_calls_from_body
-    GoAnalyzer_extract_classes --> GoAnalyzer__matches
-    GoAnalyzer_normalize_import --> GoAnalyzer__find_nearest_go_mod
-    TSAnalyzer_extract_imports --> TSAnalyzer__captures
-    TSAnalyzer_extract_functions_and_calls --> TSAnalyzer__extract_funcs_and_calls
-    TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
-    TSAnalyzer__extract_calls_from_body --> TSAnalyzer__captures
-    TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__matches
-    TSAnalyzer__extract_funcs_and_calls --> _find_enclosing_class
-    TSAnalyzer__extract_funcs_and_calls --> TSAnalyzer__extract_calls_from_body
-    TSAnalyzer_normalize_import --> TSAnalyzer__load_tsconfig_paths_for
-    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__find_nearest_config
-    TSAnalyzer__load_tsconfig_paths_for --> TSAnalyzer__load_tsconfig_paths
-    LanguageAnalyzer_extract_imports --> TreeSitterAnalyzer_extract_imports
-    LanguageAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer_extract_functions_and_calls
-    TreeSitterAnalyzer_extract_imports --> TreeSitterAnalyzer__captures
-    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__extract_funcs_and_calls
-    TreeSitterAnalyzer_extract_functions_and_calls --> TreeSitterAnalyzer__compute_complexity
-    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
-    TreeSitterAnalyzer__compute_complexity --> TreeSitterAnalyzer__matches
-    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
-    TreeSitterAnalyzer__extract_calls_from_body --> TreeSitterAnalyzer__captures
-    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
-    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity
-    PythonAnalyzer_extract_functions_and_calls --> _extract_calls
-    PythonAnalyzer_extract_functions_and_calls --> _compute_python_complexity
