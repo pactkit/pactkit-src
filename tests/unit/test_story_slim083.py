@@ -14,12 +14,13 @@ class TestBuildCommandRulesHeaderOCP:
 
         return _build_command_rules_header(cmd_name, profile, config=config)
 
-    def _make_profile(self, *, name, rules_import_style, rules_dir="rules"):
+    def _make_profile(self, *, name, rules_import_style, rules_dir="~/.claude/rules", skills_dir="~/.claude/skills"):
         """Create a minimal mock FormatProfile."""
         p = MagicMock()
         p.name = name
         p.rules_import_style = rules_import_style
         p.rules_dir = rules_dir
+        p.skills_dir = skills_dir
         return p
 
     def test_inline_style_returns_content_regardless_of_name(self):
@@ -35,7 +36,8 @@ class TestBuildCommandRulesHeaderOCP:
         """Classic profile with rules_import_style='@import' should get @import lines."""
         profile = self._make_profile(name="classic", rules_import_style="@import")
         result = self._call(profile)
-        assert "@~/.claude/rules/" in result
+        # On-demand rules use @import from skills/_rules/; global rules are auto-loaded (no @import)
+        assert "@~/.claude/skills/_rules/" in result
         assert "<!-- rules-end -->" not in result
 
     def test_fake_name_with_inline_style_still_inlines(self):

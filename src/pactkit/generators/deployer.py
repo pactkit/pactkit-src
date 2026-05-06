@@ -863,23 +863,21 @@ def _build_command_rules_header(cmd_name, profile, config=None):
 
     if style == "@import":
         rule_id_to_filename = _build_rule_id_to_filename()
-        # Global rules are in ~/.claude/rules/, on-demand in ~/.claude/skills/_rules/
         global_filenames = set(prompts.RULES_CORE_FILES.values())
-        ondemand_dir = prompts.RULES_ONDEMAND_DIR  # "_rules"
+        ondemand_dir = prompts.RULES_ONDEMAND_DIR
+        rules_prefix = profile.rules_dir  # e.g. "~/.claude/rules"
+        skills_prefix = profile.skills_dir  # e.g. "~/.claude/skills"
         lines = []
         for key in sorted(rules):
             if key == "credential":
-                lines.append(f"@~/.claude/rules/{prompts.CREDENTIAL_SAFETY_FILE}")
+                lines.append(f"@{rules_prefix}/{prompts.CREDENTIAL_SAFETY_FILE}")
             else:
                 filename = rule_id_to_filename.get(key) if key in rule_id_to_filename else prompts.RULES_FILES.get(key)
                 if filename:
                     if filename in global_filenames:
-                        # Global rules: already auto-loaded by harness, skip @import to avoid double-loading
-                        # (auto-loaded from ~/.claude/rules/ — no explicit @import needed)
                         pass
                     else:
-                        # On-demand rules: must be @imported from skills/_rules/
-                        lines.append(f"@~/.claude/skills/{ondemand_dir}/{filename}")
+                        lines.append(f"@{skills_prefix}/{ondemand_dir}/{filename}")
         lines.append("")  # blank line before command content
         return "\n".join(lines) + "\n"
 
