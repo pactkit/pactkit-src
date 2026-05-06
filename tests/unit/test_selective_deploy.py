@@ -57,10 +57,17 @@ class TestFullConfigDeploysAll:
             assert (skills_dir / skill_name / "SKILL.md").is_file(), f"Missing skill: {skill_name}"
 
     def test_all_rules_deployed(self, tmp_path):
+        """STORY-slim-112: Global rules in rules/, on-demand rules in skills/_rules/."""
+        from pactkit.prompts.rules import RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
         claude = _run_deploy(tmp_path, config=get_default_config())
         rules_dir = claude / "rules"
-        for filename in RULES_FILES.values():
-            assert (rules_dir / filename).is_file(), f"Missing rule: {filename}"
+        # Global rules must be in rules/
+        for filename in RULES_CORE_FILES.values():
+            assert (rules_dir / filename).is_file(), f"Missing global rule: {filename}"
+        # On-demand rules must be in skills/_rules/
+        ondemand_dir = claude / "skills" / RULES_ONDEMAND_DIR
+        for filename in RULES_ONDEMAND_FILES.values():
+            assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
     def test_no_config_means_full_deploy(self, tmp_path):
         """Backward compat: deploy() with no config deploys everything."""
@@ -185,12 +192,19 @@ class TestSelectiveRules:
         assert not (rules_dir / "06-mcp-integration.md").exists()
 
     def test_full_rules_deploys_all(self, tmp_path):
+        """STORY-slim-112: Full deploy puts global rules in rules/, on-demand in skills/_rules/."""
+        from pactkit.prompts.rules import RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
         cfg = get_default_config()
         claude = _run_deploy(tmp_path, config=cfg)
         rules_dir = claude / "rules"
+        ondemand_dir = claude / "skills" / RULES_ONDEMAND_DIR
 
-        for filename in RULES_FILES.values():
-            assert (rules_dir / filename).is_file()
+        # Global rules in rules/
+        for filename in RULES_CORE_FILES.values():
+            assert (rules_dir / filename).is_file(), f"Missing global rule: {filename}"
+        # On-demand rules in skills/_rules/
+        for filename in RULES_ONDEMAND_FILES.values():
+            assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
 
 # ===========================================================================
@@ -248,7 +262,7 @@ class TestDeploymentSummary:
         assert "24/24 Skills" in output
         assert "13 embedded" in output
         assert "11 commands" in output
-        assert "11/11 Rules" in output
+        assert "12/12 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)

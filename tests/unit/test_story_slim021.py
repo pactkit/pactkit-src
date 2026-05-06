@@ -11,7 +11,7 @@ Verifies:
 
 from pactkit.config import VALID_RULES
 from pactkit.prompts import COMMANDS_CONTENT
-from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES, RULES_MODULES
+from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES, RULES_MODULES, RULES_ONDEMAND_FILES
 
 DESIGN = COMMANDS_CONTENT["project-design.md"]
 
@@ -26,19 +26,22 @@ class TestR6RuleExists:
         assert "09-sectional-write" in VALID_RULES
 
     def test_valid_rules_count_is_11(self):
-        assert len(VALID_RULES) == 11
+        # STORY-slim-112: added 05-principles, now 12 rules total
+        assert len(VALID_RULES) == 12
 
     def test_rules_modules_contains_sectional(self):
         assert "sectional" in RULES_MODULES
 
     def test_core_files_contains_sectional(self):
-        assert "sectional" in RULES_CORE_FILES
+        # STORY-slim-112: sectional moved to on-demand (loaded only when generating files)
+        assert "sectional" in RULES_ONDEMAND_FILES
 
     def test_rules_files_contains_sectional(self):
         assert "sectional" in RULES_FILES
 
     def test_core_file_maps_to_correct_filename(self):
-        assert RULES_CORE_FILES["sectional"] == "09-sectional-write.md"
+        # STORY-slim-112: sectional is now on-demand
+        assert RULES_ONDEMAND_FILES["sectional"] == "09-sectional-write.md"
 
 
 # ---------------------------------------------------------------------------

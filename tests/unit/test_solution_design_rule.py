@@ -32,9 +32,11 @@ class TestSolutionDesignRuleRegistered:
         assert p.RULES_FILES["solution"] == "12-solution-design.md"
 
     def test_managed_prefixes_has_12(self):
-        """12- prefix is managed by deployer."""
+        """STORY-slim-112: 12- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
+        RULES_MANAGED_PREFIXES only covers global rules deployed to rules/.
+        """
         p = _prompts()
-        assert "12-" in p.RULES_MANAGED_PREFIXES
+        assert "12-" in p.RULES_ONDEMAND_PREFIXES
 
     def test_valid_rules_has_12(self):
         """12-solution-design is in VALID_RULES."""
@@ -42,9 +44,12 @@ class TestSolutionDesignRuleRegistered:
         assert "12-solution-design" in c.VALID_RULES
 
     def test_claude_md_template_imports_12(self):
-        """CLAUDE.md template includes solution design rule."""
+        """STORY-slim-112: 12-solution-design is on-demand (not in global CLAUDE_MD_TEMPLATE).
+        It is deployed to skills/_rules/ and loaded via @import in command prompts.
+        """
         p = _prompts()
-        assert "12-solution-design.md" in p.CLAUDE_MD_TEMPLATE
+        # On-demand rule — in RULES_ONDEMAND_FILES, not in CLAUDE_MD_TEMPLATE
+        assert "12-solution-design.md" in p.RULES_ONDEMAND_FILES.values()
 
 
 class TestSolutionDesignContent:

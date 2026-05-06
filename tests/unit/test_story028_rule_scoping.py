@@ -24,6 +24,12 @@ def _deploy_rules_to(tmp_path, config=None):
     return tmp_path / '.claude' / 'rules'
 
 
+def _get_ondemand_dir(tmp_path):
+    """Return the on-demand rules directory (skills/_rules/)."""
+    from pactkit.prompts.rules import RULES_ONDEMAND_DIR
+    return tmp_path / '.claude' / 'skills' / RULES_ONDEMAND_DIR
+
+
 class TestAC1UnscopedRule:
 
     def test_unscoped_rules_no_include_files(self, tmp_path):
@@ -46,23 +52,30 @@ class TestAC1UnscopedRule:
 class TestAC2ScopedRule:
 
     def test_scoped_rule_gets_include_files(self, tmp_path):
-        """Rule with scope gets includeFiles in deployed frontmatter."""
+        """Rule with scope gets includeFiles in deployed frontmatter.
+        STORY-slim-112: 06-mcp-integration is on-demand, deployed to skills/_rules/.
+        """
         from pactkit.config import get_default_config
         config = get_default_config()
         config['rule_scopes'] = {'06-mcp-integration': 'src/integrations/**'}
-        rules_dir = _deploy_rules_to(tmp_path, config=config)
-        rule_file = rules_dir / '06-mcp-integration.md'
-        assert rule_file.exists()
+        _deploy_rules_to(tmp_path, config=config)
+        # On-demand rules are in skills/_rules/
+        ondemand_dir = _get_ondemand_dir(tmp_path)
+        rule_file = ondemand_dir / '06-mcp-integration.md'
+        assert rule_file.exists(), f"06-mcp-integration.md should be in skills/_rules/, not rules/"
         content = rule_file.read_text()
         assert 'includeFiles' in content
 
     def test_scoped_rule_contains_glob_pattern(self, tmp_path):
-        """includeFiles contains the specified glob pattern."""
+        """includeFiles contains the specified glob pattern.
+        STORY-slim-112: 06-mcp-integration is on-demand, deployed to skills/_rules/.
+        """
         from pactkit.config import get_default_config
         config = get_default_config()
         config['rule_scopes'] = {'06-mcp-integration': 'src/integrations/**'}
-        rules_dir = _deploy_rules_to(tmp_path, config=config)
-        rule_file = rules_dir / '06-mcp-integration.md'
+        _deploy_rules_to(tmp_path, config=config)
+        ondemand_dir = _get_ondemand_dir(tmp_path)
+        rule_file = ondemand_dir / '06-mcp-integration.md'
         content = rule_file.read_text()
         assert 'src/integrations/**' in content
 

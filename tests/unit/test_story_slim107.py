@@ -133,11 +133,13 @@ class TestNoProjectSpecificReferences:
 
 
 class TestManagedPrefixesUnchanged:
-    """AC5: RULES_MANAGED_PREFIXES not modified."""
+    """AC5: RULES_MANAGED_PREFIXES covers global rules only (STORY-slim-112 split).
+
+    After STORY-slim-112, RULES_MANAGED_PREFIXES is an alias for RULES_GLOBAL_PREFIXES.
+    On-demand prefixes (06-, 07-, 08-, 09-, 12-) are now in RULES_ONDEMAND_PREFIXES.
+    """
 
     def test_prefixes_unchanged(self):
-        expected = [
-            "01-", "02-", "03-", "04-", "05-",
-            "06-", "07-", "08-", "09-", "11-", "12-",
-        ]
-        assert RULES_MANAGED_PREFIXES == expected
+        # STORY-slim-112: RULES_MANAGED_PREFIXES now aliases RULES_GLOBAL_PREFIXES only
+        from pactkit.prompts.rules import RULES_GLOBAL_PREFIXES
+        assert RULES_MANAGED_PREFIXES == RULES_GLOBAL_PREFIXES

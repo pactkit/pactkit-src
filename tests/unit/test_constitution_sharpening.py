@@ -188,9 +188,21 @@ class TestStructureIntact:
         for key, fname in expected.items():
             assert p.RULES_FILES[key] == fname
 
-    def test_claude_md_template_still_references_all_rules(self):
+    def test_claude_md_template_references_global_rules(self):
+        """STORY-slim-112: CLAUDE_MD_TEMPLATE references only global rules (deployed to rules/).
+        On-demand rules (05-workflow-conventions, 06-mcp-integration, etc.) are loaded via
+        @import in skill commands, not in the global CLAUDE_MD_TEMPLATE.
+        """
         p = _prompts()
+        # Global rules should be in CLAUDE_MD_TEMPLATE
         for fname in ['01-core-protocol', '02-hierarchy-of-truth',
-                       '03-file-atlas', '04-routing-table',
-                       '05-workflow-conventions', '06-mcp-integration']:
-            assert fname in p.CLAUDE_MD_TEMPLATE
+                       '03-file-atlas', '04-routing-table', '11-pdca-nudge']:
+            assert fname in p.CLAUDE_MD_TEMPLATE, (
+                f"Global rule '{fname}' should be referenced in CLAUDE_MD_TEMPLATE"
+            )
+        # On-demand rules should NOT be in CLAUDE_MD_TEMPLATE (they're in skills/_rules/)
+        for fname in ['05-workflow-conventions', '06-mcp-integration']:
+            assert fname not in p.CLAUDE_MD_TEMPLATE, (
+                f"On-demand rule '{fname}' should NOT be in CLAUDE_MD_TEMPLATE "
+                f"(deployed to skills/_rules/, not rules/)"
+            )

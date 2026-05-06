@@ -1,14 +1,16 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-05-05T22:41:41+08:00 by pactkit context
+> Last updated: 2026-05-06T14:08:28+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 4 | In Progress: 0 | Done: 0 stories
+Backlog: 1 | In Progress: 0 | Done: 4 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- STORY-slim-110: project-design 集成 User Journey 生成
+- STORY-slim-109: E2E journey.md 规范定义与 File Atlas 集成
+- STORY-slim-108: pactkit-trace --summary 模式：接口摘要输出
 
 ## Active Branches
 + claude/naughty-euclid-e6a787

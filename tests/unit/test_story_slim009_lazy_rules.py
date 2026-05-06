@@ -194,23 +194,30 @@ class TestAgentsMdOnDemandRefs:
 
 class TestAllRulesDeployed:
     def test_deploy_rules_writes_all_files(self, tmp_path):
-        """_deploy_rules writes all PactKit-managed rules.
+        """_deploy_rules writes all PactKit-managed rules to correct directories.
+        STORY-slim-112: Global rules → rules/, On-demand rules → skills/_rules/
         _deploy_rules expects rule_ids as filename-stems (e.g. '01-core-protocol').
         User-managed files (09-credential-safety, 10-retrieval-routing) have no
         RULES_MODULES entry and are not deployed by PactKit.
         """
         from pactkit.generators.deployer import _deploy_rules
-        from pactkit.prompts.rules import RULES_FILES, RULES_MODULES
+        from pactkit.prompts.rules import (
+            RULES_FILES, RULES_MODULES, RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
+        )
 
         # Pass rule IDs as filename stems (how deploy callers use them)
         rule_ids = [v.removesuffix(".md") for k, v in RULES_FILES.items() if k in RULES_MODULES]
         _deploy_rules(tmp_path, rule_ids)
 
         rules_dir = tmp_path / "rules"
-        deployed = {f.name for f in rules_dir.glob("*.md")}
-        managed_filenames = {v for k, v in RULES_FILES.items() if k in RULES_MODULES}
-        for filename in managed_filenames:
-            assert filename in deployed, f"Managed rule file {filename} not deployed"
+        ondemand_dir = tmp_path / "skills" / RULES_ONDEMAND_DIR
+
+        # Global rules must be in rules/
+        for filename in RULES_CORE_FILES.values():
+            assert (rules_dir / filename).exists(), f"Global rule file {filename} not in rules/"
+        # On-demand rules must be in skills/_rules/
+        for filename in RULES_ONDEMAND_FILES.values():
+            assert (ondemand_dir / filename).exists(), f"On-demand rule file {filename} not in skills/_rules/"
 
 
 # ---------------------------------------------------------------------------
@@ -219,12 +226,20 @@ class TestAllRulesDeployed:
 
 
 class TestClassicUnchanged:
-    def test_claude_md_template_contains_all_rules(self):
-        """Classic CLAUDE_MD_TEMPLATE must still reference ALL rules."""
-        from pactkit.prompts.rules import CLAUDE_MD_TEMPLATE, RULES_FILES
+    def test_claude_md_template_contains_global_rules(self):
+        """STORY-slim-112: CLAUDE_MD_TEMPLATE references only global rules (in rules/).
+        On-demand rules are in skills/_rules/ and loaded via @import in commands.
+        """
+        from pactkit.prompts.rules import CLAUDE_MD_TEMPLATE, RULES_CORE_FILES, RULES_ONDEMAND_FILES
 
-        for filename in RULES_FILES.values():
-            assert filename in CLAUDE_MD_TEMPLATE, f"CLAUDE_MD_TEMPLATE missing {filename} (classic must be unchanged)"
+        # Global rules must be referenced in CLAUDE_MD_TEMPLATE
+        for filename in RULES_CORE_FILES.values():
+            assert filename in CLAUDE_MD_TEMPLATE, f"CLAUDE_MD_TEMPLATE missing global rule {filename}"
+        # On-demand rules should NOT be in CLAUDE_MD_TEMPLATE
+        for filename in RULES_ONDEMAND_FILES.values():
+            assert filename not in CLAUDE_MD_TEMPLATE, (
+                f"CLAUDE_MD_TEMPLATE should not reference on-demand rule {filename}"
+            )
 
     def test_claude_md_template_uses_at_import(self):
         """Classic uses @import syntax (not OpenCode @reference)."""

@@ -176,11 +176,19 @@ class TestClassicModeUnchanged:
         assert "# PactKit Global Constitution" in content
 
     def test_classic_has_rules_dir(self, tmp_path):
+        """STORY-slim-112: Global rules in rules/, on-demand rules in skills/_rules/."""
+        from pactkit.prompts.rules import RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
         out = _run_deploy_classic(tmp_path)
         rules = out / "rules"
         assert rules.is_dir()
-        for filename in RULES_FILES.values():
-            assert (rules / filename).is_file(), f"Missing rule: {filename}"
+        # Global rules must be in rules/
+        for filename in RULES_CORE_FILES.values():
+            assert (rules / filename).is_file(), f"Missing global rule: {filename}"
+        # On-demand rules must be in skills/_rules/
+        ondemand_dir = out / "skills" / RULES_ONDEMAND_DIR
+        assert ondemand_dir.is_dir(), "skills/_rules/ should exist"
+        for filename in RULES_ONDEMAND_FILES.values():
+            assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
     def test_classic_no_plugin_dir(self, tmp_path):
         out = _run_deploy_classic(tmp_path)

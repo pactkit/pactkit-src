@@ -25,12 +25,20 @@ class TestMcpRuleModule:
         assert p.RULES_FILES['mcp'] == '06-mcp-integration.md'
 
     def test_managed_prefix_includes_06(self):
+        """STORY-slim-112: 06- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES, not RULES_MANAGED_PREFIXES).
+        RULES_MANAGED_PREFIXES now only covers global rules deployed to rules/.
+        """
         p = _prompts()
-        assert '06-' in p.RULES_MANAGED_PREFIXES
+        # 06- is an on-demand prefix, not a global prefix
+        assert '06-' in p.RULES_ONDEMAND_PREFIXES
 
     def test_claude_md_references_06(self):
+        """STORY-slim-112: 06-mcp-integration is now on-demand (not in CLAUDE_MD_TEMPLATE).
+        On-demand rules are deployed to skills/_rules/ and loaded via @import in commands.
+        """
         p = _prompts()
-        assert '06-mcp-integration.md' in p.CLAUDE_MD_TEMPLATE
+        # On-demand rules are in skills/_rules/, not referenced in global CLAUDE_MD_TEMPLATE
+        assert '06-mcp-integration.md' in p.RULES_ONDEMAND_FILES.values()
 
     def test_rule_mentions_context7(self):
         p = _prompts()

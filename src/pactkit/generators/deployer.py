@@ -588,6 +588,10 @@ def _migrate_from_scafpy(claude_root):
 def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     """Deploy rule modules filtered by config.
 
+    STORY-slim-112: Writes to two directories:
+    - Global rules  → claude_root/rules/         (always auto-loaded by Claude Code harness)
+    - On-demand rules → claude_root/skills/_rules/  (loaded via @import in skill commands only)
+
     Args:
         rule_scopes: Optional dict of rule_id -> glob pattern for includeFiles.
         profile: Optional FormatProfile for template variable rendering.
@@ -597,16 +601,33 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     rules_dir = claude_root / "rules"
     rules_dir.mkdir(parents=True, exist_ok=True)
 
+    # On-demand directory: skills/_rules/
+    ondemand_dir = claude_root / "skills" / prompts.RULES_ONDEMAND_DIR
+    ondemand_dir.mkdir(parents=True, exist_ok=True)
+
     # Build reverse map: rule identifier -> config key
     # e.g. '01-core-protocol' -> 'core'
     rule_id_to_key = _build_rule_id_to_key()
 
-    # Clean managed rule files
+    # Clean managed rule files from global rules/ dir — use exact filenames (not prefixes)
+    # since 05-* is used by both global (05-principles.md) and on-demand (05-workflow-conventions.md)
+    global_managed_filenames = set(prompts.RULES_CORE_FILES.values())
+    # Also remove on-demand files from global dir (upgrade path: old deployments put all rules here)
+    ondemand_in_global = set(prompts.RULES_ONDEMAND_FILES.values())
     for f in rules_dir.glob("*.md"):
-        if any(f.name.startswith(p) for p in prompts.RULES_MANAGED_PREFIXES):
+        if f.name in global_managed_filenames or f.name in ondemand_in_global:
             f.unlink()
 
-    # Write only enabled rules
+    # Clean managed rule files from on-demand dir — use exact filenames
+    ondemand_managed_filenames = set(prompts.RULES_ONDEMAND_FILES.values())
+    for f in ondemand_dir.glob("*.md"):
+        if f.name in ondemand_managed_filenames:
+            f.unlink()
+
+    # Determine which filenames belong to global vs on-demand
+    global_filenames = set(prompts.RULES_CORE_FILES.values())
+
+    # Write only enabled rules to the appropriate directory
     deployed = 0
     for rule_id in enabled_rules:
         key = rule_id_to_key.get(rule_id)
@@ -629,9 +650,12 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
                 frontmatter = f'---\nincludeFiles: ["{scope}"]\n---\n\n'
             content = frontmatter + content
 
+        # Route to correct directory
+        dest_dir = rules_dir if filename in global_filenames else ondemand_dir
+
         if profile is not None:
             _warn_deploy_violations(content, profile, f"rule:{rule_id}")
-        atomic_write(rules_dir / filename, content)
+        atomic_write(dest_dir / filename, content)
         deployed += 1
 
     return deployed
@@ -839,6 +863,9 @@ def _build_command_rules_header(cmd_name, profile, config=None):
 
     if style == "@import":
         rule_id_to_filename = _build_rule_id_to_filename()
+        # Global rules are in ~/.claude/rules/, on-demand in ~/.claude/skills/_rules/
+        global_filenames = set(prompts.RULES_CORE_FILES.values())
+        ondemand_dir = prompts.RULES_ONDEMAND_DIR  # "_rules"
         lines = []
         for key in sorted(rules):
             if key == "credential":
@@ -846,7 +873,13 @@ def _build_command_rules_header(cmd_name, profile, config=None):
             else:
                 filename = rule_id_to_filename.get(key) if key in rule_id_to_filename else prompts.RULES_FILES.get(key)
                 if filename:
-                    lines.append(f"@~/.claude/rules/{filename}")
+                    if filename in global_filenames:
+                        # Global rules: already auto-loaded by harness, skip @import to avoid double-loading
+                        # (auto-loaded from ~/.claude/rules/ — no explicit @import needed)
+                        pass
+                    else:
+                        # On-demand rules: must be @imported from skills/_rules/
+                        lines.append(f"@~/.claude/skills/{ondemand_dir}/{filename}")
         lines.append("")  # blank line before command content
         return "\n".join(lines) + "\n"
 

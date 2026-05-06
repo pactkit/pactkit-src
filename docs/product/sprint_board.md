@@ -2,6 +2,15 @@
 
 ## 📋 Backlog
 
+
+### [STORY-slim-112] Rules 架构重构：全局原则 vs 按需操作规程
+> Spec: docs/specs/STORY-slim-112.md
+
+- [ ] 拆分 RULES_CORE/ONDEMAND + 新建 05-principles
+- [ ] 更新 deployer 双目录部署
+- [ ] 更新所有 skill @import 路径
+- [ ] 更新测试断言
+
 ## 🔄 In Progress
 
 ## ✅ Done

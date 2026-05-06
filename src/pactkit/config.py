@@ -76,16 +76,19 @@ VALID_SKILLS = frozenset(
 
 VALID_RULES = frozenset(
     {
+        # Global rules (deployed to ~/.claude/rules/, always auto-loaded)
         "01-core-protocol",
         "02-hierarchy-of-truth",
         "03-file-atlas",
         "04-routing-table",
+        "05-principles",          # STORY-slim-112: new condensed principles file
+        "11-pdca-nudge",
+        # On-demand rules (deployed to ~/.claude/skills/_rules/, loaded via @import)
         "05-workflow-conventions",
         "06-mcp-integration",
         "07-shared-protocols",
         "08-architecture-principles",
         "09-sectional-write",
-        "11-pdca-nudge",
         "12-solution-design",
     }
 )

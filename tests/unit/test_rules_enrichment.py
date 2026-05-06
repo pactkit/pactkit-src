@@ -115,12 +115,20 @@ class TestWorkflowConventionsRegistered:
         assert p.RULES_FILES['workflow'] == '05-workflow-conventions.md'
 
     def test_managed_prefixes_has_05(self):
+        """STORY-slim-112: '05-' is in RULES_GLOBAL_PREFIXES (05-principles is global).
+        Also in RULES_ONDEMAND_PREFIXES (05-workflow-conventions is on-demand).
+        """
         p = _prompts()
-        assert '05-' in p.RULES_MANAGED_PREFIXES
+        # 05- appears in both global and ondemand prefix sets
+        assert '05-' in p.RULES_GLOBAL_PREFIXES or '05-' in p.RULES_ONDEMAND_PREFIXES
 
     def test_claude_md_template_imports_05(self):
+        """STORY-slim-112: 05-workflow-conventions is now on-demand (not in CLAUDE_MD_TEMPLATE).
+        It's deployed to skills/_rules/ and loaded via @import in command prompts.
+        """
         p = _prompts()
-        assert '05-workflow-conventions.md' in p.CLAUDE_MD_TEMPLATE
+        # workflow is an on-demand rule, not in global CLAUDE_MD_TEMPLATE
+        assert '05-workflow-conventions.md' in p.RULES_ONDEMAND_FILES.values()
 
 
 class TestWorkflowConventionsContent:

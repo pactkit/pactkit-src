@@ -268,10 +268,17 @@ class TestDeploymentCompleteness:
         assert deployed == set(VALID_COMMANDS)
 
     def test_all_skills_deployed_with_skill_md(self, deploy_target):
-        """AC3: Exactly 21 skill dirs deployed (10 embedded + 11 commands), each contains SKILL.md."""
+        """AC3: Exactly 21 skill dirs deployed (10 embedded + 11 commands), each contains SKILL.md.
+        Note: skills/ also contains _rules/ (on-demand rules dir, STORY-slim-112) — excluded here.
+        """
         from pactkit.config import VALID_SKILLS
+        from pactkit.prompts.rules import RULES_ONDEMAND_DIR
         skills_dir = deploy_target / "skills"
-        deployed_dirs = {d.name for d in skills_dir.iterdir() if d.is_dir()}
+        # Exclude the on-demand rules dir (_rules/) — it's not a skill
+        deployed_dirs = {
+            d.name for d in skills_dir.iterdir()
+            if d.is_dir() and d.name != RULES_ONDEMAND_DIR
+        }
         assert deployed_dirs == set(VALID_SKILLS)
         for skill_name in VALID_SKILLS:
             assert (skills_dir / skill_name / "SKILL.md").exists(), \
@@ -290,11 +297,41 @@ class TestDeploymentCompleteness:
                 f"{skill_name}/scripts/{script_file} missing"
 
     def test_all_rules_deployed(self, deploy_target):
-        """AC4: Exactly 6 rule files deployed, stems match VALID_RULES exactly."""
+        """AC4: All 12 rule files deployed across two directories (STORY-slim-112).
+
+        Global rules (6) → rules/
+        On-demand rules (6) → skills/_rules/
+        Combined stems must match VALID_RULES exactly.
+        """
         from pactkit.config import VALID_RULES
+        from pactkit.prompts.rules import RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
+
         rules_dir = deploy_target / "rules"
-        deployed = {f.stem for f in rules_dir.glob("*.md")}
-        assert deployed == set(VALID_RULES)
+        ondemand_dir = deploy_target / "skills" / RULES_ONDEMAND_DIR
+
+        # Global rules in rules/
+        global_deployed = {f.stem for f in rules_dir.glob("*.md")}
+        expected_global = {fn.removesuffix(".md") for fn in RULES_CORE_FILES.values()}
+        assert global_deployed == expected_global, (
+            f"rules/ should contain exactly global rules. "
+            f"Expected: {sorted(expected_global)}, got: {sorted(global_deployed)}"
+        )
+
+        # On-demand rules in skills/_rules/
+        assert ondemand_dir.exists(), f"On-demand rules dir {ondemand_dir} should exist"
+        ondemand_deployed = {f.stem for f in ondemand_dir.glob("*.md")}
+        expected_ondemand = {fn.removesuffix(".md") for fn in RULES_ONDEMAND_FILES.values()}
+        assert ondemand_deployed == expected_ondemand, (
+            f"skills/_rules/ should contain exactly on-demand rules. "
+            f"Expected: {sorted(expected_ondemand)}, got: {sorted(ondemand_deployed)}"
+        )
+
+        # Combined must equal VALID_RULES
+        all_deployed = global_deployed | ondemand_deployed
+        assert all_deployed == set(VALID_RULES), (
+            f"All deployed rules must equal VALID_RULES. "
+            f"Missing: {set(VALID_RULES) - all_deployed}, Extra: {all_deployed - set(VALID_RULES)}"
+        )
 
     def test_no_empty_files(self, deploy_target):
         """AC5: Every deployed file has non-zero byte size."""

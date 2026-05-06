@@ -494,6 +494,42 @@ Compose entire file in head → one Write call at the end
 Write skeleton → Edit block 1 → checkpoint → Edit block 2 → checkpoint → ...
 ```
 """,
+    "principles": """# Core Engineering Principles
+
+> These are the always-present engineering guardrails. Full details in the on-demand rules.
+
+## Single Source of Truth (DRY)
+- Every configuration value, schema definition, or structural rule MUST be defined in exactly one place — two copies guarantee drift.
+- No Dual-Write: The same data MUST exist in exactly one authoritative location. Others become read caches or projections.
+- When updating a canonical value, search all inline copies with `grep` and update them in the same commit.
+
+## No Magic Values (MUST NOT)
+- Do not hardcode values that may change (URLs, thresholds, timeouts, feature flags). Extract to named constants or configuration.
+- **Flexibility Litmus Test**: If changing a value requires `grep` + multi-file edits, it belongs in a named constant or config key.
+- Applies to ALL artifacts: source code, rules, Specs, configs, playbooks, prompts.
+
+## Reuse Priority
+Before writing new code, check in order:
+1. Does the framework already provide this? → Use the native API.
+2. Does the project already encapsulate this? → Use the existing wrapper, do NOT bypass it.
+3. Only if both above are "No" → Implement new code.
+
+## Code Enforces, Prompt Instructs
+- Deterministic constraints MUST be enforced by Code, not delegated to Prompt — if the LLM ignores the instruction, the constraint must still hold.
+- **LLM ≠ Calculator**: If input→output mapping is deterministic, use Code. LLM is for creativity and reasoning.
+- Litmus test: Remove the prompt instruction. Does the system still enforce the constraint? If no → Code enforcement required.
+
+## Dependency Direction (MUST NOT)
+- Do not import from higher-level modules into lower-level modules.
+- Domain/core imports nothing from infrastructure; infrastructure imports from domain.
+- Circular imports indicate a layering violation — fix the structure, not the symptoms.
+
+## Open-Closed Principle
+- New variants via registry/dispatch table, not if/elif chains — adding a new variant SHOULD NOT require modifying existing functions.
+
+## Dead Code Hygiene
+- Unused functions, empty/no-op middleware, and unwired components MUST be deleted or activated — dead code misleads readers.
+""",
     "nudge": """# PDCA Nudge Protocol
 
 > **Signal Level**: L3 Recommended (SHOULD) — non-blocking suggestion.
@@ -703,33 +739,46 @@ Do not import from higher-level modules into lower-level modules. Domain/core im
 }
 
 # STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
+# STORY-slim-112: Refined split — global = 6 core principles files, ondemand = 6 operational files
 #
-# RULES_CORE_FILES: PactKit-managed rules injected every turn via instructions.
-#   Only PactKit-deployed files here — user files (10-*) NOT included.
+# RULES_CORE_FILES: PactKit-managed rules deployed to ~/.claude/rules/ (always auto-loaded).
+#   Only PactKit-deployed files here — user files (10-*, 13-*, slim-01-*) NOT included.
 #
-# RULES_ONDEMAND_FILES: PactKit-managed files referenced via @rules/ in AGENTS.md.
+# RULES_ONDEMAND_FILES: PactKit-managed files deployed to ~/.claude/skills/_rules/
+#   (loaded via @import in skill/command prompts, not auto-loaded every conversation).
 #
 # RULES_INSTRUCTIONS_CORE: ALL files that go into opencode.json instructions
 #   (superset of RULES_CORE_FILES — includes user-managed safety rules).
 RULES_CORE_FILES = {
-    "core": "01-core-protocol.md",  # Session context, visual-first, TDD — every task
+    "core": "01-core-protocol.md",       # Session context, visual-first, TDD — every task
     "hierarchy": "02-hierarchy-of-truth.md",  # Spec-is-Law — every PDCA task
-    "sectional": "09-sectional-write.md",  # Large doc safety — every task
+    "atlas": "03-file-atlas.md",          # Path navigation — always useful
+    "routing": "04-routing-table.md",     # PactKit command routing — always useful
+    "principles": "05-principles.md",    # Core engineering principles — always in scope
+    "nudge": "11-pdca-nudge.md",          # PDCA nudge triggers — needed in free conversation too
 }
 
 RULES_ONDEMAND_FILES = {
-    "atlas": "03-file-atlas.md",
-    "routing": "04-routing-table.md",
-    "workflow": "05-workflow-conventions.md",
-    "mcp": "06-mcp-integration.md",
-    "shared": "07-shared-protocols.md",
-    "architecture": "08-architecture-principles.md",
-    "nudge": "11-pdca-nudge.md",
-    "solution": "12-solution-design.md",
+    "workflow": "05-workflow-conventions.md",   # Git/branch conventions — only Done/PR/Release
+    "mcp": "06-mcp-integration.md",            # MCP server usage — only Act/Check/Design
+    "shared": "07-shared-protocols.md",        # Visualize/test mapping — only execution phases
+    "architecture": "08-architecture-principles.md",  # Full SOLID details — only Plan/Act
+    "sectional": "09-sectional-write.md",      # Large file strategy — only file-generation tasks
+    "solution": "12-solution-design.md",       # Framework capability assessment — only Plan/Act
 }
 
 # Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
 RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
+
+# STORY-slim-112: Prefix lists for legacy cleanup (deployer uses filenames directly now)
+# These constants reflect which numeric prefixes appear in each category.
+# Note: "05-" appears in BOTH sets because 05-principles.md is global and
+# 05-workflow-conventions.md is on-demand. Deployer uses exact filenames for cleanup.
+RULES_GLOBAL_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "11-"]
+RULES_ONDEMAND_PREFIXES = ["05-", "06-", "07-", "08-", "09-", "12-"]
+
+# On-demand deploy directory name (deployed under skills/)
+RULES_ONDEMAND_DIR = "_rules"
 
 # Files to inject into opencode.json instructions (always-load layer)
 # Includes user-managed safety rules (09-credential-safety) even though PactKit
@@ -767,13 +816,14 @@ COMMAND_RULES_MAP = {
     ],
 }
 
-# Managed file prefixes (deployer will clean these, leave user files intact)
-RULES_MANAGED_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-", "08-", "09-", "11-", "12-"]
+# Managed file prefixes for rules/ directory cleanup (deployer will clean these, leave user files intact)
+# STORY-slim-112: Only global prefixes here — on-demand prefixes handled separately via RULES_ONDEMAND_PREFIXES
+RULES_MANAGED_PREFIXES = RULES_GLOBAL_PREFIXES
 
-# CLAUDE_MD_TEMPLATE: auto-generated from RULES_FILES (STORY-slim-007: DRY principle)
-# Classic mode uses @import syntax — all rules included (Claude Code @import is lazy-loaded natively)
+# CLAUDE_MD_TEMPLATE: auto-generated from RULES_CORE_FILES (STORY-slim-007: DRY principle)
+# Classic mode: only global rules are in ~/.claude/rules/ (on-demand in skills/_rules/)
 # OpenCode uses split strategy: core via instructions, ondemand via AGENTS.md @refs (STORY-slim-009)
-_claude_rules_imports = "\n".join(f"@~/.claude/rules/{filename}" for filename in sorted(RULES_FILES.values()))
+_claude_rules_imports = "\n".join(f"@~/.claude/rules/{filename}" for filename in sorted(RULES_CORE_FILES.values()))
 CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 
 {_claude_rules_imports}
