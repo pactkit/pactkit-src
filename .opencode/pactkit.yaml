@@ -72,6 +72,7 @@ rules:
   - 09-sectional-write
   - 11-pdca-nudge
   - 12-solution-design
+  - 05-principles
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
@@ -84,12 +85,6 @@ ci:
 # Issue Tracker — set provider to github to link stories to issues
 issue_tracker:
   provider: github
-
-# Hooks — safe, report-only hook templates (command-type only)
-hooks:
-  post_test_coverage: false
-  pre_commit_lint: false
-  pre_push_check: false
 
 # Lint — configure lint behavior in /project-done
 lint_blocking: false
@@ -163,3 +158,7 @@ e2e:
   env_file: .env.test
   test_dir: tests/e2e
   type: none
+hooks:
+  post_test_coverage: false
+  pre_commit_lint: false
+  pre_push_check: false
