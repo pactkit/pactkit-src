@@ -26,7 +26,7 @@ class TestR0CoreProtocolAnchor:
     def test_pdca_nudge_references_detail_rule(self):
         from pactkit.prompts import RULES_MODULES
         core = RULES_MODULES['core']
-        assert '11-pdca-nudge.md' in core
+        assert 'PDCA Nudge Protocol' in core
 
     def test_pdca_nudge_after_session_context(self):
         from pactkit.prompts import RULES_MODULES

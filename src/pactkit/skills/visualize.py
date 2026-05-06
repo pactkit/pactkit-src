@@ -2469,9 +2469,19 @@ def _parse_commands(commands_dir, graph: WorkflowGraph):
 
 
 def _parse_routing_table(rules_dir, graph: WorkflowGraph):
-    """Parse rules/04-routing-table.md to extract command→agent→playbook mappings (R3)."""
-    rt_path = rules_dir / '04-routing-table.md' if rules_dir.is_dir() else None
-    if not rt_path or not rt_path.exists():
+    """Parse rules/pactkit.md (or legacy 04-routing-table.md) for command→agent→playbook mappings (R3)."""
+    rt_path = None
+    if rules_dir.is_dir():
+        # New layout: merged into pactkit.md
+        candidate = rules_dir / 'pactkit.md'
+        if candidate.exists():
+            rt_path = candidate
+        else:
+            # Legacy fallback
+            candidate = rules_dir / '04-routing-table.md'
+            if candidate.exists():
+                rt_path = candidate
+    if not rt_path:
         return
     content = rt_path.read_text(encoding='utf-8')
     # Pattern: ### Name (`/project-xxx`) \n - **Role**: Agent Role \n - **Playbook**: `path`

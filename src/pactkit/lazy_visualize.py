@@ -1,6 +1,6 @@
 """Lazy Visualize — skip graph generation when no source changes (STORY-slim-014 R7).
 
-Implements the Lazy Visualize Protocol from docs/rules/07-shared-protocols.md:
+Implements the Lazy Visualize Protocol from 03-shared-protocols (on-demand rules):
   If source files changed OR code_graph.mmd is missing → visualize.
   Else → skip with log: "Graph up-to-date — no source changes".
 """

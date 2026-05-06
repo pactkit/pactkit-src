@@ -11,7 +11,7 @@ If the file is missing, suggest `/project-init` to bootstrap the project.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## PDCA Nudge
-When AI analysis in free conversation (outside PDCA command context) yields actionable conclusions — bugs, architecture improvements, new feature needs — SHOULD recommend the appropriate PDCA command at the end of the reply. See `11-pdca-nudge.md` for trigger matrix and suppression rules.
+When AI analysis in free conversation (outside PDCA command context) yields actionable conclusions — bugs, architecture improvements, new feature needs — SHOULD recommend the appropriate PDCA command at the end of the reply. See the PDCA Nudge Protocol section below for trigger matrix and suppression rules.
 
 ## Visual First
 Before modifying code:

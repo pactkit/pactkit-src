@@ -128,7 +128,7 @@ def _rewrite_skills_prefix(content, profile_or_prefix):
 def _build_rule_id_to_key() -> dict:
     """Build reverse map: rule_id -> config key.
 
-    Example: '01-core-protocol' -> 'core'
+    Example: 'pactkit' -> 'pactkit', '01-workflow-conventions' -> 'workflow'
 
     Used by _deploy_rules() and _deploy_claude_md_inline().
     """
@@ -138,7 +138,7 @@ def _build_rule_id_to_key() -> dict:
 def _build_rule_id_to_filename() -> dict:
     """Build reverse map: rule_id -> filename.
 
-    Example: '01-core-protocol' -> '01-core-protocol.md'
+    Example: 'pactkit' -> 'pactkit.md', '01-workflow-conventions' -> '01-workflow-conventions.md'
 
     Used by _deploy_claude_md().
     """

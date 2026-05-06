@@ -95,7 +95,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Threshold**: If the same operation has **≥ 3 independent implementations**, the Spec's Technical Design MUST include a shared abstraction evaluation before adding the Nth implementation.
     - **Skip condition**: Pure greenfield features with no existing codebase analog — log "Lateral Scan: no existing pattern found" and proceed.
 5.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `12-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
+    - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
     - Include the Capability Assessment output in Phase 2 Spec writing.
 
 ## 🎬 Phase 2: Design & Impact
@@ -195,7 +195,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 4.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `12-solution-design.md` to evaluate capability delta before writing code.
+    - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta before writing code.
     - Output brief capability assessment before proceeding to Phase 2.
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
