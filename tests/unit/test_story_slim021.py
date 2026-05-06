@@ -11,7 +11,7 @@ Verifies:
 
 from pactkit.config import VALID_RULES
 from pactkit.prompts import COMMANDS_CONTENT
-from pactkit.prompts.rules import RULES_CORE_FILES, RULES_FILES, RULES_MODULES, RULES_ONDEMAND_FILES
+from pactkit.prompts.rules import RULES_FILES, RULES_MODULES, RULES_ONDEMAND_FILES
 
 DESIGN = COMMANDS_CONTENT["project-design.md"]
 

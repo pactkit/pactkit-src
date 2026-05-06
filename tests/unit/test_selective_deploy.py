@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from pactkit.config import get_default_config
 from pactkit.generators.deployer import deploy
-from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT, RULES_FILES
+from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
 
 # ---------------------------------------------------------------------------
 # Helpers

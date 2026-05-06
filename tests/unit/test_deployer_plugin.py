@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from pactkit.generators.deployer import deploy
 from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
-from pactkit.prompts.rules import RULES_FILES, RULES_MODULES
+from pactkit.prompts.rules import RULES_MODULES
 
 # ---------------------------------------------------------------------------
 # Helpers

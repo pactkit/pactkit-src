@@ -14,8 +14,6 @@ Acceptance Criteria:
 - AC7: Backward compat — user files (10-*, 13-*, slim-01-*) not affected
 """
 
-import pytest
-from pathlib import Path
 
 
 def _rules():
@@ -141,7 +139,7 @@ class TestNoOverlap:
         rules = _rules()
         combined = {**rules.RULES_CORE_FILES, **rules.RULES_ONDEMAND_FILES}
         assert rules.RULES_FILES == combined, (
-            f"RULES_FILES should equal RULES_CORE_FILES | RULES_ONDEMAND_FILES"
+            "RULES_FILES should equal RULES_CORE_FILES | RULES_ONDEMAND_FILES"
         )
 
 
@@ -254,7 +252,7 @@ class TestDeployerTwoDirectories:
 
         ondemand_dir = claude_root / "skills" / "_rules"
         assert ondemand_dir.exists(), (
-            f"On-demand rules directory skills/_rules/ should be created"
+            "On-demand rules directory skills/_rules/ should be created"
         )
 
         deployed_files = {f.name for f in ondemand_dir.glob("*.md")}

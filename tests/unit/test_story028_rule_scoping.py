@@ -62,7 +62,7 @@ class TestAC2ScopedRule:
         # On-demand rules are in skills/_rules/
         ondemand_dir = _get_ondemand_dir(tmp_path)
         rule_file = ondemand_dir / '02-mcp-integration.md'
-        assert rule_file.exists(), f"02-mcp-integration.md should be in skills/_rules/, not rules/"
+        assert rule_file.exists(), "02-mcp-integration.md should be in skills/_rules/, not rules/"
         content = rule_file.read_text()
         assert 'includeFiles' in content
 
