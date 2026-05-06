@@ -349,6 +349,19 @@ def main():
 
     args = parser.parse_args()
 
+    # Auto-deploy on version mismatch: after pip upgrade, the next pactkit command
+    # transparently syncs deployed files without requiring explicit `pactkit init`.
+    if args.command and args.command not in ("init", "update", "upgrade", "version"):
+        from pathlib import Path
+
+        marker = Path.home() / ".claude" / ".pactkit-version"
+        needs_deploy = not marker.exists() or marker.read_text().strip() != __version__
+        if needs_deploy:
+            from pactkit.generators.deployer import deploy
+
+            print(f"PactKit {__version__} detected — auto-syncing deployed files...")
+            deploy(format="all")
+
     if args.command in ("init", "update", "upgrade"):
         # STORY-slim-102: --if-needed checks global deploy marker, not project yaml
         if args.command == "update" and getattr(args, "if_needed", False):
