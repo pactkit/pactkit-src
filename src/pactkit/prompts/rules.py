@@ -738,8 +738,21 @@ Do not import from higher-level modules into lower-level modules. Domain/core im
 """,
 }
 
+# Merged global rules key — concatenation of all 6 core modules (core + hierarchy + atlas +
+# routing + principles + nudge). Deployed as a single pactkit.md to ~/.claude/rules/.
+# Individual module keys are kept for COMMAND_RULES_MAP and inline embedding.
+RULES_MODULES["pactkit"] = "\n\n---\n\n".join([
+    RULES_MODULES["core"],
+    RULES_MODULES["hierarchy"],
+    RULES_MODULES["atlas"],
+    RULES_MODULES["routing"],
+    RULES_MODULES["principles"],
+    RULES_MODULES["nudge"],
+])
+
 # STORY-slim-009: Split into Always-Load (core) + On-Demand (@reference) layers
 # STORY-slim-112: Refined split — global = 6 core principles files, ondemand = 6 operational files
+# Refactor: Merged 6 global core files into a single pactkit.md; renumbered on-demand 01-06.
 #
 # RULES_CORE_FILES: PactKit-managed rules deployed to ~/.claude/rules/ (always auto-loaded).
 #   Only PactKit-deployed files here — user files (10-*, 13-*, slim-01-*) NOT included.
@@ -750,32 +763,26 @@ Do not import from higher-level modules into lower-level modules. Domain/core im
 # RULES_INSTRUCTIONS_CORE: ALL files that go into opencode.json instructions
 #   (superset of RULES_CORE_FILES — includes user-managed safety rules).
 RULES_CORE_FILES = {
-    "core": "01-core-protocol.md",       # Session context, visual-first, TDD — every task
-    "hierarchy": "02-hierarchy-of-truth.md",  # Spec-is-Law — every PDCA task
-    "atlas": "03-file-atlas.md",          # Path navigation — always useful
-    "routing": "04-routing-table.md",     # PactKit command routing — always useful
-    "principles": "05-principles.md",    # Core engineering principles — always in scope
-    "nudge": "11-pdca-nudge.md",          # PDCA nudge triggers — needed in free conversation too
+    "pactkit": "pactkit.md",  # Merged: core + hierarchy + atlas + routing + principles + nudge
 }
 
 RULES_ONDEMAND_FILES = {
-    "workflow": "05-workflow-conventions.md",   # Git/branch conventions — only Done/PR/Release
-    "mcp": "06-mcp-integration.md",            # MCP server usage — only Act/Check/Design
-    "shared": "07-shared-protocols.md",        # Visualize/test mapping — only execution phases
-    "architecture": "08-architecture-principles.md",  # Full SOLID details — only Plan/Act
-    "sectional": "09-sectional-write.md",      # Large file strategy — only file-generation tasks
-    "solution": "12-solution-design.md",       # Framework capability assessment — only Plan/Act
+    "workflow": "01-workflow-conventions.md",   # Git/branch conventions — only Done/PR/Release
+    "mcp": "02-mcp-integration.md",            # MCP server usage — only Act/Check/Design
+    "shared": "03-shared-protocols.md",        # Visualize/test mapping — only execution phases
+    "architecture": "04-architecture-principles.md",  # Full SOLID details — only Plan/Act
+    "sectional": "05-sectional-write.md",      # Large file strategy — only file-generation tasks
+    "solution": "06-solution-design.md",       # Framework capability assessment — only Plan/Act
 }
 
 # Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
 RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
 
-# STORY-slim-112: Prefix lists for legacy cleanup (deployer uses filenames directly now)
-# These constants reflect which numeric prefixes appear in each category.
-# Note: "05-" appears in BOTH sets because 05-principles.md is global and
-# 05-workflow-conventions.md is on-demand. Deployer uses exact filenames for cleanup.
-RULES_GLOBAL_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "11-"]
-RULES_ONDEMAND_PREFIXES = ["05-", "06-", "07-", "08-", "09-", "12-"]
+# Prefix/name lists for legacy cleanup (deployer uses filenames directly now).
+# RULES_GLOBAL_PREFIXES: exact name(s) used in ~/.claude/rules/ for PactKit-managed files.
+# RULES_ONDEMAND_PREFIXES: numeric prefixes used in ~/.claude/skills/_rules/.
+RULES_GLOBAL_PREFIXES = ["pactkit"]
+RULES_ONDEMAND_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-"]
 
 # On-demand deploy directory name (deployed under skills/)
 RULES_ONDEMAND_DIR = "_rules"
@@ -785,8 +792,7 @@ RULES_ONDEMAND_DIR = "_rules"
 # doesn't deploy their content — they are written by the user or by separate tools.
 # SEC-1: credential safety must ALWAYS be in context.
 RULES_INSTRUCTIONS_CORE = [
-    "rules/01-core-protocol.md",
-    "rules/02-hierarchy-of-truth.md",
+    "rules/pactkit.md",
     "rules/09-credential-safety.md",  # user-managed but security-critical
 ]
 

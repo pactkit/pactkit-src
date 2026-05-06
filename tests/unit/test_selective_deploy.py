@@ -168,28 +168,28 @@ class TestPartialCommandConfig:
 
 class TestSelectiveRules:
     def test_claude_md_no_global_rule_imports(self, tmp_path):
-        """STORY-slim-011: CLAUDE.md no longer has rule @imports (moved to per-command)."""
+        """STORY-slim-011: CLAUDE.md no longer has old rule @imports (moved to per-command)."""
         cfg = get_default_config()
-        cfg["rules"] = ["01-core-protocol", "05-workflow-conventions"]
+        cfg["rules"] = ["pactkit", "01-workflow-conventions"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         content = (claude / "CLAUDE.md").read_text()
 
-        # STORY-slim-011: CLAUDE.md should have no rule filenames at all
+        # STORY-slim-011: CLAUDE.md should not have old rule filenames
         assert "01-core-protocol.md" not in content
-        assert "05-workflow-conventions.md" not in content
+        assert "01-workflow-conventions.md" not in content
         assert "# PactKit Global Constitution" in content
 
     def test_only_enabled_rule_files_exist(self, tmp_path):
         cfg = get_default_config()
-        cfg["rules"] = ["01-core-protocol"]
+        cfg["rules"] = ["pactkit"]
 
         claude = _run_deploy(tmp_path, config=cfg)
         rules_dir = claude / "rules"
 
-        assert (rules_dir / "01-core-protocol.md").is_file()
-        assert not (rules_dir / "02-hierarchy-of-truth.md").exists()
-        assert not (rules_dir / "06-mcp-integration.md").exists()
+        assert (rules_dir / "pactkit.md").is_file()
+        assert not (rules_dir / "01-core-protocol.md").exists()
+        assert not (rules_dir / "02-mcp-integration.md").exists()
 
     def test_full_rules_deploys_all(self, tmp_path):
         """STORY-slim-112: Full deploy puts global rules in rules/, on-demand in skills/_rules/."""
@@ -255,14 +255,14 @@ class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # STORY-slim-063: summary format changed to unified Skills count
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)
-        # STORY-slim-101: added 12-solution-design → 11 rules
+        # Post-merge refactor: 7 rules (1 merged global + 6 on-demand)
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
         assert "24/24 Skills" in output
         assert "13 embedded" in output
         assert "11 commands" in output
-        assert "12/12 Rules" in output
+        assert "7/7 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)

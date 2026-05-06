@@ -94,11 +94,12 @@ class TestUpgradeAutoMerge:
     def test_missing_rule_auto_added(self, tmp_path):
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
-        rules = sorted(cfg.VALID_RULES - {'06-mcp-integration'})
+        # Post-merge refactor: use new rule IDs
+        rules = sorted(cfg.VALID_RULES - {'02-mcp-integration'})
         _write_yaml(yaml_path, {'rules': rules})
 
         added = cfg.auto_merge_config_file(yaml_path)
-        assert any('06-mcp-integration' in item for item in added)
+        assert any('02-mcp-integration' in item for item in added)
 
     def test_load_config_after_merge_has_new_items(self, tmp_path):
         """After auto_merge, load_config returns the merged list."""

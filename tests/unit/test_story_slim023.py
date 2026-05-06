@@ -142,8 +142,11 @@ class TestR6BlastRadius:
     """R6: Only cli.py and prompts/rules.py are modified."""
 
     def test_no_other_prompts_reference_if_needed(self):
-        """No other RULES_MODULES reference --if-needed."""
+        """No other individual RULES_MODULES reference --if-needed.
+        Note: 'pactkit' is the merged composite of all core modules (contains core content).
+        """
         for name, content in RULES_MODULES.items():
-            if name == "core":
+            if name in ("core", "pactkit"):
+                # core contains --if-needed; pactkit is the merged composite that includes core
                 continue
             assert "--if-needed" not in content, f"Unexpected --if-needed in {name}"

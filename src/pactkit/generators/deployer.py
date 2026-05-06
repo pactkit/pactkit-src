@@ -606,22 +606,41 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     ondemand_dir.mkdir(parents=True, exist_ok=True)
 
     # Build reverse map: rule identifier -> config key
-    # e.g. '01-core-protocol' -> 'core'
+    # e.g. 'pactkit' -> 'pactkit', '01-workflow-conventions' -> 'workflow'
     rule_id_to_key = _build_rule_id_to_key()
 
-    # Clean managed rule files from global rules/ dir — use exact filenames (not prefixes)
-    # since 05-* is used by both global (05-principles.md) and on-demand (05-workflow-conventions.md)
+    # OLD filenames from before the merge refactor — remove on upgrade.
+    _legacy_global_filenames = {
+        "01-core-protocol.md",
+        "02-hierarchy-of-truth.md",
+        "03-file-atlas.md",
+        "04-routing-table.md",
+        "05-principles.md",
+        "11-pdca-nudge.md",
+    }
+    _legacy_ondemand_filenames = {
+        "05-workflow-conventions.md",
+        "06-mcp-integration.md",
+        "07-shared-protocols.md",
+        "08-architecture-principles.md",
+        "09-sectional-write.md",
+        "12-solution-design.md",
+    }
+
+    # Clean managed rule files from global rules/ dir.
+    # Includes current filename (pactkit.md) and legacy filenames (upgrade path).
     global_managed_filenames = set(prompts.RULES_CORE_FILES.values())
-    # Also remove on-demand files from global dir (upgrade path: old deployments put all rules here)
-    ondemand_in_global = set(prompts.RULES_ONDEMAND_FILES.values())
+    cleanup_from_global = global_managed_filenames | _legacy_global_filenames | _legacy_ondemand_filenames
     for f in rules_dir.glob("*.md"):
-        if f.name in global_managed_filenames or f.name in ondemand_in_global:
+        if f.name in cleanup_from_global:
             f.unlink()
 
-    # Clean managed rule files from on-demand dir — use exact filenames
+    # Clean managed rule files from on-demand dir.
+    # Includes current filenames (01-06) and legacy filenames (05-12, upgrade path).
     ondemand_managed_filenames = set(prompts.RULES_ONDEMAND_FILES.values())
+    cleanup_from_ondemand = ondemand_managed_filenames | _legacy_ondemand_filenames
     for f in ondemand_dir.glob("*.md"):
-        if f.name in ondemand_managed_filenames:
+        if f.name in cleanup_from_ondemand:
             f.unlink()
 
     # Determine which filenames belong to global vs on-demand

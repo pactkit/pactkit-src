@@ -53,29 +53,29 @@ class TestAC2ScopedRule:
 
     def test_scoped_rule_gets_include_files(self, tmp_path):
         """Rule with scope gets includeFiles in deployed frontmatter.
-        STORY-slim-112: 06-mcp-integration is on-demand, deployed to skills/_rules/.
+        Post-merge: 02-mcp-integration is on-demand, deployed to skills/_rules/.
         """
         from pactkit.config import get_default_config
         config = get_default_config()
-        config['rule_scopes'] = {'06-mcp-integration': 'src/integrations/**'}
+        config['rule_scopes'] = {'02-mcp-integration': 'src/integrations/**'}
         _deploy_rules_to(tmp_path, config=config)
         # On-demand rules are in skills/_rules/
         ondemand_dir = _get_ondemand_dir(tmp_path)
-        rule_file = ondemand_dir / '06-mcp-integration.md'
-        assert rule_file.exists(), f"06-mcp-integration.md should be in skills/_rules/, not rules/"
+        rule_file = ondemand_dir / '02-mcp-integration.md'
+        assert rule_file.exists(), f"02-mcp-integration.md should be in skills/_rules/, not rules/"
         content = rule_file.read_text()
         assert 'includeFiles' in content
 
     def test_scoped_rule_contains_glob_pattern(self, tmp_path):
         """includeFiles contains the specified glob pattern.
-        STORY-slim-112: 06-mcp-integration is on-demand, deployed to skills/_rules/.
+        Post-merge: 02-mcp-integration is on-demand, deployed to skills/_rules/.
         """
         from pactkit.config import get_default_config
         config = get_default_config()
-        config['rule_scopes'] = {'06-mcp-integration': 'src/integrations/**'}
+        config['rule_scopes'] = {'02-mcp-integration': 'src/integrations/**'}
         _deploy_rules_to(tmp_path, config=config)
         ondemand_dir = _get_ondemand_dir(tmp_path)
-        rule_file = ondemand_dir / '06-mcp-integration.md'
+        rule_file = ondemand_dir / '02-mcp-integration.md'
         content = rule_file.read_text()
         assert 'src/integrations/**' in content
 
@@ -86,7 +86,7 @@ class TestAC3InvalidGlobWarning:
         """Invalid glob pattern in rule_scopes triggers warning."""
         from pactkit.config import get_default_config, validate_config
         config = get_default_config()
-        config['rule_scopes'] = {'01-core-protocol': '[invalid'}
+        config['rule_scopes'] = {'pactkit': '[invalid'}
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             validate_config(config)

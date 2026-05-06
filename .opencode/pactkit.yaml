@@ -73,6 +73,13 @@ rules:
   - 11-pdca-nudge
   - 12-solution-design
   - 05-principles
+  - 01-workflow-conventions
+  - 02-mcp-integration
+  - 03-shared-protocols
+  - 04-architecture-principles
+  - 05-sectional-write
+  - 06-solution-design
+  - pactkit
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:

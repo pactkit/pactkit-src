@@ -20,28 +20,29 @@ DESIGN = COMMANDS_CONTENT["project-design.md"]
 # R6: 09-sectional-write in rule system
 # ---------------------------------------------------------------------------
 class TestR6RuleExists:
-    """R6: 09-sectional-write must be a core rule."""
+    """R6: sectional-write rule exists in rule system."""
 
     def test_valid_rules_contains_sectional_write(self):
-        assert "09-sectional-write" in VALID_RULES
+        # Post-merge refactor: sectional is now 05-sectional-write
+        assert "05-sectional-write" in VALID_RULES
 
-    def test_valid_rules_count_is_11(self):
-        # STORY-slim-112: added 05-principles, now 12 rules total
-        assert len(VALID_RULES) == 12
+    def test_valid_rules_count_is_7(self):
+        # Post-merge refactor: 7 rules (1 merged global + 6 on-demand)
+        assert len(VALID_RULES) == 7
 
     def test_rules_modules_contains_sectional(self):
         assert "sectional" in RULES_MODULES
 
     def test_core_files_contains_sectional(self):
-        # STORY-slim-112: sectional moved to on-demand (loaded only when generating files)
+        # sectional is on-demand (loaded only when generating files)
         assert "sectional" in RULES_ONDEMAND_FILES
 
     def test_rules_files_contains_sectional(self):
         assert "sectional" in RULES_FILES
 
     def test_core_file_maps_to_correct_filename(self):
-        # STORY-slim-112: sectional is now on-demand
-        assert RULES_ONDEMAND_FILES["sectional"] == "09-sectional-write.md"
+        # Post-merge refactor: sectional is now 05-sectional-write.md
+        assert RULES_ONDEMAND_FILES["sectional"] == "05-sectional-write.md"
 
 
 # ---------------------------------------------------------------------------

@@ -29,27 +29,28 @@ class TestSolutionDesignRuleRegistered:
         """Solution design file mapping exists."""
         p = _prompts()
         assert "solution" in p.RULES_FILES
-        assert p.RULES_FILES["solution"] == "12-solution-design.md"
+        # Post-merge refactor: solution is now 06-solution-design.md
+        assert p.RULES_FILES["solution"] == "06-solution-design.md"
 
-    def test_managed_prefixes_has_12(self):
-        """STORY-slim-112: 12- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
+    def test_managed_prefixes_has_06(self):
+        """Post-merge: 06- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
         RULES_MANAGED_PREFIXES only covers global rules deployed to rules/.
         """
         p = _prompts()
-        assert "12-" in p.RULES_ONDEMAND_PREFIXES
+        assert "06-" in p.RULES_ONDEMAND_PREFIXES
 
-    def test_valid_rules_has_12(self):
-        """12-solution-design is in VALID_RULES."""
+    def test_valid_rules_has_solution(self):
+        """06-solution-design is in VALID_RULES."""
         c = _config()
-        assert "12-solution-design" in c.VALID_RULES
+        assert "06-solution-design" in c.VALID_RULES
 
-    def test_claude_md_template_imports_12(self):
-        """STORY-slim-112: 12-solution-design is on-demand (not in global CLAUDE_MD_TEMPLATE).
+    def test_claude_md_template_imports_solution(self):
+        """Post-merge: 06-solution-design is on-demand (not in global CLAUDE_MD_TEMPLATE).
         It is deployed to skills/_rules/ and loaded via @import in command prompts.
         """
         p = _prompts()
         # On-demand rule — in RULES_ONDEMAND_FILES, not in CLAUDE_MD_TEMPLATE
-        assert "12-solution-design.md" in p.RULES_ONDEMAND_FILES.values()
+        assert "06-solution-design.md" in p.RULES_ONDEMAND_FILES.values()
 
 
 class TestSolutionDesignContent:

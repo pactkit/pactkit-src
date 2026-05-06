@@ -112,23 +112,23 @@ class TestWorkflowConventionsRegistered:
     def test_rules_files_has_workflow(self):
         p = _prompts()
         assert 'workflow' in p.RULES_FILES
-        assert p.RULES_FILES['workflow'] == '05-workflow-conventions.md'
+        # Post-merge refactor: workflow is now 01-workflow-conventions.md
+        assert p.RULES_FILES['workflow'] == '01-workflow-conventions.md'
 
-    def test_managed_prefixes_has_05(self):
-        """STORY-slim-112: '05-' is in RULES_GLOBAL_PREFIXES (05-principles is global).
-        Also in RULES_ONDEMAND_PREFIXES (05-workflow-conventions is on-demand).
+    def test_managed_prefixes_has_01(self):
+        """Post-merge: '01-' is in RULES_ONDEMAND_PREFIXES (01-workflow-conventions is on-demand).
         """
         p = _prompts()
-        # 05- appears in both global and ondemand prefix sets
-        assert '05-' in p.RULES_GLOBAL_PREFIXES or '05-' in p.RULES_ONDEMAND_PREFIXES
+        # 01- is an on-demand prefix
+        assert '01-' in p.RULES_ONDEMAND_PREFIXES
 
-    def test_claude_md_template_imports_05(self):
-        """STORY-slim-112: 05-workflow-conventions is now on-demand (not in CLAUDE_MD_TEMPLATE).
+    def test_claude_md_template_imports_workflow(self):
+        """Post-merge: 01-workflow-conventions is on-demand (not in CLAUDE_MD_TEMPLATE).
         It's deployed to skills/_rules/ and loaded via @import in command prompts.
         """
         p = _prompts()
         # workflow is an on-demand rule, not in global CLAUDE_MD_TEMPLATE
-        assert '05-workflow-conventions.md' in p.RULES_ONDEMAND_FILES.values()
+        assert '01-workflow-conventions.md' in p.RULES_ONDEMAND_FILES.values()
 
 
 class TestWorkflowConventionsContent:
@@ -170,10 +170,13 @@ class TestRoutingTableUnchanged:
         for cmd in expected:
             assert cmd in routing, f"Missing {cmd} in routing"
 
-    def test_routing_not_in_managed_05(self):
-        """Routing is 04, not 05."""
+    def test_routing_in_pactkit_merged(self):
+        """Post-merge: routing is folded into pactkit.md (no standalone file)."""
         p = _prompts()
-        assert p.RULES_FILES['routing'] == '04-routing-table.md'
+        # routing key still exists in RULES_MODULES and pactkit merged content contains it
+        assert 'routing' in p.RULES_MODULES
+        # pactkit.md is the only global file; routing content is part of it
+        assert 'pactkit' in p.RULES_CORE_FILES
 
 
 class TestBackwardCompatibility:

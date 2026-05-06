@@ -22,23 +22,24 @@ class TestMcpRuleModule:
     def test_mcp_key_in_rules_files(self):
         p = _prompts()
         assert 'mcp' in p.RULES_FILES
-        assert p.RULES_FILES['mcp'] == '06-mcp-integration.md'
+        # Post-merge refactor: mcp is now 02-mcp-integration.md
+        assert p.RULES_FILES['mcp'] == '02-mcp-integration.md'
 
-    def test_managed_prefix_includes_06(self):
-        """STORY-slim-112: 06- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES, not RULES_MANAGED_PREFIXES).
-        RULES_MANAGED_PREFIXES now only covers global rules deployed to rules/.
+    def test_managed_prefix_includes_02(self):
+        """Post-merge: 02- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
+        RULES_MANAGED_PREFIXES now only covers the global pactkit.md.
         """
         p = _prompts()
-        # 06- is an on-demand prefix, not a global prefix
-        assert '06-' in p.RULES_ONDEMAND_PREFIXES
+        # 02- is an on-demand prefix, not a global prefix
+        assert '02-' in p.RULES_ONDEMAND_PREFIXES
 
-    def test_claude_md_references_06(self):
-        """STORY-slim-112: 06-mcp-integration is now on-demand (not in CLAUDE_MD_TEMPLATE).
+    def test_claude_md_references_mcp(self):
+        """Post-merge: 02-mcp-integration is on-demand (not in CLAUDE_MD_TEMPLATE).
         On-demand rules are deployed to skills/_rules/ and loaded via @import in commands.
         """
         p = _prompts()
         # On-demand rules are in skills/_rules/, not referenced in global CLAUDE_MD_TEMPLATE
-        assert '06-mcp-integration.md' in p.RULES_ONDEMAND_FILES.values()
+        assert '02-mcp-integration.md' in p.RULES_ONDEMAND_FILES.values()
 
     def test_rule_mentions_context7(self):
         p = _prompts()
@@ -120,12 +121,11 @@ class TestBackwardCompatibility:
 
     def test_existing_rules_files_intact(self):
         p = _prompts()
+        # Post-merge: global file is pactkit.md; on-demand files renumbered 01-06
         expected = {
-            'core': '01-core-protocol.md',
-            'hierarchy': '02-hierarchy-of-truth.md',
-            'atlas': '03-file-atlas.md',
-            'routing': '04-routing-table.md',
-            'workflow': '05-workflow-conventions.md',
+            'pactkit': 'pactkit.md',
+            'workflow': '01-workflow-conventions.md',
+            'mcp': '02-mcp-integration.md',
         }
         for key, val in expected.items():
             assert p.RULES_FILES[key] == val

@@ -30,18 +30,21 @@ class TestDeployRulesStillWorks:
     """_deploy_rules deploys only enabled rules (existing behavior)."""
 
     def test_deploys_enabled_rules_only(self, tmp_path):
-        """Given 2 enabled rules, only those 2 are written to disk."""
+        """Given enabled rules, only those are written to disk."""
         claude_root = tmp_path / ".claude"
         claude_root.mkdir()
-        enabled = ["01-core-protocol", "03-file-atlas"]
+        # Post-merge refactor: use new rule IDs
+        enabled = ["pactkit", "01-workflow-conventions"]
 
         count = _deploy_rules(claude_root, enabled)
 
         rules_dir = claude_root / "rules"
-        written = sorted(f.name for f in rules_dir.glob("*.md"))
+        ondemand_dir = claude_root / "skills" / "_rules"
+        rules_written = sorted(f.name for f in rules_dir.glob("*.md"))
+        ondemand_written = sorted(f.name for f in ondemand_dir.glob("*.md"))
         assert count == 2
-        assert "01-core-protocol.md" in written
-        assert "03-file-atlas.md" in written
+        assert "pactkit.md" in rules_written
+        assert "01-workflow-conventions.md" in ondemand_written
 
     def test_skips_unknown_rule_ids(self, tmp_path):
         """Unknown rule IDs are silently skipped."""

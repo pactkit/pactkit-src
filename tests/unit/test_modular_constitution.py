@@ -41,19 +41,15 @@ class TestRuleModulesGenerated:
     def test_all_rule_files_exist(self, tmp_path):
         _deploy(tmp_path)
         rules_dir = tmp_path / '.claude' / 'rules'
-        expected = [
-            '01-core-protocol.md',
-            '02-hierarchy-of-truth.md',
-            '03-file-atlas.md',
-            '04-routing-table.md',
-        ]
+        # Post-merge refactor: single merged pactkit.md in rules/
+        expected = ['pactkit.md']
         for fname in expected:
             assert (rules_dir / fname).is_file(), f'{fname} 不存在'
 
     def test_rule_files_not_empty(self, tmp_path):
         _deploy(tmp_path)
         rules_dir = tmp_path / '.claude' / 'rules'
-        for f in rules_dir.glob('0*.md'):
+        for f in rules_dir.glob('*.md'):
             content = f.read_text()
             assert len(content.strip()) > 10, f'{f.name} 内容为空'
 
@@ -123,16 +119,16 @@ class TestContentCompleteness:
 
 
 class TestDeployedCoreMatchesSource:
-    """STORY-008: Deployed core protocol matches source"""
+    """STORY-008: Deployed core file matches source"""
 
     def test_deployed_file_matches_source(self, tmp_path):
-        """Deployed 01-core-protocol.md matches rendered RULES_MODULES source"""
+        """Deployed pactkit.md matches rendered RULES_MODULES['pactkit'] source"""
         from pactkit.generators.deployer import _render_prompt
         from pactkit.profiles import get_profile
         from pactkit.prompts import RULES_MODULES
         _deploy(tmp_path)
-        deployed = (tmp_path / '.claude' / 'rules' / '01-core-protocol.md').read_text()
-        expected = _render_prompt(RULES_MODULES['core'], get_profile('classic'))
+        deployed = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
+        expected = _render_prompt(RULES_MODULES['pactkit'], get_profile('classic'))
         assert deployed.strip() == expected.strip()
 
 

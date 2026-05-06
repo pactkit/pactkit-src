@@ -73,36 +73,41 @@ class TestNudgeRegistration:
     """Nudge rule is registered in config and deployment maps."""
 
     def test_valid_rules_includes_nudge(self):
+        """Post-merge: nudge content is merged into pactkit.md (no standalone rule ID)."""
         from pactkit.config import VALID_RULES
-        assert '11-pdca-nudge' in VALID_RULES
+        # nudge content is in pactkit.md (merged global file)
+        assert 'pactkit' in VALID_RULES
 
-    def test_rules_files_includes_nudge(self):
-        from pactkit.prompts.rules import RULES_FILES
-        assert 'nudge' in RULES_FILES
-        assert RULES_FILES['nudge'] == '11-pdca-nudge.md'
+    def test_rules_modules_includes_nudge(self):
+        """nudge module key still exists in RULES_MODULES for inline embedding."""
+        from pactkit.prompts.rules import RULES_MODULES
+        assert 'nudge' in RULES_MODULES
 
-    def test_managed_prefixes_covers_11(self):
+    def test_managed_prefixes_covers_pactkit(self):
+        """Post-merge: global content identified by 'pactkit' name."""
         from pactkit.prompts.rules import RULES_MANAGED_PREFIXES
-        assert any(p == '11-' for p in RULES_MANAGED_PREFIXES)
+        assert 'pactkit' in RULES_MANAGED_PREFIXES
 
 
 class TestAC6DeployVerification:
-    """AC6: Deploy produces both anchor and detail rule."""
+    """AC6: Deploy produces merged pactkit.md containing nudge content."""
 
-    def test_deployed_core_has_pdca_nudge(self, tmp_path):
+    def test_deployed_pactkit_has_pdca_nudge(self, tmp_path):
+        """Merged pactkit.md contains nudge section."""
         _deploy(tmp_path)
-        core = (tmp_path / '.claude' / 'rules' / '01-core-protocol.md').read_text()
-        assert '## PDCA Nudge' in core
+        pactkit = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
+        assert '## PDCA Nudge' in pactkit
 
-    def test_deployed_nudge_rule_exists(self, tmp_path):
+    def test_deployed_pactkit_rule_exists(self, tmp_path):
         _deploy(tmp_path)
-        nudge_file = tmp_path / '.claude' / 'rules' / '11-pdca-nudge.md'
-        assert nudge_file.is_file()
-        content = nudge_file.read_text()
+        pactkit_file = tmp_path / '.claude' / 'rules' / 'pactkit.md'
+        assert pactkit_file.is_file()
+        content = pactkit_file.read_text()
         assert len(content.strip()) > 50
 
     def test_deployed_nudge_has_trigger_matrix(self, tmp_path):
+        """Nudge trigger matrix is in the merged pactkit.md."""
         _deploy(tmp_path)
-        content = (tmp_path / '.claude' / 'rules' / '11-pdca-nudge.md').read_text()
+        content = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
         assert '/project-hotfix' in content
         assert '/project-plan' in content

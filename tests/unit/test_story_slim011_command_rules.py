@@ -92,6 +92,9 @@ class TestAC8AllRulesMapped:
         # Global rules are always in context, so no @import needed in commands
         all_rule_keys.discard("principles")
 
+        # Post-merge refactor: pactkit is the merged global file (auto-loaded) — not command-mapped
+        all_rule_keys.discard("pactkit")
+
         unmapped = all_rule_keys - mapped_keys
         assert not unmapped, f"Rules not mapped to any command: {unmapped}"
 
@@ -134,7 +137,7 @@ class TestAC2AC3ClassicImport:
 
     def test_classic_clarify_imports(self, tmp_path):
         """AC2: project-clarify gets only credential @import.
-        STORY-slim-112: Global rules (01-core) are auto-loaded by harness, no @import needed.
+        Global rules (pactkit.md) are auto-loaded by harness, no @import needed.
         Only user-managed credential file gets an @import.
         """
         from pactkit.generators.deployer import _deploy_commands
@@ -151,15 +154,16 @@ class TestAC2AC3ClassicImport:
         # Only credential (user-managed) should be @imported
         assert "@~/.claude/rules/09-credential-safety.md" in content
         # Global rules are auto-loaded by harness — no @import needed
+        assert "@~/.claude/rules/pactkit.md" not in content
         assert "@~/.claude/rules/01-core-protocol.md" not in content
         # On-demand rules not in clarify's map should not appear
-        assert "@~/.claude/rules/08-architecture-principles.md" not in content
-        assert "@~/.claude/skills/_rules/08-architecture-principles.md" not in content
+        assert "@~/.claude/skills/_rules/04-architecture-principles.md" not in content
 
     def test_classic_act_imports(self, tmp_path):
         """AC3: project-act gets on-demand rule @imports from skills/_rules/ + credential.
-        STORY-slim-112: Global rules (01, 02, 03) are auto-loaded, not @imported.
-        On-demand rules (06, 07, 08, 09-sectional, 12) are @imported from skills/_rules/.
+        Global rules (pactkit.md) are auto-loaded, not @imported.
+        On-demand rules (02-mcp, 03-shared, 04-architecture, 05-sectional, 06-solution)
+        are @imported from skills/_rules/.
         """
         from pactkit.generators.deployer import _deploy_commands
         from pactkit.profiles import get_profile
@@ -172,26 +176,26 @@ class TestAC2AC3ClassicImport:
 
         # STORY-slim-063: deployed as skills_dir/{name}/SKILL.md
         content = (skills_dir / "project-act" / "SKILL.md").read_text()
-        # On-demand rules should be @imported from skills/_rules/
+        # On-demand rules should be @imported from skills/_rules/ with new filenames
         for rule_file in [
-            "06-mcp-integration.md",
-            "07-shared-protocols.md",
-            "08-architecture-principles.md",
-            "09-sectional-write.md",
-            "12-solution-design.md",
+            "02-mcp-integration.md",
+            "03-shared-protocols.md",
+            "04-architecture-principles.md",
+            "05-sectional-write.md",
+            "06-solution-design.md",
         ]:
             assert f"@~/.claude/skills/_rules/{rule_file}" in content, (
                 f"Missing @import for on-demand rule {rule_file}"
             )
         # Credential (user-managed) from rules/
         assert "@~/.claude/rules/09-credential-safety.md" in content
-        # Global rules should NOT be @imported (auto-loaded by harness)
+        # Global merged file should NOT be @imported (auto-loaded by harness)
+        assert "@~/.claude/rules/pactkit.md" not in content
         assert "@~/.claude/rules/01-core-protocol.md" not in content
         assert "@~/.claude/rules/02-hierarchy-of-truth.md" not in content
-        assert "@~/.claude/rules/03-file-atlas.md" not in content
         # On-demand rules should NOT appear under the old rules/ path
-        assert "@~/.claude/rules/06-mcp-integration.md" not in content
-        assert "@~/.claude/rules/08-architecture-principles.md" not in content
+        assert "@~/.claude/rules/02-mcp-integration.md" not in content
+        assert "@~/.claude/rules/04-architecture-principles.md" not in content
 
 
 # ---------------------------------------------------------------------------
