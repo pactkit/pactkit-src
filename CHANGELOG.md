@@ -4,6 +4,16 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.12.0] - 2026-05-06
+
+### Changed
+- **Rules architecture refactor** (STORY-slim-112) — Merged 6 global core rules into single `pactkit.md`; on-demand rules renumbered 01-06 and moved to `~/.claude/skills/_rules/`. Reduces context window usage by ~60% per conversation.
+- **Auto-deploy on version mismatch** — After `pipx upgrade pactkit`, the next CLI command auto-syncs deployed files without requiring explicit `pactkit init`.
+
+### Fixed
+- **Hardcoded paths in deployer** — `_build_command_rules_header()` now uses `FormatProfile.rules_dir` / `skills_dir` instead of hardcoded `~/.claude/` paths.
+- **Stale filename references** — Updated cross-references in visualize.py, commands.py, lazy_visualize.py, and test files to match new rule filenames.
+
 ## [2.11.0] - 2026-04-25
 
 ### Added

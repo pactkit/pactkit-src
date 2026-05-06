@@ -1,5 +1,6 @@
 """Tests for STORY-slim-102: Move version tracking to global deploy marker."""
 
+import sys
 from pathlib import Path
 
 
@@ -50,7 +51,7 @@ class TestAC2SkipOnMatch:
 
         monkeypatch.chdir(tmp_path)
         result = subprocess.run(
-            ["pactkit", "update", "--if-needed"],
+            [sys.executable, "-m", "pactkit", "update", "--if-needed"],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
