@@ -4,6 +4,13 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.13.0] - 2026-05-07
+
+### Added
+- **`pactkit interface-summary` CLI** (STORY-slim-113) — AST-based interface extraction that physically outputs only signatures, types, and docstrings. Enforces "Code Enforces, Prompt Instructs" for Act Phase 1 layered loading — AI receives truncated content by design.
+- **Journey Sync in Act Phase 4** (STORY-slim-114) — Conditional step that updates `docs/e2e/journey.md` when a Story modifies journey-relevant steps. Closes the create→consume→update lifecycle gap.
+- **Journey Segment in Plan Phase 3.2a** (STORY-slim-114) — Conditional Spec annotation that links Stories to journey steps, enabling Act Phase 4 auto-detection.
+
 ## [2.12.0] - 2026-05-06
 
 ### Changed
