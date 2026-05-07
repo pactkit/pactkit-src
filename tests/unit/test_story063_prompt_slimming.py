@@ -210,7 +210,8 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-111: bumped +1398 for Check Phase 4 Playwright Assertion Strategy
 # STORY-slim-108: bumped +237 for Act Phase 1 Layered Loading line
 # STORY-slim-113: bumped +300 for Act Phase 1 interface-summary step (replaces Layered Loading)
-BASELINE_TOTAL_CHARS = 87640
+# STORY-slim-114: bumped +1730 for Act Phase 4 Journey Sync + Plan Phase 3.2a Journey Segment
+BASELINE_TOTAL_CHARS = 89370
 
 
 class TestAC7PromptSizeReduced:

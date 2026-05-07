@@ -116,7 +116,19 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - Edit `(Description of the problem or feature)` → actual Background content from your Trace findings
     - Edit `## Target Call Chain` placeholder → actual call chain from Phase 1
     - Edit `### R1: (Requirement Name) (MUST)` → actual requirements using RFC 2119 keywords (MUST/SHOULD/MAY). Add more R{N} sections as needed.
-4.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
+4.  **Journey Segment (Conditional)**: If `docs/e2e/journey.md` exists in the project:
+    - Read `docs/e2e/journey.md` to identify defined journeys and their steps.
+    - Assess whether this Story's scope touches any journey step (e.g., modifies a UI flow, changes an API endpoint used in a journey).
+    - If yes: add a `## Journey Segment` section to the Spec with the format:
+      ```
+      ## Journey Segment
+
+      - Journey: {Journey Name}
+      - Steps: {step numbers, e.g., "2-3" or "4"}
+      - Impact: {brief description of how this story affects the journey}
+      ```
+    - If the Story does not affect any journey: do NOT add this section (Act Phase 4 Journey Sync will auto-skip).
+5.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
 
 ## 🎬 Phase 3.2b: Acceptance Criteria & Implementation Steps
 1.  **Edit AC** (use Edit tool): Replace `### AC1: (Scenario Name) (R1)` and its Given/When/Then placeholders with actual scenarios. The template already provides the `- **Given**` / `- **When**` / `- **Then**` structure — fill in the content. Add more AC{N} sections as needed.
@@ -229,6 +241,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 4: Sync & Document
 1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed).
+1b. **Journey Sync (Conditional)**:
+    - **Skip if**: `docs/e2e/journey.md` does not exist in the project.
+    - **Skip if**: Current Story's Spec has no `## Journey Segment` section.
+    - **If triggered**:
+      1. Read `docs/e2e/journey.md`
+      2. Locate the journey step(s) referenced in the Spec's `## Journey Segment` (format: `- Journey: {Name}` / `- Steps: {N}` / `- Impact: {desc}`)
+      3. Review: do the step assertions still hold after this Story's code changes?
+      4. If outdated: Edit the affected step(s) in journey.md — update assertions, add new structure assertions, or adjust step description. MUST use Edit (incremental), MUST NOT use Write (full replace).
+      5. If still accurate: skip with log "Journey steps verified — no update needed"
 2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
 3.  **Update Continuation State**: Run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` to record the agent's stopping point for session handoff.
 4.  **Coverage Table Output (STORY-slim-105)**: Output a coverage table listing each R{N} from the Spec:
