@@ -185,8 +185,9 @@ class TestCLIIntegration:
 
     def test_cli_runs_without_error(self, sample_python_file):
         import subprocess
+        import sys
         result = subprocess.run(
-            [".venv/bin/python3", "-m", "pactkit", "interface-summary",
+            [sys.executable, "-m", "pactkit", "interface-summary",
              str(sample_python_file)],
             capture_output=True, text=True,
         )
@@ -195,10 +196,11 @@ class TestCLIIntegration:
 
     def test_cli_unsupported_extension(self, tmp_path):
         import subprocess
+        import sys
         f = tmp_path / "test.rb"
         f.write_text("def hello; end")
         result = subprocess.run(
-            [".venv/bin/python3", "-m", "pactkit", "interface-summary", str(f)],
+            [sys.executable, "-m", "pactkit", "interface-summary", str(f)],
             capture_output=True, text=True,
         )
         assert result.returncode == 0
