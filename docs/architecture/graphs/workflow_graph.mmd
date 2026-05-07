@@ -11,6 +11,7 @@ graph TD
         project_pr["project-pr"]
         project_release["project-release"]
         project_sprint["project-sprint"]
+        session_save["session-save"]
         ultra_think["ultra-think"]
     end
     subgraph Agents
@@ -19,57 +20,110 @@ graph TD
         repo_maintainer["Repo Maintainer"]
         senior_developer["Senior Developer"]
         system_architect["System Architect"]
-        team_lead__current_session["Team Lead (current session)"]
         team_lead__orchestrator["Team Lead (Orchestrator)"]
     end
     subgraph Skills
+        _rules["_rules"]
+        architecture_diagram["architecture-diagram"]
         daily_retro["daily-retro"]
+        docx["docx"]
+        find_skills["find-skills"]
+        huashu_design["huashu-design"]
         pactkit_analyze["pactkit-analyze"]
+        pactkit_audit["pactkit-audit"]
         pactkit_board["pactkit-board"]
         pactkit_doctor["pactkit-doctor"]
         pactkit_draw["pactkit-draw"]
+        pactkit_garden["pactkit-garden"]
         pactkit_release["pactkit-release"]
+        pactkit_report["pactkit-report"]
         pactkit_review["pactkit-review"]
         pactkit_scaffold["pactkit-scaffold"]
         pactkit_status["pactkit-status"]
         pactkit_trace["pactkit-trace"]
         pactkit_visualize["pactkit-visualize"]
+        pdf["pdf"]
+        pptx["pptx"]
+        profile["profile"]
+        software_architecture["software-architecture"]
+        xlsx["xlsx"]
     end
     subgraph Files
         daily_retro_retro_collector_py["retro_collector.py"]
+        docx___init___py["__init__.py"]
+        docx_accept_changes_py["accept_changes.py"]
+        docx_comment_py["comment.py"]
+        huashu_design_add_music_sh["add-music.sh"]
+        huashu_design_convert_formats_sh["convert-formats.sh"]
+        huashu_design_export_deck_pdf_mjs["export_deck_pdf.mjs"]
+        huashu_design_export_deck_pptx_mjs["export_deck_pptx.mjs"]
+        huashu_design_export_deck_stage_pdf_mjs["export_deck_stage_pdf.mjs"]
+        huashu_design_html2pptx_js["html2pptx.js"]
+        huashu_design_render_video_js["render-video.js"]
+        huashu_design_verify_py["verify.py"]
         pactkit_board_board_py["board.py"]
+        pactkit_report_report_py["report.py"]
         pactkit_scaffold_scaffold_py["scaffold.py"]
         pactkit_visualize_visualize_py["visualize.py"]
+        pdf_check_bounding_boxes_py["check_bounding_boxes.py"]
+        pdf_check_fillable_fields_py["check_fillable_fields.py"]
+        pdf_convert_pdf_to_images_py["convert_pdf_to_images.py"]
+        pdf_create_validation_image_py["create_validation_image.py"]
+        pdf_extract_form_field_info_py["extract_form_field_info.py"]
+        pdf_extract_form_structure_py["extract_form_structure.py"]
+        pdf_fill_fillable_fields_py["fill_fillable_fields.py"]
+        pdf_fill_pdf_form_with_annotations_py["fill_pdf_form_with_annotations.py"]
+        pptx___init___py["__init__.py"]
+        pptx_add_slide_py["add_slide.py"]
+        pptx_clean_py["clean.py"]
+        pptx_thumbnail_py["thumbnail.py"]
+        xlsx_recalc_py["recalc.py"]
     end
-    project_act -->|invokes| senior_developer
-    project_act -->|depends_on| pactkit_trace
-    project_act -->|depends_on| pactkit_board
-    project_check -->|invokes| qa_engineer
-    project_clarify -->|invokes| system_architect
-    project_design -->|invokes| product_designer
-    project_design -->|depends_on| pactkit_scaffold
-    project_design -->|depends_on| pactkit_visualize
-    project_design -->|depends_on| pactkit_board
-    project_done -->|invokes| repo_maintainer
-    project_done -->|depends_on| pactkit_visualize
-    project_done -->|depends_on| pactkit_board
-    project_hotfix -->|invokes| senior_developer
-    project_hotfix -->|depends_on| pactkit_board
+    subgraph Agent_Defs
+        researcher["researcher"]
+        reviewer["reviewer"]
+        writer["writer"]
+    end
     project_init -->|invokes| system_architect
-    project_init -->|depends_on| pactkit_visualize
-    project_init -->|depends_on| pactkit_scaffold
     project_plan -->|invokes| system_architect
-    project_plan -->|depends_on| pactkit_trace
-    project_plan -->|depends_on| pactkit_scaffold
-    project_pr -->|invokes| repo_maintainer
+    project_clarify -->|invokes| system_architect
+    project_act -->|invokes| senior_developer
+    project_check -->|invokes| qa_engineer
+    project_done -->|invokes| repo_maintainer
     project_release -->|invokes| repo_maintainer
-    project_release -->|depends_on| pactkit_release
-    project_sprint -->|invokes| team_lead__current_session
+    project_pr -->|invokes| repo_maintainer
     project_sprint -->|invokes| team_lead__orchestrator
+    project_hotfix -->|invokes| senior_developer
+    project_design -->|invokes| product_designer
     daily_retro -->|contains| daily_retro_retro_collector_py
+    docx -->|contains| docx___init___py
+    docx -->|contains| docx_accept_changes_py
+    docx -->|contains| docx_comment_py
+    huashu_design -->|contains| huashu_design_add_music_sh
+    huashu_design -->|contains| huashu_design_convert_formats_sh
+    huashu_design -->|contains| huashu_design_export_deck_pdf_mjs
+    huashu_design -->|contains| huashu_design_export_deck_pptx_mjs
+    huashu_design -->|contains| huashu_design_export_deck_stage_pdf_mjs
+    huashu_design -->|contains| huashu_design_html2pptx_js
+    huashu_design -->|contains| huashu_design_render_video_js
+    huashu_design -->|contains| huashu_design_verify_py
     pactkit_board -->|contains| pactkit_board_board_py
+    pactkit_report -->|contains| pactkit_report_report_py
     pactkit_scaffold -->|contains| pactkit_scaffold_scaffold_py
     pactkit_visualize -->|contains| pactkit_visualize_visualize_py
-    project_plan -.->|sequence| project_act
-    project_act -.->|sequence| project_check
-    project_check -.->|sequence| project_done
+    pdf -->|contains| pdf_check_bounding_boxes_py
+    pdf -->|contains| pdf_check_fillable_fields_py
+    pdf -->|contains| pdf_convert_pdf_to_images_py
+    pdf -->|contains| pdf_create_validation_image_py
+    pdf -->|contains| pdf_extract_form_field_info_py
+    pdf -->|contains| pdf_extract_form_structure_py
+    pdf -->|contains| pdf_fill_fillable_fields_py
+    pdf -->|contains| pdf_fill_pdf_form_with_annotations_py
+    pptx -->|contains| pptx___init___py
+    pptx -->|contains| pptx_add_slide_py
+    pptx -->|contains| pptx_clean_py
+    pptx -->|contains| pptx_thumbnail_py
+    xlsx -->|contains| xlsx_recalc_py
+    researcher -->|orchestrates| writer
+    writer -->|orchestrates| reviewer
+    reviewer -->|orchestrates| writer

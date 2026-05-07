@@ -26,6 +26,7 @@ graph TD
         Visualize["visualize.py<br/>Code graphs + impact()<br/>+ unified graph (full + focus splits)<br/>+ TopologyParser registry<br/>(5 parsers: PDCA, Service, Frontend,<br/>ApiCall, Agent)<br/>+ blast_radius() + complexity()<br/>+ layer_violations()<br/>+ HTML report export"]
         Scaffold["scaffold.py<br/>File scaffolding"]
         SpecLinter["spec_linter.py<br/>Spec validation"]
+        InterfaceSummary["interface_summary.py<br/>AST-based interface extraction<br/>(Code Enforce for Act Phase 1)"]
     end
 
     subgraph "CLI Subcommand Modules"
@@ -83,6 +84,7 @@ graph TD
     CLI -->|"pactkit subcommands"| CoverageGate
     CLI -->|"pactkit subcommands"| Regression
     CLI -->|"pactkit subcommands"| ContextGen
+    CLI -->|"pactkit interface-summary"| InterfaceSummary
     Deployer --> Rules
     Deployer --> Commands
     Deployer --> Agents

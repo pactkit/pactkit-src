@@ -1,11 +1,4 @@
 graph TD
     subgraph "Depth 0"
-        _render_nested_call_graph["_render_nested_call_graph [↑2 ↓0]"]
+        main["main [↑0 ↓0]"]
     end
-    subgraph "Depth 1"
-        _build_call_graph["_build_call_graph [↑1 ↓1]"]
-        visualize["visualize [↑0 ↓2]"]
-    end
-    _build_call_graph --> _render_nested_call_graph
-    visualize --> _render_nested_call_graph
-    visualize -->|×2| _build_call_graph

@@ -57,3 +57,8 @@
 | 2026-03-26 | board.py update_task: added 3-tier fuzzy fallback (single-task auto-mark, substring match, numeric index) to handle real-world callers that don't know exact task names on the board | src/pactkit/skills/board.py:update_task |
 | 2026-03-26 | Position-based block removal (start, end tuples) is safer than str.find() for board operations — prevents substring false matches on similar story IDs | board.py:_parse_story_blocks |
 | 2026-03-26 | Fixing _parse_story_blocks to return adjusted_end (len match) inherently fixed fix_board offset compensation — root cause fix in board.py:_parse_story_blocks eliminated downstream R2 symptom in board.py:fix_board | board.py:_parse_story_blocks,board.py:fix_board |
+| 2026-03-26 | Helpers added to visualize.py standalone header get stripped by load_script(); always place new functions below the SCRIPT BODY marker | visualize.py:_mermaid_escape |
+| 2026-03-26 | dict.pop() in shared config references causes caller mutation; use .get() for read-only access to avoid breaking multi-call scenarios | deployer.py:_deploy_ci |
+| 2026-03-26 | _atomic_mmd_write() in visualize.py prevents truncated .mmd on crash via tmp+rename; all 4 write sites converted | visualize.py:_atomic_mmd_write |
+| 2026-03-26 | test_story_slim056.py _init_project() helper creates realistic pactkit project fixture for subprocess E2E tests; 60 tests cover all 25 subcommands | test_story_slim056.py:_init_project |
+| 2026-03-26 | entry_points auto-discovery with _load_entry_point_deployers() enables pip install pactkit-opencode to self-register; pre-existing tests referencing extracted functions must be updated to import from adapter package | deployer.py:_load_entry_point_deployers |
