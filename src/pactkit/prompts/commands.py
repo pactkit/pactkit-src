@@ -190,11 +190,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site and ensure you don't break existing callers.
-    - **Layered Loading**: For non-target modules discovered by trace, read interface summary (signature + types + docstring) first. Only escalate to full source when modification is confirmed needed.
-3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
+3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
+    - Run `pactkit interface-summary <file>` for each related module you do NOT plan to modify.
+    - This outputs signatures + types + docstrings only (function bodies excluded by code).
+    - Only escalate to full `Read <file>` when you confirm the module needs modification.
+    - If `pactkit` is not on `$PATH`, use `python3 -m pactkit interface-summary <file>`.
+4.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
-4.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
+5.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
     - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta before writing code.
     - Output brief capability assessment before proceeding to Phase 2.
 

@@ -2,8 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-26 | board.py update_task: added 3-tier fuzzy fallback (single-task auto-mark, substring match, numeric index) to handle real-world callers that don't know exact task names on the board | src/pactkit/skills/board.py:update_task |
-| 2026-03-26 | Position-based block removal (start, end tuples) is safer than str.find() for board operations — prevents substring false matches on similar story IDs | board.py:_parse_story_blocks |
 | 2026-03-26 | Fixing _parse_story_blocks to return adjusted_end (len match) inherently fixed fix_board offset compensation — root cause fix in board.py:_parse_story_blocks eliminated downstream R2 symptom in board.py:fix_board | board.py:_parse_story_blocks,board.py:fix_board |
 | 2026-03-26 | Helpers added to visualize.py standalone header get stripped by load_script(); always place new functions below the SCRIPT BODY marker | visualize.py:_mermaid_escape |
 | 2026-03-26 | dict.pop() in shared config references causes caller mutation; use .get() for read-only access to avoid breaking multi-call scenarios | deployer.py:_deploy_ci |
@@ -54,3 +52,4 @@
 | 2026-04-24 | Plan Phase横向扫描(Lateral Scan)比纵向trace更重要——PactSearch的10个技术债中60%源于缺少水平重复检测。修复方向是改Plan playbook引导Architect用已有工具(LSP/visualize/grep)做横向扫描，而非新建CLI | commands.py:Plan_Phase_1 |
 | 2026-04-24 | When migrating functionality (e.g., version checking from pactkit.yaml to global marker), grep all references across source, prompts, tests, and CLI help text — partial migration leaves ghost behavior | board.py:update_version |
 | 2026-04-27 | When extracting project-specific rules into a framework, generalize by removing project names, library references, and spec IDs — keep only the anti-pattern/fix-pattern structure that applies to any codebase | rules.py:RULES_MODULES |
+| 2026-05-07 | Code Enforces implementation: pactkit interface-summary uses ast.parse() to physically output only signatures—AI receives truncated content, not a prompt instruction to self-truncate. Pattern: CLI tool as enforcement layer (interface_summary.py:generate_summary) | src/pactkit/skills/interface_summary.py:generate_summary |

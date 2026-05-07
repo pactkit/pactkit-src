@@ -341,6 +341,10 @@ def main():
     spec_status_parser.add_argument("spec", help="Path to spec file")
     spec_status_parser.add_argument("status", choices=["Draft", "In Progress", "Done"], help="New status value")
 
+    # pactkit interface-summary (STORY-slim-113)
+    iface_parser = subparsers.add_parser("interface-summary", help="Output interface summary (signatures only)")
+    iface_parser.add_argument("files", nargs="+", help="Source file(s) to summarize")
+
     # pactkit redetect-stack (STORY-slim-077)
     subparsers.add_parser("redetect-stack", help="Re-detect project stacks and update pactkit.yaml")
 
@@ -737,6 +741,14 @@ def main():
         print(result["message"])
         if result["action"] == "error":
             raise SystemExit(1)
+
+    elif args.command == "interface-summary":
+        from pathlib import Path
+
+        from pactkit.skills.interface_summary import generate_summary
+
+        paths = [Path(f) for f in args.files]
+        print(generate_summary(paths))
 
     elif args.command == "redetect-stack":
         from pathlib import Path

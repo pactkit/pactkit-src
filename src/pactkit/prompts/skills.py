@@ -256,18 +256,14 @@ Deep code analysis and execution path tracing via static analysis.
 
 #### Layered Output: Interface Summary vs Full Implementation
 
-| Module Role | Output Level | Content |
-|-------------|-------------|---------|
-| Target (to be modified) | Full implementation | Complete function bodies |
-| Related (dependency, not modified) | Interface summary | Signature + types + docstring only |
+| Module Role | Output Level | How |
+|-------------|-------------|-----|
+| Target (to be modified) | Full implementation | `Read <file>` |
+| Related (dependency, not modified) | Interface summary | `pactkit interface-summary <file>` |
 
-**Interface Summary Extraction by Language:**
+For related (non-target) modules, run `pactkit interface-summary <file>` instead of reading full source. This CLI command uses AST parsing to output only signatures + types + docstrings — function bodies are excluded by code, not by prompt instruction.
 
-- **Python**: `def name(params) -> ReturnType:` + docstring + `@decorator` annotations
-- **TypeScript**: `export function/interface/type` declarations + JSDoc comments
-- **Go**: Exported `func Name(params) ReturnType` + struct definitions + godoc comment
-
-Interface summary is produced on-the-fly during trace output — no separate files are generated (DRY: avoid stale pre-generated artifacts).
+If `pactkit` is not on `$PATH`, use `python3 -m pactkit interface-summary <file>`.
 
 ### 4. Visual Synthesis
 Output a **Mermaid Sequence Diagram** to visualize the flow.
