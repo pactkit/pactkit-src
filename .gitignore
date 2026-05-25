@@ -62,3 +62,6 @@ coder/
 docker/
 docs/slides/
 
+
+# Call graph SQLite output (STORY-slim-121)
+docs/architecture/graphs/*.db

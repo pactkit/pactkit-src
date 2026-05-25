@@ -83,7 +83,27 @@ Generate project code relationship graphs (Mermaid format), supporting four anal
 
 > **MUST NOT `Read` a full `.mmd` graph file** — graph files are large (50K–120K, 1000–2000+ lines). Full reads waste tokens before any work begins.
 
-Use targeted `grep` to extract only the edges relevant to your target module:
+### SQLite Mode (preferred — when `call_graph.db` exists)
+
+Check first: `test -f docs/architecture/graphs/call_graph.db`
+
+```bash
+# Fan-in: who calls a function (single hop)
+pactkit query --callers atomic_write
+
+# Fan-out: what a function calls (single hop)
+pactkit query --callees deploy
+
+# Transitive upstream: all callers that eventually lead to a function (multi-hop)
+pactkit query --chain atomic_write
+
+# Transitive downstream: all functions eventually called from an entry point
+pactkit query --chain deploy --down
+```
+
+Enable SQLite output: set `visualize.sqlite_output: true` in `pactkit.yaml`, then re-run `pactkit visualize --mode call`.
+
+### Grep Mode (fallback — when only `.mmd` exists)
 
 ```bash
 # Find all edges involving a specific file/module

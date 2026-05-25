@@ -160,6 +160,59 @@ def _load_scan_excludes(root):
     return None
 
 
+def _load_sqlite_config(root):
+    """Return True if visualize.sqlite_output is enabled in pactkit.yaml."""
+    import sys as _sys
+    candidates = [
+        root / '.claude' / 'pactkit.yaml',
+        root / '.opencode' / 'pactkit.yaml',
+        root / '.codex' / 'pactkit.yaml',
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                import yaml as _yaml
+                data = _yaml.safe_load(path.read_text(encoding='utf-8'))
+                if isinstance(data, dict):
+                    viz = data.get('visualize', {})
+                    if isinstance(viz, dict):
+                        return bool(viz.get('sqlite_output', False))
+            except ImportError:
+                print(f"⚠️ Warning: pyyaml not installed, cannot read {path}", file=_sys.stderr)
+            except Exception as e:
+                print(f"⚠️ Warning: failed to parse {path}: {e}", file=_sys.stderr)
+    return False
+
+
+def _write_sqlite_db(db_path, func_registry, rel_edges):
+    """Write call graph to SQLite atomically (tmp+rename).
+
+    Schema:
+      nodes(id TEXT PK, file TEXT, kind TEXT)
+      edges(caller TEXT, callee TEXT)
+    """
+    import sqlite3 as _sqlite3
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = db_path.with_suffix('.db.tmp')
+    try:
+        con = _sqlite3.connect(tmp)
+        con.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, file TEXT, kind TEXT)")
+        con.execute("CREATE TABLE edges (caller TEXT, callee TEXT)")
+        con.execute("CREATE INDEX idx_callee ON edges(callee)")
+        con.execute("CREATE INDEX idx_caller ON edges(caller)")
+        node_rows = [(fn, str(file), 'function') for fn, file in func_registry.items()]
+        con.executemany("INSERT OR IGNORE INTO nodes VALUES (?, ?, ?)", node_rows)
+        con.executemany("INSERT INTO edges VALUES (?, ?)", rel_edges)
+        con.commit()
+        con.close()
+        os.replace(tmp, db_path)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
+        raise
+
+
 def _load_stub_edges(root):
     """Load stub_edges from pactkit.yaml visualize section. Returns list of (src, dst) tuples or empty list.
 
@@ -798,6 +851,10 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         )
         dest = root / 'docs/architecture/graphs/call_graph.mmd'
         if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
+        _atomic_mmd_write(dest, content)
+        if _load_sqlite_config(root):
+            db_path = root / 'docs/architecture/graphs/call_graph.db'
+            _write_sqlite_db(db_path, func_registry, reachable_edges)
         return dest, content
     else:
         # Full call graph — only edges where both endpoints are in func_registry (BUG-012)
@@ -831,6 +888,9 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
 
     dest = root / 'docs/architecture/graphs/call_graph.mmd'
     if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
+    if _load_sqlite_config(root):
+        db_path = root / 'docs/architecture/graphs/call_graph.db'
+        _write_sqlite_db(db_path, func_registry, rel_edges)
     return dest, nl().join(lines)
 
 def _build_suffix_index(all_func_names):

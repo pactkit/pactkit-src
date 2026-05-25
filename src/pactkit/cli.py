@@ -348,6 +348,18 @@ def main():
     # pactkit redetect-stack (STORY-slim-077)
     subparsers.add_parser("redetect-stack", help="Re-detect project stacks and update pactkit.yaml")
 
+    # pactkit query (STORY-slim-121)
+    query_parser = subparsers.add_parser("query", help="Query call graph database (fan-in, fan-out, chain)")
+    query_mode = query_parser.add_mutually_exclusive_group(required=True)
+    query_mode.add_argument("--callers", metavar="FUNC", help="Fan-in: list all callers of FUNC")
+    query_mode.add_argument("--callees", metavar="FUNC", help="Fan-out: list all callees of FUNC")
+    query_mode.add_argument("--chain", metavar="FUNC", help="Transitive chain for FUNC")
+    query_parser.add_argument(
+        "--down", action="store_true",
+        help="With --chain: downstream callees (default: upstream callers)",
+    )
+    query_parser.add_argument("--db", metavar="PATH", help="Override default call_graph.db path")
+
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
 
@@ -777,6 +789,66 @@ def main():
 
     elif args.command == "version":
         print(f"PactKit v{__version__}")
+
+    elif args.command == "query":
+        import sqlite3
+        import sys
+        from pathlib import Path
+
+        default_db = Path.cwd() / "docs" / "architecture" / "graphs" / "call_graph.db"
+        db_path = Path(args.db) if args.db else default_db
+
+        if not db_path.exists():
+            print(
+                f"❌ call_graph.db not found at {db_path}\n"
+                "Enable it by setting visualize.sqlite_output: true in pactkit.yaml,\n"
+                "then re-run: pactkit visualize --mode call",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
+        con = sqlite3.connect(db_path)
+        try:
+            if args.callers:
+                rows = con.execute(
+                    "SELECT DISTINCT caller FROM edges WHERE callee LIKE ?",
+                    (f"%{args.callers}%",),
+                ).fetchall()
+            elif args.callees:
+                rows = con.execute(
+                    "SELECT DISTINCT callee FROM edges WHERE caller LIKE ?",
+                    (f"%{args.callees}%",),
+                ).fetchall()
+            else:  # --chain
+                if args.down:
+                    rows = con.execute(
+                        """
+                        WITH RECURSIVE chain(node) AS (
+                            SELECT DISTINCT callee FROM edges WHERE caller LIKE ?
+                            UNION
+                            SELECT e.callee FROM edges e JOIN chain c ON e.caller = c.node
+                        )
+                        SELECT DISTINCT node FROM chain
+                        """,
+                        (f"%{args.chain}%",),
+                    ).fetchall()
+                else:
+                    rows = con.execute(
+                        """
+                        WITH RECURSIVE chain(node) AS (
+                            SELECT DISTINCT caller FROM edges WHERE callee LIKE ?
+                            UNION
+                            SELECT e.caller FROM edges e JOIN chain c ON e.callee = c.node
+                        )
+                        SELECT DISTINCT node FROM chain
+                        """,
+                        (f"%{args.chain}%",),
+                    ).fetchall()
+        finally:
+            con.close()
+
+        for (result,) in sorted(rows):
+            print(result)
 
     else:
         parser.print_help()

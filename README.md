@@ -13,7 +13,7 @@
 
 > **PactKit** (Pact 契约 + Kit) is a governance framework that enforces the **P.A.C.T.** contract between humans and AI agents. Deterministic operations run as code, not prompts. Decisions are grounded in data, not memory. AI does what it's best at — creativity and language — while code handles everything that must be repeatable and correct.
 >
-> 25 CLI subcommands, 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` deploys to all 3 supported IDEs.
+> 26 CLI subcommands, 9 specialized agents, 11 commands, 10 skills, and a full Plan-Act-Check-Done lifecycle. One `pip install` deploys to all 3 supported IDEs.
 
 ### Supported AI Tools
 
@@ -205,7 +205,7 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 
 | Skill | Type | Purpose |
 |-------|------|---------|
-| **pactkit-visualize** | Scripted | Code dependency graph (Mermaid): file-level, class-level, call-level |
+| **pactkit-visualize** | Scripted | Code dependency graph (Mermaid + optional SQLite): file-level, class-level, call-level |
 | **pactkit-board** | Scripted | Sprint board operations: add story, update task, archive |
 | **pactkit-scaffold** | Scripted | File scaffolding: create spec, test files, git branches, skills |
 | **pactkit-trace** | Prompt-only | Deep code tracing and execution flow analysis |
@@ -218,7 +218,7 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 
 ## CLI Subcommands
 
-PactKit ships 25 deterministic CLI subcommands — operations that were previously delegated to AI prompts are now enforced in Python code (the "C" in P.A.C.T.):
+PactKit ships 26 deterministic CLI subcommands — operations that were previously delegated to AI prompts are now enforced in Python code (the "C" in P.A.C.T.):
 
 | Command | Purpose |
 |---------|---------|
@@ -238,7 +238,8 @@ PactKit ships 25 deterministic CLI subcommands — operations that were previous
 | `pactkit regression` | Classify changes (SKIP/FULL/IMPACT) |
 | `pactkit test-map` | Map source files to test files |
 | `pactkit coverage-gate` | Enforce 3-tier coverage thresholds (80/50/block) |
-| `pactkit visualize` | Conditional graph regeneration (lazy mode) |
+| `pactkit visualize` | Conditional graph regeneration (lazy mode); outputs `call_graph.db` when `visualize.sqlite_output: true` |
+| `pactkit query` | Query call graph SQLite DB: `--callers`, `--callees`, `--chain [--down]` |
 | `pactkit lesson-append` | Append lesson with specificity check and dedup |
 | `pactkit invariants-refresh` | Update test count invariant in rules.md |
 | `pactkit sec-scope` | Detect security scope for changed files |

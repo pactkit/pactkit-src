@@ -69,3 +69,14 @@
 - [x] R2: scan scripts/ and alembic/
 - [x] R3: locality-based _resolve_callee
 - [x] Run pactkit update
+
+### [STORY-slim-121] call graph SQLite output with pactkit query CLI
+> Spec: docs/specs/STORY-slim-121.md
+
+- [x] Add visualize.sqlite_output config toggle
+- [x] Add _load_sqlite_config() helper
+- [x] Add _write_sqlite_db() with atomic write
+- [x] Wire into _build_call_graph()
+- [x] Add pactkit query subcommand (fan-in/fan-out/chain)
+- [x] Update SKILL_VISUALIZE_MD with pactkit query examples
+- [x] Add *.db to .gitignore

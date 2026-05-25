@@ -51,6 +51,25 @@ check:
 done:
   lesson_quality_threshold: 15
 
+# Visualize — configure directory scan exclusions and output format
+visualize:
+  scan_excludes:
+    - venv
+    - _venv
+    - .venv
+    - .env
+    - env
+    - __pycache__
+    - .git
+    - .claude
+    - tests
+    - docs
+    - node_modules
+    - site-packages
+    - dist
+    - build
+  sqlite_output: true
+
 # Agent Models — override default model per agent (inherit = use account default)
 agent_models:
   code-explorer: haiku

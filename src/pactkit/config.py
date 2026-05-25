@@ -204,6 +204,7 @@ def get_default_config() -> dict:
                 "tests", "docs",
                 "node_modules", "site-packages", "dist", "build",
             ],
+            "sqlite_output": False,
         },
         "command_models": {
             "project-act": "sonnet",
@@ -741,6 +742,8 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
         lines.append("  scan_excludes:")
         for item in visualize["scan_excludes"]:
             lines.append(f"    - {item}")
+        sqlite_out = bool(visualize.get("sqlite_output", False))
+        lines.append(f"  sqlite_output: {'true' if sqlite_out else 'false'}")
         lines.append("")
 
     # BUG-023: Preserve unknown user-defined keys

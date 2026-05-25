@@ -4,9 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [2.13.0] - 2026-05-07
+## [2.13.0] - 2026-05-25
 
 ### Added
+- **Call graph SQLite output** (STORY-slim-121) — `pactkit visualize --mode call` now optionally writes `call_graph.db` alongside the existing `.mmd` file. Enable via `visualize.sqlite_output: true` in `pactkit.yaml`. Atomic write (tmp+rename), zero new dependencies (`sqlite3` stdlib).
+- **`pactkit query` CLI** (STORY-slim-121) — New subcommand for structured call graph queries: `--callers <func>` (fan-in), `--callees <func>` (fan-out), `--chain <func> [--down]` (transitive upstream/downstream via recursive CTE). Reads from `call_graph.db`; exits with helpful message when db is missing.
+- **Graph Query Protocol upgrade** (STORY-slim-121) — `SKILL_VISUALIZE_MD` now routes to `pactkit query` as primary path when `call_graph.db` exists, with grep as fallback for mmd-only projects.
+- **Enhanced Python call graph coverage** (STORY-slim-119) — `_extract_calls` now captures non-self attribute calls (`engine.run()`), function references in list/tuple/keyword/assign contexts, and nested functions via `ast.walk` + parent map. Edge count on medium-large projects: 1,360 → 3,764 (+177%).
+- **Test and script scanning in call graph** (STORY-slim-120) — `visualize --mode call` now scans `tests/`, `scripts/`, and `alembic/` directories in addition to `src/`. Locality-based `_resolve_callee` prefers same-file/same-package candidates when multiple matches exist.
 - **`pactkit interface-summary` CLI** (STORY-slim-113) — AST-based interface extraction that physically outputs only signatures, types, and docstrings. Enforces "Code Enforces, Prompt Instructs" for Act Phase 1 layered loading — AI receives truncated content by design.
 - **Journey Sync in Act Phase 4** (STORY-slim-114) — Conditional step that updates `docs/e2e/journey.md` when a Story modifies journey-relevant steps. Closes the create→consume→update lifecycle gap.
 - **Journey Segment in Plan Phase 3.2a** (STORY-slim-114) — Conditional Spec annotation that links Stories to journey steps, enabling Act Phase 4 auto-detection.
