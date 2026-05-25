@@ -47,22 +47,50 @@ class PythonAnalyzer(LanguageAnalyzer):
             call_edges = {}
             complexity_map = {}
             class_defs = {}
-            for node in ast.iter_child_nodes(tree):
+
+            # Build parent map for qname construction (R3: nested functions)
+            parent_map = {}
+            for node in ast.walk(tree):
+                for child in ast.iter_child_nodes(node):
+                    parent_map[id(child)] = node
+
+            def _get_qname(func_node):
+                """Construct qualified name for a function, walking up the parent chain."""
+                parts = [func_node.name]
+                p = parent_map.get(id(func_node))
+                while p is not None and not isinstance(p, ast.Module):
+                    if isinstance(p, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        parts.append(p.name)
+                    elif isinstance(p, ast.ClassDef):
+                        parts.append(p.name)
+                    p = parent_map.get(id(p))
+                parts.reverse()
+                return '.'.join(parts)
+
+            def _get_current_class(func_node):
+                """Return the class name if this function is a direct class method."""
+                p = parent_map.get(id(func_node))
+                if isinstance(p, ast.ClassDef):
+                    return p.name
+                return None
+
+            # R3: use ast.walk to find all FunctionDef at any depth
+            for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    qname = node.name
+                    qname = _get_qname(node)
+                    current_class = _get_current_class(node)
                     func_registry[qname] = rel
-                    call_edges[qname] = _extract_calls(node, current_class=None, source_text=source_text)
+                    call_edges[qname] = _extract_calls(node, current_class=current_class, source_text=source_text)
                     if include_complexity:
                         complexity_map[qname] = _compute_python_complexity(node)
                 elif isinstance(node, ast.ClassDef):
                     class_defs[node.name] = node
-                    for item in node.body:
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                            qname = f'{node.name}.{item.name}'
-                            func_registry[qname] = rel
-                            call_edges[qname] = _extract_calls(item, current_class=node.name, source_text=source_text)
-                            if include_complexity:
-                                complexity_map[qname] = _compute_python_complexity(item)
+
+            # R2: capture module-level function references in list/tuple/assign
+            module_refs = _extract_module_refs(tree)
+            if module_refs:
+                key = '__module__'
+                call_edges.setdefault(key, []).extend(module_refs)
             # STORY-slim-068 R3: Add virtual edges for inheritance overrides
             for cls_name, cls_node in class_defs.items():
                 sub_methods = {item.name for item in cls_node.body
@@ -184,22 +212,71 @@ _BUILTIN_CALLEES = {
 
 _DISPATCH_HINT_PREFIX = '# pactkit-trace: dispatches_to '
 
+_REF_BUILTINS_EXTRA = {'None', 'True', 'False', 'self', 'cls'}
+
+
+def _is_func_ref_candidate(name: str) -> bool:
+    """Return True if a bare name looks like a function reference (not a constant)."""
+    if name in _BUILTIN_CALLEES or name in _REF_BUILTINS_EXTRA:
+        return False
+    if len(name) <= 1:
+        return False
+    if name.isupper():  # ALL_CAPS constants like MAX, TIMEOUT
+        return False
+    return True
+
+
+def _extract_module_refs(tree) -> list:
+    """Extract function references from module-level assignments and collection literals."""
+    refs = []
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.Assign):
+            # TOOLS = [func_a, func_b] or TOOLS = (func_a,)
+            if isinstance(node.value, (ast.List, ast.Tuple)):
+                for elt in node.value.elts:
+                    if isinstance(elt, ast.Name) and _is_func_ref_candidate(elt.id):
+                        refs.append(elt.id)
+            # handler = process_event
+            elif isinstance(node.value, ast.Name) and _is_func_ref_candidate(node.value.id):
+                refs.append(node.value.id)
+    return refs
+
 
 def _extract_calls(func_node, current_class=None, source_text=None):
-    """Extract function/method calls from a function body (BUG-012: filtered)."""
+    """Extract function/method calls from a function body."""
     callees = []
     for node in ast.walk(func_node):
         if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                name = node.func.id
-                if name not in _BUILTIN_CALLEES:
-                    callees.append(name)
-            elif isinstance(node.func, ast.Attribute):
-                # self.method() → ClassName.method (retain)
-                if isinstance(node.func.value, ast.Name):
-                    if node.func.value.id == 'self' and current_class:
-                        callees.append(f'{current_class}.{node.func.attr}')
-                    # Skip non-self local variable method calls (e.g., lines.append)
+            try:
+                if isinstance(node.func, ast.Name):
+                    name = node.func.id
+                    if name not in _BUILTIN_CALLEES:
+                        callees.append(name)
+                elif isinstance(node.func, ast.Attribute):
+                    # R1: capture all obj.method() calls, not just self.method()
+                    attr = node.func.attr
+                    if attr not in _BUILTIN_CALLEES:
+                        if isinstance(node.func.value, ast.Name):
+                            if node.func.value.id == 'self' and current_class:
+                                callees.append(f'{current_class}.{attr}')
+                            else:
+                                callees.append(attr)  # bare method name; _resolve_callee handles suffix match
+                        else:
+                            callees.append(attr)  # chained calls e.g. foo().bar()
+            except AttributeError:
+                pass
+        # R2: function references in list/tuple literals and keyword arguments
+        elif isinstance(node, (ast.List, ast.Tuple)):
+            for elt in node.elts:
+                if isinstance(elt, ast.Name) and _is_func_ref_candidate(elt.id):
+                    callees.append(elt.id)
+        elif isinstance(node, ast.keyword):
+            if isinstance(node.value, ast.Name) and _is_func_ref_candidate(node.value.id):
+                callees.append(node.value.id)
+        elif isinstance(node, ast.Assign):
+            # direct assignment: handler = process_event (bare name RHS)
+            if isinstance(node.value, ast.Name) and _is_func_ref_candidate(node.value.id):
+                callees.append(node.value.id)
     # STORY-slim-068 R2: Parse dispatch hint comments from source text
     if source_text:
         try:

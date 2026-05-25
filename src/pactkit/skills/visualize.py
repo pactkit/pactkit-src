@@ -785,7 +785,8 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
             if current in visited: continue
             visited.add(current)
             for callee in call_edges.get(current, []):
-                resolved = _resolve_callee(callee, all_func_names, suffix_index)
+                current_file = str(func_registry.get(current, ''))
+                resolved = _resolve_callee(callee, all_func_names, suffix_index, caller_file=current_file)
                 if resolved:
                     reachable_edges.append((current, resolved))
                     if resolved not in visited: queue.append(resolved)
@@ -810,12 +811,12 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         focus_prefix = (str(focus).rstrip('/') + '/') if focus else None
 
         for caller, callees in call_edges.items():
+            caller_file = str(func_registry.get(caller, ''))
             if focus_prefix:
-                caller_file = str(func_registry.get(caller, ''))
                 if not caller_file.startswith(focus_prefix) and focus_prefix.rstrip('/') != caller_file:
                     continue
             for callee in callees:
-                resolved = _resolve_callee(callee, all_func_names, suffix_index)
+                resolved = _resolve_callee(callee, all_func_names, suffix_index, caller_file=caller_file)
                 if resolved:
                     relevant.add(caller)
                     relevant.add(resolved)
@@ -841,13 +842,32 @@ def _build_suffix_index(all_func_names):
     return suffix_index
 
 
-def _resolve_callee(callee, all_func_names, suffix_index=None):
-    """Resolve a callee string to a known qualified function name. O(1) with suffix_index."""
+def _resolve_callee(callee, all_func_names, suffix_index=None, caller_file=None):
+    """Resolve a callee string to a known qualified function name. O(1) with suffix_index.
+
+    R3 (STORY-slim-120): When caller_file is provided and multiple candidates exist,
+    prefer candidates from the same file/package (locality-based resolution).
+    """
     if callee in all_func_names:
         return callee
     if suffix_index is not None:
         candidates = suffix_index.get(callee, [])
-        return candidates[0] if candidates else None
+        if not candidates:
+            return None
+        if len(candidates) == 1 or caller_file is None:
+            return candidates[0]
+        # R3: locality sort — same file first, then same package prefix, then alphabetical
+        def _locality_key(fn):
+            fn_file = fn.rsplit('.', 1)[0] if '.' in fn else fn
+            if fn_file == caller_file:
+                return (0, fn)
+            # same package: caller_file starts with fn's package prefix or vice versa
+            caller_pkg = caller_file.rsplit('.', 1)[0] if '.' in caller_file else caller_file
+            fn_pkg = fn_file.rsplit('.', 1)[0] if '.' in fn_file else fn_file
+            if caller_pkg == fn_pkg or caller_file.startswith(fn_pkg) or fn_file.startswith(caller_pkg):
+                return (1, fn)
+            return (2, fn)
+        return sorted(candidates, key=_locality_key)[0]
     # Fallback: linear scan (legacy, only if suffix_index not provided)
     for fn in all_func_names:
         if fn.endswith(f'.{callee}') or fn == callee:
@@ -1245,7 +1265,19 @@ def visualize(target='.', focus=None, mode='file', entry=None, depth=0, max_node
             dest = root / 'docs/architecture/graphs/reverse_call_graph.mmd'
             if focus: dest = root / 'docs/architecture/graphs/focus_reverse_call_graph.mmd'
         else:
-            dest, content = _build_call_graph(root, all_files, focus, entry, analyzer=analyzer)
+            # R1 (STORY-slim-120): Supplement all_files with test files for call graph only.
+            # tests/ is in SCAN_EXCLUDES for file/class modes but call graph benefits from
+            # seeing test→source call relationships (improves pactkit test-map accuracy).
+            # R2 (STORY-slim-120): Also include scripts/ and alembic/ at project root.
+            call_extra_files = list(all_files)
+            call_extra_excludes = SCAN_EXCLUDES - {'tests'}
+            _call_extra_dirs = ['tests', 'scripts', 'alembic']
+            for _extra_dir in _call_extra_dirs:
+                _extra_root = scan_root / _extra_dir
+                if _extra_root.is_dir():
+                    _extra, _, _ = _scan_files(_extra_root, scan_excludes=call_extra_excludes, file_ext='.py', analyzer=analyzer)
+                    call_extra_files.extend(_extra)
+            dest, content = _build_call_graph(root, call_extra_files, focus, entry, analyzer=analyzer)
     else:
         dest, content = _build_file_graph(root, all_files, module_index, file_to_node, focus, depth=depth, max_nodes=max_nodes, analyzer=analyzer, analyzer_file_groups=analyzer_file_groups, show_layers=show_layers)
         if dest is None: return content  # error message

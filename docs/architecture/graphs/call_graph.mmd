@@ -6,7 +6,10 @@ graph TD
     DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
     DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
     DeployerBase_render_prompt["DeployerBase.render_prompt"]
+    DeployerBase_strip_excluded_command_references["DeployerBase.strip_excluded_command_references"]
+    DeployerBase_validate_deployed_content["DeployerBase.validate_deployed_content"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
+    __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
     _build_command_rules_header["_build_command_rules_header"]
@@ -31,6 +34,7 @@ graph TD
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
     _collect_findings["_collect_findings"]
     _collect_insights["_collect_insights"]
+    _collect_insights__dfs["_collect_insights._dfs"]
     _collect_signals["_collect_signals"]
     _compute_hotspots["_compute_hotspots"]
     _compute_layer_level["_compute_layer_level"]
@@ -50,6 +54,7 @@ graph TD
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
     _detect_ghe["_detect_ghe"]
+    _detect_sources["_detect_sources"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract_module_path["_extract_module_path"]
     _extract_sprint_contract["_extract_sprint_contract"]
@@ -117,6 +122,8 @@ graph TD
     build_report["build_report"]
     check_config_completeness["check_config_completeness"]
     check_config_drift["check_config_drift"]
+    check_config_drift__dir_or_file_in_any["check_config_drift._dir_or_file_in_any"]
+    check_config_drift__exists_in_any["check_config_drift._exists_in_any"]
     check_coverage["check_coverage"]
     check_dead_imports["check_dead_imports"]
     check_hld_module_count["check_hld_module_count"]
@@ -131,6 +138,7 @@ graph TD
     clean_artifacts["clean_artifacts"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
+    detect_security_scope__any_content_matches["detect_security_scope._any_content_matches"]
     detect_stack["detect_stack"]
     detect_stacks["detect_stacks"]
     detect_venv["detect_venv"]
@@ -211,6 +219,8 @@ graph TD
     _check_h6 --> _compute_layer_level
     _check_h7 --> _compute_layer_level
     _collect_findings --> check_dead_imports
+    _collect_insights --> _collect_insights__dfs
+    _collect_insights --> _collect_insights__dfs
     _check_code_smells --> _max_nesting_depth
     _max_nesting_depth --> _max_nesting_depth
     _max_nesting_depth --> _max_nesting_depth
@@ -237,7 +247,13 @@ graph TD
     audit --> _check_h7
     audit --> load_config
     audit --> _generate_suggested_tasks
+    _collect_insights__dfs --> _collect_insights__dfs
     detect_security_scope --> _is_docs_or_tests_only
+    detect_security_scope --> detect_security_scope__any_content_matches
+    detect_security_scope --> detect_security_scope__any_content_matches
+    detect_security_scope --> detect_security_scope__any_content_matches
+    detect_security_scope --> detect_security_scope__any_content_matches
+    detect_security_scope --> detect_security_scope__any_content_matches
     detect_security_scope --> _read_content
     detect_security_scope --> _path_ends_with_ext
     detect_security_scope --> _path_matches_any
@@ -268,6 +284,7 @@ graph TD
     generate_context --> _parse_board
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
+    run_observe --> _detect_sources
     run_observe --> _collect_signals
     run_observe --> classify_signals
     run_observe --> build_report
@@ -322,17 +339,21 @@ graph TD
     issue_sync --> _check_gh_available
     map_to_tests --> detect_stack
     check_config_drift --> find_pactkit_yaml
+    check_config_drift --> check_config_drift__exists_in_any
+    check_config_drift --> check_config_drift__dir_or_file_in_any
     check_stale_graphs --> load_config
+    _warn_deploy_violations --> DeployerBase_validate_deployed_content
+    _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
     _render_skill_md --> get_profile
-    ClassicDeployer_deploy --> _deploy_classic
-    PluginDeployer_deploy --> _deploy_plugin
     _load_entry_point_deployers --> register_deployer
     _ensure_entry_point_deployers --> _load_entry_point_deployers
     deploy --> _ensure_entry_point_deployers
     deploy --> _deploy_marketplace
+    deploy --> deploy
+    deploy --> deploy
     _deploy_classic --> _migrate_from_scafpy
     _deploy_classic --> validate_config
     _deploy_classic --> get_profile
@@ -417,6 +438,9 @@ graph TD
     _deploy_claude_md_inline --> _rewrite_skills_prefix
     _deploy_claude_md_inline --> atomic_write
     _deploy_marketplace_json --> atomic_write
+    ClassicDeployer_deploy --> _deploy_classic
+    PluginDeployer_deploy --> _deploy_plugin
+    __module__ --> _generate_project_claude_md
     transform --> strip_frontmatter
     DeployerBase_render_prompt --> _render_prompt
     DeployerBase_deploy_skills --> _deploy_skills

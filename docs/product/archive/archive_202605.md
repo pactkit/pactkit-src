@@ -60,3 +60,12 @@
 - [x] Add model fields to 28 skills missing model assignment
 - [x] Update project-plan and project-sprint to opus
 - [x] Add haiku to pure I/O skills (scaffold, board, doctor, status, report, draw, arch-diagram, profile, find-skills, docx, pdf, pptx, xlsx)
+
+### [STORY-slim-120] Improve Call Graph Coverage: Test Files, Scripts, Locality Resolution
+> Spec: docs/specs/STORY-slim-120.md
+
+- [x] Write TDD tests for AC1-AC4
+- [x] R1: scan tests/ in call mode
+- [x] R2: scan scripts/ and alembic/
+- [x] R3: locality-based _resolve_callee
+- [x] Run pactkit update

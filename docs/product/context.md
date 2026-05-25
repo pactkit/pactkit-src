@@ -1,8 +1,8 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-05-25T13:28:46+08:00 by pactkit context
+> Last updated: 2026-05-25T14:03:33+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 0 | In Progress: 0 | Done: 0 stories
+Backlog: 2 | In Progress: 0 | Done: 0 stories
 
 ## Current Stories
 None
@@ -16,14 +16,14 @@ None
 * main
 
 ## Key Decisions
-- When migrating functionality (e.g., version checking from pactkit.yaml to global marker), grep all references across source, prompts, tests, and CLI help text — partial migration leaves ghost behavior
 - When extracting project-specific rules into a framework, generalize by removing project names, library references, and spec IDs — keep only the anti-pattern/fix-pattern structure that applies to any codebase
 - Code Enforces implementation: pactkit interface-summary uses ast.parse() to physically output only signatures—AI receives truncated content, not a prompt instruction to self-truncate. Pattern: CLI tool as enforcement layer (interface_summary.py:generate_summary)
 - Lifecycle gap pattern: when artifact has create+consume but no update mechanism, add conditional sync in the modifying command. Applied: Act Phase 4 Journey Sync step in commands.py COMMANDS_CONTENT['project-act.md']
 - code_graph.mmd uses sanitized node IDs (src_pactkit_generators_deployer_py), not bare filenames — grep patterns for fan-in/fan-out must use .* wildcard or they silently never match
+- When SCAN_EXCLUDES is a module-level constant shared across graph modes, add mode-specific exclusion logic at the call site rather than modifying the constant — pass call_extra_excludes = SCAN_EXCLUDES - {'tests'} only for call mode to avoid affecting file/class modes
 
 ## Next Recommended Action
-`/project-design`
+`/project-plan`
 
 ## Agent Continuation
 No active work session.
