@@ -45,3 +45,18 @@
 - [x] Act Phase 4 新增 Journey Sync 步骤
 - [x] Plan Phase 3.2a 条件 Journey Segment
 - [x] 单元测试
+
+### [HOTFIX-slim-117] Fix Graph Query Protocol grep patterns
+> Spec: docs/specs/HOTFIX-slim-117.md
+
+- [x] Fix fan-in/fan-out grep patterns in SKILL_VISUALIZE_MD
+- [x] Fix importer-count grep in project-act.md Phase 3
+
+### [STORY-slim-116] Skill Model Precision and Graph Query Optimization
+> Spec: docs/specs/STORY-slim-116.md
+
+- [x] Add graph query protocol to project-act and project-plan
+- [x] Add model field to pactkit-visualize SKILL.md
+- [x] Add model fields to 28 skills missing model assignment
+- [x] Update project-plan and project-sprint to opus
+- [x] Add haiku to pure I/O skills (scaffold, board, doctor, status, report, draw, arch-diagram, profile, find-skills, docx, pdf, pptx, xlsx)

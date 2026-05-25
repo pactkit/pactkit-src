@@ -19,6 +19,7 @@ TOOLS_CONTENT = TOOLS_SOURCE.split("\n")
 SKILL_VISUALIZE_MD = """---
 name: pactkit-visualize
 description: "Generate project code dependency graph (Mermaid), supporting file-level, class-level, function-level, and module-level analysis"
+model: haiku
 ---
 
 # PactKit Visualize
@@ -77,11 +78,41 @@ Generate project code relationship graphs (Mermaid format), supporting four anal
 - `/project-act`: Run `visualize --focus <module>` to understand dependencies of the modification target
 - `pactkit-doctor` skill: Run `visualize` to check whether architecture graphs can be generated correctly
 - `pactkit-trace` skill: Run `visualize --mode call --entry <func>` to trace call chains
+
+## Graph Query Protocol
+
+> **MUST NOT `Read` a full `.mmd` graph file** — graph files are large (50K–120K, 1000–2000+ lines). Full reads waste tokens before any work begins.
+
+Use targeted `grep` to extract only the edges relevant to your target module:
+
+```bash
+# Find all edges involving a specific file/module
+grep "deployer" docs/architecture/graphs/code_graph.mmd
+
+# Find importers of a module (fan-in — who depends on it)
+# Note: nodes are sanitized IDs (e.g. src_pactkit_generators_deployer_py), use .* wildcard
+grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd
+
+# Find dependencies of a module (fan-out — what it depends on)
+grep "deployer.* --> " docs/architecture/graphs/code_graph.mmd
+
+# Count importers (to decide full suite vs incremental test run)
+grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd | wc -l
+
+# Class-level: find class and its parent/child relationships
+grep "MyClass" docs/architecture/graphs/class_graph.mmd
+
+# Call-level: find callers of a function
+grep "my_func" docs/architecture/graphs/call_graph.mmd
+```
+
+**Fallback rule**: If grep returns 0 results, the module is not yet indexed — fall back to full `Read` and note why. Also permitted when generating or verifying a new graph.
 """
 
 SKILL_BOARD_MD = """---
 name: pactkit-board
 description: "Sprint Board atomic operations: add Story, update Task, archive completed Stories"
+model: haiku
 ---
 
 # PactKit Board
@@ -151,6 +182,7 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 SKILL_SCAFFOLD_MD = """---
 name: pactkit-scaffold
 description: "File scaffolding: create Spec, test files, E2E tests, Git branches, Skills"
+model: haiku
 ---
 
 # PactKit Scaffold
@@ -230,6 +262,7 @@ Project file scaffolding tool for quickly creating standardized project files.
 SKILL_TRACE_MD = """---
 name: pactkit-trace
 description: "Deep code tracing and execution flow analysis"
+model: sonnet
 ---
 
 # PactKit Trace
@@ -292,6 +325,7 @@ If `detect_topology(root)` returns topologies beyond PDCA/Service:
 SKILL_DRAW_MD = """---
 name: pactkit-draw
 description: "Generate Draw.io XML architecture diagrams"
+model: haiku
 ---
 
 # PactKit Draw
@@ -374,6 +408,7 @@ IF MCP tools NOT available:
 SKILL_STATUS_MD = """---
 name: pactkit-status
 description: "Project state overview for cold-start orientation"
+model: haiku
 ---
 
 # PactKit Status
@@ -418,6 +453,7 @@ Read-only project state report. Provides sprint board summary, git state, and he
 SKILL_DOCTOR_MD = """---
 name: pactkit-doctor
 description: "Diagnose project health status"
+model: haiku
 ---
 
 # PactKit Doctor
@@ -469,6 +505,7 @@ End with overall status: "Health: OK" (no WARN/ERROR) or "Health: NEEDS ATTENTIO
 SKILL_GARDEN_MD = """---
 name: pactkit-garden
 description: "Codebase quality patrol — detect dead code, stale docs, pattern duplication"
+model: sonnet
 ---
 
 # PactKit Garden
@@ -502,6 +539,7 @@ Run `pactkit garden` to perform automated quality checks:
 SKILL_REVIEW_MD = """---
 name: pactkit-review
 description: "PR Code Review with structured SOLID, security, and quality checklists"
+model: sonnet
 ---
 
 # PactKit Review
@@ -550,6 +588,7 @@ Structured PR code review with severity-ranked findings.
 SKILL_ANALYZE_MD = """---
 name: pactkit-analyze
 description: "Cross-artifact consistency check: Spec ↔ Board ↔ Test Cases"
+model: sonnet
 ---
 # Skill: pactkit-analyze
 
@@ -571,6 +610,7 @@ Prints an alignment matrix and coverage report. Non-blocking — advisory only.
 SKILL_REPORT_MD = """---
 name: pactkit-report
 description: "Interactive HTML dashboard from Mermaid .mmd architecture graphs"
+model: haiku
 ---
 
 # PactKit Report
@@ -620,6 +660,7 @@ Generate interactive D3 force-directed HTML dashboards from Mermaid `.mmd` graph
 SKILL_AUDIT_MD = """---
 name: pactkit-audit
 description: "H1-H7 AI Readiness Assessment — harness audit scoring and hotspot analysis"
+model: sonnet
 ---
 
 # PactKit Audit
@@ -685,6 +726,7 @@ When hotspots are detected and `developer` is configured in `pactkit.yaml`, the 
 SKILL_RELEASE_MD = """---
 name: pactkit-release
 description: "Version release: snapshot, archive, Git tag, and GitHub Release"
+model: sonnet
 ---
 
 # PactKit Release

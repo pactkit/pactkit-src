@@ -211,7 +211,8 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-108: bumped +237 for Act Phase 1 Layered Loading line
 # STORY-slim-113: bumped +300 for Act Phase 1 interface-summary step (replaces Layered Loading)
 # STORY-slim-114: bumped +1730 for Act Phase 4 Journey Sync + Plan Phase 3.2a Journey Segment
-BASELINE_TOTAL_CHARS = 89370
+# STORY-slim-116: bumped +740 for Graph Query Protocol note in Act/Plan Phase 1 + model fields
+BASELINE_TOTAL_CHARS = 90110
 
 
 class TestAC7PromptSizeReduced:

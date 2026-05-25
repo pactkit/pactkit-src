@@ -8,6 +8,7 @@ COMMANDS_CONTENT = {
     "project-plan.md": """---
 description: "Analyze requirements, create Spec and Story"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+model: opus
 ---
 
 # Command: Plan (v1.3.0 Integrated Trace)
@@ -67,6 +68,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **Subagent Scope Rule**: When delegating research to an Explore subagent, always provide a **bounded** prompt: target function/class, directory scope, file limit, and expected output. Never delegate open-ended "trace the whole codebase" tasks.
 
 1.  **Visual Scan**: Run `visualize --focus <module> --depth 2` to see the targeted dependency graph. Only expand to `--mode class` or `--mode call` if the focused scan is insufficient.
+    - **MUST NOT `Read` a full `.mmd` graph file** — graph files are 50K–120K. Use `grep` for targeted queries instead (see `pactkit-visualize` SKILL.md `## Graph Query Protocol` for examples). Full `Read` is only permitted when grep returns 0 results.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
     - If modifying existing logic, trace the current implementation.
     - *Goal*: Identify the exact function/class responsible for the logic.
@@ -158,6 +160,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     "project-act.md": """---
 description: "Implement code per Spec, strict TDD"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+model: sonnet
 ---
 
 # Command: Act (v1.3.0 Stack-Aware)
@@ -200,6 +203,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 1: Precision Targeting
 1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
+    - **MUST NOT `Read` a full `.mmd` graph file** — graph files are 50K–120K. Use `grep` for targeted queries instead (see `pactkit-visualize` SKILL.md `## Graph Query Protocol` for examples). Full `Read` is only permitted when grep returns 0 results.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site and ensure you don't break existing callers.
 3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
@@ -230,7 +234,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
