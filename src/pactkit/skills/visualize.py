@@ -852,9 +852,6 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
         dest = root / 'docs/architecture/graphs/call_graph.mmd'
         if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
         _atomic_mmd_write(dest, content)
-        if _load_sqlite_config(root):
-            db_path = root / 'docs/architecture/graphs/call_graph.db'
-            _write_sqlite_db(db_path, func_registry, reachable_edges)
         return dest, content
     else:
         # Full call graph — only edges where both endpoints are in func_registry (BUG-012)
@@ -888,7 +885,7 @@ def _build_call_graph(root, all_files, focus, entry, analyzer=None):
 
     dest = root / 'docs/architecture/graphs/call_graph.mmd'
     if focus: dest = root / 'docs/architecture/graphs/focus_call_graph.mmd'
-    if _load_sqlite_config(root):
+    if not focus and _load_sqlite_config(root):
         db_path = root / 'docs/architecture/graphs/call_graph.db'
         _write_sqlite_db(db_path, func_registry, rel_edges)
     return dest, nl().join(lines)

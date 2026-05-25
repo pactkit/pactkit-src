@@ -18,6 +18,12 @@
 - [ ] Write TDD tests for AC1-AC4
 - [ ] Run pactkit update to redeploy
 
+
+### [HOTFIX-slim-122] Fix: focus/entry overwrites call_graph.db
+> Spec: docs/specs/HOTFIX-slim-122.md
+
+- [ ] Guard sqlite write against focus/entry mode
+
 ## 🔄 In Progress
 
 ## ✅ Done
