@@ -203,7 +203,9 @@ def _write_sqlite_db(db_path, func_registry, rel_edges):
         con.execute("CREATE INDEX idx_caller ON edges(caller)")
         node_rows = [(fn, str(file), 'function') for fn, file in func_registry.items()]
         con.executemany("INSERT OR IGNORE INTO nodes VALUES (?, ?, ?)", node_rows)
-        con.executemany("INSERT INTO edges VALUES (?, ?)", rel_edges)
+        known_nodes = set(func_registry.keys())
+        unique_edges = list({(c, e) for c, e in rel_edges if c in known_nodes and e in known_nodes})
+        con.executemany("INSERT INTO edges VALUES (?, ?)", unique_edges)
         con.commit()
         con.close()
         os.replace(tmp, db_path)
