@@ -80,3 +80,23 @@
 - [x] Add pactkit query subcommand (fan-in/fan-out/chain)
 - [x] Update SKILL_VISUALIZE_MD with pactkit query examples
 - [x] Add *.db to .gitignore
+
+### [STORY-slim-124] codegraph integration — read .codegraph/codegraph.db as graph provider
+> Spec: docs/specs/STORY-slim-124.md
+
+- [x] Add graph_provider config to pactkit.yaml
+- [x] Guard _write_sqlite_db when codegraph
+- [x] Implement codegraph SQL in pactkit query
+- [x] Update Graph Query Protocol in skills.py
+- [x] Update PDCA prompts to prefer pactkit query
+
+### [HOTFIX-slim-123] Fix: call_graph.db duplicate edges and orphan nodes
+> Spec: docs/specs/HOTFIX-slim-123.md
+
+- [x] Dedup rel_edges before insert
+- [x] Filter edges to only reference existing nodes
+
+### [HOTFIX-slim-122] Fix: focus/entry overwrites call_graph.db
+> Spec: docs/specs/HOTFIX-slim-122.md
+
+- [x] Guard sqlite write against focus/entry mode

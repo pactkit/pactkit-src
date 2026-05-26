@@ -1,4 +1,4 @@
-"""Tests for STORY-slim-121: call graph SQLite output with pactkit query CLI."""
+"""Tests for STORY-slim-121/124: pactkit query CLI with codegraph integration."""
 import sqlite3
 
 
@@ -6,293 +6,236 @@ import sqlite3
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_project(tmp_path, sqlite_output=None):
-    """Create a minimal project structure with optional pactkit.yaml."""
-    graphs_dir = tmp_path / "docs" / "architecture" / "graphs"
-    graphs_dir.mkdir(parents=True)
-    claude_dir = tmp_path / ".claude"
-    claude_dir.mkdir()
-    if sqlite_output is not None:
-        yaml_content = f"visualize:\n  sqlite_output: {'true' if sqlite_output else 'false'}\n"
-        (claude_dir / "pactkit.yaml").write_text(yaml_content)
-    return tmp_path
+def _make_codegraph_db(db_path, edges):
+    """Create a codegraph-schema .codegraph/codegraph.db with given edges.
 
+    Each edge is (source_name, target_name, source_file, target_file, source_line, target_line).
+    Uses hash-like IDs to simulate real codegraph schema.
+    """
+    import hashlib
+    db_path.parent.mkdir(parents=True, exist_ok=True)
 
-def _make_db(db_path, edges):
-    """Create a call_graph.db with given edges list of (caller, callee)."""
-    nodes = set()
-    for caller, callee in edges:
-        nodes.add(caller)
-        nodes.add(callee)
     con = sqlite3.connect(db_path)
-    con.execute("CREATE TABLE nodes (id TEXT PRIMARY KEY, file TEXT, kind TEXT)")
-    con.execute("CREATE TABLE edges (caller TEXT, callee TEXT)")
-    con.execute("CREATE INDEX idx_callee ON edges(callee)")
-    con.execute("CREATE INDEX idx_caller ON edges(caller)")
-    con.executemany("INSERT INTO nodes VALUES (?, '', 'function')", [(n,) for n in nodes])
-    con.executemany("INSERT INTO edges VALUES (?, ?)", edges)
+    con.execute("""CREATE TABLE nodes (
+        id TEXT PRIMARY KEY, kind TEXT, name TEXT, qualified_name TEXT,
+        file_path TEXT, start_line INTEGER, end_line INTEGER
+    )""")
+    con.execute("""CREATE TABLE edges (
+        source TEXT, target TEXT, kind TEXT, line INTEGER, col INTEGER, provenance TEXT
+    )""")
+    con.execute("CREATE INDEX idx_edges_source ON edges(source)")
+    con.execute("CREATE INDEX idx_edges_target ON edges(target)")
+
+    nodes_seen = set()
+    for src_name, tgt_name, src_file, tgt_file, src_line, tgt_line in edges:
+        src_id = f"function:{hashlib.md5(src_name.encode()).hexdigest()[:8]}"
+        tgt_id = f"function:{hashlib.md5(tgt_name.encode()).hexdigest()[:8]}"
+        if src_id not in nodes_seen:
+            con.execute("INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (src_id, "function", src_name, src_name, src_file, src_line, src_line + 5))
+            nodes_seen.add(src_id)
+        if tgt_id not in nodes_seen:
+            con.execute("INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (tgt_id, "function", tgt_name, tgt_name, tgt_file, tgt_line, tgt_line + 5))
+            nodes_seen.add(tgt_id)
+        con.execute("INSERT INTO edges VALUES (?, ?, ?, ?, ?, ?)",
+                    (src_id, tgt_id, "calls", src_line, 0, "static"))
     con.commit()
     con.close()
 
 
+def _make_project_with_codegraph(tmp_path, edges, graph_provider="codegraph"):
+    """Create a project with pactkit.yaml and codegraph.db."""
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir()
+    yaml_content = f"visualize:\n  scan_excludes: []\n  graph_provider: {graph_provider}\n"
+    (claude_dir / "pactkit.yaml").write_text(yaml_content)
+    db_path = tmp_path / ".codegraph" / "codegraph.db"
+    _make_codegraph_db(db_path, edges)
+    return tmp_path
+
+
 # ---------------------------------------------------------------------------
-# R1: pactkit.yaml toggle
+# R1: sqlite_output removed from default config
 # ---------------------------------------------------------------------------
 
-class TestSqliteConfig:
-    def test_default_false_when_absent(self, tmp_path):
-        """_load_sqlite_config returns False when pactkit.yaml has no sqlite_output."""
-        from pactkit.skills.visualize import _load_sqlite_config
-        _make_project(tmp_path, sqlite_output=None)
-        assert _load_sqlite_config(tmp_path) is False
-
-    def test_true_when_enabled(self, tmp_path):
-        """_load_sqlite_config returns True when visualize.sqlite_output: true."""
-        from pactkit.skills.visualize import _load_sqlite_config
-        _make_project(tmp_path, sqlite_output=True)
-        assert _load_sqlite_config(tmp_path) is True
-
-    def test_false_when_disabled(self, tmp_path):
-        """_load_sqlite_config returns False when visualize.sqlite_output: false."""
-        from pactkit.skills.visualize import _load_sqlite_config
-        _make_project(tmp_path, sqlite_output=False)
-        assert _load_sqlite_config(tmp_path) is False
-
-    def test_default_config_has_sqlite_output_false(self):
-        """get_default_config includes visualize.sqlite_output = False."""
+class TestConfigRemoval:
+    def test_no_sqlite_output_in_default_config(self):
+        """get_default_config does not include sqlite_output."""
         from pactkit.config import get_default_config
         cfg = get_default_config()
-        assert cfg["visualize"]["sqlite_output"] is False
+        assert "sqlite_output" not in cfg["visualize"]
+
+    def test_graph_provider_not_in_default(self):
+        """graph_provider is not written by default (absence = grep-mmd mode)."""
+        from pactkit.config import get_default_config
+        cfg = get_default_config()
+        assert "graph_provider" not in cfg["visualize"]
 
 
 # ---------------------------------------------------------------------------
-# R2: _write_sqlite_db
+# R1: _write_sqlite_db removed
 # ---------------------------------------------------------------------------
 
-class TestWriteSqliteDb:
-    def test_creates_db_with_nodes_and_edges(self, tmp_path):
-        """_write_sqlite_db creates call_graph.db with nodes and edges tables."""
-        from pactkit.skills.visualize import _write_sqlite_db
-        db_path = tmp_path / "call_graph.db"
-        func_registry = {"mod.foo": "mod.py", "mod.bar": "mod.py"}
-        rel_edges = [("mod.foo", "mod.bar")]
-        _write_sqlite_db(db_path, func_registry, rel_edges)
-        assert db_path.exists()
-        con = sqlite3.connect(db_path)
-        nodes = {r[0] for r in con.execute("SELECT id FROM nodes")}
-        edges = list(con.execute("SELECT caller, callee FROM edges"))
-        con.close()
-        assert "mod.foo" in nodes
-        assert "mod.bar" in nodes
-        assert ("mod.foo", "mod.bar") in edges
-
-    def test_atomic_write_no_partial_file(self, tmp_path):
-        """_write_sqlite_db writes atomically — no .tmp leftover after success."""
-        from pactkit.skills.visualize import _write_sqlite_db
-        db_path = tmp_path / "call_graph.db"
-        _write_sqlite_db(db_path, {"a.f": "a.py"}, [])
-        assert db_path.exists()
-        assert not (tmp_path / "call_graph.db.tmp").exists()
-
-    def test_indexes_created(self, tmp_path):
-        """_write_sqlite_db creates indexes on caller and callee columns."""
-        from pactkit.skills.visualize import _write_sqlite_db
-        db_path = tmp_path / "call_graph.db"
-        _write_sqlite_db(db_path, {"a.f": "a.py", "b.g": "b.py"}, [("a.f", "b.g")])
-        con = sqlite3.connect(db_path)
-        indexes = {r[1] for r in con.execute("SELECT type, name FROM sqlite_master WHERE type='index'")}
-        con.close()
-        assert "idx_callee" in indexes
-        assert "idx_caller" in indexes
-
-    def test_overwrites_existing_db(self, tmp_path):
-        """_write_sqlite_db replaces stale db on re-run."""
-        from pactkit.skills.visualize import _write_sqlite_db
-        db_path = tmp_path / "call_graph.db"
-        _write_sqlite_db(db_path, {"a.f": "a.py"}, [])
-        _write_sqlite_db(db_path, {"b.g": "b.py"}, [])
-        con = sqlite3.connect(db_path)
-        nodes = {r[0] for r in con.execute("SELECT id FROM nodes")}
-        con.close()
-        assert "b.g" in nodes
-        assert "a.f" not in nodes  # old data replaced
-
-
-# ---------------------------------------------------------------------------
-# R1 AC1: default mode writes no .db
-# ---------------------------------------------------------------------------
-
-class TestBuildCallGraphNoSqlite:
-    def test_no_db_when_sqlite_disabled(self, tmp_path):
-        """_build_call_graph does not create .db when sqlite_output is false."""
+class TestBuildCallGraphNoDb:
+    def test_no_db_written(self, tmp_path):
+        """_build_call_graph never writes call_graph.db (function removed)."""
         from pactkit.skills.visualize import _build_call_graph
-        _make_project(tmp_path, sqlite_output=False)
+        graphs_dir = tmp_path / "docs" / "architecture" / "graphs"
+        graphs_dir.mkdir(parents=True)
         src = tmp_path / "src"
         src.mkdir()
         (src / "mod.py").write_text("def foo():\n    bar()\ndef bar():\n    pass\n")
         _build_call_graph(tmp_path, [src / "mod.py"], focus=None, entry=None)
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
+        db_path = graphs_dir / "call_graph.db"
         assert not db_path.exists()
 
 
 # ---------------------------------------------------------------------------
-# R2 AC2: db written when enabled
+# R2: graph_provider config round-trips
 # ---------------------------------------------------------------------------
 
-class TestBuildCallGraphWithSqlite:
-    def test_db_written_when_enabled(self, tmp_path):
-        """_build_call_graph writes call_graph.db when sqlite_output is true."""
-        from pactkit.skills.visualize import _build_call_graph
-        _make_project(tmp_path, sqlite_output=True)
-        src = tmp_path / "src"
-        src.mkdir()
-        (src / "mod.py").write_text("def foo():\n    bar()\ndef bar():\n    pass\n")
-        _build_call_graph(tmp_path, [src / "mod.py"], focus=None, entry=None)
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        assert db_path.exists()
-
-    def test_db_edge_count_matches_resolved_edges(self, tmp_path):
-        """db edge count matches resolved edges in the call graph."""
-        from pactkit.skills.visualize import _build_call_graph
-        _make_project(tmp_path, sqlite_output=True)
-        src = tmp_path / "src"
-        src.mkdir()
-        (src / "mod.py").write_text(
-            "def foo():\n    bar()\n    baz()\ndef bar():\n    pass\ndef baz():\n    pass\n"
+class TestGraphProviderConfig:
+    def test_load_config_reads_graph_provider(self, tmp_path):
+        """load_config reads visualize.graph_provider."""
+        from pactkit.config import load_config
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "pactkit.yaml").write_text(
+            "visualize:\n  scan_excludes: []\n  graph_provider: codegraph\n"
         )
-        _build_call_graph(tmp_path, [src / "mod.py"], focus=None, entry=None)
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        con = sqlite3.connect(db_path)
-        count = con.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
-        con.close()
-        assert count >= 2  # foo→bar and foo→baz resolved
+        cfg = load_config(claude_dir / "pactkit.yaml")
+        assert cfg["visualize"]["graph_provider"] == "codegraph"
+
+    def test_load_config_absent_graph_provider(self, tmp_path):
+        """load_config returns no graph_provider when absent."""
+        from pactkit.config import load_config
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "pactkit.yaml").write_text("visualize:\n  scan_excludes: []\n")
+        cfg = load_config(claude_dir / "pactkit.yaml")
+        assert "graph_provider" not in cfg["visualize"]
 
 
 # ---------------------------------------------------------------------------
-# R4: pactkit query CLI
+# R3: pactkit query CLI with codegraph
 # ---------------------------------------------------------------------------
 
 class TestPactKitQueryCLI:
-    def _run_query(self, args_list, db_path=None, tmp_path=None):
-        """Run pactkit query via CLI entry point, return (stdout, exit_code)."""
+    def _run_query(self, args_list, tmp_path):
+        """Run pactkit query via CLI entry point, return (stdout, stderr, exit_code)."""
         import io
         from unittest.mock import patch as _patch
         captured = io.StringIO()
+        err_captured = io.StringIO()
         exit_code = 0
-        with _patch("sys.stdout", captured):
+        with _patch("sys.stdout", captured), _patch("sys.stderr", err_captured):
             with _patch("sys.argv", ["pactkit", "query"] + args_list):
-                if tmp_path:
-                    with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                        try:
-                            from pactkit.cli import main
-                            main()
-                        except SystemExit as e:
-                            exit_code = e.code or 0
-                else:
+                with _patch("pathlib.Path.cwd", return_value=tmp_path):
                     try:
                         from pactkit.cli import main
                         main()
                     except SystemExit as e:
                         exit_code = e.code or 0
-        return captured.getvalue(), exit_code
+        return captured.getvalue(), err_captured.getvalue(), exit_code
 
     def test_callers_fan_in(self, tmp_path):
-        """pactkit query --callers B returns all callers of B."""
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        db_path.parent.mkdir(parents=True)
-        _make_db(db_path, [("A", "B"), ("C", "B"), ("D", "E")])
-        import io
-        from unittest.mock import patch as _patch
-        captured = io.StringIO()
-        err_captured = io.StringIO()
-        with _patch("sys.stdout", captured), _patch("sys.stderr", err_captured):
-            with _patch("sys.argv", ["pactkit", "query", "--callers", "B"]):
-                with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                    try:
-                        from pactkit.cli import main
-                        main()
-                    except SystemExit:
-                        pass
-        output = captured.getvalue()
-        assert "A" in output
-        assert "C" in output
-        assert "D" not in output
+        """pactkit query --callers returns callers from codegraph.db."""
+        edges = [
+            ("caller_a", "target_b", "src/a.py", "src/b.py", 10, 20),
+            ("caller_c", "target_b", "src/c.py", "src/b.py", 5, 20),
+            ("other_d", "other_e", "src/d.py", "src/e.py", 1, 1),
+        ]
+        _make_project_with_codegraph(tmp_path, edges)
+        stdout, _, exit_code = self._run_query(["--callers", "target_b"], tmp_path)
+        assert exit_code == 0
+        assert "caller_a" in stdout
+        assert "caller_c" in stdout
+        assert "other_d" not in stdout
+        assert "src/a.py:10" in stdout
 
     def test_callees_fan_out(self, tmp_path):
-        """pactkit query --callees A returns all callees of A."""
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        db_path.parent.mkdir(parents=True)
-        _make_db(db_path, [("A", "B"), ("A", "C"), ("D", "E")])
-        import io
-        from unittest.mock import patch as _patch
-        captured = io.StringIO()
-        with _patch("sys.stdout", captured), _patch("sys.stderr", io.StringIO()):
-            with _patch("sys.argv", ["pactkit", "query", "--callees", "A"]):
-                with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                    try:
-                        from pactkit.cli import main
-                        main()
-                    except SystemExit:
-                        pass
-        output = captured.getvalue()
-        assert "B" in output
-        assert "C" in output
-        assert "E" not in output
+        """pactkit query --callees returns callees from codegraph.db."""
+        edges = [
+            ("caller_a", "target_b", "src/a.py", "src/b.py", 10, 20),
+            ("caller_a", "target_c", "src/a.py", "src/c.py", 10, 30),
+            ("other_d", "other_e", "src/d.py", "src/e.py", 1, 1),
+        ]
+        _make_project_with_codegraph(tmp_path, edges)
+        stdout, _, exit_code = self._run_query(["--callees", "caller_a"], tmp_path)
+        assert exit_code == 0
+        assert "target_b" in stdout
+        assert "target_c" in stdout
+        assert "other_e" not in stdout
 
     def test_chain_upstream_transitive(self, tmp_path):
-        """pactkit query --chain C returns all upstream callers (A→B→C)."""
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        db_path.parent.mkdir(parents=True)
-        _make_db(db_path, [("A", "B"), ("B", "C")])
-        import io
-        from unittest.mock import patch as _patch
-        captured = io.StringIO()
-        with _patch("sys.stdout", captured), _patch("sys.stderr", io.StringIO()):
-            with _patch("sys.argv", ["pactkit", "query", "--chain", "C"]):
-                with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                    try:
-                        from pactkit.cli import main
-                        main()
-                    except SystemExit:
-                        pass
-        output = captured.getvalue()
-        assert "A" in output
-        assert "B" in output
+        """pactkit query --chain returns transitive upstream callers."""
+        edges = [
+            ("func_a", "func_b", "src/a.py", "src/b.py", 1, 10),
+            ("func_b", "func_c", "src/b.py", "src/c.py", 10, 20),
+        ]
+        _make_project_with_codegraph(tmp_path, edges)
+        stdout, _, exit_code = self._run_query(["--chain", "func_c"], tmp_path)
+        assert exit_code == 0
+        assert "func_a" in stdout
+        assert "func_b" in stdout
 
     def test_chain_downstream_transitive(self, tmp_path):
-        """pactkit query --chain A --down returns all downstream callees (A→B→C)."""
-        db_path = tmp_path / "docs" / "architecture" / "graphs" / "call_graph.db"
-        db_path.parent.mkdir(parents=True)
-        _make_db(db_path, [("A", "B"), ("B", "C")])
-        import io
-        from unittest.mock import patch as _patch
-        captured = io.StringIO()
-        with _patch("sys.stdout", captured), _patch("sys.stderr", io.StringIO()):
-            with _patch("sys.argv", ["pactkit", "query", "--chain", "A", "--down"]):
-                with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                    try:
-                        from pactkit.cli import main
-                        main()
-                    except SystemExit:
-                        pass
-        output = captured.getvalue()
-        assert "B" in output
-        assert "C" in output
+        """pactkit query --chain --down returns transitive downstream callees."""
+        edges = [
+            ("func_a", "func_b", "src/a.py", "src/b.py", 1, 10),
+            ("func_b", "func_c", "src/b.py", "src/c.py", 10, 20),
+        ]
+        _make_project_with_codegraph(tmp_path, edges)
+        stdout, _, exit_code = self._run_query(["--chain", "func_a", "--down"], tmp_path)
+        assert exit_code == 0
+        assert "func_b" in stdout
+        assert "func_c" in stdout
 
-    def test_missing_db_exits_with_error(self, tmp_path):
-        """pactkit query exits 1 with helpful message when call_graph.db missing."""
-        import io
-        from unittest.mock import patch as _patch
-        err_captured = io.StringIO()
-        exit_code = 0
-        with _patch("sys.stdout", io.StringIO()), _patch("sys.stderr", err_captured):
-            with _patch("sys.argv", ["pactkit", "query", "--callers", "foo"]):
-                with _patch("pathlib.Path.cwd", return_value=tmp_path):
-                    try:
-                        from pactkit.cli import main
-                        main()
-                    except SystemExit as e:
-                        exit_code = e.code
+    def test_error_when_no_provider_configured(self, tmp_path):
+        """pactkit query exits 1 when graph_provider not set."""
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "pactkit.yaml").write_text("visualize:\n  scan_excludes: []\n")
+        _, stderr, exit_code = self._run_query(["--callers", "foo"], tmp_path)
         assert exit_code == 1
-        err_output = err_captured.getvalue()
-        assert "sqlite_output" in err_output or "visualize" in err_output
+        assert "graph_provider" in stderr
+        assert "codegraph" in stderr
+
+    def test_error_when_db_missing_no_codegraph_installed(self, tmp_path):
+        """pactkit query exits 1 with install hint when codegraph not on PATH."""
+        from unittest.mock import patch as _patch
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "pactkit.yaml").write_text(
+            "visualize:\n  scan_excludes: []\n  graph_provider: codegraph\n"
+        )
+        with _patch("shutil.which", return_value=None):
+            _, stderr, exit_code = self._run_query(["--callers", "foo"], tmp_path)
+        assert exit_code == 1
+        assert "codegraph" in stderr
+
+    def test_auto_init_when_codegraph_available(self, tmp_path):
+        """pactkit query auto-runs codegraph init when db missing but CLI available."""
+        from unittest.mock import patch as _patch, MagicMock
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "pactkit.yaml").write_text(
+            "visualize:\n  scan_excludes: []\n  graph_provider: codegraph\n"
+        )
+        edges = [("caller_a", "target_b", "src/a.py", "src/b.py", 10, 20)]
+        mock_run = MagicMock()
+        mock_run.returncode = 0
+
+        def fake_run(cmd, **kwargs):
+            _make_codegraph_db(tmp_path / ".codegraph" / "codegraph.db", edges)
+            return mock_run
+
+        with _patch("shutil.which", return_value="/usr/local/bin/codegraph"):
+            with _patch("subprocess.run", side_effect=fake_run):
+                stdout, stderr, exit_code = self._run_query(
+                    ["--callers", "target_b"], tmp_path
+                )
+        assert exit_code == 0
+        assert "caller_a" in stdout
+        assert "codegraph init" in stderr

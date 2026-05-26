@@ -83,50 +83,41 @@ Generate project code relationship graphs (Mermaid format), supporting four anal
 
 > **MUST NOT `Read` a full `.mmd` graph file** — graph files are large (50K–120K, 1000–2000+ lines). Full reads waste tokens before any work begins.
 
-### SQLite Mode (preferred — when `call_graph.db` exists)
+### Codegraph Mode (when `graph_provider: codegraph` in pactkit.yaml)
 
-Check first: `test -f docs/architecture/graphs/call_graph.db`
+Setup: `codegraph init` (first time), `codegraph sync` (after code changes).
+When codegraph MCP server is running, file changes auto-sync (2-second debounce).
 
 ```bash
-# Fan-in: who calls a function (single hop)
+# Unified pactkit query (reads .codegraph/codegraph.db):
 pactkit query --callers atomic_write
-
-# Fan-out: what a function calls (single hop)
 pactkit query --callees deploy
+pactkit query --chain atomic_write       # transitive upstream
+pactkit query --chain deploy --down      # transitive downstream
 
-# Transitive upstream: all callers that eventually lead to a function (multi-hop)
-pactkit query --chain atomic_write
-
-# Transitive downstream: all functions eventually called from an entry point
-pactkit query --chain deploy --down
+# Direct codegraph CLI (richer features):
+codegraph callers <symbol>
+codegraph callees <symbol>
+codegraph impact <symbol> --depth 3      # transitive impact radius
+codegraph query <search> --kind function # FTS5 symbol search
+codegraph context <task>                 # task-focused context builder
+codegraph affected <files...>            # find affected test files
+codegraph status                         # check index health
 ```
 
-Enable SQLite output: set `visualize.sqlite_output: true` in `pactkit.yaml`, then re-run `pactkit visualize --mode call`.
+MCP tools (if codegraph MCP server configured): `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_trace`, `codegraph_context`.
 
-### Grep Mode (fallback — when only `.mmd` exists)
+### Grep Mode (default — when graph_provider not set, use .mmd files)
 
 ```bash
-# Find all edges involving a specific file/module
-grep "deployer" docs/architecture/graphs/code_graph.mmd
-
-# Find importers of a module (fan-in — who depends on it)
-# Note: nodes are sanitized IDs (e.g. src_pactkit_generators_deployer_py), use .* wildcard
-grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd
-
-# Find dependencies of a module (fan-out — what it depends on)
-grep "deployer.* --> " docs/architecture/graphs/code_graph.mmd
-
-# Count importers (to decide full suite vs incremental test run)
-grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd | wc -l
-
-# Class-level: find class and its parent/child relationships
-grep "MyClass" docs/architecture/graphs/class_graph.mmd
-
-# Call-level: find callers of a function
-grep "my_func" docs/architecture/graphs/call_graph.mmd
+grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd  # fan-in (importers)
+grep "deployer.* --> " docs/architecture/graphs/code_graph.mmd  # fan-out (deps)
+grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd | wc -l  # count
+grep "my_func" docs/architecture/graphs/call_graph.mmd  # call-level
+grep "MyClass" docs/architecture/graphs/class_graph.mmd  # class-level
 ```
 
-**Fallback rule**: If grep returns 0 results, the module is not yet indexed — fall back to full `Read` and note why. Also permitted when generating or verifying a new graph.
+**Fallback rule**: If grep returns 0 results, fall back to full `Read`.
 """
 
 SKILL_BOARD_MD = """---
@@ -301,7 +292,7 @@ Deep code analysis and execution path tracing via static analysis.
 
 ### 2. Call Graph Analysis
 - Run `visualize --mode call --entry <function_name>` to obtain call chains.
-- Read `docs/architecture/graphs/call_graph.mmd` to see all reachable functions.
+- Query callers/callees: use `pactkit query --callers/--callees <func>` (when graph_provider: codegraph), or grep `docs/architecture/graphs/call_graph.mmd`.
 
 ### 3. Deep Tracing
 - Follow call chain file by file, recording data transformations.

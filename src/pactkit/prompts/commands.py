@@ -68,7 +68,8 @@ model: opus
 > **Subagent Scope Rule**: When delegating research to an Explore subagent, always provide a **bounded** prompt: target function/class, directory scope, file limit, and expected output. Never delegate open-ended "trace the whole codebase" tasks.
 
 1.  **Visual Scan**: Run `visualize --focus <module> --depth 2` to see the targeted dependency graph. Only expand to `--mode class` or `--mode call` if the focused scan is insufficient.
-    - **MUST NOT `Read` a full `.mmd` graph file** — graph files are 50K–120K. Use `grep` for targeted queries instead (see `pactkit-visualize` SKILL.md `## Graph Query Protocol` for examples). Full `Read` is only permitted when grep returns 0 results.
+    - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
+    - **Codegraph auto-setup**: If `which codegraph` succeeds AND `.codegraph/` does not exist, run `codegraph init -i` and set `visualize.graph_provider: codegraph` in pactkit.yaml. Skip if `.codegraph/` exists.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
     - If modifying existing logic, trace the current implementation.
     - *Goal*: Identify the exact function/class responsible for the logic.
@@ -202,8 +203,8 @@ model: sonnet
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
-1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
-    - **MUST NOT `Read` a full `.mmd` graph file** — graph files are 50K–120K. Use `grep` for targeted queries instead (see `pactkit-visualize` SKILL.md `## Graph Query Protocol` for examples). Full `Read` is only permitted when grep returns 0 results.
+1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — Phase 4 handles that.
+    - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
 2.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site and ensure you don't break existing callers.
 3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
@@ -234,7 +235,7 @@ model: sonnet
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`pactkit query --callers <file>` or `grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
@@ -244,7 +245,7 @@ model: sonnet
     - If found, extract to config/constants before proceeding.
 
 ## 🎬 Phase 4: Sync & Document
-1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed).
+1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed). If `.codegraph/` exists, run `codegraph sync`.
 1b. **Journey Sync (Conditional)**:
     - **Skip if**: `docs/e2e/journey.md` does not exist in the project.
     - **Skip if**: Current Story's Spec has no `## Journey Segment` section.
@@ -512,7 +513,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - If **no source/test files changed** since the last commit (e.g., only docs, board, graphs, or config changed): log `"Regression: SKIP — no source/test changes since Act"` and proceed directly to Step 2.7 (Smart Lint Gate). This avoids re-running 3000+ tests when Act already verified the code.
 
 ### Step 1: Impact Analysis
-- Check if `docs/architecture/graphs/code_graph.mmd` exists.
+- Check if call graph is available: `pactkit query` (if graph_provider: codegraph) or `docs/architecture/graphs/code_graph.mmd` (grep).
 
 ### Step 1.3: Classification Shortcut
 Run `pactkit regression` (or `pactkit regression <files>`) to classify changes (doc-only → SKIP):
@@ -525,10 +526,10 @@ If `pactkit regression` returns FULL (version/dependency change detected), proce
 Otherwise continue to Step 1.7.
 
 ### Step 1.7: Impact-Based Analysis (STORY-053)
-> **PURPOSE**: Use `call_graph.mmd` to target only tests affected by changed functions.
+> **PURPOSE**: Target only tests affected by changed functions via call graph.
 
-1. **Preconditions**: All of the following must be true to attempt impact analysis:
-   - `docs/architecture/graphs/call_graph.mmd` exists.
+1. **Preconditions**:
+   - Call graph available (`pactkit query` or `call_graph.mmd`).
    - `regression.strategy` is `impact` (read from `pactkit.yaml`; default: `impact`).
 2. **Identify changed functions**: Use `git diff HEAD~1 --unified=0` on changed source files to extract modified function names (look for `def ` in the diff).
 3. **Run impact command** for each changed function:

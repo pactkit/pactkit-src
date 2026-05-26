@@ -1,14 +1,15 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-05-25T14:46:09+08:00 by pactkit context
+> Last updated: 2026-05-26T16:02:32+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 2 | In Progress: 0 | Done: 0 stories
+Backlog: 2 | In Progress: 1 | Done: 2 stories
 
 ## Current Stories
-None
+- STORY-slim-124: codegraph integration — read .codegraph/codegraph.db as graph provider
 
 ## Recent Completions
-None
+- HOTFIX-slim-123: Fix: call_graph.db duplicate edges and orphan nodes
+- HOTFIX-slim-122: Fix: focus/entry overwrites call_graph.db
 
 ## Active Branches
 + claude/naughty-euclid-e6a787
@@ -23,7 +24,7 @@ None
 - _write_sqlite_db reuses func_registry and rel_edges already in memory from _build_call_graph — no second AST scan; pactkit query reads db directly without touching pactkit.yaml
 
 ## Next Recommended Action
-`/project-plan`
+`/project-act` (stories in progress)
 
 ## Agent Continuation
 No active work session.

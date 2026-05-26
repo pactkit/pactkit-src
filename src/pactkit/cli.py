@@ -348,8 +348,10 @@ def main():
     # pactkit redetect-stack (STORY-slim-077)
     subparsers.add_parser("redetect-stack", help="Re-detect project stacks and update pactkit.yaml")
 
-    # pactkit query (STORY-slim-121)
-    query_parser = subparsers.add_parser("query", help="Query call graph database (fan-in, fan-out, chain)")
+    # pactkit query (STORY-slim-121, STORY-slim-124: codegraph integration)
+    query_parser = subparsers.add_parser(
+        "query", help="Query codegraph call graph (requires graph_provider: codegraph)"
+    )
     query_mode = query_parser.add_mutually_exclusive_group(required=True)
     query_mode.add_argument("--callers", metavar="FUNC", help="Fan-in: list all callers of FUNC")
     query_mode.add_argument("--callees", metavar="FUNC", help="Fan-out: list all callees of FUNC")
@@ -358,7 +360,7 @@ def main():
         "--down", action="store_true",
         help="With --chain: downstream callees (default: upstream callers)",
     )
-    query_parser.add_argument("--db", metavar="PATH", help="Override default call_graph.db path")
+    query_parser.add_argument("--db", metavar="PATH", help="Override default .codegraph/codegraph.db path")
 
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
@@ -795,60 +797,118 @@ def main():
         import sys
         from pathlib import Path
 
-        default_db = Path.cwd() / "docs" / "architecture" / "graphs" / "call_graph.db"
-        db_path = Path(args.db) if args.db else default_db
+        from pactkit.config import load_config
 
-        if not db_path.exists():
+        config = load_config()
+        graph_provider = config.get("visualize", {}).get("graph_provider")
+
+        if not graph_provider or graph_provider != "codegraph":
             print(
-                f"❌ call_graph.db not found at {db_path}\n"
-                "Enable it by setting visualize.sqlite_output: true in pactkit.yaml,\n"
-                "then re-run: pactkit visualize --mode call",
+                "❌ pactkit query requires graph_provider: codegraph\n"
+                "Configure in pactkit.yaml:\n"
+                "  visualize:\n"
+                "    graph_provider: codegraph\n"
+                "Then run: codegraph init\n\n"
+                "Or use grep on .mmd files directly:\n"
+                "  grep \"<func>\" docs/architecture/graphs/call_graph.mmd",
                 file=sys.stderr,
             )
             raise SystemExit(1)
 
-        con = sqlite3.connect(db_path)
+        default_db = Path.cwd() / ".codegraph" / "codegraph.db"
+        db_path = Path(args.db) if args.db else default_db
+
+        if not db_path.exists():
+            import shutil
+            import subprocess
+            if shutil.which("codegraph"):
+                print("⚙️ codegraph.db not found — running codegraph init...",
+                      file=sys.stderr)
+                result = subprocess.run(
+                    ["codegraph", "init", "-i"],
+                    capture_output=True, text=True,
+                )
+                if result.returncode != 0:
+                    print(f"❌ codegraph init failed:\n{result.stderr}",
+                          file=sys.stderr)
+                    raise SystemExit(1)
+                if not db_path.exists():
+                    print("❌ codegraph init completed but db not created",
+                          file=sys.stderr)
+                    raise SystemExit(1)
+            else:
+                print(
+                    f"❌ codegraph.db not found at {db_path}\n"
+                    "Install codegraph: npm i -g @colbymchenry/codegraph\n"
+                    "Then run: codegraph init",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
+
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         try:
             if args.callers:
                 rows = con.execute(
-                    "SELECT DISTINCT caller FROM edges WHERE callee LIKE ?",
+                    """
+                    SELECT DISTINCT ns.name, ns.file_path, ns.start_line
+                    FROM edges e
+                    JOIN nodes ns ON e.source = ns.id
+                    JOIN nodes nt ON e.target = nt.id
+                    WHERE e.kind = 'calls' AND nt.name LIKE ?
+                    """,
                     (f"%{args.callers}%",),
                 ).fetchall()
             elif args.callees:
                 rows = con.execute(
-                    "SELECT DISTINCT callee FROM edges WHERE caller LIKE ?",
+                    """
+                    SELECT DISTINCT nt.name, nt.file_path, nt.start_line
+                    FROM edges e
+                    JOIN nodes ns ON e.source = ns.id
+                    JOIN nodes nt ON e.target = nt.id
+                    WHERE e.kind = 'calls' AND ns.name LIKE ?
+                    """,
                     (f"%{args.callees}%",),
                 ).fetchall()
             else:  # --chain
                 if args.down:
                     rows = con.execute(
                         """
-                        WITH RECURSIVE chain(node) AS (
-                            SELECT DISTINCT callee FROM edges WHERE caller LIKE ?
+                        WITH RECURSIVE chain(id) AS (
+                            SELECT DISTINCT e.target
+                            FROM edges e JOIN nodes n ON e.source = n.id
+                            WHERE e.kind = 'calls' AND n.name LIKE ?
                             UNION
-                            SELECT e.callee FROM edges e JOIN chain c ON e.caller = c.node
+                            SELECT e.target FROM edges e
+                            JOIN chain c ON e.source = c.id
+                            WHERE e.kind = 'calls'
                         )
-                        SELECT DISTINCT node FROM chain
+                        SELECT DISTINCT n.name, n.file_path, n.start_line
+                        FROM chain c JOIN nodes n ON c.id = n.id
                         """,
                         (f"%{args.chain}%",),
                     ).fetchall()
                 else:
                     rows = con.execute(
                         """
-                        WITH RECURSIVE chain(node) AS (
-                            SELECT DISTINCT caller FROM edges WHERE callee LIKE ?
+                        WITH RECURSIVE chain(id) AS (
+                            SELECT DISTINCT e.source
+                            FROM edges e JOIN nodes n ON e.target = n.id
+                            WHERE e.kind = 'calls' AND n.name LIKE ?
                             UNION
-                            SELECT e.caller FROM edges e JOIN chain c ON e.callee = c.node
+                            SELECT e.source FROM edges e
+                            JOIN chain c ON e.target = c.id
+                            WHERE e.kind = 'calls'
                         )
-                        SELECT DISTINCT node FROM chain
+                        SELECT DISTINCT n.name, n.file_path, n.start_line
+                        FROM chain c JOIN nodes n ON c.id = n.id
                         """,
                         (f"%{args.chain}%",),
                     ).fetchall()
         finally:
             con.close()
 
-        for (result,) in sorted(rows):
-            print(result)
+        for name, file_path, start_line in sorted(rows):
+            print(f"{name} ({file_path}:{start_line})")
 
     else:
         parser.print_help()

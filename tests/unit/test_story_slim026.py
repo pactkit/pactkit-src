@@ -122,6 +122,6 @@ class TestAC4DesignUnchanged:
 class TestAC5CharCount:
 
     def test_plan_prompt_not_longer_than_baseline(self):
-        """Plan prompt SHOULD be shorter or equal to baseline (STORY-slim-116: +265 for Graph Query Protocol note + model field)."""
+        """Plan prompt SHOULD be shorter or equal to baseline (STORY-slim-124: codegraph auto-setup)."""
         prompt = _get_plan_prompt()
-        assert len(prompt) <= 13018, f"Plan prompt grew to {len(prompt)} chars (baseline: 13018)"
+        assert len(prompt) <= 13089, f"Plan prompt grew to {len(prompt)} chars (baseline: 13089)"

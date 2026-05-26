@@ -204,7 +204,6 @@ def get_default_config() -> dict:
                 "tests", "docs",
                 "node_modules", "site-packages", "dist", "build",
             ],
-            "sqlite_output": False,
         },
         "command_models": {
             "project-act": "sonnet",
@@ -734,16 +733,17 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
                 lines.append(f'  {rule_id}: "{pattern}"')
         lines.append("")
 
-    # Write visualize section (STORY-slim-028)
+    # Write visualize section (STORY-slim-028, STORY-slim-124)
     visualize = data.get("visualize", {})
     if isinstance(visualize, dict) and "scan_excludes" in visualize:
-        lines.append("# Visualize — configure directory scan exclusions")
+        lines.append("# Visualize — configure directory scan exclusions and graph provider")
         lines.append("visualize:")
         lines.append("  scan_excludes:")
         for item in visualize["scan_excludes"]:
             lines.append(f"    - {item}")
-        sqlite_out = bool(visualize.get("sqlite_output", False))
-        lines.append(f"  sqlite_output: {'true' if sqlite_out else 'false'}")
+        graph_provider = visualize.get("graph_provider")
+        if graph_provider:
+            lines.append(f"  graph_provider: {graph_provider}")
         lines.append("")
 
     # BUG-023: Preserve unknown user-defined keys
@@ -1055,14 +1055,15 @@ def generate_default_yaml(stack=None) -> str:
     lines.append(f"  api_spec: \"{e2e.get('api_spec', '')}\"  # OpenAPI spec path for frontend/backend")
     lines.append(f"  compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
 
-    # Write visualize section (STORY-slim-028)
+    # Write visualize section (STORY-slim-028, STORY-slim-124)
     visualize = cfg.get("visualize", {})
     if isinstance(visualize, dict) and "scan_excludes" in visualize:
-        lines.extend(["", "# Visualize — configure directory scan exclusions"])
+        lines.extend(["", "# Visualize — configure directory scan exclusions and graph provider"])
         lines.append("visualize:")
         lines.append("  scan_excludes:")
         for item in visualize["scan_excludes"]:
             lines.append(f"    - {item}")
+        lines.append("  # graph_provider: codegraph  # uncomment to use codegraph as call graph source")
 
     # Write command_models section (STORY-073)
     cmd_models = cfg.get("command_models", {})
