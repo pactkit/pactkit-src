@@ -100,3 +100,10 @@
 > Spec: docs/specs/HOTFIX-slim-122.md
 
 - [x] Guard sqlite write against focus/entry mode
+
+### [STORY-slim-125] Add model frontmatter to all PDCA command/skill prompts
+> Spec: docs/specs/STORY-slim-125.md
+
+- [x] Add model to commands.py
+- [x] Add model to workflows.py
+- [x] Add regression test

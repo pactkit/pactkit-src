@@ -271,6 +271,7 @@ model: sonnet
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
 allowed-tools: [Read, Bash, Grep, Glob]
+model: sonnet
 ---
 
 # Command: Check (v1.3.0 Deep QA)
@@ -484,6 +485,7 @@ For each finding, assign a severity (P0-P3). Flag issues that may cause silent f
     "project-done.md": """---
 description: "Code cleanup, Board update, Git commit"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
+model: sonnet
 ---
 
 # Command: Done (v1.3.0 Smart Gatekeeper)
@@ -654,6 +656,7 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
     "project-clarify.md": """---
 description: "Standalone requirement clarification before planning"
 allowed-tools: [Read, Bash, Glob, Grep]
+model: sonnet
 ---
 
 # Command: Clarify (v1.1.0)
@@ -694,6 +697,7 @@ allowed-tools: [Read, Bash, Glob, Grep]
     "project-init.md": """---
 description: "Initialize project scaffolding and governance structure"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
+model: sonnet
 ---
 
 # Command: Init (v1.3.0 Rich)
@@ -766,6 +770,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     "project-release.md": """---
 description: "Version release: snapshot, archive, Git tag, and GitHub Release"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
+model: sonnet
 ---
 
 # Command: Release (v1.4.0)
@@ -788,6 +793,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     "project-pr.md": """---
 description: "Push branch and create pull request via gh CLI"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
+model: sonnet
 ---
 
 # Command: PR (v1.4.0)
