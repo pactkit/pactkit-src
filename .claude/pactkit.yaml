@@ -68,7 +68,7 @@ visualize:
     - site-packages
     - dist
     - build
-  sqlite_output: true
+  graph_provider: codegraph
 
 # Agent Models — override default model per agent (inherit = use account default)
 agent_models:

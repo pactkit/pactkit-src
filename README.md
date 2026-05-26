@@ -205,7 +205,7 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 
 | Skill | Type | Purpose |
 |-------|------|---------|
-| **pactkit-visualize** | Scripted | Code dependency graph (Mermaid + optional SQLite): file-level, class-level, call-level |
+| **pactkit-visualize** | Scripted | Code dependency graph (Mermaid .mmd): file-level, class-level, call-level |
 | **pactkit-board** | Scripted | Sprint board operations: add story, update task, archive |
 | **pactkit-scaffold** | Scripted | File scaffolding: create spec, test files, git branches, skills |
 | **pactkit-trace** | Prompt-only | Deep code tracing and execution flow analysis |
@@ -238,8 +238,8 @@ PactKit ships 26 deterministic CLI subcommands — operations that were previous
 | `pactkit regression` | Classify changes (SKIP/FULL/IMPACT) |
 | `pactkit test-map` | Map source files to test files |
 | `pactkit coverage-gate` | Enforce 3-tier coverage thresholds (80/50/block) |
-| `pactkit visualize` | Conditional graph regeneration (lazy mode); outputs `call_graph.db` when `visualize.sqlite_output: true` |
-| `pactkit query` | Query call graph SQLite DB: `--callers`, `--callees`, `--chain [--down]` |
+| `pactkit visualize` | Conditional graph regeneration (lazy mode) |
+| `pactkit query` | Query call graph via codegraph: `--callers`, `--callees`, `--chain [--down]` (requires `graph_provider: codegraph`) |
 | `pactkit lesson-append` | Append lesson with specificity check and dedup |
 | `pactkit invariants-refresh` | Update test count invariant in rules.md |
 | `pactkit sec-scope` | Detect security scope for changed files |
@@ -334,6 +334,7 @@ docs/
 | `skills` | list | all 10 | Skills to deploy |
 | `rules` | list | all 8 | Constitution rule modules to deploy |
 | `exclude` | object | `{}` | Components to exclude (e.g., `exclude.agents: [agent-name]`) |
+| `visualize.graph_provider` | string | (absent) | Graph query backend. Set `codegraph` to use `.codegraph/codegraph.db` for `pactkit query`. Absent = grep `.mmd` |
 | `ci` | object | `provider: none` | CI/CD pipeline generation (`github`, `gitlab`, `none`). Sub-fields: `runner` (default: `ubuntu-latest`), `language_version` (default: auto per stack), `github_host` (GHE server address), `actions_ref` (GHE actions prefix) |
 | `issue_tracker` | object | `provider: none` | External issue tracker (`github`, `none`) |
 | `hooks` | object | disabled | Opt-in hook templates (pre-commit, post-test, pre-push) |
