@@ -143,6 +143,7 @@ agent_models:
 
 # Visualize — configure directory scan exclusions
 visualize:
+  graph_provider: codegraph
   scan_excludes:
     - venv
     - _venv
