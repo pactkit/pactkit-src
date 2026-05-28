@@ -107,3 +107,8 @@
 - [x] Add model to commands.py
 - [x] Add model to workflows.py
 - [x] Add regression test
+
+### [HOTFIX-slim-126] Fix pactkit.dev cache hit rate
+> Spec: docs/specs/HOTFIX-slim-126.md
+
+- [x] Remove OpenNext/Workers setup, migrate to Cloudflare Pages static deploy to fix ~30% cache hit rate

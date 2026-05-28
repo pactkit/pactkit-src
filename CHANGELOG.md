@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.14.1] - 2026-05-28
+
+### Fixed
+- **Codegraph sync missing from project-done and project-hotfix** (HOTFIX-slim-127) — STORY-slim-124 added `codegraph sync` to project-act but missed project-done (Phase 2) and project-hotfix. Workflows bypassing project-act left the codegraph index stale. Fixed in source templates (`commands.py`, `workflows.py`); next `pactkit init` deploy propagates the fix to all users.
+
 ## [2.14.0] - 2026-05-26
 
 ### Added

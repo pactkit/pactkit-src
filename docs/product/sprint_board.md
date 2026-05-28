@@ -18,7 +18,6 @@
 - [ ] Write TDD tests for AC1-AC4
 - [ ] Run pactkit update to redeploy
 
-
 ### [HOTFIX-slim-127] Add codegraph sync to PDCA command source templates
 > Spec: docs/specs/HOTFIX-slim-127.md
 
@@ -31,7 +30,3 @@
 
 ## ✅ Done
 
-### [HOTFIX-slim-126] Fix pactkit.dev cache hit rate
-> Spec: docs/specs/HOTFIX-slim-126.md
-
-- [x] Remove OpenNext/Workers setup, migrate to Cloudflare Pages static deploy to fix ~30% cache hit rate
