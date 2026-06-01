@@ -92,6 +92,7 @@ graph TD
     _parse_version["_parse_version"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
+    _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _python_files["_python_files"]
     _read_content["_read_content"]
@@ -136,6 +137,7 @@ graph TD
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
+    codegraph_sync["codegraph_sync"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_security_scope__any_content_matches["detect_security_scope._any_content_matches"]
@@ -274,6 +276,9 @@ graph TD
     run_lint --> _add_fix_flag
     run_lint --> load_config
     should_visualize --> detect_stack
+    run_visualize_single --> _print_codegraph_sync
+    run_visualize_graphs --> _print_codegraph_sync
+    _print_codegraph_sync --> codegraph_sync
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _extract_sprint_contract
@@ -306,7 +311,9 @@ graph TD
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
+    main --> codegraph_sync
     main --> run_garden
+    main --> codegraph_sync
     main --> run_observe
     main --> check_orphaned_specs
     main --> check_config_drift

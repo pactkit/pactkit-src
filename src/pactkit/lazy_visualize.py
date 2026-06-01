@@ -7,6 +7,7 @@ Implements the Lazy Visualize Protocol from 03-shared-protocols (on-demand rules
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,34 @@ from pactkit.prompts.workflows import LANG_PROFILES
 
 # Canonical graph output path (relative to project root)
 _GRAPH_PATH = Path("docs") / "architecture" / "graphs" / "code_graph.mmd"
+
+
+def codegraph_sync(project_root: Path) -> tuple[bool, str]:
+    """Sync codegraph index if .codegraph/ exists and codegraph is available.
+
+    Opt-in signal: .codegraph/ directory exists (user ran `codegraph init`).
+    No pactkit.yaml config required — presence of .codegraph/ is sufficient.
+
+    Returns:
+        (synced, message) — synced=True if sync ran successfully.
+    """
+    codegraph_dir = project_root / ".codegraph"
+    if not codegraph_dir.is_dir():
+        return (False, ".codegraph/ not found — skipped")
+
+    if not shutil.which("codegraph"):
+        return (False, "codegraph not installed")
+
+    result = subprocess.run(
+        ["codegraph", "sync", str(project_root)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return (False, f"codegraph sync failed: {result.stderr.strip()}")
+
+    output = result.stdout.strip()
+    return (True, output if output else "codegraph synced")
 
 
 def should_visualize(
@@ -104,6 +133,7 @@ def run_visualize_single(
     if max_nodes:
         cmd += ["--max-nodes", str(max_nodes)]
     subprocess.run(cmd, cwd=str(project_root))
+    _print_codegraph_sync(project_root)
 
 
 def run_visualize_graphs(project_root: Path, *, focus: str | None = None) -> None:
@@ -126,3 +156,13 @@ def run_visualize_graphs(project_root: Path, *, focus: str | None = None) -> Non
 
     # Focus graphs are user-generated on demand (--focus <target>), not auto-refreshed.
     # Removed hardcoded --focus cli refresh (HOTFIX-slim-062).
+    _print_codegraph_sync(project_root)
+
+
+def _print_codegraph_sync(project_root: Path) -> None:
+    """Run codegraph_sync and print status feedback (R5)."""
+    synced, msg = codegraph_sync(project_root)
+    if synced:
+        print(f"🔄 {msg}")
+    elif "skipped" not in msg:
+        print(f"codegraph: {msg}")

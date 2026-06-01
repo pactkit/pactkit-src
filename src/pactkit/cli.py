@@ -268,6 +268,10 @@ def main():
     viz_parser.add_argument("--reverse", action="store_true", default=False, help="Reverse BFS: find callers of entry")
     viz_parser.add_argument("--depth", type=int, default=0, help="Limit traversal depth (0=unlimited)")
     viz_parser.add_argument("--max-nodes", type=int, default=0, help="Truncate graph to N nodes (0=unlimited)")
+    viz_parser.add_argument("--sync", action="store_true", help="Force codegraph sync even if graphs are skipped")
+
+    # pactkit sync (STORY-slim-126: codegraph sync code enforcement)
+    subparsers.add_parser("sync", help="Sync codegraph index")
 
     # pactkit garden (STORY-slim-070)
     garden_parser = subparsers.add_parser("garden", help="Codebase quality patrol")
@@ -565,12 +569,18 @@ def main():
     elif args.command == "visualize":
         from pathlib import Path
 
-        from pactkit.lazy_visualize import run_visualize_graphs, run_visualize_single, should_visualize
+        from pactkit.lazy_visualize import codegraph_sync, run_visualize_graphs, run_visualize_single, should_visualize
 
         project_root = Path.cwd()
         if args.lazy:
             should_run, reason = should_visualize(project_root, stack=args.stack)
             if not should_run:
+                if args.sync:
+                    synced, msg = codegraph_sync(project_root)
+                    if synced:
+                        print(f"🔄 {msg}")
+                    elif "skipped" not in msg:
+                        print(f"codegraph: {msg}")
                 print(reason)
                 raise SystemExit(0)
             print(f"Visualize needed: {reason}")
@@ -583,6 +593,18 @@ def main():
             )
         else:
             run_visualize_graphs(project_root, focus=args.focus)
+
+    elif args.command == "sync":
+        from pathlib import Path
+
+        from pactkit.lazy_visualize import codegraph_sync
+
+        project_root = Path.cwd()
+        synced, msg = codegraph_sync(project_root)
+        if synced:
+            print(f"🔄 {msg}")
+        else:
+            print(f"codegraph: {msg}")
 
     elif args.command == "garden":
         from pathlib import Path

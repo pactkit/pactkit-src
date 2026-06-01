@@ -245,7 +245,7 @@ model: sonnet
     - If found, extract to config/constants before proceeding.
 
 ## 🎬 Phase 4: Sync & Document
-1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed). If `.codegraph/` exists, run `codegraph sync`.
+1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed; codegraph sync is handled automatically).
 1b. **Journey Sync (Conditional)**:
     - **Skip if**: `docs/e2e/journey.md` does not exist in the project.
     - **Skip if**: Current Story's Spec has no `## Journey Segment` section.
@@ -502,7 +502,7 @@ model: sonnet
 
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
 1.  Run `pactkit clean` to remove language-specific temp artifacts.
-2.  Run `pactkit visualize --lazy` to update graphs only if source files changed (file, `--mode class`, `--mode call`). If `.codegraph/` exists, also run `codegraph sync`. If skipped, log: "Graph up-to-date — no source changes".
+2.  Run `pactkit visualize --lazy` to update graphs only if source files changed (file, `--mode class`, `--mode call`; codegraph sync is handled automatically). If skipped, log: "Graph up-to-date — no source changes".
 3.  **HLD Consistency Check**: Run `pactkit doctor` and check HLD drift. If drift > 3, WARN user: "system_design.mmd is {N} modules behind — consider updating it."
 
 ## 🎬 Phase 2.5: Regression Gate (CRITICAL)
