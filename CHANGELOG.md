@@ -4,6 +4,20 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.14.2] - 2026-06-01
+
+### Added
+- **Managed-block update for project CLAUDE.md** (STORY-slim-127) — `pactkit update` now uses `<!-- pactkit:start -->` / `<!-- pactkit:end -->` markers. User content outside the managed block is preserved across updates. Supports four migration paths: fresh install, existing markers, legacy PactKit template, and user-modified files.
+- **Codegraph sync enforcement via code** (STORY-slim-126) — `pactkit visualize --lazy` and `pactkit sync` now run `codegraph sync` automatically when `.codegraph/` exists. Removed prompt-based instructions that relied on AI compliance.
+- **Codegraph priority in generated CLAUDE.md** — When `.codegraph/` exists, the generated project CLAUDE.md includes a "Code Intelligence" section instructing AI to prefer codegraph over grep/find.
+
+### Changed
+- **MCP strategy trimmed to Context7 + Memory** — Removed Playwright, Chrome DevTools, Draw.io, and shadcn from MCP rules and recommendations. These remain as conditional no-ops in command prompts but are no longer actively promoted.
+- **Config backfill removed** — `pactkit update` no longer backfills default sections into `pactkit.yaml`. Absent keys now mean "accept default", keeping config files minimal.
+
+### Fixed
+- **Stale rule warnings** — Removed obsolete rule names from `.opencode/pactkit.yaml` that caused "Unknown rule" warnings on every `pactkit update`.
+
 ## [2.14.1] - 2026-05-28
 
 ### Fixed

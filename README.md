@@ -81,7 +81,7 @@ Requires Python 3.10+ and one of:
 # Deploy to all 3 IDEs at once
 pactkit init
 
-# Update to latest playbooks (preserves your config)
+# Update to latest playbooks (preserves your custom content in CLAUDE.md)
 pactkit update
 ```
 
