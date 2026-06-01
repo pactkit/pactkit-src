@@ -59,27 +59,6 @@ skills:
   - pactkit-audit
   - pactkit-report
 
-# Rules — constitution modules
-rules:
-  - 01-core-protocol
-  - 02-hierarchy-of-truth
-  - 03-file-atlas
-  - 04-routing-table
-  - 05-workflow-conventions
-  - 06-mcp-integration
-  - 07-shared-protocols
-  - 08-architecture-principles
-  - 09-sectional-write
-  - 11-pdca-nudge
-  - 12-solution-design
-  - 05-principles
-  - 01-workflow-conventions
-  - 02-mcp-integration
-  - 03-shared-protocols
-  - 04-architecture-principles
-  - 05-sectional-write
-  - 06-solution-design
-  - pactkit
 
 # CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
