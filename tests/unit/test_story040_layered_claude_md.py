@@ -88,15 +88,15 @@ class TestScenario2SubsequentUpdate:
     """Subsequent update where both CLAUDE.md and CLAUDE.local.md exist."""
 
     def test_claude_md_is_regenerated(self, tmp_path):
-        """Given both files exist, CLAUDE.md is regenerated with latest template."""
+        """Given both files exist, CLAUDE.md managed block is regenerated (STORY-slim-127)."""
         project_root = tmp_path / 'myproject'
         project_root.mkdir()
         claude_dir = project_root / '.claude'
         claude_dir.mkdir()
 
-        # Create existing CLAUDE.md with old content
+        # Create existing CLAUDE.md with legacy PactKit template
         claude_md = claude_dir / 'CLAUDE.md'
-        claude_md.write_text("# Old PactKit template\nOld content")
+        claude_md.write_text("# myproject — Project Context\nOld content")
 
         # Create existing CLAUDE.local.md
         claude_local = claude_dir / 'CLAUDE.local.md'
@@ -108,11 +108,12 @@ class TestScenario2SubsequentUpdate:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=project_root):
             _deployer()._generate_project_claude_md(config)
 
-        # CLAUDE.md should be regenerated (not the old content)
+        # Legacy PactKit template is replaced with managed block
         new_content = claude_md.read_text()
         assert 'Old content' not in new_content
         assert '# myproject' in new_content
         assert '@./.claude/CLAUDE.local.md' in new_content
+        assert '<!-- pactkit:start -->' in new_content
 
     def test_claude_local_md_not_modified(self, tmp_path):
         """Given both files exist, CLAUDE.local.md is NOT modified."""
@@ -301,16 +302,19 @@ class TestR1FunctionRenamedAndAlwaysRegenerates:
         # Old name should not exist (or should be removed)
         # Note: We might keep it as alias for backward compatibility in tests
 
-    def test_always_overwrites_claude_md(self, tmp_path):
-        """CLAUDE.md is always overwritten, even if it exists."""
+    def test_always_updates_managed_block(self, tmp_path):
+        """CLAUDE.md managed block is always regenerated (STORY-slim-127).
+
+        User content outside the managed block is preserved.
+        """
         project_root = tmp_path / 'myproject'
         project_root.mkdir()
         claude_dir = project_root / '.claude'
         claude_dir.mkdir()
 
-        # Create existing CLAUDE.md
+        # Create existing CLAUDE.md with user content (not PactKit template)
         claude_md = claude_dir / 'CLAUDE.md'
-        original = "# Original content that should be replaced"
+        original = "# My Custom Project\nUser instructions here."
         claude_md.write_text(original)
 
         # Also create CLAUDE.local.md to avoid migration
@@ -321,10 +325,12 @@ class TestR1FunctionRenamedAndAlwaysRegenerates:
         with patch('pactkit.generators.deployer.Path.cwd', return_value=project_root):
             _deployer()._generate_project_claude_md(config)
 
-        # CLAUDE.md should be overwritten
+        # User content is preserved, managed block appended
         new_content = claude_md.read_text()
-        assert original not in new_content
+        assert '# My Custom Project' in new_content
+        assert 'User instructions here.' in new_content
         assert '# myproject' in new_content
+        assert '<!-- pactkit:start -->' in new_content
 
 
 # ===========================================================================

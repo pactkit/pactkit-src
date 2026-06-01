@@ -12,6 +12,7 @@ graph TD
     __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
+    _build_claude_md_managed_content["_build_claude_md_managed_content"]
     _build_command_rules_header["_build_command_rules_header"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
@@ -112,6 +113,7 @@ graph TD
     _should_refresh_audit["_should_refresh_audit"]
     _suggest_action["_suggest_action"]
     _update_stack_if_stale["_update_stack_if_stale"]
+    _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _warn_deploy_violations["_warn_deploy_violations"]
@@ -183,7 +185,6 @@ graph TD
     load_config --> _validate_developer
     load_config --> find_pactkit_yaml
     load_config --> get_default_config
-    auto_merge_config_file --> get_default_config
     auto_merge_config_file --> _rewrite_yaml
     update_yaml_stack --> _rewrite_yaml
     _rewrite_yaml --> _render_stack_line
@@ -435,12 +436,17 @@ graph TD
     _update_stack_if_stale --> update_yaml_stack
     _upsert_venv_managed_block --> atomic_write
     _generate_claude_local_md_if_missing --> atomic_write
+    _build_claude_md_managed_content --> detect_venv
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
     _generate_project_claude_md --> _generate_claude_local_md_if_missing
+    _generate_project_claude_md --> _build_claude_md_managed_content
+    _generate_project_claude_md --> _upsert_claude_md_managed_block
     _generate_project_claude_md --> _upsert_venv_managed_block
-    _generate_project_claude_md --> atomic_write
     _generate_project_claude_md --> _is_user_modified_claude_md
     _generate_project_claude_md --> atomic_write
-    _generate_project_claude_md --> detect_venv
     _deploy_plugin_json --> atomic_write
     _deploy_claude_md_inline --> _build_rule_id_to_key
     _deploy_claude_md_inline --> _rewrite_skills_prefix

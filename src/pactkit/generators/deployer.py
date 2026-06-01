@@ -1250,6 +1250,9 @@ def _update_stack_if_stale(yaml_path: Path, project_root: Path) -> bool:
 _VENV_BLOCK_START = "<!-- pactkit:venv:start -->"
 _VENV_BLOCK_END = "<!-- pactkit:venv:end -->"
 
+_CLAUDE_MD_START = "<!-- pactkit:start -->"
+_CLAUDE_MD_END = "<!-- pactkit:end -->"
+
 
 def _upsert_venv_managed_block(local_md_path, venv_info):
     """Write or update the pactkit-managed venv block in CLAUDE.local.md (STORY-064).
@@ -1332,42 +1335,16 @@ def _is_user_modified_claude_md(content, project_name):
     return not first_line.startswith(expected_start)
 
 
-def _generate_project_claude_md(config):
-    """Generate project-level .claude/CLAUDE.md (always regenerate) and CLAUDE.local.md (if missing).
+def _build_claude_md_managed_content(config, project_root):
+    """Build the content that goes inside the managed block of CLAUDE.md (STORY-slim-127).
 
-    STORY-040: Dual-file layered architecture:
-    - CLAUDE.md: PactKit-managed, regenerated on every deploy
-    - CLAUDE.local.md: User-owned, created once and never modified
-
-    Uses LANG_PROFILES for stack-aware lint and test commands.
-    Uses platform-aware venv paths (Unix vs Windows).
+    Returns a string (no markers included — caller wraps in markers).
     """
     import warnings
 
     from pactkit.prompts.workflows import LANG_PROFILES
 
-    project_root = Path.cwd()
-
-    # R6: Skip if cwd equals home (avoids overwriting global CLAUDE.md in test scenarios)
-    if project_root.resolve() == Path.home().resolve():
-        return
-
-    claude_dir = project_root / ".claude"
-    claude_md_path = claude_dir / "CLAUDE.md"
-    claude_local_path = claude_dir / "CLAUDE.local.md"
     project_name = project_root.name
-
-    # STORY-040 R4: Migration heuristic
-    # If CLAUDE.md exists but CLAUDE.local.md doesn't, check for user modifications
-    if claude_md_path.exists() and not claude_local_path.exists():
-        existing_content = claude_md_path.read_text(encoding='utf-8')
-        if _is_user_modified_claude_md(existing_content, project_name):
-            # Migrate user content to CLAUDE.local.md
-            atomic_write(claude_local_path, existing_content)
-
-    # STORY-040 R3: Create CLAUDE.local.md if missing (after migration check)
-    claude_dir.mkdir(parents=True, exist_ok=True)
-    _generate_claude_local_md_if_missing(claude_dir)
 
     # Resolve stack and get profile from LANG_PROFILES (BUG-021 R3, R4)
     stack = config.get("stack", "auto")
@@ -1383,10 +1360,8 @@ def _generate_project_claude_md(config):
     venv_config = config.get("venv", {})
     venv_info = None  # (path, layout) or None
 
-    # Priority: explicit path > auto-detect
     explicit_path = venv_config.get("path")
     if explicit_path:
-        # Check if explicit path exists and determine layout
         explicit_full = project_root / explicit_path
         if (explicit_full / "bin" / "python3").exists() or (explicit_full / "bin" / "python").exists():
             venv_info = (explicit_path, "unix")
@@ -1395,18 +1370,12 @@ def _generate_project_claude_md(config):
         else:
             warnings.warn(f"venv.path={explicit_path} not found, using system python")
     elif venv_config.get("auto_detect", True):
-        # Auto-detect (detect_venv now returns tuple or None)
         detected = detect_venv(project_root)
         if detected:
             venv_info = detected
 
-    # STORY-064: Persist venv config in CLAUDE.local.md managed block
-    _upsert_venv_managed_block(claude_local_path, venv_info)
-
-    # Generate CLAUDE.md content (framework content)
     lines = [f"# {project_name} — Project Context", ""]
 
-    # BUG-021 R2: Platform-aware venv commands
     if venv_info:
         venv_path, layout = venv_info
         if layout == "unix":
@@ -1421,7 +1390,7 @@ def _generate_project_claude_md(config):
                     "",
                 ]
             )
-        else:  # windows
+        else:
             lines.extend(
                 [
                     "## Virtual Environment",
@@ -1434,50 +1403,30 @@ def _generate_project_claude_md(config):
                 ]
             )
 
-    lines.extend(
-        [
-            "## Dev Commands",
-            "",
-            "```bash",
-            "# Run tests",
-        ]
-    )
+    lines.extend(["## Dev Commands", "", "```bash", "# Run tests"])
 
-    # BUG-021 R4: Stack-aware test runner with optional venv prefix
     if venv_info:
         venv_path, layout = venv_info
         if stack == "python":
-            # Python with venv: prefix the test runner
             if layout == "unix":
                 lines.append(f"{venv_path}/bin/{test_runner} tests/ -v")
             else:
                 lines.append(f"{venv_path}/Scripts/{test_runner}.exe tests/ -v")
         else:
-            # Non-Python stacks (node, go, java) don't use venv prefix
             if stack in ("go",):
-                lines.append(test_runner)  # 'go test ./...'
+                lines.append(test_runner)
             else:
                 lines.append(f"{test_runner}")
     else:
-        # No venv: use bare test runner
         if stack in ("go",):
-            lines.append(test_runner)  # 'go test ./...'
+            lines.append(test_runner)
         elif stack == "python":
             lines.append(f"{test_runner} tests/ -v")
         else:
             lines.append(test_runner)
 
-    lines.extend(
-        [
-            "",
-            "# Lint",
-            lint_command,  # BUG-021 R3: Stack-aware lint command from LANG_PROFILES
-            "```",
-            "",
-        ]
-    )
+    lines.extend(["", "# Lint", lint_command, "```", ""])
 
-    # Codegraph priority: if .codegraph/ exists, instruct AI to prefer codegraph
     if (project_root / ".codegraph").is_dir():
         lines.extend(
             [
@@ -1492,17 +1441,91 @@ def _generate_project_claude_md(config):
             ]
         )
 
-    lines.extend(
-        [
-            "@./docs/product/context.md",
-            "@./.claude/CLAUDE.local.md",  # STORY-040 R2: Import user content
-            "",
-        ]
-    )
+    return "\n".join(lines), venv_info
 
-    # R1: Always write CLAUDE.md (no skip-if-exists guard)
+
+def _upsert_claude_md_managed_block(claude_md_path, managed_content, project_name):
+    """Write or update the pactkit-managed block in CLAUDE.md (STORY-slim-127).
+
+    Four paths:
+    - File missing: create fresh (markers + @imports)
+    - Has markers: regex replace between markers
+    - Legacy PactKit template (has project header): replace with managed block
+    - User content (no PactKit header): append managed block at end
+    """
+    at_imports = "\n@./docs/product/context.md\n@./.claude/CLAUDE.local.md\n"
+    managed_block = f"{_CLAUDE_MD_START}\n{managed_content}\n{_CLAUDE_MD_END}\n"
+
+    if not claude_md_path.exists():
+        # Fresh install
+        atomic_write(claude_md_path, managed_block + at_imports)
+        return
+
+    content = claude_md_path.read_text(encoding="utf-8")
+
+    if _CLAUDE_MD_START in content:
+        # Has markers — replace managed block, preserve everything else
+        new_content = re.sub(
+            re.escape(_CLAUDE_MD_START) + r".*?" + re.escape(_CLAUDE_MD_END) + r"\n?",
+            managed_block,
+            content,
+            flags=re.DOTALL,
+        )
+        # Ensure @imports exist after the end marker
+        if "@./docs/product/context.md" not in new_content:
+            new_content = new_content.rstrip("\n") + "\n" + at_imports
+        atomic_write(claude_md_path, new_content)
+        return
+
+    # No markers — check if legacy PactKit template or user content
+    expected_header = f"# {project_name} — Project Context"
+    first_line = content.split("\n")[0] if content else ""
+
+    if first_line.strip() == expected_header:
+        # Legacy PactKit template — replace entirely with managed block
+        atomic_write(claude_md_path, managed_block + at_imports)
+    else:
+        # User-modified content — append managed block
+        preserved = content.rstrip("\n")
+        atomic_write(claude_md_path, preserved + "\n\n" + managed_block + at_imports)
+
+
+def _generate_project_claude_md(config):
+    """Generate project-level .claude/CLAUDE.md and CLAUDE.local.md (STORY-slim-127).
+
+    STORY-040: Dual-file layered architecture:
+    - CLAUDE.md: PactKit manages a block via markers; user content is preserved
+    - CLAUDE.local.md: User-owned, created once and never modified
+
+    STORY-slim-127: Uses managed-block pattern (merge over replace).
+    """
+    project_root = Path.cwd()
+
+    # R6: Skip if cwd equals home
+    if project_root.resolve() == Path.home().resolve():
+        return
+
+    claude_dir = project_root / ".claude"
+    claude_md_path = claude_dir / "CLAUDE.md"
+    claude_local_path = claude_dir / "CLAUDE.local.md"
+    project_name = project_root.name
+
+    # STORY-040 R4: Migration heuristic
+    if claude_md_path.exists() and not claude_local_path.exists():
+        existing_content = claude_md_path.read_text(encoding='utf-8')
+        if _is_user_modified_claude_md(existing_content, project_name):
+            atomic_write(claude_local_path, existing_content)
+
+    # STORY-040 R3: Create CLAUDE.local.md if missing
     claude_dir.mkdir(parents=True, exist_ok=True)
-    atomic_write(claude_md_path, "\n".join(lines))
+    _generate_claude_local_md_if_missing(claude_dir)
+
+    # Build managed content and upsert
+    managed_content, venv_info = _build_claude_md_managed_content(config, project_root)
+    _upsert_claude_md_managed_block(claude_md_path, managed_content, project_name)
+
+    # STORY-064: Persist venv config in CLAUDE.local.md managed block
+    _upsert_venv_managed_block(claude_local_path, venv_info)
 
 
 # Backward compatibility alias for existing tests

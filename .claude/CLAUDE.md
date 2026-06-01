@@ -1,3 +1,4 @@
+<!-- pactkit:start -->
 # pactkit — Project Context
 
 ## Virtual Environment
@@ -24,6 +25,8 @@ This project has codegraph enabled. Prefer codegraph over grep/find for code nav
 - `codegraph impact <symbol> --depth 3` — impact analysis
 - `codegraph query <keyword> --kind function` — symbol search
 - `codegraph context "<task>"` — task-focused context
+
+<!-- pactkit:end -->
 
 @./docs/product/context.md
 @./.claude/CLAUDE.local.md

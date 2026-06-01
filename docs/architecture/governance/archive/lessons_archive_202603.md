@@ -62,3 +62,4 @@
 | 2026-03-26 | _atomic_mmd_write() in visualize.py prevents truncated .mmd on crash via tmp+rename; all 4 write sites converted | visualize.py:_atomic_mmd_write |
 | 2026-03-26 | test_story_slim056.py _init_project() helper creates realistic pactkit project fixture for subprocess E2E tests; 60 tests cover all 25 subcommands | test_story_slim056.py:_init_project |
 | 2026-03-26 | entry_points auto-discovery with _load_entry_point_deployers() enables pip install pactkit-opencode to self-register; pre-existing tests referencing extracted functions must be updated to import from adapter package | deployer.py:_load_entry_point_deployers |
+| 2026-03-26 | VALID_FORMATS auto-derives from FORMAT_PROFILES.keys() — removing a profile cascades to config, CLI, and deployer with zero manual sync | profiles.py:FORMAT_PROFILES |
