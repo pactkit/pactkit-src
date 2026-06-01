@@ -1,83 +1,24 @@
 # PactKit Configuration
-# All agents, commands, skills, and rules are deployed by default.
-# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).
+# Only override non-default values. Absent keys = default (all enabled).
 
 stack: python
-root: .
 developer: "slim"
 
-# CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
   provider: github
   install_cmd: "python -m pip install --upgrade pip\n          pip install -e \".[visualize]\"\n          pip install pytest ruff\n          pactkit init"
-  # runner: ubuntu-latest
-  # language_version: 2.10.5
-  # github_host: ""  # GHE server (empty = github.com)
-  # actions_ref: ""  # GHE actions prefix
 
-# Issue Tracker — set provider to github to link stories to issues
 issue_tracker:
   provider: github
 
-# Hooks — safe, report-only hook templates (command-type only)
-hooks:
-  post_test_coverage: false
-  pre_commit_lint: false
-  pre_push_check: false
-
-# Lint — configure lint behavior in /project-done
-lint_blocking: false
-auto_fix: false
-
-# Virtual Environment — configure venv detection and paths
-venv:
-  auto_detect: true
-
-# Release — configure release automation behavior
 release:
   github_release: true
 
-# Regression — configure impact-based test selection strategy
-regression:
-  strategy: impact
-  max_impact_tests: 50
-
-# Check — configure QA verification behavior
-check:
-  security_checklist: true
-  security_scope_override: none
-
-# Done — configure commit and lesson quality behavior
-done:
-  lesson_quality_threshold: 15
-
-# Visualize — configure directory scan exclusions and output format
 visualize:
-  scan_excludes:
-    - venv
-    - _venv
-    - .venv
-    - .env
-    - env
-    - __pycache__
-    - .git
-    - .claude
-    - tests
-    - docs
-    - node_modules
-    - site-packages
-    - dist
-    - build
   graph_provider: codegraph
 
-# Agent Models — override default model per agent (inherit = use account default)
 agent_models:
   code-explorer: haiku
   product-designer: opus
-  qa-engineer: sonnet
-  repo-maintainer: sonnet
-  security-auditor: sonnet
-  senior-developer: sonnet
   system-architect: opus
   system-medic: haiku
-  visual-architect: sonnet

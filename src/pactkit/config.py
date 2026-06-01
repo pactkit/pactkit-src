@@ -478,25 +478,9 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
             for item in new_items:
                 added.append(f"{key}: {item}")
 
-    # --- Non-list sections: backfill missing with defaults (STORY-033, STORY-039) ---
-    defaults = get_default_config()
-    _BACKFILL_KEYS = (
-        "ci",
-        "issue_tracker",
-        "lint_blocking",
-        "auto_fix",
-        "venv",
-        "release",
-        "regression",
-        "check",
-        "done",
-        "e2e",  # STORY-slim-022
-        "visualize",  # STORY-slim-028
-    )
-    for key in _BACKFILL_KEYS:
-        if key not in user_data:
-            user_data[key] = defaults[key]
-            added.append(f"section: {key}")
+    # Non-list sections are NO LONGER backfilled (STORY-slim-126).
+    # Absent key = accept default. Users keep yaml minimal.
+    # Backfill only happens during `pactkit init` (scaffold).
 
     # STORY-slim-102: Remove stale version field from project yaml
     if "version" in user_data:

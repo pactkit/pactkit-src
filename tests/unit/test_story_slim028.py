@@ -180,8 +180,8 @@ class TestScanFilesCustomExcludes:
 class TestAutoMergeBackfillsVisualize:
     """R3: auto_merge_config_file() MUST backfill visualize section for existing projects."""
 
-    def test_auto_merge_backfills_missing_visualize(self, tmp_path):
-        """If visualize section is absent, auto_merge adds it."""
+    def test_auto_merge_does_not_backfill_visualize(self, tmp_path):
+        """Sections are no longer backfilled — absent visualize = accept default."""
         import yaml
 
         from pactkit.config import auto_merge_config_file
@@ -198,21 +198,20 @@ class TestAutoMergeBackfillsVisualize:
                 skills:
                   - pactkit-visualize
                 rules:
-                  - 01-core-protocol
+                  - pactkit
             """)
         )
 
         added = auto_merge_config_file(yaml_file)
 
-        # visualize section should have been added
-        assert any("visualize" in item for item in added), (
-            f"Expected 'visualize' in added list, got: {added}"
+        # visualize section should NOT be backfilled
+        assert not any("visualize" in item for item in added), (
+            f"Expected no visualize backfill, got: {added}"
         )
 
-        # Read back and verify
+        # File should not have visualize section added
         data = yaml.safe_load(yaml_file.read_text())
-        assert "visualize" in data, "visualize section missing after auto_merge"
-        assert "scan_excludes" in data["visualize"], "scan_excludes missing after auto_merge"
+        assert "visualize" not in data
 
     def test_auto_merge_preserves_existing_visualize(self, tmp_path):
         """If visualize section already exists, it MUST NOT be overwritten."""

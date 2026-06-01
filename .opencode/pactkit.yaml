@@ -1,151 +1,23 @@
-# PactKit Configuration
-# Edit this file to customize which components are deployed.
-# Remove items from a list to disable them. Default: all enabled.
+# PactKit Configuration (OpenCode)
+# Only override non-default values. Absent keys = default (all enabled).
 
 stack: python
-root: .
 developer: "slim"
 
-# Agents — AI role definitions
-agents:
-  - code-explorer
-  - product-designer
-  - qa-engineer
-  - repo-maintainer
-  - security-auditor
-  - senior-developer
-  - system-architect
-  - system-medic
-  - visual-architect
-
-# Commands — PDCA playbooks
-commands:
-  - project-act
-  - project-check
-  - project-clarify
-  - project-design
-  - project-done
-  - project-hotfix
-  - project-init
-  - project-plan
-  - project-pr
-  - project-release
-  - project-sprint
-
-# Skills — tool scripts
-skills:
-  - pactkit-analyze
-  - pactkit-board
-  - pactkit-doctor
-  - pactkit-draw
-  - pactkit-release
-  - pactkit-review
-  - pactkit-scaffold
-  - pactkit-status
-  - pactkit-trace
-  - pactkit-visualize
-  - pactkit-garden
-  - project-act
-  - project-check
-  - project-clarify
-  - project-design
-  - project-done
-  - project-hotfix
-  - project-init
-  - project-plan
-  - project-pr
-  - project-release
-  - project-sprint
-  - pactkit-audit
-  - pactkit-report
-
-
-# CI/CD — set provider to github or gitlab to generate pipeline config
 ci:
   provider: github
-  # runner: ubuntu-latest
-  # language_version: "3.11"
-  # github_host: ""  # GHE server (empty = github.com)
-  # actions_ref: ""  # GHE actions prefix
 
-# Issue Tracker — set provider to github to link stories to issues
 issue_tracker:
   provider: github
 
-# Lint — configure lint behavior in /project-done
-lint_blocking: false
-auto_fix: false
-
-# Virtual Environment — configure venv detection and paths
-venv:
-  auto_detect: true
-
-# Release — configure release automation behavior
 release:
   github_release: true
 
-# Regression — configure impact-based test selection strategy
-regression:
-  strategy: impact
-  max_impact_tests: 50
+visualize:
+  graph_provider: codegraph
 
-# Check — configure QA verification behavior
-check:
-  security_checklist: true
-  security_scope_override: none
-  pactguard:
-    enabled: false
-    mode: all
-    ruleset: ""
-    blocking: false
-  observe:
-    enabled: false
-    sources: auto
-    max_console: 100
-    max_network: 200
-
-# Done — configure commit and lesson quality behavior
-done:
-  lesson_quality_threshold: 15
-
-# Agent Models — override default model per agent (inherit = use account default)
 agent_models:
   code-explorer: haiku
   product-designer: opus
-  qa-engineer: sonnet
-  repo-maintainer: sonnet
-  security-auditor: sonnet
-  senior-developer: sonnet
   system-architect: opus
   system-medic: haiku
-  visual-architect: sonnet
-
-# Visualize — configure directory scan exclusions
-visualize:
-  graph_provider: codegraph
-  scan_excludes:
-    - venv
-    - _venv
-    - .venv
-    - .env
-    - env
-    - __pycache__
-    - .git
-    - .claude
-    - tests
-    - docs
-    - node_modules
-    - site-packages
-    - dist
-    - build
-
-# Custom — user-defined keys (preserved by PactKit)
-e2e:
-  blocking: false
-  env_file: .env.test
-  test_dir: tests/e2e
-  type: none
-hooks:
-  post_test_coverage: false
-  pre_commit_lint: false
-  pre_push_check: false

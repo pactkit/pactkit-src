@@ -173,12 +173,13 @@ class TestAC3RewriteYamlComplete:
 
 class TestAC4BackfillReport:
 
-    def test_reports_ci_added(self, tmp_path):
-        """Return value includes 'section: ci' when ci was missing."""
+    def test_no_section_backfill(self, tmp_path):
+        """Sections are no longer backfilled — absent key = accept default."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
-        assert 'section: ci' in result
+        section_reports = [r for r in result if r.startswith('section:')]
+        assert len(section_reports) == 0
 
     def test_no_report_when_all_sections_exist(self, tmp_path):
         """No section report when all sections (including lists) already present."""
@@ -206,14 +207,12 @@ class TestAC4BackfillReport:
         section_reports = [r for r in result if r.startswith('section:')]
         assert len(section_reports) == 0
 
-    def test_reports_multiple_sections(self, tmp_path):
-        """All missing non-list sections reported when absent."""
+    def test_version_removal_still_reported(self, tmp_path):
+        """Stale version field removal is still reported."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         result = auto_merge_config_file(yaml_path)
-        section_reports = [r for r in result if r.startswith('section:')]
-        # 11 non-list sections (hooks removed in STORY-slim-106)
-        assert len(section_reports) == 11
+        assert 'removed: version (now tracked globally)' in result
 
 
 # ===========================================================================
