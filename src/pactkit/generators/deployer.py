@@ -165,10 +165,6 @@ def _render_skill_md(sd: dict, profile, _prefix: str) -> str:
 MCP_RECOMMENDATIONS = [
     {"name": "Context7", "purpose": "Library docs lookup (Act phase)"},
     {"name": "Memory", "purpose": "Cross-session context (Plan/Act/Done)"},
-    {"name": "Playwright", "purpose": "Browser testing (Check phase)"},
-    {"name": "Draw.io", "purpose": "Diagram editing (Plan phase)"},
-    {"name": "shadcn", "purpose": "UI components (frontend projects)"},
-    {"name": "Chrome DevTools", "purpose": "Performance tracing (Check phase)"},
 ]
 
 

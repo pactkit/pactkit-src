@@ -1,40 +1,12 @@
 """
 STORY-013: Draw.io MCP Integration — pactkit-draw 接入官方 MCP 实现即时预览.
 
-Tests verify that Draw.io MCP conditional instructions are present in all
-relevant prompt templates (rules, skills, agents, workflows).
+Tests verify that Draw.io MCP conditional instructions are present in
+relevant prompt templates (skills, agents, workflows).
+Note: MCP rules trimmed to Context7+Memory only; Draw.io rule tests removed.
 """
 
-from pactkit.prompts import agents, rules, skills, workflows
-
-
-class TestDrawioMcpRule:
-    """R1: MCP integration rule must include Draw.io MCP."""
-
-    def test_mcp_rule_contains_drawio_section(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert '### Draw.io MCP' in mcp_rule
-
-    def test_mcp_rule_contains_drawio_tool_prefix(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert 'mcp__drawio__' in mcp_rule
-
-    def test_mcp_rule_contains_open_drawio_xml(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert 'open_drawio_xml' in mcp_rule
-
-    def test_mcp_rule_contains_open_drawio_mermaid(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert 'open_drawio_mermaid' in mcp_rule
-
-    def test_mcp_rule_contains_open_drawio_csv(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert 'open_drawio_csv' in mcp_rule
-
-    def test_mcp_phase_table_includes_drawio(self):
-        mcp_rule = rules.RULES_MODULES['mcp']
-        assert 'Draw.io MCP' in mcp_rule
-        assert 'Plan' in mcp_rule  # Plan phase uses Draw.io
+from pactkit.prompts import agents, skills, workflows
 
 
 class TestDrawioMcpSkill:

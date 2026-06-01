@@ -45,18 +45,9 @@ class TestMcpRuleModule:
         p = _prompts()
         assert 'context7' in p.RULES_MODULES['mcp'].lower() or 'Context7' in p.RULES_MODULES['mcp']
 
-    def test_rule_mentions_shadcn(self):
+    def test_rule_mentions_memory(self):
         p = _prompts()
-        assert 'shadcn' in p.RULES_MODULES['mcp'].lower()
-
-    def test_rule_mentions_playwright(self):
-        p = _prompts()
-        assert 'playwright' in p.RULES_MODULES['mcp'].lower() or 'Playwright' in p.RULES_MODULES['mcp']
-
-    def test_rule_mentions_chrome_devtools(self):
-        p = _prompts()
-        mcp_rule = p.RULES_MODULES['mcp']
-        assert 'chrome' in mcp_rule.lower() or 'devtools' in mcp_rule.lower() or 'Chrome DevTools' in mcp_rule
+        assert 'memory' in p.RULES_MODULES['mcp'].lower() or 'Memory' in p.RULES_MODULES['mcp']
 
     def test_rule_is_conditional(self):
         p = _prompts()

@@ -77,8 +77,8 @@ class TestPluginDeployPrintsMcpRecommendations:
 class TestMcpRecommendationsContent:
     """Each MCP entry includes server name and one-line purpose."""
 
-    def test_all_six_mcps_present(self, tmp_path):
-        """All 6 MCP servers are listed in recommendations."""
+    def test_core_mcps_present(self, tmp_path):
+        """Core MCP servers (Context7 + Memory) are listed in recommendations."""
         from pactkit.generators.deployer import deploy
 
         captured = io.StringIO()
@@ -86,7 +86,7 @@ class TestMcpRecommendationsContent:
             deploy(target=str(tmp_path))
 
         output = captured.getvalue()
-        expected_mcps = ["Context7", "Memory", "Playwright", "Draw.io", "shadcn", "Chrome DevTools"]
+        expected_mcps = ["Context7", "Memory"]
         for mcp in expected_mcps:
             assert mcp in output, f"{mcp} should be in recommendations"
 
@@ -94,7 +94,7 @@ class TestMcpRecommendationsContent:
         """MCP_RECOMMENDATIONS constant is defined in deployer."""
         from pactkit.generators.deployer import MCP_RECOMMENDATIONS
         assert isinstance(MCP_RECOMMENDATIONS, (list, tuple))
-        assert len(MCP_RECOMMENDATIONS) == 6
+        assert len(MCP_RECOMMENDATIONS) == 2
 
     def test_each_mcp_has_name_and_purpose(self):
         """Each MCP entry has 'name' and 'purpose' keys."""
