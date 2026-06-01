@@ -1474,6 +1474,26 @@ def _generate_project_claude_md(config):
             lint_command,  # BUG-021 R3: Stack-aware lint command from LANG_PROFILES
             "```",
             "",
+        ]
+    )
+
+    # Codegraph priority: if .codegraph/ exists, instruct AI to prefer codegraph
+    if (project_root / ".codegraph").is_dir():
+        lines.extend(
+            [
+                "## Code Intelligence (codegraph)",
+                "This project has codegraph enabled. Prefer codegraph over grep/find for code navigation:",
+                "- `codegraph callers <symbol>` — find callers",
+                "- `codegraph callees <symbol>` — find callees",
+                "- `codegraph impact <symbol> --depth 3` — impact analysis",
+                "- `codegraph query <keyword> --kind function` — symbol search",
+                "- `codegraph context \"<task>\"` — task-focused context",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
             "@./docs/product/context.md",
             "@./.claude/CLAUDE.local.md",  # STORY-040 R2: Import user content
             "",

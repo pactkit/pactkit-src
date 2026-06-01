@@ -17,5 +17,13 @@ Always use the project's virtual environment:
 ruff check src/ tests/
 ```
 
+## Code Intelligence (codegraph)
+This project has codegraph enabled. Prefer codegraph over grep/find for code navigation:
+- `codegraph callers <symbol>` — find callers
+- `codegraph callees <symbol>` — find callees
+- `codegraph impact <symbol> --depth 3` — impact analysis
+- `codegraph query <keyword> --kind function` — symbol search
+- `codegraph context "<task>"` — task-focused context
+
 @./docs/product/context.md
 @./.claude/CLAUDE.local.md
