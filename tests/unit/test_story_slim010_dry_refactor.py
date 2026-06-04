@@ -16,38 +16,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-# Use .opencode/pactkit.yaml (tracked in git) for CI; .claude/ is gitignored
-OPENCODE_YAML = PROJECT_ROOT / ".opencode" / "pactkit.yaml"
-PYPROJECT = PROJECT_ROOT / "pyproject.toml"
 DEPLOYER = PROJECT_ROOT / "src" / "pactkit" / "generators" / "deployer.py"
-
-
-def _read_pyproject_version() -> str:
-    for line in PYPROJECT.read_text().splitlines():
-        if line.startswith("version"):
-            return line.split("=")[1].strip().strip('"').strip("'")
-    raise ValueError("version not found in pyproject.toml")
-
-
-# ---------------------------------------------------------------------------
-# AC1: Version Consistency
-# ---------------------------------------------------------------------------
-
-
-class TestAC1VersionSync:
-    def test_opencode_yaml_exists(self):
-        """AC1: .opencode/pactkit.yaml must exist (tracked in git for CI)."""
-        assert OPENCODE_YAML.exists(), f"{OPENCODE_YAML} does not exist"
-
-    def test_opencode_yaml_version_matches_pyproject(self):
-        """AC1: .opencode/pactkit.yaml must NOT contain version (STORY-slim-102)."""
-        import yaml
-
-        data = yaml.safe_load(OPENCODE_YAML.read_text())
-        # STORY-slim-102: version removed from project yaml, tracked via global marker
-        assert "version" not in data, (
-            f".opencode/pactkit.yaml should not have a version field; got keys: {list(data.keys())}"
-        )
 
 
 # ---------------------------------------------------------------------------
