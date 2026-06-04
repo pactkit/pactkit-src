@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.15.0] - 2026-06-04
+
+### Added
+- **`lint` optional dependency group** — `pip install pactkit[lint]` now includes `ruff>=0.4`. The `all` extra also includes `lint`. Users no longer need to install ruff separately for the lint gate to work.
+- **External tools documentation** — README and pactkit.dev installation pages now document recommended external tools (gh, codegraph) with install commands and fallback behavior.
+
+### Fixed
+- **CI: tree-sitter tests skip when not installed** — `test_story_slim032`, `test_story_slim033`, `test_story_slim034` now use `pytest.importorskip("tree_sitter")` so they skip gracefully in CI environments without the `visualize` extra.
+
 ## [2.14.2] - 2026-06-01
 
 ### Added

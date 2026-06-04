@@ -75,6 +75,23 @@ Requires Python 3.10+ and one of:
 
 > `pip install pactkit` automatically installs adapters for all 3 IDEs.
 
+### Optional Extras
+
+```bash
+pip install pactkit[lint]        # Includes ruff for lint gate
+pip install pactkit[visualize]   # Includes tree-sitter for AST analysis
+pip install pactkit[all]         # Everything above + IDE adapters
+```
+
+### Recommended External Tools
+
+These tools enhance PactKit but cannot be distributed via pip:
+
+| Tool | Purpose | Install |
+|------|---------|---------|
+| [gh](https://cli.github.com) | GitHub CLI (issue sync, release, PR) | `brew install gh` |
+| [codegraph](https://www.npmjs.com/package/codegraph) | Code symbol index & call chain analysis | `npm install -g codegraph` |
+
 ## Quick Start
 
 ```bash

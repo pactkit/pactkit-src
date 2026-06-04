@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pactkit"
-version = "2.14.2"
+version = "2.15.0"
 description = "Spec-driven agentic DevOps toolkit for AI coding assistants"
 readme = "README.md"
 license = "MIT"
@@ -62,8 +62,11 @@ visualize = [
     "tree-sitter-java>=0.23",
     "tree-sitter-typescript>=0.23",
 ]
+lint = [
+    "ruff>=0.4",
+]
 all = [
-    "pactkit[opencode,codex,visualize]",
+    "pactkit[opencode,codex,visualize,lint]",
 ]
 
 [tool.hatch.build.targets.wheel]

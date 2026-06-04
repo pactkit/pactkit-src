@@ -3,6 +3,10 @@ import importlib.util
 import pathlib
 import textwrap
 
+import pytest
+
+pytest.importorskip("tree_sitter", reason="tree-sitter not installed (optional dep)")
+
 # Load visualize.py as standalone module
 _vis_path = pathlib.Path(__file__).resolve().parents[2] / "src" / "pactkit" / "skills" / "visualize.py"
 _spec = importlib.util.spec_from_file_location("visualize", _vis_path)
