@@ -281,6 +281,48 @@ class TestE008ReleaseTBD:
 
 
 # ---------------------------------------------------------------------------
+# E009 – Security Scope with SEC-* entries
+# ---------------------------------------------------------------------------
+
+class TestE009SecurityScope:
+    def test_missing_security_scope_raises_E009(self, tmp_path):
+        content = MINIMAL_VALID_SPEC.replace(
+            "## Security Scope\n\n| Check | Applicable | Reason |\n|-------|------------|--------|\n| SEC-1 | N/A | Test only |\n\n",
+            ""
+        )
+        spec = write_spec(tmp_path, content)
+        result = validate_spec(str(spec))
+        ids = [e.rule_id for e in result.errors]
+        assert "E009" in ids
+
+    def test_table_format_sec_entries_no_E009(self, tmp_path):
+        spec = write_spec(tmp_path, MINIMAL_VALID_SPEC)
+        result = validate_spec(str(spec))
+        ids = [e.rule_id for e in result.errors]
+        assert "E009" not in ids
+
+    def test_heading_format_sec_entries_no_E009(self, tmp_path):
+        content = MINIMAL_VALID_SPEC.replace(
+            "## Security Scope\n\n| Check | Applicable | Reason |\n|-------|------------|--------|\n| SEC-1 | N/A | Test only |\n",
+            "## Security Scope\n\n### SEC-1: Path traversal\nRestricted to safe directory.\n"
+        )
+        spec = write_spec(tmp_path, content)
+        result = validate_spec(str(spec))
+        ids = [e.rule_id for e in result.errors]
+        assert "E009" not in ids
+
+    def test_no_sec_entries_raises_E009(self, tmp_path):
+        content = MINIMAL_VALID_SPEC.replace(
+            "| Check | Applicable | Reason |\n|-------|------------|--------|\n| SEC-1 | N/A | Test only |\n",
+            "No security concerns.\n"
+        )
+        spec = write_spec(tmp_path, content)
+        result = validate_spec(str(spec))
+        ids = [e.rule_id for e in result.errors]
+        assert "E009" in ids
+
+
+# ---------------------------------------------------------------------------
 # WARN rules
 # ---------------------------------------------------------------------------
 

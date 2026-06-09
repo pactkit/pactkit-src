@@ -47,7 +47,8 @@ SPEC_RFC_PATTERN = _re.compile(r"\b(" + "|".join(SPEC_RFC_KEYWORDS) + r")\b")
 
 # E009: Security Scope section name and SEC-* entry pattern
 SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
-SPEC_SEC_PATTERN = r"\|\s*SEC-"
+# Accepts both pipe-table rows (| SEC-1 | ...) and heading format (### SEC-1:)
+SPEC_SEC_PATTERN = r"\|\s*SEC-|^###\s*SEC-"
 
 # DEFERRED comment pattern for tracking skipped SHOULD requirements (STORY-slim-105)
 DEFERRED_COMMENT_PATTERN = _re.compile(r"#\s*DEFERRED\(SHOULD\):\s*R\d+")

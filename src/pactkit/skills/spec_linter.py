@@ -43,7 +43,7 @@ except ImportError:
     SPEC_RFC_PATTERN = re.compile(r"\b(" + "|".join(SPEC_RFC_KEYWORDS) + r")\b")
     SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
     SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
-    SPEC_SEC_PATTERN = r"\|\s*SEC-"
+    SPEC_SEC_PATTERN = r"\|\s*SEC-|^###\s*SEC-"
 
 # ---------------------------------------------------------------------------
 # Data types
