@@ -3,6 +3,7 @@ graph TD
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
     DeployerBase_deploy_commands["DeployerBase.deploy_commands"]
+    DeployerBase_deploy_guides["DeployerBase.deploy_guides"]
     DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
     DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
     DeployerBase_render_prompt["DeployerBase.render_prompt"]
@@ -48,6 +49,7 @@ graph TD
     _deploy_claude_md["_deploy_claude_md"]
     _deploy_claude_md_inline["_deploy_claude_md_inline"]
     _deploy_commands["_deploy_commands"]
+    _deploy_guides["_deploy_guides"]
     _deploy_marketplace["_deploy_marketplace"]
     _deploy_marketplace_json["_deploy_marketplace_json"]
     _deploy_plugin["_deploy_plugin"]
@@ -369,6 +371,7 @@ graph TD
     _deploy_classic --> _deploy_skills
     _deploy_classic --> _cleanup_legacy
     _deploy_classic --> _deploy_rules
+    _deploy_classic --> _deploy_guides
     _deploy_classic --> _deploy_claude_md
     _deploy_classic --> _deploy_agents
     _deploy_classic --> _cleanup_legacy_commands
@@ -401,6 +404,8 @@ graph TD
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt
     _deploy_rules --> _warn_deploy_violations
+    _deploy_guides --> atomic_write
+    _deploy_guides --> _render_prompt
     _deploy_claude_md --> atomic_write
     _deploy_claude_md --> _is_pactkit_managed_global_md
     _deploy_claude_md --> atomic_write
@@ -461,4 +466,5 @@ graph TD
     DeployerBase_deploy_rules --> _deploy_rules
     DeployerBase_deploy_agents --> _deploy_agents
     DeployerBase_deploy_commands --> _deploy_commands
+    DeployerBase_deploy_guides --> _deploy_guides
     DeployerBase_deploy_ci --> _deploy_ci

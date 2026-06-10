@@ -75,16 +75,16 @@ class TestRulesCoreFiles:
 # AC2: RULES_ONDEMAND_FILES structure
 # ---------------------------------------------------------------------------
 class TestRulesOndemandFiles:
-    def test_ondemand_files_has_6_entries(self):
+    def test_ondemand_files_has_7_entries(self):
         rules = _rules()
-        assert len(rules.RULES_ONDEMAND_FILES) == 6, (
-            f"RULES_ONDEMAND_FILES should have 6 entries, got {len(rules.RULES_ONDEMAND_FILES)}: "
+        assert len(rules.RULES_ONDEMAND_FILES) == 7, (
+            f"RULES_ONDEMAND_FILES should have 7 entries, got {len(rules.RULES_ONDEMAND_FILES)}: "
             f"{list(rules.RULES_ONDEMAND_FILES.keys())}"
         )
 
     def test_ondemand_files_contains_required_keys(self):
         rules = _rules()
-        required = {"workflow", "mcp", "shared", "architecture", "sectional", "solution"}
+        required = {"workflow", "mcp", "shared", "architecture", "sectional", "solution", "engineering"}
         assert required == set(rules.RULES_ONDEMAND_FILES.keys()), (
             f"RULES_ONDEMAND_FILES keys mismatch. Expected {required}, "
             f"got {set(rules.RULES_ONDEMAND_FILES.keys())}"
@@ -99,6 +99,7 @@ class TestRulesOndemandFiles:
             "architecture": "04-architecture-principles.md",
             "sectional": "05-sectional-write.md",
             "solution": "06-solution-design.md",
+            "engineering": "07-engineering-concerns.md",
         }
         assert rules.RULES_ONDEMAND_FILES == expected, (
             f"RULES_ONDEMAND_FILES filenames mismatch: {rules.RULES_ONDEMAND_FILES}"
@@ -378,10 +379,10 @@ class TestValidRulesUpdated:
         )
 
     def test_valid_rules_total_count(self):
-        """VALID_RULES should have 7 entries (1 global + 6 on-demand)."""
+        """VALID_RULES should have 8 entries (1 global + 7 on-demand)."""
         from pactkit.config import VALID_RULES
-        assert len(VALID_RULES) == 7, (
-            f"VALID_RULES should have 7 entries, got {len(VALID_RULES)}: {sorted(VALID_RULES)}"
+        assert len(VALID_RULES) == 8, (
+            f"VALID_RULES should have 8 entries, got {len(VALID_RULES)}: {sorted(VALID_RULES)}"
         )
 
     def test_valid_rules_contains_all_keys(self):

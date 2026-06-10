@@ -55,6 +55,8 @@ graph TD
     click src_pactkit___main___py href "src/pactkit/__main__.py"
     src_pactkit_invariants_py["invariants.py"]
     click src_pactkit_invariants_py href "src/pactkit/invariants.py"
+    src_pactkit_prompts_guides_py["guides.py"]
+    click src_pactkit_prompts_guides_py href "src/pactkit/prompts/guides.py"
     src_pactkit_prompts_skills_py["skills.py"]
     click src_pactkit_prompts_skills_py href "src/pactkit/prompts/skills.py"
     src_pactkit_prompts_references_py["references.py"]
@@ -135,6 +137,7 @@ graph TD
     src_pactkit_generators_deployer_py --> src_pactkit_profiles_py
     src_pactkit_generators_deployer_py --> src_pactkit_utils_py
     src_pactkit_generators_deployer_py --> src_pactkit_schemas_py
+    src_pactkit_generators_deployer_py --> src_pactkit_prompts_guides_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py
     src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_profiles_py

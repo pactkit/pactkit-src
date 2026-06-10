@@ -154,6 +154,12 @@ class DeployerBase:
         )
 
     @staticmethod
+    def deploy_guides(claude_root, profile=None):
+        from pactkit.generators.deployer import _deploy_guides
+
+        return _deploy_guides(claude_root, profile=profile)
+
+    @staticmethod
     def deploy_ci(provider, project_root, config):
         from pactkit.generators.deployer import _deploy_ci
 

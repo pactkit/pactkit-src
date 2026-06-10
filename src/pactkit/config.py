@@ -85,6 +85,7 @@ VALID_RULES = frozenset(
         "04-architecture-principles",
         "05-sectional-write",
         "06-solution-design",
+        "07-engineering-concerns",
     }
 )
 

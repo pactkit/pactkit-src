@@ -707,6 +707,57 @@ Do not import from higher-level modules into lower-level modules. Domain/core im
 | **pactkit-trace** | Trace = call chains (vertical). This protocol = capability reuse (horizontal). Run Trace first, then this. |
 | **Hierarchy of Truth** | Output goes into Spec (Tier 1). Implementation MUST follow Technical Design in Spec. |
 """,
+    "engineering": """# Engineering Concerns — Trigger Index
+
+> Referenced by: Plan Phase 2, Act Phase 1.5
+> Signal Level: L2 Strong (MUST)
+> This file is a routing table. Detailed guidance lives in guides/ files loaded on demand.
+
+## Plan Phase: NFR Decision Gate
+
+When writing Spec's Technical Design, scan requirement keywords.
+If matched, the Spec MUST include a decision for that concern:
+
+| Keyword in Requirement | Concern | Spec Must Answer |
+|------------------------|---------|-----------------|
+| 定时/cron/schedule/parallel/concurrent/多线程/多进程 | concurrency | Concurrency model? (sync/async/threads/processes) |
+| async/await/异步/event loop/协程 | async-patterns | Sync or async architecture? Blocking call strategy? |
+| API/HTTP/webhook/第三方/external/REST/gRPC | api-integration | Timeout? Retry count? Circuit breaker? Fallback? |
+| 数据库/DB/SQL/ORM/query/transaction/事务 | database | Connection pool? Lock strategy? Transaction scope? |
+| 缓存/cache/Redis/Memcached/内存数据库 | caching | Strategy? TTL? Consistency? Eviction? |
+| event/消息/queue/publish/subscribe/通知/MQ | event-driven | Sync/async delivery? Idempotency? DLQ? |
+| 配置/config/环境变量/secret/密钥 | configuration | Config layering? Secret management? |
+| log/日志/监控/metrics/trace/observability | observability | Log library? Level strategy? Trace ID? |
+| 模块/module/抽象/decouple/拆分/重构 | module-design | Module boundary? Single responsibility? |
+| timeout/超时/熔断/降级/circuit/breaker/阻塞 | resilience | Timeout strategy? Fallback? Health check? |
+| 内存/memory/leak/GC/OOM/streaming/大文件 | memory-management | Bounded collections? Streaming? Cleanup? |
+| 复用/reuse/已有/existing/library/依赖 | component-reuse | Stdlib? Project existing? Third-party? |
+| review/代码审查/架构/convention/约定 | code-review-first | Exemplar file? Existing patterns? |
+
+Unmatched concerns → do not appear in Spec (avoid noise).
+
+## Act Phase: Guide Loading Table
+
+After reading Spec's Technical Design, load ONLY the matched guides:
+
+| Concern | Guide File |
+|---------|-----------|
+| concurrency | {GUIDES_PATH}/concurrency.md |
+| async-patterns | {GUIDES_PATH}/async-patterns.md |
+| configuration | {GUIDES_PATH}/configuration.md |
+| observability | {GUIDES_PATH}/observability.md |
+| module-design | {GUIDES_PATH}/module-design.md |
+| database | {GUIDES_PATH}/database.md |
+| caching | {GUIDES_PATH}/caching.md |
+| api-integration | {GUIDES_PATH}/api-integration.md |
+| event-driven | {GUIDES_PATH}/event-driven.md |
+| resilience | {GUIDES_PATH}/resilience.md |
+| memory-management | {GUIDES_PATH}/memory-management.md |
+| code-review-first | {GUIDES_PATH}/code-review-first.md |
+| component-reuse | {GUIDES_PATH}/component-reuse.md |
+
+MUST load only 1-3 relevant guides. NEVER load all 13.
+""",
 }
 
 # Merged global rules key — concatenation of all 6 core modules (core + hierarchy + atlas +
@@ -744,6 +795,7 @@ RULES_ONDEMAND_FILES = {
     "architecture": "04-architecture-principles.md",  # Full SOLID details — only Plan/Act
     "sectional": "05-sectional-write.md",      # Large file strategy — only file-generation tasks
     "solution": "06-solution-design.md",       # Framework capability assessment — only Plan/Act
+    "engineering": "07-engineering-concerns.md",  # NFR trigger index — Plan/Act guide loading
 }
 
 # Full set of PactKit-MANAGED rules (used for deployment + CLAUDE_MD_TEMPLATE)
@@ -753,7 +805,7 @@ RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
 # RULES_GLOBAL_PREFIXES: exact name(s) used in ~/.claude/rules/ for PactKit-managed files.
 # RULES_ONDEMAND_PREFIXES: numeric prefixes used in ~/.claude/skills/_rules/.
 RULES_GLOBAL_PREFIXES = ["pactkit"]
-RULES_ONDEMAND_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-"]
+RULES_ONDEMAND_PREFIXES = ["01-", "02-", "03-", "04-", "05-", "06-", "07-"]
 
 # On-demand deploy directory name (deployed under skills/)
 RULES_ONDEMAND_DIR = "_rules"
@@ -778,9 +830,9 @@ CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
 #        mcp=06, shared=07, architecture=08, credential=09
 COMMAND_RULES_MAP = {
     "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "engineering", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "credential"],
+    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "engineering", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],

@@ -114,8 +114,8 @@ class TestPromptModuleCounts:
     """Verify expected counts of prompt modules."""
 
     def test_rule_count(self):
-        """13 rule module keys: 12 individual modules + 1 merged 'pactkit' key (post-merge refactor)."""
-        assert len(prompts.RULES_MODULES) == 13
+        """14 rule module keys: 13 individual modules + 1 merged 'pactkit' key (post STORY-slim-128)."""
+        assert len(prompts.RULES_MODULES) == 14
 
     def test_command_count(self):
         """STORY-051: Should have 11 command playbooks (added project-release, project-pr)."""

@@ -84,6 +84,8 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "SCAFFOLD_CMD": f"python3 {skills_root}/pactkit-scaffold/scripts/scaffold.py",
         "REPORT_CMD": f"python3 {skills_root}/pactkit-report/scripts/report.py",
         "GLOBAL_INSTRUCTIONS": f"{profile.global_config_dir}/{profile.global_instructions_file}",
+        # Engineering guides path (STORY-slim-128)
+        "GUIDES_PATH": f"{skills_root}/_rules/guides",
         # Document schema variables (STORY-slim-007)
         "CONTEXT_SECTIONS": CONTEXT_SECTIONS_TEXT,
         "LESSONS_ROW_FORMAT": LESSONS_ROW_FORMAT,
@@ -357,6 +359,7 @@ def _deploy_classic(config=None, target=None):
     _cleanup_legacy(skills_dir)
     rule_scopes = config.get("rule_scopes", {})
     n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes, profile=classic_profile)
+    _deploy_guides(claude_root, profile=classic_profile)
     _deploy_claude_md(claude_root, enabled_rules)
     agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
@@ -671,6 +674,32 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
         if profile is not None:
             _warn_deploy_violations(content, profile, f"rule:{rule_id}")
         atomic_write(dest_dir / filename, content)
+        deployed += 1
+
+    return deployed
+
+
+def _deploy_guides(claude_root, profile=None):
+    """Deploy engineering guide files to skills/_rules/guides/ (STORY-slim-128).
+
+    Guides are on-demand reference files loaded by Act Phase 1.5 based on
+    Spec's engineering concerns. Not loaded into context unless explicitly read.
+    """
+    from pactkit.prompts.guides import GUIDES_DIR, GUIDES_FILES
+
+    guides_dir = claude_root / "skills" / prompts.RULES_ONDEMAND_DIR / GUIDES_DIR
+    guides_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clean existing managed guide files (upgrade path)
+    for f in guides_dir.glob("*.md"):
+        if f.name in GUIDES_FILES:
+            f.unlink()
+
+    deployed = 0
+    for filename, content in GUIDES_FILES.items():
+        if profile is not None:
+            content = _render_prompt(content, profile)
+        atomic_write(guides_dir / filename, content)
         deployed += 1
 
     return deployed

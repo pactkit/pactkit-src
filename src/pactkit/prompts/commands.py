@@ -104,7 +104,12 @@ model: opus
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
 2.  **Duplication Audit**: Run the Duplication Audit from system-architect protocol — if this is the Nth same-kind implementation, grep existing implementations and assess shared abstraction needs before writing Spec.
-3.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
+3.  **Engineering Concerns Assessment** — scan the requirement for NFR keywords:
+    - Reference the Engineering Concerns trigger index (`07-engineering-concerns.md`) keyword table.
+    - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
+    - Unmatched concerns → do not add (avoid noise).
+    - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
+4.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
@@ -217,7 +222,18 @@ model: sonnet
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 5.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
     - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta before writing code.
-    - Output brief capability assessment before proceeding to Phase 2.
+    - Output brief capability assessment before proceeding to Phase 1.5.
+
+## 🔧 Phase 1.5: Engineering Concerns Loading (Conditional)
+> **PURPOSE**: Load only the NFR guides relevant to this Story — keeps context minimal while ensuring engineering rigor.
+1.  **Read Spec Technical Design**: Check if the Spec contains engineering concern decisions (from Plan Phase 2).
+2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience).
+3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
+    - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
+    - NEVER load all 13 guides.
+    - If Spec has no engineering concerns section, skip this phase silently.
+4.  **Apply constraints**: Use the loaded guides' MUST/NEVER rules as implementation constraints in Phase 3.
+5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.

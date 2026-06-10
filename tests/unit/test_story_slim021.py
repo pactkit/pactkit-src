@@ -26,9 +26,9 @@ class TestR6RuleExists:
         # Post-merge refactor: sectional is now 05-sectional-write
         assert "05-sectional-write" in VALID_RULES
 
-    def test_valid_rules_count_is_7(self):
-        # Post-merge refactor: 7 rules (1 merged global + 6 on-demand)
-        assert len(VALID_RULES) == 7
+    def test_valid_rules_count_is_8(self):
+        # Post STORY-slim-128: 8 rules (1 merged global + 7 on-demand)
+        assert len(VALID_RULES) == 8
 
     def test_rules_modules_contains_sectional(self):
         assert "sectional" in RULES_MODULES

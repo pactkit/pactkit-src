@@ -49,9 +49,9 @@ class TestGetDefaultConfig:
         assert len(cfg["skills"]) == 24
 
     def test_default_rules_count(self):
-        """7 rule modules (1 merged global + 6 on-demand, post-merge refactor)."""
+        """8 rule modules (1 merged global + 7 on-demand, post STORY-slim-128)."""
         cfg = _config().get_default_config()
-        assert len(cfg["rules"]) == 7
+        assert len(cfg["rules"]) == 8
 
     def test_default_stack_is_auto(self):
         cfg = _config().get_default_config()

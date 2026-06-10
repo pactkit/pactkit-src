@@ -1,14 +1,14 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-06-01T11:05:34+08:00 by pactkit context
+> Last updated: 2026-06-10T11:01:04+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 3 | In Progress: 0 | Done: 0 stories
+Backlog: 3 | In Progress: 0 | Done: 1 stories
 
 ## Current Stories
 None
 
 ## Recent Completions
-None
+- STORY-slim-128: Engineering Concerns: Guide-based NFR enforcement
 
 ## Active Branches
 + claude/naughty-euclid-e6a787
@@ -26,4 +26,12 @@ None
 `/project-plan`
 
 ## Agent Continuation
-No active work session.
+Last Command: /project-act STORY-slim-128
+Phase Reached: Phase 4: complete
+
+### Sprint Contract (STORY-slim-128)
+- [ ] AC1: Trigger Index Deployed (R1, R6)
+- [ ] AC2: All 13 Guides Deployed (R2, R3)
+- [ ] AC3: Plan Phase Triggers NFR Questions
+- [ ] AC4: Act Phase Loads Relevant Guides Only
+- [ ] AC5: OpenCode/Codex/Copilot Parity
