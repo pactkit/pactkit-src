@@ -4,6 +4,16 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.15.1] - 2026-06-10
+
+### Added
+- **Engineering Concerns guide system** (STORY-slim-128) — On-demand NFR guide loading via trigger index. Plan Phase 2 scans requirement keywords and includes NFR decisions in Spec; Act Phase 1.5 loads matched guides (1-3 max). Initial 13 concerns: concurrency, async, configuration, observability, module-design, database, caching, api-integration, event-driven, resilience, memory-management, code-review-first, component-reuse.
+- **6 additional engineering guides** (STORY-slim-129) — error-recovery (retry/backoff/idempotency), data-consistency (transactions/saga/optimistic lock), backwards-compatibility (API versioning/non-breaking migration), performance-antipatterns (N+1/unbounded queries/indexing), graceful-shutdown (SIGTERM/drain/cleanup order), testing-strategy (boundary/mock vs real/isolation). Total: 19 guides.
+
+### Fixed
+- **Spec linter** — Accept heading format for Security Scope `SEC-*` entries.
+- **CI** — Remove obsolete `.opencode/pactkit.yaml` test.
+
 ## [2.15.0] - 2026-06-04
 
 ### Added
