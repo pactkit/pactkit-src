@@ -733,6 +733,12 @@ If matched, the Spec MUST include a decision for that concern:
 | 内存/memory/leak/GC/OOM/streaming/大文件 | memory-management | Bounded collections? Streaming? Cleanup? |
 | 复用/reuse/已有/existing/library/依赖 | component-reuse | Stdlib? Project existing? Third-party? |
 | review/代码审查/架构/convention/约定 | code-review-first | Exemplar file? Existing patterns? |
+| retry/重试/backoff/幂等/idempoten/partial failure | error-recovery | Retry strategy? Backoff? Idempotency? Partial failure? |
+| 一致性/consistency/saga/补偿/idempotency key/分布式事务 | data-consistency | Transaction scope? Compensation? Optimistic lock? |
+| 兼容/backward/breaking change/deprecat/migration/版本 | backwards-compatibility | API version? Non-breaking migration? Deprecation? |
+| N+1/unbounded/分页/pagina/index/索引/热路径/hot path | performance-antipatterns | Pagination? Batch fetch? Index? Cache? |
+| shutdown/优雅关闭/SIGTERM/drain/信号处理 | graceful-shutdown | Signal handler? Drain timeout? Cleanup order? |
+| 测试策略/test strategy/mock/stub/boundary/隔离/isolation | testing-strategy | Mock vs real? Boundary tests? Test isolation? |
 
 Unmatched concerns → do not appear in Spec (avoid noise).
 
@@ -755,8 +761,14 @@ After reading Spec's Technical Design, load ONLY the matched guides:
 | memory-management | {GUIDES_PATH}/memory-management.md |
 | code-review-first | {GUIDES_PATH}/code-review-first.md |
 | component-reuse | {GUIDES_PATH}/component-reuse.md |
+| error-recovery | {GUIDES_PATH}/error-recovery.md |
+| data-consistency | {GUIDES_PATH}/data-consistency.md |
+| backwards-compatibility | {GUIDES_PATH}/backwards-compatibility.md |
+| performance-antipatterns | {GUIDES_PATH}/performance-antipatterns.md |
+| graceful-shutdown | {GUIDES_PATH}/graceful-shutdown.md |
+| testing-strategy | {GUIDES_PATH}/testing-strategy.md |
 
-MUST load only 1-3 relevant guides. NEVER load all 13.
+MUST load only 1-3 relevant guides. NEVER load all 19.
 """,
 }
 

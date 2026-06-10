@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-26 | DeployerBase static methods use lazy imports to avoid circular dependencies between deploy_base.py and deployer.py | deploy_base.py:DeployerBase.render_prompt |
 | 2026-03-26 | Thin adapter conversion: pactkit-codex reduced from 15,356 lines (full fork) to 668 lines (thin adapter) by importing core via DeployerBase. Key: deploy_codex_playbooks needs explicit path replacement for ALL format prefixes (~/.claude/, ~/.config/opencode/ → ~/.codex/) | pactkit_codex/deployer.py:deploy_codex_playbooks |
 | 2026-03-27 | When migrating commands to skills (subdir/SKILL.md format), all path assertions in pre-existing tests must be updated in the same commit — 17 tests broke because they asserted flat commands/*.md paths | deployer.py:_deploy_commands |
 | 2026-03-30 | Frontend API path convention bugs are structurally preventable: ApiCallParser+api_convention_summary in trace phase surfaces prefix/wrapper conventions before implementation, eliminating a class of copy-paste path errors | visualize.py:ApiCallParser |
@@ -53,3 +52,4 @@
 | 2026-05-26 | SKILL.md model: frontmatter is passed through by deployer without transformation — source prompts in commands.py/workflows.py are the single source of truth for deployed skill metadata | commands.py:COMMANDS_CONTENT |
 | 2026-06-01 | codegraph sync must be enforced by code (pactkit visualize/sync), not by prompt instructions — prompt-only enforcement is unreliable for deterministic operations | lazy_visualize.py:codegraph_sync |
 | 2026-06-01 | Managed-block pattern (start/end markers + regex replace) is the canonical way to update mixed-ownership files — same pattern for CLAUDE.md and CLAUDE.local.md | deployer.py:_upsert_claude_md_managed_block |
+| 2026-06-10 | Engineering guides are additive: new GUIDES_FILES entries auto-deploy via _deploy_guides() without deployer changes. Test impact limited to count assertions in test_story_slim128. | src/pactkit/prompts/guides.py:GUIDES_FILES |

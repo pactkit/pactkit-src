@@ -10,7 +10,6 @@ Verifies:
 
 import importlib
 from pathlib import Path
-from unittest.mock import patch
 import tempfile
 
 
@@ -99,12 +98,18 @@ class TestGuidesFiles:
         "memory-management.md",
         "code-review-first.md",
         "component-reuse.md",
+        "error-recovery.md",
+        "data-consistency.md",
+        "backwards-compatibility.md",
+        "performance-antipatterns.md",
+        "graceful-shutdown.md",
+        "testing-strategy.md",
     }
 
-    def test_guides_files_has_13_entries(self):
+    def test_guides_files_has_19_entries(self):
         guides = _guides()
-        assert len(guides.GUIDES_FILES) == 13, (
-            f"GUIDES_FILES should have 13 entries, got {len(guides.GUIDES_FILES)}: "
+        assert len(guides.GUIDES_FILES) == 19, (
+            f"GUIDES_FILES should have 19 entries, got {len(guides.GUIDES_FILES)}: "
             f"{list(guides.GUIDES_FILES.keys())}"
         )
 
@@ -141,9 +146,9 @@ class TestGuidesFiles:
             count = _deploy_guides(claude_root)
             guides_dir = claude_root / "skills" / "_rules" / "guides"
             assert guides_dir.exists()
-            assert count == 13
+            assert count == 19
             files = list(guides_dir.glob("*.md"))
-            assert len(files) == 13
+            assert len(files) == 19
 
     def test_deploy_guides_file_content_matches_source(self):
         from pactkit.generators.deployer import _deploy_guides

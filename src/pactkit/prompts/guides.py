@@ -436,6 +436,222 @@ def get_item(key): ...
 | Known CVEs | Zero unpatched |
 | Dependency count | Fewer is better |
 """,
+
+    "error-recovery.md": """\
+# Error Recovery — Implementation Guide
+
+## Decision Table
+| Scenario | Strategy |
+|----------|----------|
+| Transient failure (network, 5xx) | Retry with exponential backoff + jitter |
+| Non-transient (4xx, validation) | Fail immediately — no retry |
+| Batch processing (N items) | Continue on failure, collect errors, report summary |
+| Idempotent operation | Safe to retry unconditionally |
+| Non-idempotent (payment, email) | Idempotency key required before retry |
+
+## MUST
+- Retries MUST use exponential backoff (not fixed interval)
+- Retries MUST have max attempt limit (default: 3)
+- Non-idempotent operations MUST use idempotency key before retrying
+- Partial failures in batch MUST be reported (not silently swallowed)
+- Error recovery MUST preserve the operation's original context for debugging
+
+## NEVER
+- NEVER retry infinitely (`while True` without max)
+- NEVER retry non-idempotent operations without idempotency guarantee
+- NEVER catch-all with bare `except:` or `except Exception: pass`
+- NEVER swallow partial batch failures silently
+
+## Template
+```python
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+def call_with_retry(payload):
+    return client.post(url, json=payload)
+```
+""",
+
+    "data-consistency.md": """\
+# Data Consistency — Implementation Guide
+
+## Decision Table
+| Scenario | Strategy |
+|----------|----------|
+| Single DB, multi-table | DB transaction (ACID) |
+| Multi-service write | Saga pattern (compensating transactions) |
+| Concurrent updates to same row | Optimistic lock (`WHERE version = ?`) |
+| Counter / balance | Atomic update (`SET x = x + ?`) |
+| Exactly-once delivery | Idempotency key + dedup table |
+
+## MUST
+- Multi-table writes MUST be wrapped in a transaction
+- Cross-service writes MUST define compensation (rollback) for each step
+- Concurrent-write fields MUST use optimistic locking or atomic operations
+- All write APIs MUST accept and enforce idempotency key
+- Saga steps MUST be individually retriable and reversible
+
+## NEVER
+- NEVER write to multiple services without compensation strategy
+- NEVER assume network calls inside transactions will succeed
+- NEVER use `SELECT then UPDATE` without locking (lost update problem)
+- NEVER skip idempotency for payment/notification operations
+
+## Template
+```python
+# Optimistic locking
+rows = await db.execute(
+    "UPDATE account SET balance = balance - $1, version = version + 1 "
+    "WHERE id = $2 AND version = $3", amount, id, expected_version)
+if rows == 0:
+    raise OptimisticLockError("Concurrent modification")
+```
+""",
+
+    "backwards-compatibility.md": """\
+# Backwards Compatibility — Implementation Guide
+
+## Decision Table
+| Change Type | Strategy |
+|-------------|----------|
+| Add new API field | Add as optional — never required |
+| Remove API field | Deprecate → stop populating → remove after 2 versions |
+| Rename API field | Add new + keep old (alias) → deprecate old |
+| DB column add | Add nullable or with default — never NOT NULL without default |
+| DB column remove | Stop writing → stop reading → drop after migration window |
+
+## MUST
+- API changes MUST be backwards compatible within same major version
+- DB migrations MUST be non-breaking (add before remove, nullable first)
+- New required fields MUST have server-side defaults for old clients
+- Deprecated fields MUST emit warnings for at least 1 version cycle
+- Breaking changes MUST use API versioning (URL prefix or header)
+
+## NEVER
+- NEVER add NOT NULL column without default to existing table
+- NEVER rename/remove API fields without deprecation period
+- NEVER deploy code that requires new schema before schema is migrated
+- NEVER break existing client contracts in minor/patch versions
+
+## Template
+```python
+# Non-breaking migration: add nullable, backfill, then constrain
+# Step 1: ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL;
+# Step 2: UPDATE users SET email = legacy_email WHERE email IS NULL;
+# Step 3 (next release): ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+```
+""",
+
+    "performance-antipatterns.md": """\
+# Performance Anti-patterns — Implementation Guide
+
+## Detection Table
+| Anti-pattern | Signal | Fix |
+|--------------|--------|-----|
+| N+1 query | Loop containing DB call | JOIN or batch prefetch |
+| Unbounded query | `SELECT *` without LIMIT | Always paginate (LIMIT + OFFSET or cursor) |
+| Missing index | WHERE/ORDER on unindexed column | Add index (check EXPLAIN) |
+| Hot-path serialization | JSON encode/decode per request for static data | Cache serialized form |
+| Full table scan | Large table, no WHERE | Add filter condition or index |
+
+## MUST
+- All list endpoints MUST have pagination (default + max page size)
+- Loops with DB/API calls MUST be refactored to batch operations
+- Queries on columns in WHERE/JOIN/ORDER MUST have appropriate indexes
+- Large object serialization MUST be cached if called >1/request
+
+## NEVER
+- NEVER query inside a loop (N+1) — batch fetch before loop
+- NEVER return unbounded result sets (no LIMIT)
+- NEVER ignore EXPLAIN output for slow queries
+- NEVER serialize/deserialize repeatedly in hot paths
+
+## Template
+```python
+# Batch prefetch instead of N+1
+user_ids = [order.user_id for order in orders]
+users = {u.id: u for u in User.query.filter(User.id.in_(user_ids))}
+for order in orders:
+    order.user = users[order.user_id]  # O(1) lookup, not O(N) queries
+```
+""",
+
+    "graceful-shutdown.md": """\
+# Graceful Shutdown — Implementation Guide
+
+## Shutdown Sequence
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | Stop accepting new requests | No new work enters |
+| 2 | Drain in-flight requests (with timeout) | Complete current work |
+| 3 | Close external connections (DB, Redis, MQ) | Release resources |
+| 4 | Flush buffers (logs, metrics, queues) | No data loss |
+| 5 | Exit process | Clean termination |
+
+## MUST
+- All long-running services MUST register SIGTERM/SIGINT handlers
+- Shutdown MUST have a maximum timeout (default: 30s) then force exit
+- In-flight requests MUST be given time to complete before connection close
+- Background workers MUST stop accepting new jobs on shutdown signal
+- Resource cleanup MUST follow reverse-initialization order
+
+## NEVER
+- NEVER call `os._exit()` or `sys.exit()` without cleanup
+- NEVER ignore SIGTERM (container orchestrators send it before SIGKILL)
+- NEVER close DB connections while requests are still in-flight
+- NEVER leave background threads/tasks running after main exit
+
+## Template
+```python
+import signal, asyncio
+
+async def shutdown(app):
+    app.is_shutting_down = True          # Step 1: reject new
+    await asyncio.sleep(app.drain_time)  # Step 2: drain
+    await app.db_pool.close()            # Step 3: close deps
+    await app.flush_metrics()            # Step 4: flush
+
+loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(shutdown(app)))
+```
+""",
+
+    "testing-strategy.md": """\
+# Testing Strategy — Implementation Guide
+
+## Decision Table
+| Scenario | Test Type | Mock? |
+|----------|-----------|-------|
+| Pure logic (no I/O) | Unit test | No mocks needed |
+| DB interaction | Integration test | Real DB (testcontainers or SQLite) |
+| External API | Unit + contract test | Mock HTTP, contract for schema |
+| Multi-service flow | E2E test | Real services or docker-compose |
+| Flaky dependency | Unit test | Mock the flaky part |
+
+## MUST
+- Tests MUST be deterministic (same input → same output, no time/random)
+- Each test MUST test ONE behavior (not multiple assertions of unrelated things)
+- Test data MUST be isolated (no shared mutable state between tests)
+- Boundary conditions MUST be tested (empty, null, max, overflow, unicode)
+- Mocks MUST verify interaction (called with correct args), not just exist
+
+## NEVER
+- NEVER use `time.sleep()` in tests (use polling or event-based waits)
+- NEVER share mutable state between tests (leads to order-dependent failures)
+- NEVER test implementation details (private methods, internal state)
+- NEVER write tests that pass when code is deleted (test actual behavior)
+
+## Template
+```python
+@pytest.mark.parametrize("input,expected", [
+    ("", []),              # empty
+    ("a", ["a"]),          # single
+    ("a,b,c", ["a","b","c"]),  # normal
+    ("a,,b", ["a","b"]),   # boundary: empty element
+])
+def test_parse_list(input, expected):
+    assert parse_list(input) == expected
+```
+""",
 }
 
 GUIDES_DIR = "guides"

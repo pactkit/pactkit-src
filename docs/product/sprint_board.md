@@ -30,14 +30,3 @@
 
 ## ✅ Done
 
-### [STORY-slim-128] Engineering Concerns: Guide-based NFR enforcement
-> Spec: docs/specs/STORY-slim-128.md
-
-- [x] Create guides.py with 13 guide contents
-- [x] Add trigger index to rules.py
-- [x] Extend deployer for guides/ subdirectory
-- [x] Enhance plan Phase 2 with NFR assessment
-- [x] Enhance act Phase 1.5 with guide loading
-- [x] Config registration + COMMAND_RULES_MAP
-- [x] Multi-format parity
-- [x] Unit tests
