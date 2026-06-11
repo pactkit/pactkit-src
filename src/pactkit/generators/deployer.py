@@ -107,6 +107,19 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
     return result
 
 
+def _insert_after_frontmatter(content: str, header: str) -> str:
+    """Insert header text after the YAML frontmatter block.
+
+    If content starts with '---', finds the closing '---' and inserts header
+    after it. Otherwise prepends header (legacy fallback).
+    """
+    if content.startswith("---\n"):
+        close_idx = content.index("\n---\n", 1)
+        insert_pos = close_idx + len("\n---\n")
+        return content[:insert_pos] + header + content[insert_pos:]
+    return header + content
+
+
 def _rewrite_skills_prefix(content, profile_or_prefix):
     """Rewrite ~/.claude/skills references to the target skills_prefix.
 
@@ -1004,11 +1017,12 @@ def _deploy_commands(
         if _opencode_format:
             content = _convert_command_frontmatter_opencode(content)
 
-        # STORY-slim-011: Prepend rule injection header (classic=@import, opencode=inline)
+        # STORY-slim-011: Inject rule header after YAML frontmatter (HOTFIX-slim-131)
+        # Must go AFTER frontmatter so Claude Code parses model:/description:/allowed-tools:
         if _legacy_prefix is None:
             rules_header = _build_command_rules_header(cmd_name, profile, config)
             if rules_header:
-                content = rules_header + content
+                content = _insert_after_frontmatter(content, rules_header)
 
         rendered = (
             _render_prompt(content, profile)
