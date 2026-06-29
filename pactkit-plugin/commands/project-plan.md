@@ -26,7 +26,7 @@ model: opus
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/sprint_board.md`, `docs/architecture/graphs/`).
 2.  If exit code 1: project is not initialized — print the missing markers and **STOP**. Suggest running `/project-init`.
-3.  If all exist: check config completeness (hooks, ci, issue_tracker sections). If stale, run `pactkit update` and report what was added.
+3.  If all exist: check config completeness (ci, issue_tracker sections). If stale, run `pactkit update` and report what was added.
 4.  If PASS: proceed to Phase 1.
 
 ## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
@@ -75,11 +75,34 @@ model: opus
 3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` and include path prefixes, fetch function names, and total call count in the Archaeologist Report. This prevents API path convention bugs in downstream implementation.
     - For **agent**: Note orchestration edges from AgentParser (LangGraph/YAML/MCP) in the report so downstream changes respect agent flow.
+4.  **Lateral Scan (MUST for Modification)** — after tracing the target, scan horizontally for existing implementations of the same operation pattern:
+    - Identify the core operation(s) the requirement involves (e.g., "write to OWL", "send notification", "create DB record").
+    - Use a tiered strategy to count existing implementations in the project:
+      - **Prefer LSP** (if available): `incomingCalls` or `findReferences` on the core operation's function/method — gives type-aware, zero-false-positive results.
+      - **Fallback visualize**: `visualize --mode call --reverse --entry <operation>` — reads fan-in from the project's call graph.
+      - **Fallback grep**: `grep -rn "<operation>" src/` — text-level search when neither LSP nor visualize is available.
+    - **Output checkpoint**:
+      ```
+      Lateral Scan:
+      - Operation: {name}
+      - Existing implementations: {N} ({file1}:{func1}, {file2}:{func2}, ...)
+      - Assessment: {Reuse existing | Extract shared abstraction | New is justified}
+      ```
+    - **Threshold**: If the same operation has **≥ 3 independent implementations**, the Spec's Technical Design MUST include a shared abstraction evaluation before adding the Nth implementation.
+    - **Skip condition**: Pure greenfield features with no existing codebase analog — log "Lateral Scan: no existing pattern found" and proceed.
+5.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
+    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
+    - Include the Capability Assessment output in Phase 2 Spec writing.
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
 2.  **Duplication Audit**: Run the Duplication Audit from system-architect protocol — if this is the Nth same-kind implementation, grep existing implementations and assess shared abstraction needs before writing Spec.
-3.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
+3.  **Engineering Concerns Assessment** — scan the requirement for NFR keywords:
+    - Reference the Engineering Concerns trigger index (`{SKILLS_ROOT}/_rules/07-engineering-concerns.md`) keyword table.
+    - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
+    - Unmatched concerns → do not add (avoid noise).
+    - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
+4.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
@@ -94,7 +117,19 @@ model: opus
     - Edit `(Description of the problem or feature)` → actual Background content from your Trace findings
     - Edit `## Target Call Chain` placeholder → actual call chain from Phase 1
     - Edit `### R1: (Requirement Name) (MUST)` → actual requirements using RFC 2119 keywords (MUST/SHOULD/MAY). Add more R{N} sections as needed.
-4.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
+4.  **Journey Segment (Conditional)**: If `docs/e2e/journey.md` exists in the project:
+    - Read `docs/e2e/journey.md` to identify defined journeys and their steps.
+    - Assess whether this Story's scope touches any journey step (e.g., modifies a UI flow, changes an API endpoint used in a journey).
+    - If yes: add a `## Journey Segment` section to the Spec with the format:
+      ```
+      ## Journey Segment
+
+      - Journey: {Journey Name}
+      - Steps: {step numbers, e.g., "2-3" or "4"}
+      - Impact: {brief description of how this story affects the journey}
+      ```
+    - If the Story does not affect any journey: do NOT add this section (Act Phase 4 Journey Sync will auto-skip).
+5.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
 
 ## 🎬 Phase 3.2b: Acceptance Criteria & Implementation Steps
 1.  **Edit AC** (use Edit tool): Replace `### AC1: (Scenario Name) (R1)` and its Given/When/Then placeholders with actual scenarios. The template already provides the `- **Given**` / `- **When**` / `- **Then**` structure — fill in the content. Add more AC{N} sections as needed.
@@ -105,7 +140,6 @@ model: opus
 ## 🎬 Phase 3.2c: Security Scope
 1.  **MUST**: Run `pactkit sec-scope <changed-files>` to auto-detect SEC-1~SEC-8 applicability.
 2.  **Edit** the `## Security Scope` section already in the template: replace the placeholder SEC-1 row with actual SEC-* assessments from the output above. The table skeleton (Check/Applicable/Reason headers) is already in the template.
-    - **Preferred format**: pipe-table rows (`| SEC-1 | Yes/N/A | Reason |`). Heading format (`### SEC-1:`) is also accepted by the linter but table is canonical.
 3.  **Fallback**: If `pactkit sec-scope` is unavailable, manually Edit each SEC-1 through SEC-8 entry. Apply docs/tests-only shortcut if applicable (mark ALL N/A with Reason "docs/tests only").
 4.  **Output checkpoint**: Print "Security scope filled. Running lint."
 

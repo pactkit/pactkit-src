@@ -67,13 +67,19 @@ class TestTriggerIndexRule:
         config = _config()
         assert "07-engineering-concerns" in config.VALID_RULES
 
-    def test_engineering_in_command_rules_map_plan(self):
-        rules = _rules()
-        assert "engineering" in rules.COMMAND_RULES_MAP["project-plan"]
+    def test_engineering_referenced_in_plan_command(self):
+        """Plan command references engineering concerns for on-demand Read."""
+        import pactkit.prompts as prompts
+        importlib.reload(prompts)
+        plan_content = prompts.COMMANDS_CONTENT["project-plan.md"]
+        assert "07-engineering-concerns.md" in plan_content
 
-    def test_engineering_in_command_rules_map_act(self):
-        rules = _rules()
-        assert "engineering" in rules.COMMAND_RULES_MAP["project-act"]
+    def test_engineering_referenced_in_act_command(self):
+        """Act command references engineering concerns for on-demand Read."""
+        import pactkit.prompts as prompts
+        importlib.reload(prompts)
+        act_content = prompts.COMMANDS_CONTENT["project-act.md"]
+        assert "07-engineering-concerns.md" in act_content
 
     def test_ondemand_prefixes_includes_07(self):
         rules = _rules()

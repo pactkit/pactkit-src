@@ -98,14 +98,14 @@ model: opus
     - **Threshold**: If the same operation has **≥ 3 independent implementations**, the Spec's Technical Design MUST include a shared abstraction evaluation before adding the Nth implementation.
     - **Skip condition**: Pure greenfield features with no existing codebase analog — log "Lateral Scan: no existing pattern found" and proceed.
 5.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
+    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
     - Include the Capability Assessment output in Phase 2 Spec writing.
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
 2.  **Duplication Audit**: Run the Duplication Audit from system-architect protocol — if this is the Nth same-kind implementation, grep existing implementations and assess shared abstraction needs before writing Spec.
 3.  **Engineering Concerns Assessment** — scan the requirement for NFR keywords:
-    - Reference the Engineering Concerns trigger index (`07-engineering-concerns.md`) keyword table.
+    - Reference the Engineering Concerns trigger index (`{SKILLS_ROOT}/_rules/07-engineering-concerns.md`) keyword table.
     - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
     - Unmatched concerns → do not add (avoid noise).
     - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
@@ -221,13 +221,13 @@ model: sonnet
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 5.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `06-solution-design.md` to evaluate capability delta before writing code.
+    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta before writing code.
     - Output brief capability assessment before proceeding to Phase 1.5.
 
 ## 🔧 Phase 1.5: Engineering Concerns Loading (Conditional)
 > **PURPOSE**: Load only the NFR guides relevant to this Story — keeps context minimal while ensuring engineering rigor.
 1.  **Read Spec Technical Design**: Check if the Spec contains engineering concern decisions (from Plan Phase 2).
-2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience).
+2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/07-engineering-concerns.md` for the keyword→guide mapping table.
 3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
     - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
     - NEVER load all 13 guides.

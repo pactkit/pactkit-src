@@ -41,19 +41,20 @@ from pactkit.prompts.rules import (
 # 01=core, 02=hierarchy, 03=atlas, 04=routing, 05=workflow,
 # 06=mcp, 07=shared, 08=architecture, 09=credential
 SPEC_TABLE = {
+    # architecture/solution/engineering removed from @inject — loaded on-demand via Read in playbooks
     "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential", "solution", "engineering"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "credential", "solution", "engineering"],
+    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
+    "project-done": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],
     "project-pr": ["core", "workflow", "credential"],
     "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "sectional", "atlas", "mcp", "architecture", "credential"],
+    "project-design": ["core", "sectional", "atlas", "mcp", "credential"],
     "project-sprint": [
         "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
-        "mcp", "shared", "architecture", "credential",
+        "mcp", "shared", "credential",
     ],
 }
 
@@ -94,6 +95,11 @@ class TestAC8AllRulesMapped:
 
         # Post-merge refactor: pactkit is the merged global file (auto-loaded) — not command-mapped
         all_rule_keys.discard("pactkit")
+
+        # Slimmed from @inject to on-demand Read (referenced in playbook text, not COMMAND_RULES_MAP)
+        all_rule_keys.discard("architecture")
+        all_rule_keys.discard("solution")
+        all_rule_keys.discard("engineering")
 
         unmapped = all_rule_keys - mapped_keys
         assert not unmapped, f"Rules not mapped to any command: {unmapped}"
@@ -177,12 +183,10 @@ class TestAC2AC3ClassicImport:
         # STORY-slim-063: deployed as skills_dir/{name}/SKILL.md
         content = (skills_dir / "project-act" / "SKILL.md").read_text()
         # On-demand rules should be @imported from skills/_rules/ with new filenames
+        # (architecture/solution/engineering slimmed to on-demand Read, not @inject)
         for rule_file in [
             "02-mcp-integration.md",
             "03-shared-protocols.md",
-            "04-architecture-principles.md",
-            "05-sectional-write.md",
-            "06-solution-design.md",
         ]:
             assert f"@~/.claude/skills/_rules/{rule_file}" in content, (
                 f"Missing @import for on-demand rule {rule_file}"
@@ -236,14 +240,13 @@ class TestAC4AC5OpenCodeInline:
         _deploy_commands(commands_dir, ["project-act"], profile=profile)
 
         content = (commands_dir / "project-act.md").read_text()
-        # Should have managed rule content
+        # Should have managed rule content (architecture/solution/engineering now on-demand)
         for heading in [
             "# Core Protocol",
             "# The Hierarchy of Truth",
             "# File Atlas",
             "# MCP Integration",
             "# Shared Protocols",
-            "# Architecture Principles",
         ]:
             assert heading in content, f"Missing inline content: {heading}"
         # Should NOT have 04-routing-table or 05-workflow content

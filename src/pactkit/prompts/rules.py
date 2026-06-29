@@ -841,19 +841,21 @@ CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
 # Keys: core=01, hierarchy=02, atlas=03, routing=04, workflow=05,
 #        mcp=06, shared=07, architecture=08, credential=09
 COMMAND_RULES_MAP = {
+    # Slimmed: architecture/solution/engineering removed from @inject — loaded on-demand via Read
+    # in command playbooks when their trigger conditions are met (Phase 1.5, Solution Design, etc.)
     "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "engineering", "credential"],
+    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-clarify": ["core", "credential"],
-    "project-act": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "architecture", "solution", "engineering", "credential"],
+    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
     "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-done": ["core", "hierarchy", "atlas", "workflow", "mcp", "shared", "credential"],
+    "project-done": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
     "project-release": ["core", "workflow", "credential"],
     "project-pr": ["core", "workflow", "credential"],
     "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "sectional", "atlas", "mcp", "architecture", "credential"],
+    "project-design": ["core", "sectional", "atlas", "mcp", "credential"],
     "project-sprint": [
         "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
-        "mcp", "shared", "architecture", "credential",
+        "mcp", "shared", "credential",
     ],
 }
 

@@ -130,14 +130,16 @@ class TestSolutionDesignStackAgnostic:
 
 
 class TestPlaybookIntegration:
-    """AC8: Playbook references protocol."""
+    """AC8: Playbook references protocol via on-demand Read."""
 
-    def test_plan_command_rules_has_solution(self):
-        """R8: project-plan loads solution design rule."""
+    def test_plan_command_references_solution_design(self):
+        """R8: project-plan references solution design rule for on-demand Read."""
         p = _prompts()
-        assert "solution" in p.COMMAND_RULES_MAP["project-plan"]
+        plan_content = p.COMMANDS_CONTENT["project-plan.md"]
+        assert "06-solution-design.md" in plan_content
 
-    def test_act_command_rules_has_solution(self):
-        """R8: project-act loads solution design rule."""
+    def test_act_command_references_solution_design(self):
+        """R8: project-act references solution design rule for on-demand Read."""
         p = _prompts()
-        assert "solution" in p.COMMAND_RULES_MAP["project-act"]
+        act_content = p.COMMANDS_CONTENT["project-act.md"]
+        assert "06-solution-design.md" in act_content

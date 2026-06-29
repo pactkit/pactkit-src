@@ -43,12 +43,32 @@ model: sonnet
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
-1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — that is handled by Phase 4 Lazy Visualize after implementation.
+1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — Phase 4 handles that.
+    - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
 2.  **Trace Verification** — use pactkit-trace skill:
     - Before touching any code, confirm the call site and ensure you don't break existing callers.
-3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
+3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
+    - Run `pactkit interface-summary <file>` for each related module you do NOT plan to modify.
+    - This outputs signatures + types + docstrings only (function bodies excluded by code).
+    - Only escalate to full `Read <file>` when you confirm the module needs modification.
+    - If `pactkit` is not on `$PATH`, use `python3 -m pactkit interface-summary <file>`.
+4.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
+5.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
+    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta before writing code.
+    - Output brief capability assessment before proceeding to Phase 1.5.
+
+## 🔧 Phase 1.5: Engineering Concerns Loading (Conditional)
+> **PURPOSE**: Load only the NFR guides relevant to this Story — keeps context minimal while ensuring engineering rigor.
+1.  **Read Spec Technical Design**: Check if the Spec contains engineering concern decisions (from Plan Phase 2).
+2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/07-engineering-concerns.md` for the keyword→guide mapping table.
+3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
+    - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
+    - NEVER load all 13 guides.
+    - If Spec has no engineering concerns section, skip this phase silently.
+4.  **Apply constraints**: Use the loaded guides' MUST/NEVER rules as implementation constraints in Phase 3.
+5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
@@ -66,7 +86,7 @@ model: sonnet
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers in `code_graph.mmd`, run full suite. Fallback: full suite.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`pactkit query --callers <file>` or `grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
@@ -76,7 +96,16 @@ model: sonnet
     - If found, extract to config/constants before proceeding.
 
 ## 🎬 Phase 4: Sync & Document
-1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed). If `.codegraph/` exists, run `codegraph sync`.
+1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed; codegraph sync is handled automatically).
+1b. **Journey Sync (Conditional)**:
+    - **Skip if**: `docs/e2e/journey.md` does not exist in the project.
+    - **Skip if**: Current Story's Spec has no `## Journey Segment` section.
+    - **If triggered**:
+      1. Read `docs/e2e/journey.md`
+      2. Locate the journey step(s) referenced in the Spec's `## Journey Segment` (format: `- Journey: {Name}` / `- Steps: {N}` / `- Impact: {desc}`)
+      3. Review: do the step assertions still hold after this Story's code changes?
+      4. If outdated: Edit the affected step(s) in journey.md — update assertions, add new structure assertions, or adjust step description. MUST use Edit (incremental), MUST NOT use Write (full replace).
+      5. If still accurate: skip with log "Journey steps verified — no update needed"
 2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
 3.  **Update Continuation State**: Run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` to record the agent's stopping point for session handoff.
 4.  **Coverage Table Output (STORY-slim-105)**: Output a coverage table listing each R{N} from the Spec:
