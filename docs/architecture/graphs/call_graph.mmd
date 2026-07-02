@@ -74,6 +74,7 @@ graph TD
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
     _has_dir_with_files["_has_dir_with_files"]
+    _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside_protected["_inside_protected"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
@@ -427,6 +428,7 @@ graph TD
     _deploy_commands --> _rewrite_skills_prefix
     _deploy_commands --> atomic_write
     _deploy_commands --> atomic_write
+    _deploy_commands --> _insert_after_frontmatter
     _deploy_ci --> _build_github_workflow
     _deploy_ci --> atomic_write
     _deploy_ci --> _build_gitlab_ci

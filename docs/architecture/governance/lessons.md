@@ -2,8 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-26 | Thin adapter conversion: pactkit-codex reduced from 15,356 lines (full fork) to 668 lines (thin adapter) by importing core via DeployerBase. Key: deploy_codex_playbooks needs explicit path replacement for ALL format prefixes (~/.claude/, ~/.config/opencode/ → ~/.codex/) | pactkit_codex/deployer.py:deploy_codex_playbooks |
-| 2026-03-27 | When migrating commands to skills (subdir/SKILL.md format), all path assertions in pre-existing tests must be updated in the same commit — 17 tests broke because they asserted flat commands/*.md paths | deployer.py:_deploy_commands |
 | 2026-03-30 | Frontend API path convention bugs are structurally preventable: ApiCallParser+api_convention_summary in trace phase surfaces prefix/wrapper conventions before implementation, eliminating a class of copy-paste path errors | visualize.py:ApiCallParser |
 | 2026-03-31 | Rendering-only changes to visualize.py can be isolated by extracting a shared render helper (_render_nested_call_graph) that both forward and reverse BFS call — keeps AST parsing untouched | visualize.py:_render_nested_call_graph |
 | 2026-03-31 | dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead | visualize.py:_build_call_graph |
@@ -53,3 +51,5 @@
 | 2026-06-01 | codegraph sync must be enforced by code (pactkit visualize/sync), not by prompt instructions — prompt-only enforcement is unreliable for deterministic operations | lazy_visualize.py:codegraph_sync |
 | 2026-06-01 | Managed-block pattern (start/end markers + regex replace) is the canonical way to update mixed-ownership files — same pattern for CLAUDE.md and CLAUDE.local.md | deployer.py:_upsert_claude_md_managed_block |
 | 2026-06-10 | Engineering guides are additive: new GUIDES_FILES entries auto-deploy via _deploy_guides() without deployer changes. Test impact limited to count assertions in test_story_slim128. | src/pactkit/prompts/guides.py:GUIDES_FILES |
+| 2026-06-29 | Large @inject rules (architecture 11KB, solution 8.4KB, engineering 4.3KB) removed from COMMAND_RULES_MAP — loaded on-demand via Read in playbooks. Saves ~12,500 tokens/PDCA session. | src/pactkit/prompts/rules.py:COMMAND_RULES_MAP |
+| 2026-07-02 | Hardcoding external tool CLI commands in SKILL_VISUALIZE_MD and deployer.py creates upgrade coupling — replaced with codegraph --help runtime discovery in _build_claude_md_managed_content() | src/pactkit/generators/deployer.py:_build_claude_md_managed_content |

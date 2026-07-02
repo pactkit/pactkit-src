@@ -26,7 +26,6 @@
 - [ ] Fix project-done
 - [ ] Fix project-hotfix
 
-
 ### [HOTFIX-slim-131] Fix deployer @ refs before frontmatter
 > Spec: docs/specs/HOTFIX-slim-131.md
 
@@ -36,7 +35,3 @@
 
 ## ✅ Done
 
-### [HOTFIX-slim-130] Fix skill frontmatter parsing
-> Spec: docs/specs/HOTFIX-slim-130.md
-
-- [x] Move @ references below YAML frontmatter block in all project-* skills

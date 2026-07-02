@@ -3,6 +3,7 @@ graph TD
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
     DeployerBase_deploy_commands["DeployerBase.deploy_commands"]
+    DeployerBase_deploy_guides["DeployerBase.deploy_guides"]
     DeployerBase_deploy_rules["DeployerBase.deploy_rules"]
     DeployerBase_deploy_skills["DeployerBase.deploy_skills"]
     DeployerBase_render_prompt["DeployerBase.render_prompt"]
@@ -12,6 +13,7 @@ graph TD
     __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
+    _build_claude_md_managed_content["_build_claude_md_managed_content"]
     _build_command_rules_header["_build_command_rules_header"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
@@ -47,6 +49,7 @@ graph TD
     _deploy_claude_md["_deploy_claude_md"]
     _deploy_claude_md_inline["_deploy_claude_md_inline"]
     _deploy_commands["_deploy_commands"]
+    _deploy_guides["_deploy_guides"]
     _deploy_marketplace["_deploy_marketplace"]
     _deploy_marketplace_json["_deploy_marketplace_json"]
     _deploy_plugin["_deploy_plugin"]
@@ -71,6 +74,7 @@ graph TD
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
     _has_dir_with_files["_has_dir_with_files"]
+    _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside_protected["_inside_protected"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
@@ -92,6 +96,7 @@ graph TD
     _parse_version["_parse_version"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
+    _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _python_files["_python_files"]
     _read_content["_read_content"]
@@ -111,6 +116,7 @@ graph TD
     _should_refresh_audit["_should_refresh_audit"]
     _suggest_action["_suggest_action"]
     _update_stack_if_stale["_update_stack_if_stale"]
+    _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
     _warn_deploy_violations["_warn_deploy_violations"]
@@ -136,6 +142,7 @@ graph TD
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
+    codegraph_sync["codegraph_sync"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_security_scope__any_content_matches["detect_security_scope._any_content_matches"]
@@ -181,7 +188,6 @@ graph TD
     load_config --> _validate_developer
     load_config --> find_pactkit_yaml
     load_config --> get_default_config
-    auto_merge_config_file --> get_default_config
     auto_merge_config_file --> _rewrite_yaml
     update_yaml_stack --> _rewrite_yaml
     _rewrite_yaml --> _render_stack_line
@@ -274,6 +280,9 @@ graph TD
     run_lint --> _add_fix_flag
     run_lint --> load_config
     should_visualize --> detect_stack
+    run_visualize_single --> _print_codegraph_sync
+    run_visualize_graphs --> _print_codegraph_sync
+    _print_codegraph_sync --> codegraph_sync
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _extract_sprint_contract
@@ -306,7 +315,9 @@ graph TD
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
+    main --> codegraph_sync
     main --> run_garden
+    main --> codegraph_sync
     main --> run_observe
     main --> check_orphaned_specs
     main --> check_config_drift
@@ -322,6 +333,7 @@ graph TD
     main --> update_spec_status
     main --> detect_stacks
     main --> update_yaml_stack
+    main --> load_config
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
@@ -360,6 +372,7 @@ graph TD
     _deploy_classic --> _deploy_skills
     _deploy_classic --> _cleanup_legacy
     _deploy_classic --> _deploy_rules
+    _deploy_classic --> _deploy_guides
     _deploy_classic --> _deploy_claude_md
     _deploy_classic --> _deploy_agents
     _deploy_classic --> _cleanup_legacy_commands
@@ -392,6 +405,8 @@ graph TD
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt
     _deploy_rules --> _warn_deploy_violations
+    _deploy_guides --> atomic_write
+    _deploy_guides --> _render_prompt
     _deploy_claude_md --> atomic_write
     _deploy_claude_md --> _is_pactkit_managed_global_md
     _deploy_claude_md --> atomic_write
@@ -413,6 +428,7 @@ graph TD
     _deploy_commands --> _rewrite_skills_prefix
     _deploy_commands --> atomic_write
     _deploy_commands --> atomic_write
+    _deploy_commands --> _insert_after_frontmatter
     _deploy_ci --> _build_github_workflow
     _deploy_ci --> atomic_write
     _deploy_ci --> _build_gitlab_ci
@@ -427,12 +443,17 @@ graph TD
     _update_stack_if_stale --> update_yaml_stack
     _upsert_venv_managed_block --> atomic_write
     _generate_claude_local_md_if_missing --> atomic_write
+    _build_claude_md_managed_content --> detect_venv
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
+    _upsert_claude_md_managed_block --> atomic_write
     _generate_project_claude_md --> _generate_claude_local_md_if_missing
+    _generate_project_claude_md --> _build_claude_md_managed_content
+    _generate_project_claude_md --> _upsert_claude_md_managed_block
     _generate_project_claude_md --> _upsert_venv_managed_block
-    _generate_project_claude_md --> atomic_write
     _generate_project_claude_md --> _is_user_modified_claude_md
     _generate_project_claude_md --> atomic_write
-    _generate_project_claude_md --> detect_venv
     _deploy_plugin_json --> atomic_write
     _deploy_claude_md_inline --> _build_rule_id_to_key
     _deploy_claude_md_inline --> _rewrite_skills_prefix
@@ -447,4 +468,5 @@ graph TD
     DeployerBase_deploy_rules --> _deploy_rules
     DeployerBase_deploy_agents --> _deploy_agents
     DeployerBase_deploy_commands --> _deploy_commands
+    DeployerBase_deploy_guides --> _deploy_guides
     DeployerBase_deploy_ci --> _deploy_ci

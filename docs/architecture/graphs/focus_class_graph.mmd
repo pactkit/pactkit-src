@@ -25,6 +25,7 @@ classDiagram
         +deploy_rules(claude_root, enabled_rules, rule_scopes, profile)
         +deploy_agents(agents_dir, enabled_agents, profile, agent_models, _legacy_prefix)
         +deploy_commands(commands_dir, enabled_commands, profile, config, _legacy_prefix)
+        +deploy_guides(claude_root, profile)
         +deploy_ci(provider, project_root, config)
         +strip_excluded_command_references(content, profile)
     }
