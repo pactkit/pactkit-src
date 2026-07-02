@@ -31,6 +31,12 @@
 
 - [ ] Fix _deploy_commands prepend order
 
+
+### [HOTFIX-slim-132] Add explicit board.py move_story command to project-act
+> Spec: docs/specs/HOTFIX-slim-132.md
+
+- [ ] Add move_story command template to Phase 0.6
+
 ## 🔄 In Progress
 
 ## ✅ Done
