@@ -215,7 +215,7 @@ class TestAC6DevRefGhostResolved:
 # HOTFIX-slim-127: bumped +280 for codegraph sync in Done Phase 2 + Hotfix Phase 3.6
 # STORY-slim-128: bumped +1650 for Engineering Concerns phases in Plan Phase 2 + Act Phase 1.5
 # Context slim: +170 for explicit {SKILLS_ROOT}/_rules/ paths in on-demand Read references
-BASELINE_TOTAL_CHARS = 92240
+BASELINE_TOTAL_CHARS = 92264
 
 
 class TestAC7PromptSizeReduced:

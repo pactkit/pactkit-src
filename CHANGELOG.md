@@ -4,6 +4,19 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.15.2] - 2026-07-02
+
+### Changed
+- **Codegraph commands decoupled from prompts** (STORY-slim-132) — Replaced hardcoded codegraph CLI command lists with runtime `codegraph --help` discovery. PactKit no longer needs updates when codegraph changes its command signatures.
+
+### Fixed
+- **Act Phase 0.6 board move command** (HOTFIX-slim-132) — Added explicit `board.py move_story` command template to prevent AI from guessing wrong subcommand syntax.
+- **Prompt deployer** (HOTFIX-slim-131) — Insert @ references after YAML frontmatter so model: field is parsed correctly.
+- **Skill frontmatter** (HOTFIX-slim-130) — Move @ references below YAML frontmatter in project-* skills.
+
+### Refactored
+- **Prompt rules** — Moved large rules from @inject to on-demand Read to reduce initial context size.
+
 ## [2.15.1] - 2026-06-10
 
 ### Added
