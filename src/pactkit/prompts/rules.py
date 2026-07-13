@@ -857,6 +857,7 @@ COMMAND_RULES_MAP = {
         "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
         "mcp", "shared", "credential",
     ],
+    "project-debug": ["core", "shared", "credential"],
 }
 
 # Managed file prefixes for rules/ directory cleanup (deployer will clean these, leave user files intact)

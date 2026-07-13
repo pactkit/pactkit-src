@@ -60,7 +60,7 @@ class TestAC2ValidSkillsContainsAll:
     def test_valid_skills_count(self):
         from pactkit.config import VALID_SKILLS
 
-        assert len(VALID_SKILLS) == 24
+        assert len(VALID_SKILLS) == 25
 
     def test_commands_in_valid_skills(self):
         from pactkit.config import VALID_COMMANDS, VALID_SKILLS

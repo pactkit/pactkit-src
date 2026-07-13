@@ -1,4 +1,5 @@
 from pactkit.prompts.workflows import (
+    DEBUG_PROMPT,
     DESIGN_PROMPT,
     HOTFIX_PROMPT,
     SPRINT_PROMPT,
@@ -868,3 +869,4 @@ model: sonnet
 COMMANDS_CONTENT["project-sprint.md"] = SPRINT_PROMPT
 COMMANDS_CONTENT["project-hotfix.md"] = HOTFIX_PROMPT
 COMMANDS_CONTENT["project-design.md"] = DESIGN_PROMPT
+COMMANDS_CONTENT["project-debug.md"] = DEBUG_PROMPT

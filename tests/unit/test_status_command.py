@@ -158,6 +158,6 @@ class TestBackwardCompatibility:
             assert cmd in p.COMMANDS_CONTENT, f"Missing {cmd}"
 
     def test_total_command_count(self):
-        """STORY-051: 11 commands total (added project-release, project-pr)."""
+        """STORY-slim-133: 12 commands total (added project-debug)."""
         cfg = _config()
-        assert len(cfg.VALID_COMMANDS) == 11
+        assert len(cfg.VALID_COMMANDS) == 12

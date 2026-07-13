@@ -47,8 +47,8 @@ class TestCommandReduction:
 
     def test_valid_commands_count(self):
         cfg = _config()
-        # STORY-051 adds project-release and project-pr → 11 commands
-        assert len(cfg.VALID_COMMANDS) == 11
+        # STORY-051 adds project-release and project-pr; STORY-slim-133 adds project-debug → 12 commands
+        assert len(cfg.VALID_COMMANDS) == 12
 
     def test_kept_commands_present(self):
         cfg = _config()
@@ -61,9 +61,9 @@ class TestCommandReduction:
             assert cmd not in cfg.VALID_COMMANDS, f"Should be removed: {cmd}"
 
     def test_commands_content_count(self):
-        """STORY-051: COMMANDS_CONTENT should have 11 entries (added project-release, project-pr)."""
+        """STORY-051: COMMANDS_CONTENT should have 12 entries (added project-release, project-pr, project-debug)."""
         p = _prompts()
-        assert len(p.COMMANDS_CONTENT) == 11
+        assert len(p.COMMANDS_CONTENT) == 12
 
     def test_removed_commands_not_in_content(self):
         p = _prompts()
@@ -97,9 +97,9 @@ class TestSkillPromotion:
     }
 
     def test_valid_skills_count(self):
-        # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)
+        # +pactkit-audit, +pactkit-report = 25 total (13 embedded + 12 commands)
         cfg = _config()
-        assert len(cfg.VALID_SKILLS) == 24
+        assert len(cfg.VALID_SKILLS) == 25
 
     def test_new_skills_present(self):
         cfg = _config()
@@ -137,16 +137,16 @@ class TestSkillPromotion:
                 f"{var_name} should have YAML frontmatter"
 
     def test_default_config_has_10_skills(self):
-        # +pactkit-audit, +pactkit-report = 24 total (13 embedded + 11 commands)
+        # +pactkit-audit, +pactkit-report = 25 total (13 embedded + 12 commands)
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['skills']) == 24
+        assert len(default['skills']) == 25
 
     def test_default_config_has_9_commands(self):
-        """STORY-051: default config now has 11 commands (added project-release, project-pr)."""
+        """STORY-slim-133: default config now has 12 commands (added project-debug)."""
         cfg = _config()
         default = cfg.get_default_config()
-        assert len(default['commands']) == 11
+        assert len(default['commands']) == 12
 
 
 # ===========================================================================

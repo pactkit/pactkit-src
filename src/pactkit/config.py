@@ -40,6 +40,7 @@ VALID_COMMANDS = frozenset(
         "project-clarify",
         "project-release",
         "project-pr",
+        "project-debug",
     }
 )
 
@@ -71,6 +72,7 @@ VALID_SKILLS = frozenset(
         "project-clarify",
         "project-release",
         "project-pr",
+        "project-debug",
     }
 )
 

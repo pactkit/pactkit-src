@@ -38,15 +38,15 @@ class TestGetDefaultConfig:
         assert len(cfg["agents"]) == 9
 
     def test_default_commands_count(self):
-        # STORY-051: added project-release and project-pr → 11 commands
+        # STORY-slim-133: added project-debug → 12 commands
         cfg = _config().get_default_config()
-        assert len(cfg["commands"]) == 11
+        assert len(cfg["commands"]) == 12
 
     def test_default_skills_count(self):
-        # STORY-slim-063: VALID_SKILLS now includes 11 commands migrated to skills/ subdirs
-        # +pactkit-audit, +pactkit-report = 24 total
+        # STORY-slim-133: VALID_SKILLS now includes 12 commands migrated to skills/ subdirs
+        # +pactkit-audit, +pactkit-report = 25 total
         cfg = _config().get_default_config()
-        assert len(cfg["skills"]) == 24
+        assert len(cfg["skills"]) == 25
 
     def test_default_rules_count(self):
         """8 rule modules (1 merged global + 7 on-demand, post STORY-slim-128)."""
