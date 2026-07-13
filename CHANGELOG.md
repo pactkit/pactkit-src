@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.16.0] - 2026-07-13
+
+### Added
+- **`/project-debug` command** (STORY-slim-133) — Hypothesis-driven troubleshooting skill. Structured loop: Symptom → Hypothesize (≤3) → Verify (executable commands) → Narrow → Root Cause. Enforces evidence-gated file access (no aimless reading) and convergence guarantees (escalates to `/project-plan` if stuck after 3 iterations). Uses sonnet model with structured protocol.
+
 ## [2.15.2] - 2026-07-02
 
 ### Changed
