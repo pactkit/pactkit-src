@@ -4,6 +4,11 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.16.1] - 2026-07-23
+
+### Fixed
+- **Bedrock VS Code plugin model compatibility** (STORY-slim-134) — Removed `model:` field from all `/project-*` command frontmatter. Claude Code was resolving `model: sonnet/opus` to Anthropic's latest model ID (e.g., `us.anthropic.claude-sonnet-4-5-20250929-v1:0`), bypassing `ANTHROPIC_DEFAULT_SONNET_MODEL` env var in VS Code plugin environments. Commands now inherit the session default model set by the user's provider env vars.
+
 ## [2.16.0] - 2026-07-13
 
 ### Added

@@ -1,3 +1,3 @@
 """PactKit - Spec-driven agentic DevOps toolkit."""
 
-__version__ = "2.16.0"
+__version__ = "2.16.1"
