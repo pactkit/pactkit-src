@@ -1,7 +1,6 @@
 ---
 description: "Implement code per Spec, strict TDD"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
-model: sonnet
 ---
 
 # Command: Act (v1.3.0 Stack-Aware)
@@ -39,7 +38,7 @@ model: sonnet
 > **NON-BLOCKING**: This phase NEVER stops Act.
 1.  **Spec exists?**: Check if `docs/specs/{STORY_ID}.md` exists. If not: WARN "Spec not found".
 2.  **Board entry exists?**: Check if `{STORY_ID}` appears in `docs/product/sprint_board.md`. If not: WARN "Board entry not found".
-3.  **Move to In Progress**: If `{STORY_ID}` is found on the board, move it to In Progress section.
+3.  **Move to In Progress**: If `{STORY_ID}` is found on the board, run `{BOARD_CMD} move_story "{STORY_ID}" "in_progress"`.
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting

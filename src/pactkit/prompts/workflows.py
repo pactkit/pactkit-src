@@ -320,7 +320,6 @@ This example demonstrates: Container grouping (`c_backend`), Actor node (`n_user
 SPRINT_PROMPT = """---
 description: "Automated PDCA Sprint orchestration via Subagent Team (Slim Team)"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
-model: sonnet
 ---
 
 # Command: Sprint (v1.5.0 Protocol-Only Orchestrator)
@@ -544,7 +543,6 @@ Please choose an option or provide specific instructions.
 HOTFIX_PROMPT = """---
 description: "Hotfix fast track: lightweight fix path that bypasses PDCA"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
-model: sonnet
 ---
 
 # Command: Hotfix (v1.3.0 Traceable Fast Track)
@@ -624,7 +622,6 @@ model: sonnet
 DESIGN_PROMPT = """---
 description: "Product design for greenfield projects: PRD generation, story decomposition, board setup"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
-model: opus
 ---
 
 # Command: Design (v1.3.0 Product Designer)
@@ -811,7 +808,6 @@ Assign each Story to a horizon:
 DEBUG_PROMPT = """---
 description: "Hypothesis-driven troubleshooting: structured debug from symptom to root cause"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
-model: sonnet
 ---
 @{{SKILLS_PREFIX}}_rules/03-shared-protocols.md
 

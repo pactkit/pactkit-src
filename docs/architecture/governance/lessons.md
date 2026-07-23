@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-31 | Rendering-only changes to visualize.py can be isolated by extracting a shared render helper (_render_nested_call_graph) that both forward and reverse BFS call — keeps AST parsing untouched | visualize.py:_render_nested_call_graph |
 | 2026-03-31 | dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead | visualize.py:_build_call_graph |
 | 2026-03-31 | CLI args must mirror visualize.py standalone argparse; feature implemented in visualize.py but not exposed in cli.py is effectively dead code | cli.py:viz_parser |
 | 2026-03-31 | tree-sitter comment nodes are direct children of function body nodes (block/statement_block), enabling scoped dispatch hint queries without parent traversal. Per-language comment query needed: Go/TS use (comment), Java uses [(line_comment)(block_comment)]. | visualize.py:_extract_calls_from_body |
@@ -53,3 +52,4 @@
 | 2026-06-29 | Large @inject rules (architecture 11KB, solution 8.4KB, engineering 4.3KB) removed from COMMAND_RULES_MAP — loaded on-demand via Read in playbooks. Saves ~12,500 tokens/PDCA session. | src/pactkit/prompts/rules.py:COMMAND_RULES_MAP |
 | 2026-07-02 | Hardcoding external tool CLI commands in SKILL_VISUALIZE_MD and deployer.py creates upgrade coupling — replaced with codegraph --help runtime discovery in _build_claude_md_managed_content() | src/pactkit/generators/deployer.py:_build_claude_md_managed_content |
 | 2026-07-13 | Adding project-debug required updating VALID_COMMANDS in config.py, VALID_SKILLS, COMMANDS_CONTENT registration in commands.py, and COMMAND_RULES_MAP in rules.py — plus 6 test files with hardcoded count assertions | src/pactkit/config.py:VALID_COMMANDS, src/pactkit/prompts/rules.py:COMMAND_RULES_MAP |
+| 2026-07-23 | Removing `model:` from COMMANDS_CONTENT frontmatter fixes Bedrock VS Code plugin errors — Claude Code resolves the alias to Anthropic's latest model ID, bypassing `ANTHROPIC_DEFAULT_SONNET_MODEL`; without it, commands inherit the session default model set by the user's env vars | src/pactkit/prompts/commands.py:COMMANDS_CONTENT |

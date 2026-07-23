@@ -18,3 +18,11 @@
 - [x] Create SKILL.md protocol with all phases
 - [x] Add to routing table in pactkit.md
 - [x] Register in available-skills list
+
+### [STORY-slim-134] remove model field from command frontmatter
+> Spec: docs/specs/STORY-slim-134.md
+
+- [x] 删除 commands.py frontmatter model 字段
+- [x] 删除 workflows.py frontmatter model 字段
+- [x] 运行测试套件
+- [x] redeploy plugin artifact

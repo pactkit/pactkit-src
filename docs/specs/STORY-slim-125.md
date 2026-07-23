@@ -9,53 +9,39 @@
 
 ## Background
 
-Of 11 PDCA command/skill prompts deployed by PactKit, only 2 (`project-plan: opus`, `project-act: sonnet`) have `model:` in their frontmatter. The remaining 9 rely on Claude Code's session-level default model. This means heavier commands like `project-design` run on whatever model the user happens to have active, rather than the appropriate model for the task complexity.
+Originally (v2.14.0), all PDCA command frontmatter included a `model:` field to ensure consistent model routing. However, this caused breakage in enterprise Bedrock deployments: Claude Code resolves `model: sonnet` to the latest Anthropic model ID (e.g., `us.anthropic.claude-sonnet-4-5-20250929-v1:0`), which may not be available in a user's Bedrock deployment.
 
-The `model:` frontmatter field in SKILL.md tells Claude Code which model to use when invoking that skill. Adding it ensures consistent model routing regardless of the user's session default.
+Superseded by STORY-slim-134 (v2.17.0): the `model:` field is removed from all command frontmatter. Commands now inherit the user's session-level default model, which is controlled by environment variables (`ANTHROPIC_DEFAULT_SONNET_MODEL`, etc.) that the user configures for their provider.
 
 ## Requirements
 
-### R1: All PDCA commands MUST have model frontmatter (MUST)
+### R1: No PDCA command has model frontmatter (MUST)
 
-Every command/skill prompt in `src/pactkit/prompts/commands.py` and `src/pactkit/prompts/workflows.py` MUST include a `model:` field in its frontmatter block. Assignment:
+No command/skill prompt in `src/pactkit/prompts/commands.py` or `src/pactkit/prompts/workflows.py` MUST include a `model:` field in its frontmatter block. Commands inherit the session default model.
 
-| Command | Model | Rationale |
-|---------|-------|-----------|
-| project-plan | opus | Architecture + deep reasoning (already set) |
-| project-act | sonnet | Code implementation (already set) |
-| project-design | opus | Product design requires deep reasoning |
-| project-check | sonnet | QA verification |
-| project-done | sonnet | Housekeeping/commit |
-| project-hotfix | sonnet | Quick fix |
-| project-init | sonnet | Scaffolding |
-| project-pr | sonnet | PR creation |
-| project-release | sonnet | Release ops |
-| project-sprint | sonnet | Orchestration (subagents have own models) |
-| project-clarify | sonnet | Requirement clarification |
+### R2: Deploy produces no model field in SKILL.md (MUST)
 
-### R2: Deploy produces correct model in SKILL.md (MUST)
-
-After `pactkit update`, every deployed `~/.claude/skills/project-*/SKILL.md` MUST contain the correct `model:` line in its YAML frontmatter.
+After `pactkit update`, no deployed `~/.claude/skills/project-*/SKILL.md` MUST contain a `model:` line in its YAML frontmatter.
 
 ## Acceptance Criteria
 
-### AC1: All commands have model field (R1)
+### AC1: No command has model field (R1)
 
 - **Given** the source prompts in `commands.py` and `workflows.py`
 - **When** their frontmatter is parsed
-- **Then** every command prompt contains a `model:` field with value `opus` or `sonnet`
+- **Then** no command prompt contains a `model:` field
 
-### AC2: Deploy produces model in SKILL.md (R2)
+### AC2: Deploy produces no model in SKILL.md (R2)
 
 - **Given** `pactkit update` is run
 - **When** deployed SKILL.md files are inspected
-- **Then** all 11 `project-*` skills contain `model:` in frontmatter
+- **Then** no `project-*` skill contains `model:` in frontmatter
 
-### AC3: project-design uses opus (R1)
+### AC3: project-design has no model field (R1)
 
 - **Given** the `project-design` prompt in `workflows.py`
 - **When** its frontmatter is read
-- **Then** `model: opus` is present
+- **Then** no `model:` field is present
 
 ## Target Call Chain
 

@@ -1,7 +1,6 @@
 ---
 description: "Code cleanup, Board update, Git commit"
 allowed-tools: [Read, Write, Edit, Bash, Glob]
-model: sonnet
 ---
 
 # Command: Done (v1.3.0 Smart Gatekeeper)
