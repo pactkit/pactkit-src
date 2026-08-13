@@ -1,4 +1,5 @@
 graph TD
+    CheckResult_render["CheckResult.render"]
     ClassicDeployer_deploy["ClassicDeployer.deploy"]
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
@@ -13,12 +14,15 @@ graph TD
     __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
+    _archived["_archived"]
+    _board_block["_board_block"]
     _build_claude_md_managed_content["_build_claude_md_managed_content"]
     _build_command_rules_header["_build_command_rules_header"]
     _build_github_workflow["_build_github_workflow"]
     _build_gitlab_ci["_build_gitlab_ci"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
+    _changed_source_files["_changed_source_files"]
     _check_code_smells["_check_code_smells"]
     _check_dependency_health["_check_dependency_health"]
     _check_docstring_coverage["_check_docstring_coverage"]
@@ -57,11 +61,13 @@ graph TD
     _deploy_rules["_deploy_rules"]
     _deploy_skills["_deploy_skills"]
     _detect_ghe["_detect_ghe"]
+    _detect_platform["_detect_platform"]
     _detect_sources["_detect_sources"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract_module_path["_extract_module_path"]
     _extract_sprint_contract["_extract_sprint_contract"]
     _find_existing_spec["_find_existing_spec"]
+    _fmt_scalar["_fmt_scalar"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
     _generate_continuation["_generate_continuation"]
@@ -73,9 +79,12 @@ graph TD
     _get_global_version_marker["_get_global_version_marker"]
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
+    _git["_git"]
     _has_dir_with_files["_has_dir_with_files"]
+    _has_production_caller["_has_production_caller"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside_protected["_inside_protected"]
+    _install_argv["_install_argv"]
     _is_doc_only["_is_doc_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
@@ -87,22 +96,30 @@ graph TD
     _load_entry_point_deployers["_load_entry_point_deployers"]
     _max_nesting_depth["_max_nesting_depth"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
+    _new_public_symbols["_new_public_symbols"]
+    _no_external_enabled["_no_external_enabled"]
+    _no_git_enabled["_no_git_enabled"]
+    _parse_ac_to_reqs["_parse_ac_to_reqs"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
     _parse_coverage_output["_parse_coverage_output"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
+    _parse_requirements["_parse_requirements"]
     _parse_version["_parse_version"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
+    _pytest_command["_pytest_command"]
     _python_files["_python_files"]
+    _read["_read"]
     _read_content["_read_content"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
+    _render_value["_render_value"]
     _repair_table_structure["_repair_table_structure"]
     _resolve_scope["_resolve_scope"]
     _rewrite_skills_prefix["_rewrite_skills_prefix"]
@@ -114,7 +131,9 @@ graph TD
     _schema_command["_schema_command"]
     _search_issue["_search_issue"]
     _should_refresh_audit["_should_refresh_audit"]
+    _spec_status["_spec_status"]
     _suggest_action["_suggest_action"]
+    _tool_version["_tool_version"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
@@ -126,35 +145,49 @@ graph TD
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
     build_report["build_report"]
+    check_archive_honesty["check_archive_honesty"]
     check_config_completeness["check_config_completeness"]
+    check_config_copy_drift["check_config_copy_drift"]
     check_config_drift["check_config_drift"]
     check_config_drift__dir_or_file_in_any["check_config_drift._dir_or_file_in_any"]
     check_config_drift__exists_in_any["check_config_drift._exists_in_any"]
     check_coverage["check_coverage"]
     check_dead_imports["check_dead_imports"]
+    check_deps["check_deps"]
     check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
     check_pattern_duplication["check_pattern_duplication"]
+    check_requirement_evidence["check_requirement_evidence"]
     check_stale_docs["check_stale_docs"]
     check_stale_graphs["check_stale_graphs"]
+    check_status_consistency["check_status_consistency"]
     check_version_mismatch["check_version_mismatch"]
+    check_wiring["check_wiring"]
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
     codegraph_sync["codegraph_sync"]
+    collect_changed_files["collect_changed_files"]
+    current_branch["current_branch"]
+    decide_test_set["decide_test_set"]
     deploy["deploy"]
     detect_security_scope["detect_security_scope"]
     detect_security_scope__any_content_matches["detect_security_scope._any_content_matches"]
     detect_stack["detect_stack"]
     detect_stacks["detect_stacks"]
     detect_venv["detect_venv"]
+    existing_config_copies["existing_config_copies"]
     find_pactkit_yaml["find_pactkit_yaml"]
     format_markdown_table["format_markdown_table"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     get_default_config["get_default_config"]
     get_profile["get_profile"]
+    hook_entry["hook_entry"]
+    install_deps["install_deps"]
+    install_git_hook["install_git_hook"]
+    install_hook["install_hook"]
     is_environment_format["is_environment_format"]
     issue_sync["issue_sync"]
     lint_context["lint_context"]
@@ -164,35 +197,63 @@ graph TD
     main["main"]
     map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
+    parse_pytest_summary["parse_pytest_summary"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
+    render_check_report["render_check_report"]
+    render_config_yaml["render_config_yaml"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_garden["run_garden"]
+    run_gate["run_gate"]
     run_lint["run_lint"]
     run_observe["run_observe"]
+    run_pytest["run_pytest"]
     run_visualize_graphs["run_visualize_graphs"]
     run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
+    schema_config_report["schema_config_report"]
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
+    sync_config_copies["sync_config_copies"]
+    sync_config_copies__pref["sync_config_copies._pref"]
     transform["transform"]
     update_spec_status["update_spec_status"]
     update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
+    verify_story["verify_story"]
+    check_deps --> _detect_platform
+    check_deps --> _install_argv
+    check_deps --> _tool_version
+    _no_external_enabled --> load_config
+    install_deps --> _no_external_enabled
+    install_deps --> _detect_platform
+    install_deps --> _install_argv
+    install_deps --> check_deps
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
     resolve_pactkit_yaml_dir --> is_environment_format
     resolve_pactkit_yaml_dir --> get_profile
     resolve_pactkit_yaml_dir --> get_profile
+    sync_config_copies --> existing_config_copies
+    sync_config_copies --> sync_config_copies__pref
+    check_config_copy_drift --> existing_config_copies
     load_config --> get_default_config
     load_config --> _validate_developer
     load_config --> find_pactkit_yaml
     load_config --> get_default_config
     auto_merge_config_file --> _rewrite_yaml
     update_yaml_stack --> _rewrite_yaml
-    _rewrite_yaml --> _render_stack_line
-    generate_default_yaml --> get_default_config
+    _render_value --> _render_value
+    _render_value --> _fmt_scalar
+    _render_value --> _fmt_scalar
+    render_config_yaml --> _render_stack_line
+    render_config_yaml --> _render_value
+    render_config_yaml --> _fmt_scalar
+    _rewrite_yaml --> render_config_yaml
     generate_default_yaml --> _render_stack_line
+    schema_config_report --> find_pactkit_yaml
+    schema_config_report --> load_config
+    schema_config_report --> get_default_config
     _is_duplicate --> _jaccard_similarity
     append_lesson --> _get_last_n_entries
     append_lesson --> _is_duplicate
@@ -275,6 +336,22 @@ graph TD
     run_garden --> check_dead_imports
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
+    collect_changed_files --> _git
+    current_branch --> _git
+    _pytest_command --> detect_venv
+    run_pytest --> _pytest_command
+    decide_test_set --> current_branch
+    decide_test_set --> classify_changes
+    decide_test_set --> map_to_tests
+    run_gate --> collect_changed_files
+    run_gate --> decide_test_set
+    run_gate --> run_pytest
+    run_gate --> parse_pytest_summary
+    hook_entry --> run_gate
+    hook_entry --> CheckResult_render
+    _no_git_enabled --> load_config
+    install_hook --> _no_git_enabled
+    install_git_hook --> _no_git_enabled
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
@@ -297,10 +374,15 @@ graph TD
     run_observe --> _collect_signals
     run_observe --> classify_signals
     run_observe --> build_report
+    _schema_command --> schema_config_report
     main --> deploy
     main --> deploy
+    main --> sync_config_copies
+    main --> render_check_report
+    main --> check_deps
     main --> _schema_command
     main --> check_init_markers
+    main --> install_hook
     main --> check_version_mismatch
     main --> load_config
     main --> next_story_id
@@ -323,6 +405,8 @@ graph TD
     main --> check_config_drift
     main --> check_stale_graphs
     main --> check_hld_module_count
+    main --> check_config_copy_drift
+    main --> check_deps
     main --> scan_and_replace_tbd
     main --> issue_sync
     main --> map_to_tests
@@ -331,6 +415,15 @@ graph TD
     main --> refresh_test_count
     main --> check_coverage
     main --> update_spec_status
+    main --> verify_story
+    main --> check_deps
+    main --> CheckResult_render
+    main --> install_deps
+    main --> run_gate
+    main --> render_check_report
+    main --> hook_entry
+    main --> CheckResult_render
+    main --> install_git_hook
     main --> detect_stacks
     main --> update_yaml_stack
     main --> load_config
@@ -350,6 +443,30 @@ graph TD
     issue_sync --> _create_issue
     issue_sync --> _check_gh_available
     map_to_tests --> detect_stack
+    _archived --> _read
+    check_requirement_evidence --> _read
+    check_requirement_evidence --> _read
+    check_requirement_evidence --> _parse_ac_to_reqs
+    check_requirement_evidence --> _parse_requirements
+    check_requirement_evidence --> map_to_tests
+    check_archive_honesty --> _read
+    _changed_source_files --> _git
+    _changed_source_files --> _git
+    _new_public_symbols --> _git
+    _new_public_symbols --> _read
+    _new_public_symbols --> _git
+    check_wiring --> _changed_source_files
+    check_wiring --> _new_public_symbols
+    check_wiring --> _has_production_caller
+    check_status_consistency --> _read
+    check_status_consistency --> _spec_status
+    check_status_consistency --> _archived
+    verify_story --> _read
+    verify_story --> _board_block
+    verify_story --> check_requirement_evidence
+    verify_story --> check_archive_honesty
+    verify_story --> check_wiring
+    verify_story --> check_status_consistency
     check_config_drift --> find_pactkit_yaml
     check_config_drift --> check_config_drift__exists_in_any
     check_config_drift --> check_config_drift__dir_or_file_in_any

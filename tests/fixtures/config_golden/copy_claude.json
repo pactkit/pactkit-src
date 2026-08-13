@@ -1,0 +1,147 @@
+{
+  "agent_models": {
+    "code-explorer": "haiku",
+    "product-designer": "opus",
+    "system-architect": "opus",
+    "system-medic": "haiku"
+  },
+  "agents": [
+    "code-explorer",
+    "product-designer",
+    "qa-engineer",
+    "repo-maintainer",
+    "security-auditor",
+    "senior-developer",
+    "system-architect",
+    "system-medic",
+    "visual-architect"
+  ],
+  "auto_fix": false,
+  "check": {
+    "observe": {
+      "enabled": false,
+      "max_console": 100,
+      "max_network": 200,
+      "sources": "auto"
+    },
+    "pactguard": {
+      "blocking": false,
+      "enabled": false,
+      "mode": "all",
+      "ruleset": ""
+    },
+    "security_checklist": true,
+    "security_scope_override": "none"
+  },
+  "ci": {
+    "install_cmd": "python -m pip install --upgrade pip\n          pip install -e \".[visualize]\"\n          pip install pytest ruff\n          pactkit init",
+    "provider": "github"
+  },
+  "command_models": {
+    "project-act": "sonnet",
+    "project-check": "sonnet",
+    "project-done": "sonnet",
+    "project-hotfix": "sonnet",
+    "project-init": "sonnet",
+    "project-pr": "sonnet",
+    "project-release": "sonnet"
+  },
+  "commands": [
+    "project-act",
+    "project-check",
+    "project-clarify",
+    "project-debug",
+    "project-design",
+    "project-done",
+    "project-hotfix",
+    "project-init",
+    "project-plan",
+    "project-pr",
+    "project-release",
+    "project-sprint"
+  ],
+  "developer": "slim",
+  "done": {
+    "lesson_quality_threshold": 15
+  },
+  "e2e": {
+    "api_spec": "",
+    "blocking": false,
+    "compose_file": "docker-compose.test.yml",
+    "env_file": ".env.test",
+    "test_dir": "tests/e2e",
+    "type": "none"
+  },
+  "issue_tracker": {
+    "provider": "github"
+  },
+  "lint_blocking": false,
+  "regression": {
+    "max_impact_tests": 50,
+    "strategy": "impact"
+  },
+  "release": {
+    "github_release": true
+  },
+  "root": ".",
+  "rules": [
+    "01-workflow-conventions",
+    "02-mcp-integration",
+    "03-shared-protocols",
+    "04-architecture-principles",
+    "05-sectional-write",
+    "06-solution-design",
+    "07-engineering-concerns",
+    "pactkit"
+  ],
+  "skills": [
+    "pactkit-analyze",
+    "pactkit-audit",
+    "pactkit-board",
+    "pactkit-doctor",
+    "pactkit-draw",
+    "pactkit-garden",
+    "pactkit-release",
+    "pactkit-report",
+    "pactkit-review",
+    "pactkit-scaffold",
+    "pactkit-status",
+    "pactkit-trace",
+    "pactkit-visualize",
+    "project-act",
+    "project-check",
+    "project-clarify",
+    "project-debug",
+    "project-design",
+    "project-done",
+    "project-hotfix",
+    "project-init",
+    "project-plan",
+    "project-pr",
+    "project-release",
+    "project-sprint"
+  ],
+  "stack": "python",
+  "venv": {
+    "auto_detect": true
+  },
+  "visualize": {
+    "graph_provider": "codegraph",
+    "scan_excludes": [
+      "venv",
+      "_venv",
+      ".venv",
+      ".env",
+      "env",
+      "__pycache__",
+      ".git",
+      ".claude",
+      "tests",
+      "docs",
+      "node_modules",
+      "site-packages",
+      "dist",
+      "build"
+    ]
+  }
+}

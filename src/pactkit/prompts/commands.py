@@ -613,8 +613,10 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
     - `pactkit lint-lessons` — validates `docs/architecture/governance/lessons.md` structure
     - These are non-blocking: report warnings but do not stop the Done flow.
 6.  **Spec Status Update (MUST)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file. If `pactkit spec-status` is unavailable, manually edit the spec file.
-7.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
-8.  **Harness Audit Refresh (Conditional)**: Run `pactkit audit --append --if-needed {STORY_ID}`. Only refreshes when `harness_audit.json` exists AND its `story_id` matches `{STORY_ID}` (this story owns the audit). Silently skips if no audit was ever run or if the audit belongs to a different story. If it runs and `ready` changed from `true` to `false`, WARN the user.
+7.  **Archive Honesty Gate (CRITICAL — STORY-slim-136)**: Run `pactkit done-verify {STORY_ID}` — it mechanically verifies requirement→test evidence, checkbox↔case honesty, and status consistency (Spec Done + Board `[x]` + archive).
+    - **Any FAIL (exit ≠ 0)**: STOP. Print the evidence lines; do NOT archive or commit — the user resolves the findings first. WARN-only: print and proceed. CLI too old: warn that the gate was skipped, then proceed.
+8.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
+9.  **Harness Audit Refresh (Conditional)**: Run `pactkit audit --append --if-needed {STORY_ID}`. Only refreshes when `harness_audit.json` exists AND its `story_id` matches `{STORY_ID}` (this story owns the audit). Silently skips if no audit was ever run or if the audit belongs to a different story. If it runs and `ready` changed from `true` to `false`, WARN the user.
 
 ## 🎬 Phase 3.5: Archive (Optional)
 1.  **Check**: Are all tasks for the current Story marked `[x]`?
@@ -749,6 +751,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 4.  **Project Instructions File**: Check/Create `./{PROJECT_CONFIG_DIR}/{INSTRUCTIONS_FILE}` if missing (do NOT overwrite).
     - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
     - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+
+## 🔌 Phase 1.5: External Dependencies (STORY-slim-137)
+> Runs BEFORE Phase 3 — Discovery (codegraph) depends on these tools.
+1.  Run `pactkit deps check`. If all present, skip silently.
+2.  If anything is missing, list items + purposes and ask the user: "Install now?"
+3.  On explicit yes: run `pactkit deps install`. NEVER improvise install commands — the CLI owns the registry.
+4.  If declined/failed/refused (`enterprise.no_external`): print the manual commands and continue — MUST NOT block init.
 
 ## 🎬 Phase 2: Architecture Governance
 1.  **Scaffold**: Run `{VISUALIZE_CMD} init_arch`.

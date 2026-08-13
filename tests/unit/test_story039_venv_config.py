@@ -13,7 +13,6 @@ from pathlib import Path
 
 from pactkit.config import (
     detect_venv,
-    generate_default_yaml,
     get_default_config,
     validate_config,
 )
@@ -146,10 +145,11 @@ class TestGenerateDefaultYaml:
     """Test that generate_default_yaml includes venv section."""
 
     def test_yaml_contains_venv_section(self):
-        """Generated YAML should include venv configuration."""
-        yaml_content = generate_default_yaml()
-        assert 'venv:' in yaml_content
-        assert 'auto_detect:' in yaml_content
+        """STORY-slim-135: venv defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        defaults = get_default_config()
+        assert 'venv' in defaults
+        assert defaults['venv']['auto_detect'] is True
 
 
 class TestProjectInitPromptVenvSection:

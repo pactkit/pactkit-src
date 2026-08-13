@@ -139,16 +139,11 @@ class TestSecurityScopeOverrideDefaultYaml:
     """generate_default_yaml MUST include security_scope_override: none."""
 
     def test_yaml_has_security_scope_override(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'security_scope_override' in yaml_str, \
-            "generated YAML must include security_scope_override key"
+        """STORY-slim-135: default asserted on get_default_config()."""
+        assert "security_scope_override" in _config().get_default_config()["check"]
 
     def test_yaml_security_scope_override_defaults_to_none(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'security_scope_override: none' in yaml_str, \
-            "generated YAML must show security_scope_override: none"
+        assert _config().get_default_config()["check"]["security_scope_override"] == "none"
 
 
 # ===========================================================================

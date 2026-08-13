@@ -58,10 +58,11 @@ class TestAC1ProjectConfigBackfilled:
             deploy()
 
         updated = yaml.safe_load((project_claude / 'pactkit.yaml').read_text())
-        assert 'ci' in updated
-        assert 'issue_tracker' in updated
-        assert 'lint_blocking' in updated
-        assert 'auto_fix' in updated
+        # STORY-slim-126/135: non-list sections are NOT backfilled; absent = default.
+        # The rewrite only removes the stale version field and keeps explicit keys.
+        assert 'version' not in updated
+        assert updated['stack'] == 'python'
+        assert 'ci' not in updated
 
 
 # ===========================================================================

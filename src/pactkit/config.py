@@ -1,5 +1,13 @@
-"""PactKit configuration — load, validate, and generate pactkit.yaml."""
+"""PactKit configuration — load, validate, and generate pactkit.yaml.
 
+STORY-slim-135: CONFIG_SCHEMA is the single source of truth for every
+configuration key (default, deep-merge flag, render metadata, validator).
+get_default_config(), validate_config(), and the YAML renderer are all
+driven by it — adding a config key = adding one registry entry.
+"""
+
+import copy
+import json
 import os
 import re
 import warnings
@@ -145,62 +153,299 @@ class PactKitConfig:
 
 
 # ---------------------------------------------------------------------------
-# Default config
+# Per-key validators (schema-driven; messages preserved verbatim — pinned
+# by existing tests). Each returns a list of warning strings.
 # ---------------------------------------------------------------------------
 
 
-def get_default_config() -> dict:
-    """Return the default config with all components enabled."""
-    return {
-        "stack": "auto",
-        "root": ".",
-        "developer": "",
-        "agents": sorted(VALID_AGENTS),
-        "commands": sorted(VALID_COMMANDS),
-        "skills": sorted(VALID_SKILLS),
-        "rules": sorted(VALID_RULES),
-        "ci": {"provider": "none"},
-        "issue_tracker": {"provider": "none"},
-        "lint_blocking": False,
-        "auto_fix": False,
-        "venv": {
-            "auto_detect": True,
-        },
-        "release": {
-            "github_release": False,
-        },
-        "regression": {
-            "strategy": "impact",
-            "max_impact_tests": 50,
-        },
-        "check": {
+def _validate_stack_value(_key: str, value) -> list[str]:
+    msgs = []
+    if isinstance(value, list):
+        for s in value:
+            if s not in VALID_STACKS or s == "auto":
+                msgs.append(f"Unknown stack in list: {s}. Valid: {', '.join(sorted(VALID_STACKS - {'auto'}))}")
+    elif value not in VALID_STACKS:
+        msgs.append(f"Unknown stack: {value}. Valid: {', '.join(sorted(VALID_STACKS))}")
+    return msgs
+
+
+def _make_component_list_validator(valid_set: frozenset):
+    """Validator factory for agents/commands/skills/rules list keys."""
+
+    def _validator(key: str, value) -> list[str]:
+        msgs = []
+        if not isinstance(value, list):
+            msgs.append(f"Config key '{key}' should be a list, got {type(value).__name__}")
+            return msgs
+        for name in value:
+            if not isinstance(name, str):
+                msgs.append(f"Config key '{key}' contains non-string value: {name!r}")
+            elif key == "commands" and name in DEPRECATED_COMMANDS:
+                skill_name = f"pactkit-{name.removeprefix('project-')}"
+                msgs.append(
+                    f"Deprecated command '{name}' — converted to skill "
+                    f"'{skill_name}' in v1.2.0. Remove from commands list."
+                )
+            elif name not in valid_set:
+                msgs.append(f"Unknown {key.rstrip('s')}: {name}")
+        return msgs
+
+    return _validator
+
+
+def _validate_agent_models(_key: str, value) -> list[str]:
+    msgs = []
+    if isinstance(value, dict):
+        for agent_name, model_val in value.items():
+            if agent_name not in VALID_AGENTS:
+                msgs.append(f"Unknown agent in agent_models: {agent_name}")
+            if model_val not in VALID_MODELS:
+                msgs.append(
+                    f"Invalid model '{model_val}' for agent '{agent_name}'. Valid: {', '.join(sorted(VALID_MODELS))}"
+                )
+    return msgs
+
+
+def _validate_ci(_key: str, value) -> list[str]:
+    if isinstance(value, dict):
+        provider = value.get("provider", "none")
+        if provider not in VALID_CI_PROVIDERS:
+            return [f"Invalid CI provider '{provider}'. Valid: {', '.join(sorted(VALID_CI_PROVIDERS))}"]
+    return []
+
+
+def _validate_issue_tracker(_key: str, value) -> list[str]:
+    if isinstance(value, dict):
+        provider = value.get("provider", "none")
+        if provider not in VALID_ISSUE_PROVIDERS:
+            return [
+                f"Invalid issue tracker provider '{provider}'. Valid: {', '.join(sorted(VALID_ISSUE_PROVIDERS))}"
+            ]
+    return []
+
+
+def _validate_rule_scopes(_key: str, value) -> list[str]:
+    msgs = []
+    if isinstance(value, dict):
+        for rule_id, pattern in value.items():
+            if rule_id not in VALID_RULES:
+                msgs.append(f"Unknown rule in rule_scopes: {rule_id}")
+            if isinstance(pattern, str) and "[" in pattern and "]" not in pattern:
+                msgs.append(f"Invalid glob pattern for rule '{rule_id}': {pattern}")
+    return msgs
+
+
+def _validate_venv(_key: str, value) -> list[str]:
+    if isinstance(value, dict):
+        venv_path = value.get("path")
+        if venv_path is not None and not isinstance(venv_path, str):
+            return [f"venv.path should be a string, got {type(venv_path).__name__}"]
+    return []
+
+
+def _validate_release(_key: str, value) -> list[str]:
+    if isinstance(value, dict):
+        github_release = value.get("github_release", False)
+        if not isinstance(github_release, bool):
+            return [
+                f"release.github_release should be a boolean (true/false), got {type(github_release).__name__}"
+            ]
+    return []
+
+
+def _validate_regression(_key: str, value) -> list[str]:
+    msgs = []
+    if isinstance(value, dict):
+        strategy = value.get("strategy", "impact")
+        if strategy not in ("impact", "full"):
+            msgs.append(f"regression.strategy should be 'impact' or 'full', got '{strategy}'")
+        max_impact = value.get("max_impact_tests", 50)
+        if not isinstance(max_impact, int) or max_impact <= 0:
+            msgs.append(f"regression.max_impact_tests should be a positive integer, got {max_impact!r}")
+    return msgs
+
+
+def _validate_check(_key: str, value) -> list[str]:
+    msgs = []
+    if not isinstance(value, dict):
+        return msgs
+    sc = value.get("security_checklist", True)
+    if not isinstance(sc, bool):
+        msgs.append(f"check.security_checklist should be a boolean (true/false), got {type(sc).__name__}")
+    sso = value.get("security_scope_override", "none")
+    if sso not in ("none", "full"):
+        msgs.append(f"check.security_scope_override should be 'none' or 'full', got {sso!r}")
+
+    pactguard = value.get("pactguard", {})
+    if isinstance(pactguard, dict):
+        pg_mode = pactguard.get("mode", "all")
+        if pg_mode not in ("pattern", "all"):
+            msgs.append(f"check.pactguard.mode should be 'pattern' or 'all', got '{pg_mode}'")
+
+    observe = value.get("observe", {})
+    if isinstance(observe, dict):
+        obs_sources = observe.get("sources", "auto")
+        if obs_sources not in ("auto", "chrome-devtools", "playwright", "all"):
+            msgs.append(
+                f"check.observe.sources should be 'auto', 'chrome-devtools', "
+                f"'playwright', or 'all', got '{obs_sources}'"
+            )
+    return msgs
+
+
+def _validate_done(_key: str, value) -> list[str]:
+    if isinstance(value, dict):
+        threshold = value.get("lesson_quality_threshold", 15)
+        if not isinstance(threshold, int) or threshold < 0 or threshold > 25:
+            return [f"done.lesson_quality_threshold should be an integer 0-25, got {threshold!r}"]
+    return []
+
+
+def _validate_e2e(_key: str, value) -> list[str]:
+    msgs = []
+    if not isinstance(value, dict):
+        return msgs
+    e2e_type = value.get("type", "none")
+    if e2e_type not in VALID_E2E_TYPES:
+        msgs.append(f"e2e.type should be one of {', '.join(sorted(VALID_E2E_TYPES))}, got '{e2e_type}'")
+    e2e_blocking = value.get("blocking", False)
+    if not isinstance(e2e_blocking, bool):
+        msgs.append(f"e2e.blocking should be a boolean (true/false), got {type(e2e_blocking).__name__}")
+    for sub in ("test_dir", "env_file", "api_spec", "compose_file"):
+        sub_val = value.get(sub)
+        if sub_val is not None and not isinstance(sub_val, str):
+            msgs.append(f"e2e.{sub} should be a string, got {type(sub_val).__name__}")
+    return msgs
+
+
+# ---------------------------------------------------------------------------
+# CONFIG_SCHEMA — the single source of truth (STORY-slim-135 R1)
+#
+# Entry fields:
+#   default      — value used when the key is absent from pactkit.yaml
+#   deep_merge   — nested dict sections merge sub-keys instead of replacing
+#   kind         — scalar | list | mapping (drives generic rendering)
+#   comment      — section header comment for rendered yaml
+#   validator    — optional fn(key, value) -> list[str] of warnings
+#   optional     — not part of get_default_config(); rendered only if present
+#   extra_lines  — documentation-only comment lines appended after the section
+# ---------------------------------------------------------------------------
+
+CONFIG_SCHEMA: dict[str, dict] = {
+    "stack": {"default": "auto", "deep_merge": False, "kind": "scalar", "validator": _validate_stack_value},
+    "root": {"default": ".", "deep_merge": False, "kind": "scalar"},
+    "developer": {"default": "", "deep_merge": False, "kind": "scalar"},
+    "agents": {
+        "default": sorted(VALID_AGENTS),
+        "deep_merge": False,
+        "kind": "list",
+        "comment": "# Agents — AI role definitions",
+        "validator": _make_component_list_validator(VALID_AGENTS),
+    },
+    "commands": {
+        "default": sorted(VALID_COMMANDS),
+        "deep_merge": False,
+        "kind": "list",
+        "comment": "# Commands — PDCA playbooks",
+        "validator": _make_component_list_validator(VALID_COMMANDS),
+    },
+    "skills": {
+        "default": sorted(VALID_SKILLS),
+        "deep_merge": False,
+        "kind": "list",
+        "comment": "# Skills — tool scripts",
+        "validator": _make_component_list_validator(VALID_SKILLS),
+    },
+    "rules": {
+        "default": sorted(VALID_RULES),
+        "deep_merge": False,
+        "kind": "list",
+        "comment": "# Rules — constitution modules",
+        "validator": _make_component_list_validator(VALID_RULES),
+    },
+    "ci": {
+        "default": {"provider": "none"},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# CI/CD — set provider to github or gitlab to generate pipeline config",
+        "validator": _validate_ci,
+        "extra_lines": [
+            "  # runner: ubuntu-latest",
+            '  # language_version: "3.11"',
+            '  # github_host: ""  # GHE server (empty = github.com)',
+            '  # actions_ref: ""  # GHE actions prefix',
+        ],
+    },
+    "issue_tracker": {
+        "default": {"provider": "none"},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Issue Tracker — set provider to github to link stories to issues",
+        "validator": _validate_issue_tracker,
+    },
+    "lint_blocking": {
+        "default": False,
+        "deep_merge": False,
+        "kind": "scalar",
+        "comment": "# Lint — configure lint behavior in /project-done",
+    },
+    "auto_fix": {"default": False, "deep_merge": False, "kind": "scalar"},
+    "venv": {
+        "default": {"auto_detect": True},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Virtual Environment — configure venv detection and paths",
+        "validator": _validate_venv,
+    },
+    "release": {
+        "default": {"github_release": False},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Release — configure release automation behavior",
+        "validator": _validate_release,
+    },
+    "regression": {
+        "default": {"strategy": "impact", "max_impact_tests": 50},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Regression — configure impact-based test selection strategy",
+        "validator": _validate_regression,
+    },
+    "check": {
+        "default": {
             "security_checklist": True,
             "security_scope_override": "none",
-            "pactguard": {
-                "enabled": False,
-                "mode": "all",
-                "ruleset": "",
-                "blocking": False,
-            },
-            "observe": {
-                "enabled": False,
-                "sources": "auto",
-                "max_console": 100,
-                "max_network": 200,
-            },
+            "pactguard": {"enabled": False, "mode": "all", "ruleset": "", "blocking": False},
+            "observe": {"enabled": False, "sources": "auto", "max_console": 100, "max_network": 200},
         },
-        "e2e": {
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Check — configure QA verification behavior",
+        "validator": _validate_check,
+    },
+    "done": {
+        "default": {"lesson_quality_threshold": 15},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Done — configure commit and lesson quality behavior",
+        "validator": _validate_done,
+    },
+    "e2e": {
+        "default": {
             "type": "none",
             "blocking": False,
             "test_dir": "tests/e2e",
             "env_file": ".env.test",
-            "api_spec": "",  # HOTFIX-slim-025: OpenAPI spec for frontend/backend E2E
-            "compose_file": "docker-compose.test.yml",  # HOTFIX-slim-025: for fullstack E2E
+            "api_spec": "",
+            "compose_file": "docker-compose.test.yml",
         },
-        "done": {
-            "lesson_quality_threshold": 15,
-        },
-        "visualize": {
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# E2E Testing — configure end-to-end test strategy (none|cli|frontend|backend|fullstack)",
+        "validator": _validate_e2e,
+    },
+    "visualize": {
+        "default": {
             "scan_excludes": [
                 "venv", "_venv", ".venv", ".env", "env",
                 "__pycache__", ".git", ".claude",
@@ -208,7 +453,12 @@ def get_default_config() -> dict:
                 "node_modules", "site-packages", "dist", "build",
             ],
         },
-        "command_models": {
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Visualize — configure directory scan exclusions and graph provider",
+    },
+    "command_models": {
+        "default": {
             "project-act": "sonnet",
             "project-check": "sonnet",
             "project-done": "sonnet",
@@ -217,7 +467,42 @@ def get_default_config() -> dict:
             "project-pr": "sonnet",
             "project-hotfix": "sonnet",
         },
-    }
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Command Models — override model per command for OpenCode deployment",
+    },
+    # Optional sections — not part of get_default_config(); rendered/validated
+    # only when the user explicitly adds them (BUG-010, STORY-028).
+    "agent_models": {
+        "default": None,
+        "deep_merge": False,
+        "kind": "mapping",
+        "comment": "# Agent Models — override default model per agent (inherit = use account default)",
+        "validator": _validate_agent_models,
+        "optional": True,
+    },
+    "rule_scopes": {
+        "default": None,
+        "deep_merge": False,
+        "kind": "mapping",
+        "comment": "# Rule Scopes — map rule IDs to glob patterns for context-aware scoping",
+        "validator": _validate_rule_scopes,
+        "optional": True,
+    },
+}
+
+# Keys that require deep merge (derived from schema — was a hand-maintained set)
+DEEP_MERGE_KEYS = frozenset(k for k, v in CONFIG_SCHEMA.items() if v["deep_merge"])
+
+
+# ---------------------------------------------------------------------------
+# Default config (schema-driven)
+# ---------------------------------------------------------------------------
+
+
+def get_default_config() -> dict:
+    """Return the default config with all components enabled."""
+    return {k: copy.deepcopy(v["default"]) for k, v in CONFIG_SCHEMA.items() if not v.get("optional")}
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +610,93 @@ def resolve_pactkit_yaml_dir(cwd: Path | None = None, format: str | None = None)
 
 
 # ---------------------------------------------------------------------------
+# Multi-copy governance (STORY-slim-135 R4)
+# ---------------------------------------------------------------------------
+
+# Canonical preference: classic (.claude) first — it is the primary
+# environment for most users and the copy humans actually edit.
+CANONICAL_PREFERENCE = (
+    ".claude/pactkit.yaml",
+    ".codex/pactkit.yaml",
+    ".github/pactkit.yaml",
+    ".opencode/pactkit.yaml",
+)
+
+
+def existing_config_copies(project_root: Path) -> list[Path]:
+    """Return all pactkit.yaml copies that exist under the project root."""
+    return [project_root / c for c in PACTKIT_YAML_CANDIDATES if (project_root / c).exists()]
+
+
+def sync_config_copies(project_root: Path) -> list[Path]:
+    """Sync all existing pactkit.yaml copies to the canonical one's content.
+
+    Canonical = the first existing copy in CANONICAL_PREFERENCE order
+    (.claude first). Key-count heuristics are NOT used: an auto-generated
+    "default wall" copy has more keys but less user intent than a hand-curated
+    minimal one. Only existing copies are touched — new copies are never
+    created here.
+
+    Returns the list of paths that were updated.
+    """
+    copies = existing_config_copies(project_root)
+    if len(copies) < 2:
+        return []
+
+    def _pref(p: Path) -> int:
+        rel = p.relative_to(project_root).as_posix()
+        return CANONICAL_PREFERENCE.index(rel) if rel in CANONICAL_PREFERENCE else len(CANONICAL_PREFERENCE)
+
+    canonical = min(copies, key=_pref)
+    content = canonical.read_text(encoding="utf-8")
+
+    synced = []
+    for copy_path in copies:
+        if copy_path == canonical:
+            continue
+        if copy_path.read_text(encoding="utf-8") != content:
+            copy_path.write_text(content, encoding="utf-8")
+            synced.append(copy_path)
+    return synced
+
+
+def check_config_copy_drift(project_root: Path) -> dict:
+    """Detect content drift between pactkit.yaml copies.
+
+    Returns {"drift": bool, "details": [str]} — details name the top-level
+    keys whose values differ across copies (e.g. "developer").
+    """
+    copies = existing_config_copies(project_root)
+    if len(copies) < 2:
+        return {"drift": False, "details": []}
+
+    parsed: dict[Path, dict] = {}
+    for p in copies:
+        try:
+            data = yaml.safe_load(p.read_text(encoding="utf-8"))
+        except yaml.YAMLError:
+            data = {}
+        parsed[p] = data if isinstance(data, dict) else {}
+
+    all_keys: set[str] = set()
+    for data in parsed.values():
+        all_keys.update(data.keys())
+
+    details = []
+    for key in sorted(all_keys):
+        values = {json.dumps(data.get(key), sort_keys=True, default=str) for data in parsed.values()}
+        if len(values) > 1:
+            names = ", ".join(p.relative_to(project_root).as_posix() for p in copies)
+            details.append(f"key '{key}' differs across copies ({names})")
+
+    contents = {p.read_text(encoding="utf-8") for p in copies}
+    drift = len(contents) > 1
+    if drift and not details:
+        details.append("copies differ in formatting/comments only")
+    return {"drift": drift, "details": details}
+
+
+# ---------------------------------------------------------------------------
 # Developer field validation (STORY-072 R7)
 # ---------------------------------------------------------------------------
 
@@ -382,20 +754,6 @@ def load_config(path: Path | str | None = None) -> dict:
     # Empty file or YAML that parses to None
     if not isinstance(user_data, dict):
         return default
-
-    # Keys that require deep merge (nested dict sections)
-    DEEP_MERGE_KEYS = {
-        "venv",
-        "ci",
-        "issue_tracker",
-        "release",
-        "regression",
-        "check",
-        "done",
-        "e2e",
-        "command_models",
-        "visualize",
-    }
 
     # Merge: user keys override defaults; missing keys inherit
     merged = dict(default)
@@ -519,68 +877,79 @@ def update_yaml_stack(yaml_path: Path, stacks: list[str]) -> None:
     _rewrite_yaml(yaml_path, data)
 
 
-def _rewrite_yaml(path: Path, data: dict) -> None:
-    """Rewrite pactkit.yaml preserving the standard section layout.
+# ---------------------------------------------------------------------------
+# Schema-driven YAML renderer (STORY-slim-135 R3 — single renderer)
+# ---------------------------------------------------------------------------
 
-    BUG-023: Preserves unknown user-defined keys in a separate section.
+# Scalar values safe to emit unquoted in YAML flow style
+_PLAIN_SCALAR_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.@/+=-]*$")
+
+
+def _fmt_scalar(value) -> str:
+    """Format a scalar for YAML output, preserving its parsed value.
+
+    Plain style when safe; JSON double-quoted (valid YAML) otherwise —
+    this keeps values like multi-line install_cmd intact through rewrites.
     """
-    # Known keys that PactKit manages
-    KNOWN_KEYS = {
-        "version",
-        "stack",
-        "root",
-        "developer",
-        "agents",
-        "commands",
-        "skills",
-        "rules",
-        "exclude",
-        "ci",
-        "issue_tracker",
-        "lint_blocking",
-        "auto_fix",
-        "venv",
-        "release",
-        "regression",
-        "check",
-        "done",
-        "agent_models",
-        "command_models",
-        "rule_scopes",
-        "visualize",
-    }
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return "null"
+    if isinstance(value, (int, float)):
+        return str(value)
+    s = str(value)
+    if _PLAIN_SCALAR_RE.match(s):
+        return s
+    return json.dumps(s, ensure_ascii=False)
 
-    lines = [
-        "# PactKit Configuration",
-        "# Edit this file to customize which components are deployed.",
-        "# Remove items from a list to disable them. Default: all enabled.",
-        "",
-        _render_stack_line(data.get('stack', 'auto')),
-        f"root: {data.get('root', '.')}",
-        f'developer: "{data.get("developer", "")}"',
-        "",
-    ]
 
-    section_comments = {
-        "agents": "# Agents — AI role definitions",
-        "commands": "# Commands — PDCA playbooks",
-        "skills": "# Skills — tool scripts",
-        "rules": "# Rules — constitution modules",
-    }
+def _render_value(lines: list[str], key: str, value, indent: int) -> None:
+    """Recursively render a mapping/list/scalar value at the given indent."""
+    pad = " " * indent
+    if isinstance(value, dict):
+        lines.append(f"{pad}{key}:")
+        for sub_key, sub_val in value.items():
+            _render_value(lines, sub_key, sub_val, indent + 2)
+    elif isinstance(value, list):
+        lines.append(f"{pad}{key}:")
+        for item in value:
+            lines.append(f"{pad}  - {_fmt_scalar(item)}")
+    else:
+        lines.append(f"{pad}{key}: {_fmt_scalar(value)}")
 
-    for key in ("agents", "commands", "skills", "rules"):
-        items = data.get(key)
-        if items is None:
+
+def render_config_yaml(data: dict, header_lines: list[str]) -> str:
+    """Render pactkit.yaml content from *data*, driven by CONFIG_SCHEMA.
+
+    Only sections present in *data* are rendered — absent keys stay absent
+    (STORY-slim-135 R2/R3: no re-inflation of defaults). Unknown user keys
+    are preserved in a trailing Custom section (BUG-023).
+    """
+    lines = list(header_lines)
+    lines.append("")
+    lines.append(_render_stack_line(data.get("stack", "auto")))
+    lines.append(f"root: {data.get('root', '.')}")
+    lines.append(f'developer: "{data.get("developer", "")}"')
+    lines.append("")
+
+    for key, entry in CONFIG_SCHEMA.items():
+        if key in ("stack", "root", "developer"):
+            continue  # already in header
+        if key not in data or data[key] is None:
             continue
-        comment = section_comments.get(key, "")
+        value = data[key]
+        comment = entry.get("comment")
         if comment:
             lines.append(comment)
-        lines.append(f"{key}:")
-        for item in items:
-            lines.append(f"  - {item}")
+        if entry["kind"] == "scalar":
+            lines.append(f"{key}: {_fmt_scalar(value)}")
+        else:
+            _render_value(lines, key, value, 0)
+        for extra in entry.get("extra_lines", []):
+            lines.append(extra)
         lines.append("")
 
-    # Write exclude section if present
+    # Exclude section (derived key, not in schema)
     exclude = data.get("exclude", {})
     if exclude and isinstance(exclude, dict):
         lines.append("# Exclude — components that should NOT be auto-added on upgrade")
@@ -593,148 +962,9 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
                     lines.append(f"    - {item}")
         lines.append("")
 
-    # Write CI/CD section
-    ci = data.get("ci", {})
-    if isinstance(ci, dict):
-        lines.append("# CI/CD — set provider to github or gitlab to generate pipeline config")
-        lines.append("ci:")
-        lines.append(f"  provider: {ci.get('provider', 'none')}")
-        runner = ci.get("runner", "ubuntu-latest")
-        lang_ver = ci.get("language_version", "3.11")
-        gh_host = ci.get("github_host", "")
-        act_ref = ci.get("actions_ref", "")
-        lines.append(f"  # runner: {runner}")
-        lines.append(f'  # language_version: "{lang_ver}"')
-        lines.append(f'  # github_host: "{gh_host}"  # GHE server (empty = github.com)')
-        lines.append(f'  # actions_ref: "{act_ref}"  # GHE actions prefix')
-        lines.append("")
-
-    # Write issue tracker section
-    issue_tracker = data.get("issue_tracker", {})
-    if isinstance(issue_tracker, dict):
-        lines.append("# Issue Tracker — set provider to github to link stories to issues")
-        lines.append("issue_tracker:")
-        lines.append(f"  provider: {issue_tracker.get('provider', 'none')}")
-        lines.append("")
-
-    # Write lint/auto_fix settings
-    lines.append("# Lint — configure lint behavior in /project-done")
-    lines.append(f"lint_blocking: {'true' if data.get('lint_blocking') else 'false'}")
-    lines.append(f"auto_fix: {'true' if data.get('auto_fix') else 'false'}")
-    lines.append("")
-
-    # Write venv section (STORY-039)
-    venv = data.get("venv", {})
-    if isinstance(venv, dict):
-        lines.append("# Virtual Environment — configure venv detection and paths")
-        lines.append("venv:")
-        auto_detect = venv.get("auto_detect", True)
-        lines.append(f"  auto_detect: {'true' if auto_detect else 'false'}")
-        if "path" in venv:
-            lines.append(f"  path: {venv['path']}")
-        lines.append("")
-
-    # Write release section (STORY-052)
-    release = data.get("release", {})
-    if isinstance(release, dict):
-        lines.append("# Release — configure release automation behavior")
-        lines.append("release:")
-        lines.append(f"  github_release: {'true' if release.get('github_release') else 'false'}")
-        lines.append("")
-
-    # Write regression section (STORY-053)
-    regression = data.get("regression", {})
-    if isinstance(regression, dict):
-        lines.append("# Regression — configure impact-based test selection strategy")
-        lines.append("regression:")
-        lines.append(f"  strategy: {regression.get('strategy', 'impact')}")
-        lines.append(f"  max_impact_tests: {regression.get('max_impact_tests', 50)}")
-        lines.append("")
-
-    # Write check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
-    check = data.get("check", {})
-    if isinstance(check, dict):
-        lines.append("# Check — configure QA verification behavior")
-        lines.append("check:")
-        sc = check.get("security_checklist", True)
-        lines.append(f"  security_checklist: {'true' if sc else 'false'}")
-        sso = check.get("security_scope_override", "none")
-        lines.append(f"  security_scope_override: {sso}")
-        # PactGuard sub-section (STORY-slim-072)
-        pg = check.get("pactguard", {})
-        if isinstance(pg, dict):
-            lines.append("  pactguard:")
-            lines.append(f"    enabled: {'true' if pg.get('enabled') else 'false'}")
-            lines.append(f"    mode: {pg.get('mode', 'all')}")
-            lines.append(f"    ruleset: \"{pg.get('ruleset', '')}\"")
-            lines.append(f"    blocking: {'true' if pg.get('blocking') else 'false'}")
-        # Observe sub-section (STORY-slim-073)
-        obs = check.get("observe", {})
-        if isinstance(obs, dict):
-            lines.append("  observe:")
-            lines.append(f"    enabled: {'true' if obs.get('enabled') else 'false'}")
-            lines.append(f"    sources: {obs.get('sources', 'auto')}")
-            lines.append(f"    max_console: {obs.get('max_console', 100)}")
-            lines.append(f"    max_network: {obs.get('max_network', 200)}")
-        lines.append("")
-
-    # Write done section (STORY-055)
-    done_cfg = data.get("done", {})
-    if isinstance(done_cfg, dict):
-        lines.append("# Done — configure commit and lesson quality behavior")
-        lines.append("done:")
-        threshold = done_cfg.get("lesson_quality_threshold", 15)
-        lines.append(f"  lesson_quality_threshold: {threshold}")
-        lines.append("")
-
-    # Write agent_models section if present (BUG-010)
-    agent_models = data.get("agent_models", {})
-    if agent_models and isinstance(agent_models, dict):
-        lines.append("# Agent Models — override default model per agent (inherit = use account default)")
-        lines.append("agent_models:")
-        for agent_name in sorted(agent_models.keys()):
-            lines.append(f"  {agent_name}: {agent_models[agent_name]}")
-        lines.append("")
-
-    # Write command_models section (STORY-073)
-    cmd_models = data.get("command_models", {})
-    if cmd_models and isinstance(cmd_models, dict):
-        lines.append("# Command Models — override model per command for OpenCode deployment")
-        lines.append("command_models:")
-        for cmd_name in sorted(cmd_models.keys()):
-            lines.append(f"  {cmd_name}: {cmd_models[cmd_name]}")
-        lines.append("")
-
-    # Write rule_scopes section if present (BUG-010)
-    rule_scopes = data.get("rule_scopes", {})
-    if rule_scopes and isinstance(rule_scopes, dict):
-        lines.append("# Rule Scopes — map rule IDs to glob patterns for context-aware scoping")
-        lines.append("rule_scopes:")
-        for rule_id in sorted(rule_scopes.keys()):
-            pattern = rule_scopes[rule_id]
-            if isinstance(pattern, list):
-                lines.append(f"  {rule_id}:")
-                for p in pattern:
-                    lines.append(f'    - "{p}"')
-            else:
-                lines.append(f'  {rule_id}: "{pattern}"')
-        lines.append("")
-
-    # Write visualize section (STORY-slim-028, STORY-slim-124)
-    visualize = data.get("visualize", {})
-    if isinstance(visualize, dict) and "scan_excludes" in visualize:
-        lines.append("# Visualize — configure directory scan exclusions and graph provider")
-        lines.append("visualize:")
-        lines.append("  scan_excludes:")
-        for item in visualize["scan_excludes"]:
-            lines.append(f"    - {item}")
-        graph_provider = visualize.get("graph_provider")
-        if graph_provider:
-            lines.append(f"  graph_provider: {graph_provider}")
-        lines.append("")
-
     # BUG-023: Preserve unknown user-defined keys
-    unknown_keys = {k: v for k, v in data.items() if k not in KNOWN_KEYS}
+    known = set(CONFIG_SCHEMA) | {"version", "exclude"}
+    unknown_keys = {k: v for k, v in data.items() if k not in known}
     if unknown_keys:
         lines.append("# Custom — user-defined keys (preserved by PactKit)")
         for key in sorted(unknown_keys.keys()):
@@ -744,9 +974,33 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
             lines.append(serialized.rstrip())
         lines.append("")
 
+    return "\n".join(lines)
+
+
+_REWRITE_HEADER = [
+    "# PactKit Configuration",
+    "# Edit this file to customize which components are deployed.",
+    "# Remove items from a list to disable them. Default: all enabled.",
+]
+
+_INIT_HEADER = [
+    "# PactKit Configuration",
+    "# Only override what you need — absent keys use built-in defaults.",
+    "# See all options and current values: pactkit schema config",
+]
+
+
+def _rewrite_yaml(path: Path, data: dict) -> None:
+    """Rewrite pactkit.yaml preserving the standard section layout.
+
+    BUG-023: Preserves unknown user-defined keys in a separate section.
+    STORY-slim-135: renders only sections present in *data* (no re-inflation).
+    """
+    content = render_config_yaml(data, _REWRITE_HEADER)
+
     tmp = path.with_suffix(".tmp")
     try:
-        tmp.write_text("\n".join(lines), encoding="utf-8")
+        tmp.write_text(content, encoding="utf-8")
         os.replace(tmp, path)
     except Exception:
         if tmp.exists():
@@ -755,7 +1009,7 @@ def _rewrite_yaml(path: Path, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Validate config
+# Validate config (schema-driven)
 # ---------------------------------------------------------------------------
 
 _REGISTRY = {
@@ -768,297 +1022,88 @@ _REGISTRY = {
 
 def validate_config(config: dict) -> None:
     """Warn (never raise) about unknown component names or invalid values."""
-    # Validate stack (string or list of strings)
-    stack = config.get("stack", "auto")
-    if isinstance(stack, list):
-        for s in stack:
-            if s not in VALID_STACKS or s == "auto":
-                warnings.warn(f"Unknown stack in list: {s}. Valid: {', '.join(sorted(VALID_STACKS - {'auto'}))}")
-    elif stack not in VALID_STACKS:
-        warnings.warn(f"Unknown stack: {stack}. Valid: {', '.join(sorted(VALID_STACKS))}")
-
-    # Validate component lists
-    for key, valid_set in _REGISTRY.items():
-        user_list = config.get(key, [])
-        if not isinstance(user_list, list):
-            warnings.warn(f"Config key '{key}' should be a list, got {type(user_list).__name__}")
+    for key, value in config.items():
+        entry = CONFIG_SCHEMA.get(key)
+        if entry is None:
+            continue  # enterprise / multi_agent / custom keys: accepted without warnings
+        validator = entry.get("validator")
+        if validator is None:
             continue
-        for name in user_list:
-            if not isinstance(name, str):
-                warnings.warn(f"Config key '{key}' contains non-string value: {name!r}")
-            elif key == "commands" and name in DEPRECATED_COMMANDS:
-                skill_name = f"pactkit-{name.removeprefix('project-')}"
-                warnings.warn(
-                    f"Deprecated command '{name}' — converted to skill "
-                    f"'{skill_name}' in v1.2.0. Remove from commands list."
-                )
-            elif name not in valid_set:
-                warnings.warn(f"Unknown {key.rstrip('s')}: {name}")
-
-    # Validate agent_models (STORY-024)
-    agent_models = config.get("agent_models", {})
-    if isinstance(agent_models, dict):
-        for agent_name, model_val in agent_models.items():
-            if agent_name not in VALID_AGENTS:
-                warnings.warn(f"Unknown agent in agent_models: {agent_name}")
-            if model_val not in VALID_MODELS:
-                warnings.warn(
-                    f"Invalid model '{model_val}' for agent '{agent_name}'. Valid: {', '.join(sorted(VALID_MODELS))}"
-                )
-
-    # Validate ci section (STORY-025)
-    ci = config.get("ci", {})
-    if isinstance(ci, dict):
-        provider = ci.get("provider", "none")
-        if provider not in VALID_CI_PROVIDERS:
-            warnings.warn(f"Invalid CI provider '{provider}'. Valid: {', '.join(sorted(VALID_CI_PROVIDERS))}")
-
-    # Validate issue_tracker section (STORY-026)
-    issue_tracker = config.get("issue_tracker", {})
-    if isinstance(issue_tracker, dict):
-        provider = issue_tracker.get("provider", "none")
-        if provider not in VALID_ISSUE_PROVIDERS:
-            warnings.warn(
-                f"Invalid issue tracker provider '{provider}'. Valid: {', '.join(sorted(VALID_ISSUE_PROVIDERS))}"
-            )
-
-    # Validate rule_scopes section (STORY-028)
-    rule_scopes = config.get("rule_scopes", {})
-    if isinstance(rule_scopes, dict):
-        for rule_id, pattern in rule_scopes.items():
-            if rule_id not in VALID_RULES:
-                warnings.warn(f"Unknown rule in rule_scopes: {rule_id}")
-            if isinstance(pattern, str) and "[" in pattern and "]" not in pattern:
-                warnings.warn(f"Invalid glob pattern for rule '{rule_id}': {pattern}")
-
-    # Validate venv section (STORY-039)
-    venv = config.get("venv", {})
-    if isinstance(venv, dict):
-        venv_path = venv.get("path")
-        if venv_path is not None and not isinstance(venv_path, str):
-            warnings.warn(f"venv.path should be a string, got {type(venv_path).__name__}")
-
-    # Validate release section (STORY-052)
-    release = config.get("release", {})
-    if isinstance(release, dict):
-        github_release = release.get("github_release", False)
-        if not isinstance(github_release, bool):
-            warnings.warn(
-                f"release.github_release should be a boolean (true/false), got {type(github_release).__name__}"
-            )
-
-    # Validate regression section (STORY-053)
-    regression = config.get("regression", {})
-    if isinstance(regression, dict):
-        strategy = regression.get("strategy", "impact")
-        if strategy not in ("impact", "full"):
-            warnings.warn(f"regression.strategy should be 'impact' or 'full', got '{strategy}'")
-        max_impact = regression.get("max_impact_tests", 50)
-        if not isinstance(max_impact, int) or max_impact <= 0:
-            warnings.warn(f"regression.max_impact_tests should be a positive integer, got {max_impact!r}")
-
-    # Validate check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
-    check = config.get("check", {})
-    if isinstance(check, dict):
-        sc = check.get("security_checklist", True)
-        if not isinstance(sc, bool):
-            warnings.warn(f"check.security_checklist should be a boolean (true/false), got {type(sc).__name__}")
-        sso = check.get("security_scope_override", "none")
-        if sso not in ("none", "full"):
-            warnings.warn(f"check.security_scope_override should be 'none' or 'full', got {sso!r}")
-
-        # Validate check.pactguard (STORY-slim-072)
-        pactguard = check.get("pactguard", {})
-        if isinstance(pactguard, dict):
-            pg_mode = pactguard.get("mode", "all")
-            if pg_mode not in ("pattern", "all"):
-                warnings.warn(
-                    f"check.pactguard.mode should be 'pattern' or 'all', got '{pg_mode}'"
-                )
-
-        # Validate check.observe (STORY-slim-073)
-        observe = check.get("observe", {})
-        if isinstance(observe, dict):
-            obs_sources = observe.get("sources", "auto")
-            if obs_sources not in ("auto", "chrome-devtools", "playwright", "all"):
-                warnings.warn(
-                    f"check.observe.sources should be 'auto', 'chrome-devtools', "
-                    f"'playwright', or 'all', got '{obs_sources}'"
-                )
-
-    # Validate done section (STORY-055)
-    done_cfg = config.get("done", {})
-    if isinstance(done_cfg, dict):
-        threshold = done_cfg.get("lesson_quality_threshold", 15)
-        if not isinstance(threshold, int) or threshold < 0 or threshold > 25:
-            warnings.warn(f"done.lesson_quality_threshold should be an integer 0-25, got {threshold!r}")
-
-    # Validate e2e section (STORY-slim-022)
-    e2e = config.get("e2e", {})
-    if isinstance(e2e, dict):
-        e2e_type = e2e.get("type", "none")
-        if e2e_type not in VALID_E2E_TYPES:
-            warnings.warn(
-                f"e2e.type should be one of {', '.join(sorted(VALID_E2E_TYPES))}, got '{e2e_type}'"
-            )
-        e2e_blocking = e2e.get("blocking", False)
-        if not isinstance(e2e_blocking, bool):
-            warnings.warn(
-                f"e2e.blocking should be a boolean (true/false), got {type(e2e_blocking).__name__}"
-            )
-        e2e_test_dir = e2e.get("test_dir")
-        if e2e_test_dir is not None and not isinstance(e2e_test_dir, str):
-            warnings.warn(
-                f"e2e.test_dir should be a string, got {type(e2e_test_dir).__name__}"
-            )
-        e2e_env_file = e2e.get("env_file")
-        if e2e_env_file is not None and not isinstance(e2e_env_file, str):
-            warnings.warn(
-                f"e2e.env_file should be a string, got {type(e2e_env_file).__name__}"
-            )
-        # HOTFIX-slim-025: validate api_spec and compose_file
-        e2e_api_spec = e2e.get("api_spec")
-        if e2e_api_spec is not None and not isinstance(e2e_api_spec, str):
-            warnings.warn(
-                f"e2e.api_spec should be a string, got {type(e2e_api_spec).__name__}"
-            )
-        e2e_compose_file = e2e.get("compose_file")
-        if e2e_compose_file is not None and not isinstance(e2e_compose_file, str):
-            warnings.warn(
-                f"e2e.compose_file should be a string, got {type(e2e_compose_file).__name__}"
-            )
-
-    # enterprise section (STORY-047) — accepted without warnings
-    # multi_agent field (STORY-046) — accepted without warnings
+        for msg in validator(key, value):
+            warnings.warn(msg)
 
 
 # ---------------------------------------------------------------------------
-# YAML generation
+# YAML generation (minimal — STORY-slim-135 R2)
 # ---------------------------------------------------------------------------
 
 
 def generate_default_yaml(stack=None) -> str:
-    """Return the default config as a commented YAML string.
+    """Return the minimal initial config as a commented YAML string.
+
+    STORY-slim-135 R2: only stack + developer are written. Every other key
+    resolves through load_config() defaults; `pactkit schema config` lists
+    all available options.
 
     Args:
         stack: Override stack value. If list with 1 element, unwraps to string.
                If None, uses default 'auto'.
     """
-    cfg = get_default_config()
-    if stack is not None:
-        # Single-element list → unwrap to string for cleaner YAML
-        if isinstance(stack, list) and len(stack) == 1:
-            stack = stack[0]
-        cfg["stack"] = stack
-    lines = [
-        "# PactKit Configuration",
-        "# All agents, commands, skills, and rules are deployed by default.",
-        "# To exclude specific items, add an exclude list (e.g., exclude_skills: [pactkit-draw]).",
-        "",
-        _render_stack_line(cfg['stack']),
-        f"root: {cfg['root']}",
-        f'developer: "{cfg["developer"]}"',
-    ]
-
-    ci = cfg.get("ci", {})
-    lines.extend(["", "# CI/CD — set provider to github or gitlab to generate pipeline config"])
-    lines.append("ci:")
-    ci_d = ci if isinstance(ci, dict) else {}
-    lines.append(f"  provider: {ci_d.get('provider', 'none')}")
-    runner = ci_d.get("runner", "ubuntu-latest")
-    lang_ver = ci_d.get("language_version", "3.11")
-    gh_host = ci_d.get("github_host", "")
-    act_ref = ci_d.get("actions_ref", "")
-    lines.append(f"  # runner: {runner}")
-    lines.append(f'  # language_version: "{lang_ver}"')
-    lines.append(f'  # github_host: "{gh_host}"  # GHE server (empty = github.com)')
-    lines.append(f'  # actions_ref: "{act_ref}"  # GHE actions prefix')
-
-    lines.extend(["", "# Issue Tracker — set provider to github to link stories to issues"])
-    lines.append("issue_tracker:")
-    lines.append(f"  provider: {cfg.get('issue_tracker', {}).get('provider', 'none')}")
-
-    lines.extend(["", "# Lint — configure lint behavior in /project-done"])
-    lines.append(f"lint_blocking: {'true' if cfg.get('lint_blocking') else 'false'}")
-    lines.append(f"auto_fix: {'true' if cfg.get('auto_fix') else 'false'}")
-
-    # Write venv section (STORY-039)
-    venv = cfg.get("venv", {})
-    lines.extend(["", "# Virtual Environment — configure venv detection and paths"])
-    lines.append("venv:")
-    lines.append(f"  auto_detect: {'true' if venv.get('auto_detect', True) else 'false'}")
-    # Don't include path in default — let auto_detect find it
-
-    # Write release section (STORY-052)
-    release = cfg.get("release", {})
-    lines.extend(["", "# Release — configure release automation behavior"])
-    lines.append("release:")
-    lines.append(f"  github_release: {'true' if release.get('github_release') else 'false'}")
-
-    # Write regression section (STORY-053)
-    regression = cfg.get("regression", {})
-    lines.extend(["", "# Regression — configure impact-based test selection strategy"])
-    lines.append("regression:")
-    lines.append(f"  strategy: {regression.get('strategy', 'impact')}")
-    lines.append(f"  max_impact_tests: {regression.get('max_impact_tests', 50)}")
-
-    # Write check section (STORY-055, STORY-056, STORY-slim-072, STORY-slim-073)
-    check = cfg.get("check", {})
-    lines.extend(["", "# Check — configure QA verification behavior"])
-    lines.append("check:")
-    sc = check.get("security_checklist", True)
-    lines.append(f"  security_checklist: {'true' if sc else 'false'}")
-    sso = check.get("security_scope_override", "none")
-    lines.append(f"  security_scope_override: {sso}")
-    # PactGuard sub-section (STORY-slim-072)
-    pg = check.get("pactguard", {})
-    lines.append("  pactguard:")
-    lines.append(f"    enabled: {'true' if pg.get('enabled') else 'false'}")
-    lines.append(f"    mode: {pg.get('mode', 'all')}")
-    lines.append(f"    ruleset: \"{pg.get('ruleset', '')}\"")
-    lines.append(f"    blocking: {'true' if pg.get('blocking') else 'false'}")
-    # Observe sub-section (STORY-slim-073)
-    obs = check.get("observe", {})
-    lines.append("  observe:")
-    lines.append(f"    enabled: {'true' if obs.get('enabled') else 'false'}")
-    lines.append(f"    sources: {obs.get('sources', 'auto')}")
-    lines.append(f"    max_console: {obs.get('max_console', 100)}")
-    lines.append(f"    max_network: {obs.get('max_network', 200)}")
-
-    # Write done section (STORY-055)
-    done_cfg = cfg.get("done", {})
-    lines.extend(["", "# Done — configure commit and lesson quality behavior"])
-    lines.append("done:")
-    lines.append(f"  lesson_quality_threshold: {done_cfg.get('lesson_quality_threshold', 15)}")
-
-    # Write e2e section (STORY-slim-022)
-    e2e = cfg.get("e2e", {})
-    lines.extend(["", "# E2E Testing — configure end-to-end test strategy (none|cli|frontend|backend|fullstack)"])
-    lines.append("e2e:")
-    lines.append(f"  type: {e2e.get('type', 'none')}")
-    lines.append(f"  blocking: {'true' if e2e.get('blocking') else 'false'}")
-    lines.append(f"  test_dir: {e2e.get('test_dir', 'tests/e2e')}")
-    lines.append(f"  env_file: {e2e.get('env_file', '.env.test')}")
-    lines.append(f"  api_spec: \"{e2e.get('api_spec', '')}\"  # OpenAPI spec path for frontend/backend")
-    lines.append(f"  compose_file: {e2e.get('compose_file', 'docker-compose.test.yml')}  # for fullstack")
-
-    # Write visualize section (STORY-slim-028, STORY-slim-124)
-    visualize = cfg.get("visualize", {})
-    if isinstance(visualize, dict) and "scan_excludes" in visualize:
-        lines.extend(["", "# Visualize — configure directory scan exclusions and graph provider"])
-        lines.append("visualize:")
-        lines.append("  scan_excludes:")
-        for item in visualize["scan_excludes"]:
-            lines.append(f"    - {item}")
-        lines.append("  # graph_provider: codegraph  # uncomment to use codegraph as call graph source")
-
-    # Write command_models section (STORY-073)
-    cmd_models = cfg.get("command_models", {})
-    if cmd_models:
-        lines.extend(["", "# Command Models — override model per command for OpenCode deployment"])
-        lines.append("command_models:")
-        for cmd_name in sorted(cmd_models.keys()):
-            lines.append(f"  {cmd_name}: {cmd_models[cmd_name]}")
-
+    if stack is None:
+        stack = "auto"
+    # Single-element list → unwrap to string for cleaner YAML
+    if isinstance(stack, list) and len(stack) == 1:
+        stack = stack[0]
+    lines = list(_INIT_HEADER)
+    lines.append("")
+    lines.append(_render_stack_line(stack))
+    lines.append('developer: ""')
     lines.append("")  # trailing newline
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Discoverability report (STORY-slim-135 R5)
+# ---------------------------------------------------------------------------
+
+
+def schema_config_report(project_root: Path | None = None) -> str:
+    """Render all configurable keys with default, effective value, and source."""
+    root = Path(project_root) if project_root else Path.cwd()
+    found = find_pactkit_yaml(root)
+    user_data: dict = {}
+    if found is not None:
+        try:
+            loaded = yaml.safe_load(found.read_text(encoding="utf-8"))
+            user_data = loaded if isinstance(loaded, dict) else {}
+        except yaml.YAMLError:
+            user_data = {}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        merged = load_config(found) if found else get_default_config()
+
+    source_label = found.relative_to(root).as_posix() if found else "(none — all defaults)"
+    lines = [
+        "pactkit.yaml — all configurable keys",
+        f"Config file: {source_label}",
+        "",
+    ]
+    for key, entry in CONFIG_SCHEMA.items():
+        if entry.get("optional"):
+            # Optional sections are always listed for discoverability (R5),
+            # marked as unset unless the user added them.
+            effective = user_data.get(key)
+            default_label = "(optional)"
+            source = source_label if key in user_data else "(optional — not set)"
+        else:
+            effective = merged.get(key)
+            default_label = json.dumps(entry["default"], ensure_ascii=False)
+            source = source_label if key in user_data else "default"
+        effective_label = json.dumps(effective, ensure_ascii=False, default=str)
+        if len(effective_label) > 60:
+            effective_label = effective_label[:57] + "..."
+        lines.append(f"{key}:")
+        lines.append(f"  effective: {effective_label}")
+        lines.append(f"  default:   {default_label}")
+        lines.append(f"  source:    {source}")
     return "\n".join(lines)

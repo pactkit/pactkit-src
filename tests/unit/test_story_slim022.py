@@ -18,7 +18,6 @@ import pytest
 
 from pactkit.config import (
     VALID_E2E_TYPES,
-    generate_default_yaml,
     get_default_config,
     load_config,
     validate_config,
@@ -195,29 +194,33 @@ class TestR4Validation:
 # ---------------------------------------------------------------------------
 class TestR5YamlGeneration:
     def test_yaml_contains_e2e_section(self):
-        output = generate_default_yaml()
-        assert "e2e:" in output
+        """STORY-slim-135: e2e defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        assert "e2e" in get_default_config()
 
     def test_yaml_e2e_type_none(self):
-        output = generate_default_yaml()
-        assert "type: none" in output
+        from pactkit.config import get_default_config
+        assert get_default_config()["e2e"]["type"] == "none"
 
     def test_yaml_e2e_blocking_false(self):
-        output = generate_default_yaml()
-        assert "blocking: false" in output
+        from pactkit.config import get_default_config
+        assert get_default_config()["e2e"]["blocking"] is False
 
     def test_yaml_e2e_test_dir(self):
-        output = generate_default_yaml()
-        assert "test_dir: tests/e2e" in output
+        from pactkit.config import get_default_config
+        assert get_default_config()["e2e"]["test_dir"] == "tests/e2e"
 
     def test_yaml_e2e_env_file(self):
-        output = generate_default_yaml()
-        assert "env_file: .env.test" in output
+        from pactkit.config import get_default_config
+        assert get_default_config()["e2e"]["env_file"] == ".env.test"
 
     def test_yaml_e2e_comment_explains_types(self):
-        output = generate_default_yaml()
+        """STORY-slim-135: e2e type documentation renders when e2e section present."""
+        from pactkit.config import _REWRITE_HEADER, render_config_yaml
+        from pactkit.config import get_default_config
+        output = render_config_yaml({"stack": "auto", "developer": "", "e2e": get_default_config()["e2e"]}, _REWRITE_HEADER)
         # Comment should mention the valid types
-        assert "none" in output
+        assert "none|cli|frontend|backend|fullstack" in output
         assert "cli" in output
         assert "frontend" in output
         assert "backend" in output

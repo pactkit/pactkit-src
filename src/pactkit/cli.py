@@ -17,6 +17,15 @@ def _schema_command(args) -> None:
     """Print document structure rules for the given type (STORY-slim-007 R7)."""
     from pactkit.schemas import SCHEMA_REGISTRY
 
+    # STORY-slim-135 R5: config discoverability report
+    if getattr(args, "type", None) == "config" and not getattr(args, "all_types", False):
+        from pathlib import Path
+
+        from pactkit.config import schema_config_report
+
+        print(schema_config_report(Path.cwd()))
+        return
+
     show_all = getattr(args, "all_types", False) or args.type == "--all"
     doc_type = None if show_all else args.type
 
@@ -204,8 +213,8 @@ def main():
     schema_parser.add_argument(
         "type",
         nargs="?",
-        choices=["spec", "board", "context", "lessons", "testcase", "--all"],
-        help="Document type to show schema for",
+        choices=["spec", "board", "context", "lessons", "testcase", "config", "--all"],
+        help="Document type to show schema for ('config' lists all pactkit.yaml keys)",
     )
     schema_parser.add_argument("--all", action="store_true", dest="all_types", help="Show all schemas")
 
@@ -345,6 +354,31 @@ def main():
     spec_status_parser.add_argument("spec", help="Path to spec file")
     spec_status_parser.add_argument("status", choices=["Draft", "In Progress", "Done"], help="New status value")
 
+    # pactkit done-verify (STORY-slim-136: mechanical archive honesty gate)
+    done_verify_parser = subparsers.add_parser(
+        "done-verify", help="Verify archive honesty for a story (evidence chain, exit 1 on FAIL)"
+    )
+    done_verify_parser.add_argument("story_id", help="Story ID (e.g. STORY-slim-001)")
+
+    # pactkit commit-gate (STORY-slim-138: pre-commit test gate)
+    gate_parser = subparsers.add_parser("commit-gate", help="Pre-commit test gate (skip != pass transparency)")
+    gate_parser.add_argument(
+        "--hook", action="store_true",
+        help="PreToolUse hook mode: read hook JSON from stdin, exit 2 blocks git commit",
+    )
+    gate_parser.add_argument(
+        "--install-git-hook", action="store_true",
+        help="Install .git/hooks/pre-commit wrapper for human commits",
+    )
+
+    # pactkit deps (STORY-slim-137: external dependency check/install)
+    deps_parser = subparsers.add_parser("deps", help="Check or install external dependencies (node/codegraph/gh)")
+    deps_sub = deps_parser.add_subparsers(dest="deps_action")
+    deps_check = deps_sub.add_parser("check", help="Read-only dependency status report")
+    deps_check.add_argument("--json", action="store_true", help="JSON output")
+    deps_install = deps_sub.add_parser("install", help="Guided install of missing dependencies")
+    deps_install.add_argument("--yes", action="store_true", help="Skip per-item confirmation")
+
     # pactkit interface-summary (STORY-slim-113)
     iface_parser = subparsers.add_parser("interface-summary", help="Output interface summary (signatures only)")
     iface_parser.add_argument("files", nargs="+", help="Source file(s) to summarize")
@@ -400,6 +434,16 @@ def main():
 
         from pactkit.generators.deployer import deploy
 
+        # STORY-slim-135 R4: sync config copies BEFORE deploy reads config
+        # (canonical = .claude first). Real deploys only.
+        if args.target is None:
+            from pathlib import Path
+
+            from pactkit.config import sync_config_copies
+
+            for synced in sync_config_copies(Path.cwd()):
+                print(f"  -> Synced config copy: {synced}")
+
         deploy(
             target=args.target,
             format=args.format,
@@ -408,6 +452,20 @@ def main():
             no_external=getattr(args, "no_external", False),
             non_interactive=getattr(args, "non_interactive", False),
         )
+
+        # Post-deploy housekeeping for real classic/all deploys (STORY-slim-138
+        # R4 hook install honors enterprise.no_git; STORY-slim-137 R4 deps
+        # summary is read-only and never installs).
+        if args.target is None and args.format in ("all", "classic"):
+            from pathlib import Path
+
+            from pactkit.commit_gate import install_hook
+            from pactkit.deps import check_deps, render_check_report
+
+            print(f"  -> {install_hook(Path.cwd())}")
+            report = render_check_report(check_deps())
+            if "❌" in report:
+                print(f"\n{report}")
 
     elif args.command == "spec-lint":
         from pactkit.skills.spec_linter import main as spec_lint_main
@@ -685,6 +743,25 @@ def main():
                   f"(source: {hld_result['source_modules']}, hld: {hld_result['hld_nodes']})")
             has_issues = True
 
+        # STORY-slim-135 R4: pactkit.yaml multi-copy drift
+        from pactkit.config import check_config_copy_drift
+
+        copy_drift = check_config_copy_drift(root)
+        if copy_drift["drift"]:
+            for detail in copy_drift["details"]:
+                print(f"  Config copy drift: {detail}")
+            print("  → Run `pactkit update` to sync all config copies")
+            has_issues = True
+
+        # STORY-slim-137 R4: external dependency health
+        from pactkit.deps import check_deps
+
+        for s in check_deps():
+            if not s.installed:
+                print(f"  Missing dependency: {s.name} — {s.purpose}")
+                print(f"    install: {s.install_hint}")
+                has_issues = True
+
         if not has_issues:
             print("Health: OK")
         else:
@@ -777,6 +854,55 @@ def main():
         print(result["message"])
         if result["action"] == "error":
             raise SystemExit(1)
+
+    elif args.command == "done-verify":
+        from pathlib import Path
+
+        from pactkit.done_verify import verify_story
+
+        results, exit_code = verify_story(args.story_id, Path.cwd())
+        for r in results:
+            print(r.render())
+        print(f"\ndone-verify: {'FAIL' if exit_code else 'PASS'} ({args.story_id})")
+        raise SystemExit(exit_code)
+
+    elif args.command == "deps":
+        import json as _json
+        from dataclasses import asdict
+        from pathlib import Path
+
+        from pactkit.deps import check_deps, install_deps, render_check_report
+
+        if args.deps_action == "install":
+            lines, exit_code = install_deps(Path.cwd(), assume_yes=args.yes)
+            for ln in lines:
+                print(ln)
+            raise SystemExit(exit_code)
+        # default: check
+        statuses = check_deps()
+        if getattr(args, "json", False):
+            print(_json.dumps([asdict(s) for s in statuses], indent=2, ensure_ascii=False))
+        else:
+            print(render_check_report(statuses))
+        raise SystemExit(0 if all(s.installed for s in statuses) else 1)
+
+    elif args.command == "commit-gate":
+        import sys
+        from pathlib import Path
+
+        from pactkit.commit_gate import hook_entry, install_git_hook, run_gate
+
+        if args.install_git_hook:
+            print(install_git_hook(Path.cwd()))
+            raise SystemExit(0)
+        if args.hook:
+            message, exit_code = hook_entry(sys.stdin.read(), Path.cwd())
+            if message:
+                print(message, file=sys.stderr)
+            raise SystemExit(exit_code)
+        result = run_gate(Path.cwd())
+        print(result.render())
+        raise SystemExit(result.exit_code)
 
     elif args.command == "interface-summary":
         from pathlib import Path

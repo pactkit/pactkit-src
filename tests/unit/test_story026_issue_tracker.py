@@ -27,11 +27,11 @@ class TestAC1DefaultConfiguration:
         assert config['issue_tracker'] == {'provider': 'none'}
 
     def test_default_yaml_contains_issue_tracker(self):
-        """generate_default_yaml includes issue_tracker section."""
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
-        assert 'issue_tracker:' in yaml_text
-        assert 'provider: none' in yaml_text
+        """STORY-slim-135: issue_tracker defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        assert get_default_config()['issue_tracker']['provider'] == 'none'
+
+
 
 
 # ===========================================================================

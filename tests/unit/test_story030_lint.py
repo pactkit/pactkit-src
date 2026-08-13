@@ -29,11 +29,11 @@ class TestAC1DefaultLintConfig:
         assert config.get('auto_fix') is False
 
     def test_default_yaml_contains_lint_settings(self):
-        """generate_default_yaml includes lint settings."""
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
-        assert 'lint_blocking' in yaml_text
-        assert 'auto_fix' in yaml_text
+        """STORY-slim-135: lint defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        defaults = get_default_config()
+        assert defaults['lint_blocking'] is False
+        assert defaults['auto_fix'] is False
 
 
 class TestAC2LintBlockingConfig:

@@ -1,0 +1,255 @@
+"""STORY-slim-138: commit-gate pre-commit test gate."""
+
+import json
+
+import pytest
+
+from pactkit import commit_gate
+from pactkit.commit_gate import (
+    GateUnavailable,
+    decide_test_set,
+    hook_entry,
+    install_git_hook,
+    install_hook,
+    parse_pytest_summary,
+    run_gate,
+)
+
+
+@pytest.fixture
+def repo(tmp_path, monkeypatch):
+    """A fake git project root; git/pytest calls are mocked per-test."""
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "tests" / "unit").mkdir(parents=True)
+    return tmp_path
+
+
+def mock_git(monkeypatch, branch="feature/x", changed=("src/pkg/mod.py",)):
+    monkeypatch.setattr(commit_gate, "collect_changed_files", lambda root: list(changed))
+    monkeypatch.setattr(commit_gate, "current_branch", lambda root: branch)
+
+
+def mock_pytest(monkeypatch, returncode=0, output="10 passed in 1.0s"):
+    calls = {}
+
+    def _run(root, test_files):
+        calls["test_files"] = test_files
+        return returncode, output
+
+    monkeypatch.setattr(commit_gate, "run_pytest", _run)
+    return calls
+
+
+# ---------------------------------------------------------------------------
+# AC1: red tests block
+# ---------------------------------------------------------------------------
+
+
+class TestRedBlocks:
+    def test_failing_tests_exit_1(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        mock_pytest(monkeypatch, returncode=1,
+                    output="FAILED tests/unit/test_a.py::test_x - assert 1 == 2\n1 failed, 9 passed in 1.0s")
+        result = run_gate(repo)
+        assert result.exit_code == 1
+        text = result.render()
+        assert "9 passed, 1 failed" in text
+        assert "FAILED tests/unit/test_a.py" in text
+
+
+# ---------------------------------------------------------------------------
+# AC2: IMPACT runs only mapped tests
+# ---------------------------------------------------------------------------
+
+
+class TestImpactSelection:
+    def test_mapped_subset_only(self, repo, monkeypatch):
+        mock_git(monkeypatch, changed=("src/pactkit/done_verify.py",))
+        (repo / "tests" / "unit" / "test_done_verify.py").write_text("")
+        calls = mock_pytest(monkeypatch)
+        result = run_gate(repo)
+        assert result.exit_code == 0
+        assert calls["test_files"] == ["tests/unit/test_done_verify.py"]
+        assert "IMPACT" in result.render()
+
+    def test_empty_mapping_falls_back_to_full(self, repo, monkeypatch):
+        mock_git(monkeypatch, changed=("src/pactkit/no_such_module.py",))
+        calls = mock_pytest(monkeypatch)
+        run_gate(repo)
+        assert calls["test_files"] is None  # full suite
+
+    def test_doc_only_skips(self, repo, monkeypatch):
+        mock_git(monkeypatch, changed=("docs/specs/STORY-x.md",))
+        calls = mock_pytest(monkeypatch)
+        result = run_gate(repo)
+        assert result.exit_code == 0
+        assert "test_files" not in calls  # pytest never invoked
+        assert "SKIP" in result.render()
+
+
+# ---------------------------------------------------------------------------
+# AC3: skip transparency
+# ---------------------------------------------------------------------------
+
+
+class TestSkipTransparency:
+    OUTPUT = (
+        "SKIPPED [1] tests/unit/test_pg.py:10: PG unreachable\n"
+        "SKIPPED [1] tests/unit/test_pg.py:20: PG unreachable\n"
+        "SKIPPED [1] tests/unit/test_pg.py:30: PG unreachable\n"
+        "10 passed, 3 skipped in 2.0s"
+    )
+
+    def test_skips_are_listed_not_absorbed(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        mock_pytest(monkeypatch, output=self.OUTPUT)
+        result = run_gate(repo)
+        assert result.exit_code == 0  # skips alone do not block
+        text = result.render()
+        assert "10 passed, 0 failed, 3 skipped" in text
+        assert "SKIPPED" in text and "PG unreachable" in text
+        assert "skip != pass" in text
+
+    def test_parse_counts(self):
+        summary = parse_pytest_summary(self.OUTPUT)
+        assert summary["passed"] == 10
+        assert summary["skipped"] == 3
+        assert summary["failed"] == 0
+        assert len(summary["skip_reasons"]) == 3
+
+
+# ---------------------------------------------------------------------------
+# AC4/AC5: hook mode
+# ---------------------------------------------------------------------------
+
+
+class TestHookMode:
+    def _payload(self, command):
+        return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+
+    def test_non_commit_exits_0_silently(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        calls = mock_pytest(monkeypatch)
+        _, code = hook_entry(self._payload("git status"), repo)
+        assert code == 0
+        assert "test_files" not in calls
+
+    def test_commit_red_blocks_with_exit_2(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        mock_pytest(monkeypatch, returncode=1, output="1 failed in 1.0s")
+        stderr, code = hook_entry(self._payload('git commit -m "x"'), repo)
+        assert code == 2
+        assert "blocked" in stderr
+
+    def test_commit_green_allows(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        mock_pytest(monkeypatch)
+        _, code = hook_entry(self._payload('git commit -m "x"'), repo)
+        assert code == 0
+
+    def test_commit_with_flags_detected(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        mock_pytest(monkeypatch, returncode=1, output="1 failed in 1.0s")
+        _, code = hook_entry(self._payload('git -C /repo commit --amend'), repo)
+        assert code == 2
+
+    def test_no_verify_bypass_allowed(self, repo, monkeypatch):
+        mock_git(monkeypatch)
+        calls = mock_pytest(monkeypatch)
+        _, code = hook_entry(self._payload('git commit --no-verify -m "x"'), repo)
+        assert code == 0
+        assert "test_files" not in calls
+
+    def test_gate_failure_allows_with_warn(self, repo, monkeypatch):
+        """AC5 self-lock protection: pytest missing must not block commits."""
+        mock_git(monkeypatch)
+
+        def _boom(root, test_files):
+            raise GateUnavailable("pytest not found")
+
+        monkeypatch.setattr(commit_gate, "run_pytest", _boom)
+        stderr, code = hook_entry(self._payload('git commit -m "fix gate"'), repo)
+        assert code == 0
+        assert "commit-gate unavailable" in stderr
+
+    def test_malformed_stdin_allows(self, repo):
+        _, code = hook_entry("not json", repo)
+        assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# AC7: main-branch commits always run the full suite
+# ---------------------------------------------------------------------------
+
+
+class TestMainBranchFullSuite:
+    @pytest.mark.parametrize("branch", ["main", "master", "develop"])
+    def test_main_branches_force_full(self, repo, monkeypatch, branch):
+        mock_git(monkeypatch, branch=branch, changed=("src/pactkit/done_verify.py",))
+        (repo / "tests" / "unit" / "test_done_verify.py").write_text("")
+        strategy, test_files, reason = decide_test_set(repo, ["src/pactkit/done_verify.py"])
+        assert strategy == "full"
+        assert test_files is None
+        assert branch in reason
+
+
+# ---------------------------------------------------------------------------
+# AC6: hook deployment
+# ---------------------------------------------------------------------------
+
+
+class TestHookDeployment:
+    def test_install_into_empty_settings(self, repo):
+        msg = install_hook(repo)
+        settings = json.loads((repo / ".claude" / "settings.json").read_text())
+        entries = settings["hooks"]["PreToolUse"]
+        assert len(entries) == 1
+        assert entries[0]["hooks"][0]["command"] == "pactkit commit-gate --hook"
+        assert "installed" in msg
+
+    def test_preserves_user_config_and_idempotent(self, repo):
+        (repo / ".claude").mkdir(exist_ok=True)
+        existing = {"model": "opus", "hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [
+            {"type": "command", "command": "my-formatter"}]}]}}
+        (repo / ".claude" / "settings.json").write_text(json.dumps(existing))
+        install_hook(repo)
+        install_hook(repo)  # twice
+        settings = json.loads((repo / ".claude" / "settings.json").read_text())
+        assert settings["model"] == "opus"
+        pre = settings["hooks"]["PreToolUse"]
+        assert len(pre) == 2  # user's + ours, no duplication
+        assert sum("commit-gate" in h.get("command", "") for e in pre for h in e["hooks"]) == 1
+
+    def test_invalid_json_left_untouched(self, repo):
+        (repo / ".claude").mkdir(exist_ok=True)
+        (repo / ".claude" / "settings.json").write_text("{oops")
+        msg = install_hook(repo)
+        assert "left untouched" in msg
+        assert (repo / ".claude" / "settings.json").read_text() == "{oops"
+
+    def test_no_git_skips_install(self, repo):
+        (repo / ".claude").mkdir(exist_ok=True)
+        (repo / ".claude" / "pactkit.yaml").write_text("enterprise:\n  no_git: true\n")
+        msg = install_hook(repo)
+        assert "no_git" in msg
+        assert not (repo / ".claude" / "settings.json").exists()
+
+
+class TestGitHook:
+    def test_fresh_install(self, repo):
+        (repo / ".git" / "hooks").mkdir()
+        msg = install_git_hook(repo)
+        hook = repo / ".git" / "hooks" / "pre-commit"
+        assert "pactkit commit-gate" in hook.read_text()
+        assert "installed" in msg
+
+    def test_chains_existing_hook(self, repo):
+        hooks = repo / ".git" / "hooks"
+        hooks.mkdir()
+        (hooks / "pre-commit").write_text("#!/bin/sh\necho existing\n")
+        msg = install_git_hook(repo)
+        content = (hooks / "pre-commit").read_text()
+        assert "echo existing" in content
+        assert "pactkit commit-gate" in content
+        assert (hooks / "pre-commit.pre-pactkit").exists()
+        assert "chained" in msg

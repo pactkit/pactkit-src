@@ -2,9 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-31 | dict.update() on call_edges causes last-wins overwrite when scanning same-name functions across files; use extend-merge pattern instead | visualize.py:_build_call_graph |
-| 2026-03-31 | CLI args must mirror visualize.py standalone argparse; feature implemented in visualize.py but not exposed in cli.py is effectively dead code | cli.py:viz_parser |
-| 2026-03-31 | tree-sitter comment nodes are direct children of function body nodes (block/statement_block), enabling scoped dispatch hint queries without parent traversal. Per-language comment query needed: Go/TS use (comment), Java uses [(line_comment)(block_comment)]. | visualize.py:_extract_calls_from_body |
 | 2026-03-31 | config.py load_config() deep merge was single-level; adding check.pactguard (nested dict inside check) required upgrading to two-level merge to preserve sub-dict defaults like mode and blocking | src/pactkit/config.py:load_config |
 | 2026-03-31 | Adding pactkit-garden to VALID_SKILLS broke 5 hardcoded count assertions in test_config.py, test_pdca_slim.py, test_selective_deploy.py, test_prompt_structural_invariants.py, test_story_slim063.py — grep == 21 and == 10 in tests before releasing a new skill | tests/unit/test_pdca_slim.py:test_valid_skills_count |
 | 2026-03-31 | DETECTED_ENV in commands.py init playbook was unnecessary — _render_prompt(template, profile) already resolves per-format at deploy time. Added FORMAT_NAME to deployer.py var_map to enable pactkit init --format {FORMAT_NAME}. | deployer.py:_render_prompt |
@@ -53,3 +50,6 @@
 | 2026-07-02 | Hardcoding external tool CLI commands in SKILL_VISUALIZE_MD and deployer.py creates upgrade coupling — replaced with codegraph --help runtime discovery in _build_claude_md_managed_content() | src/pactkit/generators/deployer.py:_build_claude_md_managed_content |
 | 2026-07-13 | Adding project-debug required updating VALID_COMMANDS in config.py, VALID_SKILLS, COMMANDS_CONTENT registration in commands.py, and COMMAND_RULES_MAP in rules.py — plus 6 test files with hardcoded count assertions | src/pactkit/config.py:VALID_COMMANDS, src/pactkit/prompts/rules.py:COMMAND_RULES_MAP |
 | 2026-07-23 | Removing `model:` from COMMANDS_CONTENT frontmatter fixes Bedrock VS Code plugin errors — Claude Code resolves the alias to Anthropic's latest model ID, bypassing `ANTHROPIC_DEFAULT_SONNET_MODEL`; without it, commands inherit the session default model set by the user's env vars | src/pactkit/prompts/commands.py:COMMANDS_CONTENT |
+| 2026-08-13 | guardrail 测试（行数/字符数上限）触线时，优先把组装逻辑上移到 CLI 组合层而不是抬阈值——deployer 保持精简，init/update 的副作用归 cli 编排 | cli.py:init/update post-deploy housekeeping |
+| 2026-08-13 | 配置副本同步 canonical 不能用键数启发式（默认值墙副本键数多但意图少，会覆盖手工配置），必须用显式优先级——见 config.py:sync_config_copies 的 CANONICAL_PREFERENCE | config.py:sync_config_copies |
+| 2026-08-13 | 门禁词表扫描须先剥离 code fence/inline code span（done_verify.py:_strip_code_spans），否则词表元讨论自身误报 | done_verify.py:_strip_code_spans |

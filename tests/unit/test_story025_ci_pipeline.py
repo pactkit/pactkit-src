@@ -47,11 +47,11 @@ class TestAC1DefaultConfiguration:
         assert config['ci'] == {'provider': 'none'}
 
     def test_default_yaml_contains_ci_section(self):
-        """generate_default_yaml includes ci provider: none."""
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
-        assert 'ci:' in yaml_text
-        assert 'provider: none' in yaml_text
+        """STORY-slim-135: ci defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        assert get_default_config()['ci']['provider'] == 'none'
+
+
 
     def test_default_deploy_no_ci_files(self, tmp_path):
         """Default deployment creates no CI files."""

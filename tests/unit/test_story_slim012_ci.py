@@ -480,21 +480,22 @@ class TestAC13ActionsRef:
 class TestAC14ConfigVisibility:
 
     def test_default_yaml_has_runner_comment(self):
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
+        """STORY-slim-135: GHE hints render when ci section is present."""
+        from pactkit.config import _REWRITE_HEADER, render_config_yaml
+        yaml_text = render_config_yaml({"stack": "auto", "developer": "", "ci": {"provider": "none"}}, _REWRITE_HEADER)
         assert "runner" in yaml_text
 
     def test_default_yaml_has_language_version_comment(self):
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
+        from pactkit.config import _REWRITE_HEADER, render_config_yaml
+        yaml_text = render_config_yaml({"stack": "auto", "developer": "", "ci": {"provider": "none"}}, _REWRITE_HEADER)
         assert "language_version" in yaml_text
 
     def test_default_yaml_has_github_host_comment(self):
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
+        from pactkit.config import _REWRITE_HEADER, render_config_yaml
+        yaml_text = render_config_yaml({"stack": "auto", "developer": "", "ci": {"provider": "none"}}, _REWRITE_HEADER)
         assert "github_host" in yaml_text
 
     def test_default_yaml_has_actions_ref_comment(self):
-        from pactkit.config import generate_default_yaml
-        yaml_text = generate_default_yaml()
+        from pactkit.config import _REWRITE_HEADER, render_config_yaml
+        yaml_text = render_config_yaml({"stack": "auto", "developer": "", "ci": {"provider": "none"}}, _REWRITE_HEADER)
         assert "actions_ref" in yaml_text

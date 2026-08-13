@@ -17,7 +17,6 @@ if str(project_root) not in sys.path:
 
 from pactkit.config import (  # noqa: E402
     auto_merge_config_file,
-    generate_default_yaml,
     get_default_config,
 )
 
@@ -28,37 +27,37 @@ from pactkit.config import (  # noqa: E402
 class TestAC1BackfillMissingSections:
 
     def test_ci_section_added(self, tmp_path):
-        """Missing ci section is backfilled with defaults."""
+        """STORY-slim-126/135: non-list sections are NOT backfilled; absent = default."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         auto_merge_config_file(yaml_path)
         content = yaml_path.read_text()
-        assert 'ci:' in content
-        assert 'provider: none' in content
+        assert 'version' not in content  # stale version still removed
+        assert 'ci:' not in content
 
     def test_issue_tracker_section_added(self, tmp_path):
-        """Missing issue_tracker section is backfilled with defaults."""
+        """STORY-slim-126/135: non-list sections are NOT backfilled."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         auto_merge_config_file(yaml_path)
         content = yaml_path.read_text()
-        assert 'issue_tracker:' in content
+        assert 'issue_tracker:' not in content
 
     def test_lint_blocking_added(self, tmp_path):
-        """Missing lint_blocking is backfilled with default false."""
+        """STORY-slim-126/135: lint_blocking is NOT backfilled."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         auto_merge_config_file(yaml_path)
         content = yaml_path.read_text()
-        assert 'lint_blocking: false' in content
+        assert 'lint_blocking' not in content
 
     def test_auto_fix_added(self, tmp_path):
-        """Missing auto_fix is backfilled with default false."""
+        """STORY-slim-126/135: auto_fix is NOT backfilled."""
         yaml_path = tmp_path / 'pactkit.yaml'
         yaml_path.write_text('stack: python\nversion: "1.2.0"\nroot: .\n')
         auto_merge_config_file(yaml_path)
         content = yaml_path.read_text()
-        assert 'auto_fix: false' in content
+        assert 'auto_fix' not in content
 
     def test_original_values_preserved(self, tmp_path):
         """Original stack/root values are preserved; version is removed (STORY-slim-102)."""
@@ -222,17 +221,17 @@ class TestAC4BackfillReport:
 class TestAC5FreshInit:
 
     def test_generate_default_yaml_has_ci(self):
-        """generate_default_yaml() includes ci section."""
-        content = generate_default_yaml()
-        assert 'ci:' in content
+        """STORY-slim-135: ci defaults live in get_default_config(), not init yaml."""
+        from pactkit.config import get_default_config
+        assert get_default_config()["ci"]["provider"] == "none"
 
     def test_generate_default_yaml_has_lint_blocking(self):
-        """generate_default_yaml() includes lint_blocking."""
-        content = generate_default_yaml()
-        assert 'lint_blocking:' in content
+        """STORY-slim-135: lint_blocking default lives in get_default_config()."""
+        from pactkit.config import get_default_config
+        assert get_default_config()["lint_blocking"] is False
 
-    def test_fresh_deploy_generates_complete_config(self, tmp_path):
-        """Fresh deploy generates pactkit.yaml at $CWD/.claude/ with all sections (BUG-013)."""
+    def test_fresh_deploy_generates_minimal_config(self, tmp_path):
+        """Fresh deploy generates minimal pactkit.yaml (STORY-slim-135 R2: stack+developer only)."""
         from unittest.mock import patch
 
         from pactkit.generators.deployer import deploy
@@ -241,7 +240,7 @@ class TestAC5FreshInit:
         yaml_path = tmp_path / '.claude' / 'pactkit.yaml'
         assert yaml_path.exists()
         content = yaml_path.read_text()
-        assert 'ci:' in content
-        assert 'issue_tracker:' in content
-        assert 'lint_blocking:' in content
-        assert 'auto_fix:' in content
+        assert 'stack:' in content
+        assert 'developer:' in content
+        for section in ('ci:', 'issue_tracker:', 'lint_blocking:', 'auto_fix:', 'check:', 'e2e:'):
+            assert section not in content

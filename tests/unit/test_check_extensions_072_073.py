@@ -106,9 +106,8 @@ class TestPactguardYamlSerialization:
     """R2: generate_default_yaml and _rewrite_yaml include pactguard."""
 
     def test_generate_default_yaml_has_pactguard(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert "pactguard:" in yaml_str
+        """STORY-slim-135: pactguard defaults asserted on get_default_config()."""
+        assert "pactguard" in _config().get_default_config()["check"]
 
     def test_rewrite_yaml_has_pactguard(self, tmp_path):
         cfg = _config()
@@ -245,9 +244,8 @@ class TestObserveYamlSerialization:
     """R5: generate_default_yaml and _rewrite_yaml include observe."""
 
     def test_generate_default_yaml_has_observe(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert "observe:" in yaml_str
+        """STORY-slim-135: observe defaults asserted on get_default_config()."""
+        assert "observe" in _config().get_default_config()["check"]
 
     def test_rewrite_yaml_has_observe(self, tmp_path):
         cfg = _config()

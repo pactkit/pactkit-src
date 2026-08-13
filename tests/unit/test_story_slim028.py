@@ -396,11 +396,12 @@ class TestGenerateDefaultYamlVisualize:
     """R2: generate_default_yaml() MUST include visualize.scan_excludes section."""
 
     def test_generate_default_yaml_has_visualize(self):
-        from pactkit.config import generate_default_yaml
+        """STORY-slim-135: visualize defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
 
-        yaml_str = generate_default_yaml()
-        assert "visualize:" in yaml_str, "visualize section missing from generated YAML"
-        assert "scan_excludes:" in yaml_str, "scan_excludes missing from generated YAML"
+        defaults = get_default_config()
+        assert "visualize" in defaults, "visualize section missing from defaults"
+        assert "scan_excludes" in defaults["visualize"], "scan_excludes missing from defaults"
 
     def test_generate_default_yaml_no_project_dirs(self):
         from pactkit.config import generate_default_yaml

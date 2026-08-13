@@ -14,7 +14,7 @@ from pactkit.prompts.workflows import (
 )
 
 # Utility-only commands that don't need prompt references
-CLI_NO_PROMPT_REF_ALLOWED = {"version", "upgrade", "schema", "backfill-release", "garden", "redetect-stack", "report", "query"}
+CLI_NO_PROMPT_REF_ALLOWED = {"version", "upgrade", "schema", "backfill-release", "garden", "redetect-stack", "report", "query", "commit-gate"}  # commit-gate: hook-invoked (PreToolUse/pre-commit), not playbook-invoked (STORY-slim-138)
 
 _PACTKIT_REF = re.compile(r"pactkit\s+([\w-]+)")
 

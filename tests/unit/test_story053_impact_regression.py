@@ -254,12 +254,11 @@ class TestRegressionConfig:
         assert cfg['regression'].get('max_impact_tests') == 50
 
     def test_regression_in_generated_yaml(self):
-        """generate_default_yaml() must include regression section."""
-        from pactkit.config import generate_default_yaml
-        yaml_str = generate_default_yaml()
-        assert 'regression:' in yaml_str
-        assert 'strategy:' in yaml_str
-        assert 'max_impact_tests:' in yaml_str
+        """STORY-slim-135: regression defaults asserted on get_default_config()."""
+        from pactkit.config import get_default_config
+        regression = get_default_config()['regression']
+        assert regression['strategy'] == 'impact'
+        assert regression['max_impact_tests'] == 50
 
     def test_regression_validates_strategy(self):
         """validate_config warns if regression.strategy is not 'impact' or 'full'."""

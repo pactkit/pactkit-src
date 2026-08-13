@@ -239,26 +239,17 @@ class TestCheckDoneDefaultYaml:
     """generate_default_yaml MUST include check and done sections."""
 
     def test_yaml_has_check_section(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'check:' in yaml_str, "generated YAML must include check: section"
+        """STORY-slim-135: check defaults asserted on get_default_config()."""
+        assert _config().get_default_config()["check"]["security_checklist"] is True
 
     def test_yaml_has_security_checklist_true(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'security_checklist: true' in yaml_str, \
-            "generated YAML must show security_checklist: true"
+        assert _config().get_default_config()["check"]["security_checklist"] is True
 
     def test_yaml_has_done_section(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'done:' in yaml_str, "generated YAML must include done: section"
+        assert "done" in _config().get_default_config()
 
     def test_yaml_has_lesson_quality_threshold(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'lesson_quality_threshold: 15' in yaml_str, \
-            "generated YAML must show lesson_quality_threshold: 15"
+        assert _config().get_default_config()["done"]["lesson_quality_threshold"] == 15
 
 
 # ===========================================================================

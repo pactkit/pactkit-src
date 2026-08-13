@@ -43,11 +43,10 @@ class TestReleaseConfigDefault:
             "release.github_release must default to False"
 
     def test_generate_default_yaml_has_release_section(self):
-        cfg = _config()
-        yaml_str = cfg.generate_default_yaml()
-        assert 'release:' in yaml_str, "generated YAML must include release section"
-        assert 'github_release: false' in yaml_str, \
-            "generated YAML must show github_release: false"
+        """STORY-slim-135: release defaults asserted on get_default_config()."""
+        defaults = _config().get_default_config()
+        assert "release" in defaults
+        assert defaults["release"]["github_release"] is False
 
 
 # ===========================================================================

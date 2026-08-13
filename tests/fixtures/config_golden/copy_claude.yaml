@@ -1,0 +1,24 @@
+# PactKit Configuration
+# Only override non-default values. Absent keys = default (all enabled).
+
+stack: python
+developer: "slim"
+
+ci:
+  provider: github
+  install_cmd: "python -m pip install --upgrade pip\n          pip install -e \".[visualize]\"\n          pip install pytest ruff\n          pactkit init"
+
+issue_tracker:
+  provider: github
+
+release:
+  github_release: true
+
+visualize:
+  graph_provider: codegraph
+
+agent_models:
+  code-explorer: haiku
+  product-designer: opus
+  system-architect: opus
+  system-medic: haiku
