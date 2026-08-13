@@ -85,7 +85,7 @@ pip install pactkit[all]         # Everything above + IDE adapters
 
 ### Recommended External Tools
 
-These tools enhance PactKit but cannot be distributed via pip:
+These tools enhance PactKit but cannot be distributed via pip. Run `pactkit deps check` to see what's missing and `pactkit deps install` for guided platform-aware installation:
 
 | Tool | Purpose | Install |
 |------|---------|---------|
@@ -235,7 +235,7 @@ PactKit deploys 10 skills (3 scripted + 7 prompt-only), auto-invoked by commands
 
 ## CLI Subcommands
 
-PactKit ships 26 deterministic CLI subcommands — operations that were previously delegated to AI prompts are now enforced in Python code (the "C" in P.A.C.T.):
+PactKit ships 36 deterministic CLI subcommands — operations that were previously delegated to AI prompts are now enforced in Python code (the "C" in P.A.C.T.):
 
 | Command | Purpose |
 |---------|---------|
@@ -265,6 +265,11 @@ PactKit ships 26 deterministic CLI subcommands — operations that were previous
 | `pactkit lint-context` | Validate context.md structure |
 | `pactkit lint-lessons` | Validate lessons.md structure |
 | `pactkit lint-testcase` | Validate test case structure |
+| `pactkit done-verify` | Archive honesty gate: requirement→test evidence chain, checkbox↔case consistency, status machine (blocks `/project-done` on FAIL) |
+| `pactkit commit-gate` | Pre-commit test gate with skip≠pass transparency; PreToolUse hook + git pre-commit channels, auto-installed per format |
+| `pactkit deps` | External dependency check (`deps check`) and guided install (`deps install`) for node/codegraph/gh |
+| `pactkit schema config` | List every pactkit.yaml key with default, effective value, and source |
+| `pactkit sync` | Sync codegraph index |
 
 ## Deployment Architecture
 

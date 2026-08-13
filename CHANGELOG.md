@@ -4,6 +4,26 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.17.0] - 2026-08-13
+
+### Added
+- **`pactkit done-verify`** (STORY-slim-136) — Mechanical archive-honesty gate for `/project-done`. Verifies requirement→test evidence chains, checkbox↔case-file consistency (with code-span stripping), zero-production-caller components (WARN), and Spec/Board/archive status consistency. Any FAIL blocks archiving and commit (exit 1). Wired into project-done Phase 3 as a mandatory step.
+- **`pactkit commit-gate`** (STORY-slim-138, STORY-slim-140) — Pre-commit test gate with skip≠pass transparency (passed/failed/skipped reported separately; skips always listed). Two channels sharing one pipeline: Claude Code PreToolUse hook (auto-installed into `.claude/settings.json` by init/update) and git pre-commit (auto-installed for non-Claude formats). Self-lock protection: gate-internal failures always allow with a loud WARN. Direct commits on main/master/develop force the full unit suite.
+- **`pactkit deps check/install`** (STORY-slim-137) — External dependency registry (node/codegraph/gh) with platform-aware guided install. `pactkit init` CLI only reports (CI/air-gap safe); `/project-init` Phase 1.5 asks before installing. `enterprise.no_external` refuses installs.
+- **`pactkit schema config`** (STORY-slim-135) — Discoverability report for every pactkit.yaml key: default, effective value, and source file.
+- **Deployment parity check in `pactkit doctor`** (STORY-slim-139) — Every deploy writes `.pactkit-deployed.json`; doctor compares per-format manifests against the registry and FormatProfile capability matrix, turning silent deployment drift into explicit `Deployed drift:` reports.
+
+### Changed
+- **Schema-driven pactkit.yaml** (STORY-slim-135) — `CONFIG_SCHEMA` is now the single source for defaults, validation, deep-merge behavior, and rendering. Fresh `pactkit init` writes a minimal yaml (stack + developer only) instead of a 94-line default wall; absent keys resolve through defaults. Multi-copy sync keeps `.claude`/`.codex`/`.github`/`.opencode` copies identical (canonical = `.claude` first); doctor reports copy drift.
+- **Skill deployment single source** (STORY-slim-139) — `SKILL_MANIFEST` + public `get_skill_manifest()` contract; codex/copilot adapters consume it (restoring pactkit-garden/audit/report which a stale hardcoded list had silently dropped), opencode already conformant.
+- **Rule map migration** — `COMMAND_RULES_MAP` keys migrated to the merged `pactkit` rule file; inline embedding no longer duplicates globally-loaded constitution content per command.
+
+### Fixed
+- **Codex adapter never touches an existing `config.toml`** — after two wipe incidents (custom TOML writer stringified arrays; parse-failure path rewrote managed-only content), the policy is now create-if-absent only. Existing files stay byte-identical.
+- **OpenCode global instructions** — the merge logic no longer strips `rules/pactkit.md` from the always-load layer.
+- **`install_git_hook` idempotency** — re-running no longer clobbers chained third-party pre-commit hooks.
+- **Config copy precedence incident** — canonical selection uses explicit preference order, not key-count heuristics (an inflated default-wall copy could otherwise overwrite hand-curated config).
+
 ## [2.16.1] - 2026-07-23
 
 ### Fixed
