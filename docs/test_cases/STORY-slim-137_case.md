@@ -77,11 +77,11 @@
 ## TC-06: doctor 报告 deps 健康 (R4)
 
 
-- **Scenario**: Missing dependency surfaces in doctor
+- **Scenario**: Missing dependency surfaces in doctor as a warning
   - **Given** a missing external dependency
   - **When** pactkit doctor runs
-  - **Then** the missing item and install hint are reported
-  - **And** the exit code is 1
+  - **Then** the missing item and install hint are reported as WARN
+  - **And** the exit code stays 0 (optional tooling never fails doctor)
 
 ## TC-07: 测试套件全通过 (R1-R5)
 

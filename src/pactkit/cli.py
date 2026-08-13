@@ -753,14 +753,15 @@ def main():
             print("  → Run `pactkit update` to sync all config copies")
             has_issues = True
 
-        # STORY-slim-137 R4: external dependency health
+        # STORY-slim-137 R4: external dependency health — report-only (these
+        # are optional enhancements; missing ones must not fail doctor in
+        # minimal/CI environments — Spec AC6 amended 2026-08-13)
         from pactkit.deps import check_deps
 
         for s in check_deps():
             if not s.installed:
-                print(f"  Missing dependency: {s.name} — {s.purpose}")
+                print(f"  ⚠️  Optional dependency missing: {s.name} — {s.purpose}")
                 print(f"    install: {s.install_hint}")
-                has_issues = True
 
         # STORY-slim-139 R3: deployment parity across formats
         from pactkit.doctor import check_deploy_parity
