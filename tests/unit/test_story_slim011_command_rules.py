@@ -37,23 +37,23 @@ from pactkit.prompts.rules import (
 # AC1: COMMAND_RULES_MAP matches Spec R1 table
 # ---------------------------------------------------------------------------
 
-# Spec R1 table (rule numbers → keys mapping):
-# 01=core, 02=hierarchy, 03=atlas, 04=routing, 05=workflow,
-# 06=mcp, 07=shared, 08=architecture, 09=credential
+# Spec R1 table — keys migrated 2026-08-13: core/hierarchy/atlas/routing were
+# merged into the single "pactkit" rule file (RULES_CORE_FILES); stale keys
+# were silently skipped by deployers. Current keys must exist in RULES_FILES.
 SPEC_TABLE = {
     # architecture/solution/engineering removed from @inject — loaded on-demand via Read in playbooks
-    "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-clarify": ["core", "credential"],
-    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-done": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-release": ["core", "workflow", "credential"],
-    "project-pr": ["core", "workflow", "credential"],
-    "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "sectional", "atlas", "mcp", "credential"],
+    "project-init": ["pactkit", "sectional", "shared", "credential"],
+    "project-plan": ["pactkit", "sectional", "mcp", "shared", "credential"],
+    "project-clarify": ["pactkit", "credential"],
+    "project-act": ["pactkit", "mcp", "shared", "credential"],
+    "project-check": ["pactkit", "mcp", "shared", "credential"],
+    "project-done": ["pactkit", "workflow", "shared", "credential"],
+    "project-release": ["pactkit", "workflow", "credential"],
+    "project-pr": ["pactkit", "workflow", "credential"],
+    "project-hotfix": ["pactkit", "workflow", "shared", "credential"],
+    "project-design": ["pactkit", "sectional", "mcp", "credential"],
     "project-sprint": [
-        "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
+        "pactkit", "sectional", "workflow",
         "mcp", "shared", "credential",
     ],
 }
@@ -221,9 +221,10 @@ class TestAC4AC5OpenCodeInline:
         _deploy_commands(commands_dir, ["project-clarify"], profile=profile)
 
         content = (commands_dir / "project-clarify.md").read_text()
-        # Should have 01 content inlined
-        assert "# Core Protocol" in content
-        # Should NOT have other rule content
+        # Post-merge (2026-08-13): the merged pactkit constitution loads via the
+        # format's global config, so it is NOT inlined per-command anymore.
+        assert "# Core Protocol" not in content
+        # Should NOT have other rule content either (clarify carries no on-demand rules)
         assert "# The Hierarchy of Truth" not in content
         assert "# File Atlas" not in content
         assert "# Architecture Principles" not in content
@@ -240,16 +241,17 @@ class TestAC4AC5OpenCodeInline:
         _deploy_commands(commands_dir, ["project-act"], profile=profile)
 
         content = (commands_dir / "project-act.md").read_text()
-        # Should have managed rule content (architecture/solution/engineering now on-demand)
+        # On-demand rule content is inlined; the merged constitution (which now
+        # contains Core Protocol / Hierarchy / Atlas / Routing) loads globally
+        # and MUST NOT be inlined per-command (dedup + slimming, slim-011).
         for heading in [
-            "# Core Protocol",
-            "# The Hierarchy of Truth",
-            "# File Atlas",
             "# MCP Integration",
             "# Shared Protocols",
         ]:
             assert heading in content, f"Missing inline content: {heading}"
-        # Should NOT have 04-routing-table or 05-workflow content
+        # Global/merged content must stay out of per-command files
+        assert "# Core Protocol" not in content
+        assert "# The Hierarchy of Truth" not in content
         assert "# Command Reference (Routing Table)" not in content
         assert "# Workflow Conventions" not in content
 

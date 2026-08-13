@@ -896,10 +896,13 @@ def _build_command_rules_header(cmd_name, profile, config=None):
         return "\n".join(lines) + "\n"
 
     elif style == "inline":
-        # Inline content embedding — credential handled externally, not inlined
+        # Inline content embedding — credential handled externally, not inlined.
+        # Global core rules (RULES_CORE_FILES, e.g. merged pactkit.md) are loaded
+        # via the format's global config (opencode.json instructions), so they are
+        # skipped here — same as the @import branch (STORY-slim-139 map migration).
         parts = []
         for key in sorted(rules):
-            if key == "credential":
+            if key == "credential" or key in prompts.RULES_CORE_FILES:
                 continue
             content = prompts.RULES_MODULES.get(key)
             if content:

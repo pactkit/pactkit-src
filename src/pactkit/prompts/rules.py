@@ -838,26 +838,29 @@ CREDENTIAL_SAFETY_FILE = "09-credential-safety.md"
 # STORY-slim-011: Command → Rules mapping
 # Each command loads only the rules it needs, reducing token waste.
 # "credential" is a special key referencing CREDENTIAL_SAFETY_FILE (user-managed).
-# Keys: core=01, hierarchy=02, atlas=03, routing=04, workflow=05,
-#        mcp=06, shared=07, architecture=08, credential=09
+# Keys must exist in RULES_FILES: pactkit (merged core+hierarchy+atlas+routing+
+# principles+nudge), workflow, mcp, shared, architecture, sectional, solution,
+# engineering; plus the virtual "credential".
+# NOTE: core/hierarchy/atlas/routing were merged into the single "pactkit" rule
+# file — stale keys were silently skipped by deployers (drift found 2026-08-13).
 COMMAND_RULES_MAP = {
     # Slimmed: architecture/solution/engineering removed from @inject — loaded on-demand via Read
     # in command playbooks when their trigger conditions are met (Phase 1.5, Solution Design, etc.)
-    "project-init": ["core", "sectional", "atlas", "shared", "credential"],
-    "project-plan": ["core", "sectional", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-clarify": ["core", "credential"],
-    "project-act": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-check": ["core", "hierarchy", "atlas", "mcp", "shared", "credential"],
-    "project-done": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-release": ["core", "workflow", "credential"],
-    "project-pr": ["core", "workflow", "credential"],
-    "project-hotfix": ["core", "hierarchy", "atlas", "workflow", "shared", "credential"],
-    "project-design": ["core", "sectional", "atlas", "mcp", "credential"],
+    "project-init": ["pactkit", "sectional", "shared", "credential"],
+    "project-plan": ["pactkit", "sectional", "mcp", "shared", "credential"],
+    "project-clarify": ["pactkit", "credential"],
+    "project-act": ["pactkit", "mcp", "shared", "credential"],
+    "project-check": ["pactkit", "mcp", "shared", "credential"],
+    "project-done": ["pactkit", "workflow", "shared", "credential"],
+    "project-release": ["pactkit", "workflow", "credential"],
+    "project-pr": ["pactkit", "workflow", "credential"],
+    "project-hotfix": ["pactkit", "workflow", "shared", "credential"],
+    "project-design": ["pactkit", "sectional", "mcp", "credential"],
     "project-sprint": [
-        "core", "sectional", "hierarchy", "atlas", "routing", "workflow",
+        "pactkit", "sectional", "workflow",
         "mcp", "shared", "credential",
     ],
-    "project-debug": ["core", "shared", "credential"],
+    "project-debug": ["pactkit", "shared", "credential"],
 }
 
 # Managed file prefixes for rules/ directory cleanup (deployer will clean these, leave user files intact)
