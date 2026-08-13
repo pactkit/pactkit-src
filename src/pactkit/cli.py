@@ -453,16 +453,16 @@ def main():
             non_interactive=getattr(args, "non_interactive", False),
         )
 
-        # Post-deploy housekeeping for real classic/all deploys (STORY-slim-138
-        # R4 hook install honors enterprise.no_git; STORY-slim-137 R4 deps
-        # summary is read-only and never installs).
-        if args.target is None and args.format in ("all", "classic"):
+        # Post-deploy housekeeping for real deploys: commit-gate channel
+        # dispatch (STORY-slim-138 R4 settings hook; STORY-slim-140 R1 git-hook
+        # fallback for non-Claude formats) + read-only deps summary (slim-137).
+        if args.target is None:
             from pathlib import Path
 
-            from pactkit.commit_gate import install_hook
+            from pactkit.commit_gate import ensure_gate_channel
             from pactkit.deps import check_deps, render_check_report
 
-            print(f"  -> {install_hook(Path.cwd())}")
+            print(f"  -> commit gate: {ensure_gate_channel(Path.cwd(), args.format)}")
             report = render_check_report(check_deps())
             if "❌" in report:
                 print(f"\n{report}")
@@ -761,6 +761,16 @@ def main():
                 print(f"  Missing dependency: {s.name} — {s.purpose}")
                 print(f"    install: {s.install_hint}")
                 has_issues = True
+
+        # STORY-slim-139 R3: deployment parity across formats
+        from pactkit.doctor import check_deploy_parity
+
+        parity = check_deploy_parity(root)
+        for detail in parity["details"]:
+            print(f"  {detail}")
+            has_issues = True
+        for warning in parity["warnings"]:
+            print(f"  ⚠️  {warning}")
 
         if not has_issues:
             print("Health: OK")

@@ -287,13 +287,63 @@ def install_git_hook(root: Path) -> str:
         return "git pre-commit hook: not a git repository — skipped"
     hook = hooks_dir / "pre-commit"
     script = "#!/bin/sh\n# pactkit commit-gate (STORY-slim-138)\nexec pactkit commit-gate\n"
-    if hook.exists() and "commit-gate" not in hook.read_text(encoding="utf-8"):
+    if hook.exists():
+        existing = hook.read_text(encoding="utf-8", errors="replace")
+        if "commit-gate" in existing:
+            return f"git pre-commit hook: already installed at {hook}"  # idempotent no-op
         backup = hook.with_suffix(".pre-pactkit")
         backup.write_bytes(hook.read_bytes())
-        chain = hook.read_text(encoding="utf-8").rstrip("\n") + "\n\npactkit commit-gate || exit 1\n"
+        chain = existing.rstrip("\n") + "\n\npactkit commit-gate || exit 1\n"
         hook.write_text(chain, encoding="utf-8")
         hook.chmod(0o755)
         return f"git pre-commit hook: chained onto existing hook (backup: {backup.name})"
     hook.write_text(script, encoding="utf-8")
     hook.chmod(0o755)
     return f"git pre-commit hook: installed at {hook}"
+
+
+# ---------------------------------------------------------------------------
+# Format-aware channel dispatch (STORY-slim-140)
+# ---------------------------------------------------------------------------
+
+# Formats whose runtime reads .claude/settings.json PreToolUse hooks
+_PRETOOLUSE_FORMATS = frozenset({"all", "classic"})
+
+
+def gate_channel(root: Path) -> str:
+    """Report the currently active commit-gate channel for status output (R2)."""
+    if _no_git_enabled(root):
+        return "none (enterprise.no_git)"
+    settings = root / ".claude" / "settings.json"
+    if settings.exists():
+        try:
+            data = json.loads(settings.read_text(encoding="utf-8"))
+            entries = data.get("hooks", {}).get("PreToolUse", [])
+            if any("commit-gate" in h.get("command", "")
+                   for e in entries for h in e.get("hooks", []) if isinstance(h, dict)):
+                return "PreToolUse hook"
+        except json.JSONDecodeError:
+            pass
+    hook = root / ".git" / "hooks" / "pre-commit"
+    if hook.exists() and "commit-gate" in hook.read_text(encoding="utf-8", errors="replace"):
+        return "git pre-commit"
+    return "none"
+
+
+def ensure_gate_channel(root: Path, format_name: str) -> str:
+    """Install the appropriate commit-gate channel for the deployed format.
+
+    STORY-slim-140 R1: classic/all → PreToolUse hook (Claude Code only).
+    Anything else (codex/opencode/copilot…) → git pre-commit fallback,
+    because git-level interception is tool-agnostic. Returns the active
+    channel string for the deploy summary (R2).
+    """
+    root = Path(root)
+    if format_name in _PRETOOLUSE_FORMATS:
+        install_hook(root)
+    elif (root / ".git").is_dir():
+        install_git_hook(root)
+    channel = gate_channel(root)
+    if channel == "none" and not (root / ".git").is_dir() and format_name not in _PRETOOLUSE_FORMATS:
+        return "none (not a git repository)"
+    return channel

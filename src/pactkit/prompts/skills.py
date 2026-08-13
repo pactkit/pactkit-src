@@ -775,3 +775,47 @@ Version release management — update versions, snapshot architecture, create Gi
 - Create a GitHub Release: `gh release create $VERSION --title "$VERSION" --notes "$NOTES"`.
 - Verify: `gh release view $VERSION` confirms the release exists and is marked Latest.
 """
+
+
+# ---------------------------------------------------------------------------
+# SKILL_MANIFEST — single source of truth for skill deployment (STORY-slim-139 R1)
+#
+# Every deployer (core classic/plugin AND external adapters like pactkit-codex)
+# MUST iterate this manifest via get_skill_manifest(). Adding a skill = adding
+# one entry here. script_name=None means prompt-only (SKILL.md only).
+# ---------------------------------------------------------------------------
+
+SKILL_MANIFEST: tuple[dict, ...] = (
+    {"name": "pactkit-visualize", "skill_md": SKILL_VISUALIZE_MD, "script_name": "visualize.py"},
+    {"name": "pactkit-board", "skill_md": SKILL_BOARD_MD, "script_name": "board.py"},
+    {"name": "pactkit-scaffold", "skill_md": SKILL_SCAFFOLD_MD, "script_name": "scaffold.py"},
+    {"name": "pactkit-report", "skill_md": SKILL_REPORT_MD, "script_name": "report.py"},
+    {"name": "pactkit-trace", "skill_md": SKILL_TRACE_MD, "script_name": None},
+    {"name": "pactkit-draw", "skill_md": SKILL_DRAW_MD, "script_name": None},
+    {"name": "pactkit-status", "skill_md": SKILL_STATUS_MD, "script_name": None},
+    {"name": "pactkit-doctor", "skill_md": SKILL_DOCTOR_MD, "script_name": None},
+    {"name": "pactkit-garden", "skill_md": SKILL_GARDEN_MD, "script_name": None},
+    {"name": "pactkit-review", "skill_md": SKILL_REVIEW_MD, "script_name": None},
+    {"name": "pactkit-release", "skill_md": SKILL_RELEASE_MD, "script_name": None},
+    {"name": "pactkit-analyze", "skill_md": SKILL_ANALYZE_MD, "script_name": None},
+    {"name": "pactkit-audit", "skill_md": SKILL_AUDIT_MD, "script_name": None},
+)
+
+
+def get_skill_manifest() -> list[dict]:
+    """Return the skill manifest with script sources resolved.
+
+    Public adapter contract (STORY-slim-139 R1): each entry has
+    name / skill_md / script_name (None for prompt-only) and, for scripted
+    skills, script_source. Adapters consume this instead of maintaining
+    their own skill lists.
+    """
+    from pactkit.skills import load_script
+
+    resolved = []
+    for entry in SKILL_MANIFEST:
+        item = dict(entry)
+        if item["script_name"]:
+            item["script_source"] = load_script(item["script_name"])
+        resolved.append(item)
+    return resolved

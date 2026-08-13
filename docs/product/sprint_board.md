@@ -36,24 +36,6 @@
 
 - [ ] Add move_story command template to Phase 0.6
 
-
-### [STORY-slim-139] Skill manifest single source + adapter parity check
-> Spec: docs/specs/STORY-slim-139.md
-
-- [ ] SKILL_MANIFEST 注册表+get_skill_manifest()
-- [ ] _deploy_skills 迭代化+.pactkit-deployed.json 落盘
-- [ ] doctor parity 检查(能力矩阵感知)
-- [ ] 跨仓: pactkit-codex 消费契约+版本 bump
-- [ ] 单测
-
-
-### [STORY-slim-140] commit-gate git-hook fallback for non-Claude environments
-> Spec: docs/specs/STORY-slim-140.md
-
-- [ ] cli post-deploy 格式分派(无 classic→自动 git hook)
-- [ ] 门禁通道状态输出
-- [ ] 幂等/链式/no_git 单测
-
 ## 🔄 In Progress
 
 ## ✅ Done

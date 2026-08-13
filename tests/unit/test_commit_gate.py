@@ -253,3 +253,60 @@ class TestGitHook:
         assert "pactkit commit-gate" in content
         assert (hooks / "pre-commit.pre-pactkit").exists()
         assert "chained" in msg
+
+
+# ---------------------------------------------------------------------------
+# STORY-slim-140: format-aware gate channel dispatch
+# ---------------------------------------------------------------------------
+
+
+class TestGateChannelDispatch:
+    def test_classic_gets_pretooluse(self, repo):
+        from pactkit.commit_gate import ensure_gate_channel
+
+        channel = ensure_gate_channel(repo, "classic")
+        assert channel == "PreToolUse hook"
+        settings = json.loads((repo / ".claude" / "settings.json").read_text())
+        assert "commit-gate" in settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+        assert not (repo / ".git" / "hooks" / "pre-commit").exists()
+
+    def test_non_claude_gets_git_hook(self, repo):
+        """AC1: pure codex deploy auto-installs git pre-commit."""
+        from pactkit.commit_gate import ensure_gate_channel
+
+        (repo / ".git" / "hooks").mkdir()
+        channel = ensure_gate_channel(repo, "codex")
+        assert channel == "git pre-commit"
+        assert "pactkit commit-gate" in (repo / ".git" / "hooks" / "pre-commit").read_text()
+        assert not (repo / ".claude" / "settings.json").exists()
+
+    def test_non_claude_without_git_repo(self, repo):
+        from pactkit.commit_gate import ensure_gate_channel
+
+        (repo / ".git").rmdir()  # remove the fixture's .git
+        channel = ensure_gate_channel(repo, "opencode")
+        assert channel.startswith("none")
+
+    def test_no_git_disables_everything(self, repo):
+        """AC3: enterprise.no_git -> no hook of any kind, explicit channel."""
+        from pactkit.commit_gate import ensure_gate_channel
+
+        (repo / ".claude").mkdir(exist_ok=True)
+        (repo / ".claude" / "pactkit.yaml").write_text("enterprise:\n  no_git: true\n")
+        (repo / ".git" / "hooks").mkdir()
+        channel = ensure_gate_channel(repo, "codex")
+        assert "no_git" in channel
+        assert not (repo / ".git" / "hooks" / "pre-commit").exists()
+
+    def test_idempotent_and_chained(self, repo):
+        """AC4: repeat dispatch keeps third-party hook content, single entry."""
+        from pactkit.commit_gate import ensure_gate_channel
+
+        hooks = repo / ".git" / "hooks"
+        hooks.mkdir()
+        (hooks / "pre-commit").write_text("#!/bin/sh\necho third-party\n")
+        ensure_gate_channel(repo, "codex")
+        ensure_gate_channel(repo, "codex")
+        content = (hooks / "pre-commit").read_text()
+        assert "echo third-party" in content
+        assert content.count("pactkit commit-gate") == 1

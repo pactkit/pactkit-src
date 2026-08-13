@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-140 |
-| Status | Draft |
+| Status | Done |
 | Priority | P1 |
 | Release | 2.17.0 |
 

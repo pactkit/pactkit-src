@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-139 |
-| Status | Draft |
+| Status | Done |
 | Priority | P1 |
 | Release | 2.17.0 |
 
@@ -29,9 +29,9 @@
 
 `pactkit doctor` 新增部署漂移检测：读取本机各格式的 `.pactkit-deployed.json`，对照 core 注册表 + 格式能力矩阵（FormatProfile 的排除项，如 `project-sprint` 为 claude-only）计算**期望集合**，实际集合缺项即报告 `Deployed drift: {format} missing {component}` 并给出修复指引（升级 adapter / 重新 deploy）。能力矩阵内的合法差异 MUST NOT 误报。
 
-### R4: codex adapter 消费契约（跨仓步骤）(MUST)
+### R4: codex + copilot adapter 消费契约（跨仓步骤）(MUST)
 
-在 `~/workspaces/pactkit-codex`：删除 `deploy_codex_skills` 的两个硬编码清单，改为消费 `get_skill_manifest()`；adapter 版本 bump 并在本仓 Spec 记录。adapter 侧改动以其自身测试套件验证。
+在 `~/workspaces/pactkit-codex` 与 copilot adapter（Act 阶段确认仓库位置）：删除各自的硬编码 skill 清单（两处均为 10 项旧快照），改为消费 `get_skill_manifest()`；adapter 版本 bump 并在本仓 Spec 记录。adapter 侧改动以其自身测试套件验证。
 
 ### R5: 能力矩阵语义不变 (MUST NOT)
 

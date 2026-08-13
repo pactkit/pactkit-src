@@ -35,7 +35,6 @@ from pactkit.profiles import (
     FormatProfile,
     get_profile,
 )
-from pactkit.skills import load_script
 from pactkit.utils import atomic_write
 
 # Path prefix constants — kept for plugin/marketplace modes only
@@ -409,6 +408,11 @@ def _deploy_classic(config=None, target=None):
     # STORY-slim-102: Write global version marker
     atomic_write(claude_root / ".pactkit-version", f"{__version__}\n")
 
+    # STORY-slim-139 R2: machine-readable deployment manifest for parity checks
+    from pactkit.deploy_manifest import write_deploy_manifest
+
+    write_deploy_manifest(claude_root, "classic", config)
+
     _print_mcp_recommendations()
 
 
@@ -465,6 +469,9 @@ def _deploy_marketplace(target=None):
 def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None):
     """Deploy skill directories filtered by config.
 
+    Iterates the single-source SKILL_MANIFEST (STORY-slim-139 R1) — no local
+    hardcoded skill lists here or in adapters.
+
     Args:
         profile: FormatProfile (STORY-slim-005). Derives skills prefix automatically.
         _legacy_prefix: Internal raw string prefix for plugin/marketplace modes only.
@@ -477,67 +484,13 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         _prefix = _legacy_prefix
     else:
         _prefix = CLASSIC_SKILLS_PREFIX
-    # Skills with executable scripts
-    scripted_skill_defs = [
-        {
-            "name": "pactkit-visualize",
-            "skill_md": prompts.SKILL_VISUALIZE_MD,
-            "script_name": "visualize.py",
-            "script_source": load_script("visualize.py"),
-        },
-        {
-            "name": "pactkit-board",
-            "skill_md": prompts.SKILL_BOARD_MD,
-            "script_name": "board.py",
-            "script_source": load_script("board.py"),
-        },
-        {
-            "name": "pactkit-scaffold",
-            "skill_md": prompts.SKILL_SCAFFOLD_MD,
-            "script_name": "scaffold.py",
-            "script_source": load_script("scaffold.py"),
-        },
-        {
-            "name": "pactkit-report",
-            "skill_md": prompts.SKILL_REPORT_MD,
-            "script_name": "report.py",
-            "script_source": load_script("report.py"),
-        },
-    ]
 
-    # Prompt-only skills (SKILL.md only, no executable script) — STORY-011
-    prompt_only_skill_defs = [
-        {"name": "pactkit-trace", "skill_md": prompts.SKILL_TRACE_MD},
-        {"name": "pactkit-draw", "skill_md": prompts.SKILL_DRAW_MD},
-        {"name": "pactkit-status", "skill_md": prompts.SKILL_STATUS_MD},
-        {"name": "pactkit-doctor", "skill_md": prompts.SKILL_DOCTOR_MD},
-        {"name": "pactkit-garden", "skill_md": prompts.SKILL_GARDEN_MD},
-        {"name": "pactkit-review", "skill_md": prompts.SKILL_REVIEW_MD},
-        {"name": "pactkit-release", "skill_md": prompts.SKILL_RELEASE_MD},
-        {"name": "pactkit-analyze", "skill_md": prompts.SKILL_ANALYZE_MD},
-        {"name": "pactkit-audit", "skill_md": prompts.SKILL_AUDIT_MD},
-    ]
+    from pactkit.prompts.skills import get_skill_manifest
 
     enabled_set = set(enabled_skills)
     deployed = 0
 
-    # Deploy scripted skills (SKILL.md + script)
-    for sd in scripted_skill_defs:
-        if sd["name"] not in enabled_set:
-            continue
-        skill_dir = skills_dir / sd["name"]
-        scripts_dir = skill_dir / "scripts"
-        scripts_dir.mkdir(parents=True, exist_ok=True)
-
-        skill_md = _render_skill_md(sd, profile, _prefix)
-        if profile is not None:
-            _warn_deploy_violations(skill_md, profile, f"skill:{sd['name']}")
-        atomic_write(skill_dir / "SKILL.md", skill_md)
-        atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
-        deployed += 1
-
-    # Deploy prompt-only skills (SKILL.md only)
-    for sd in prompt_only_skill_defs:
+    for sd in get_skill_manifest():
         if sd["name"] not in enabled_set:
             continue
         skill_dir = skills_dir / sd["name"]
@@ -547,6 +500,10 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
         if profile is not None:
             _warn_deploy_violations(skill_md, profile, f"skill:{sd['name']}")
         atomic_write(skill_dir / "SKILL.md", skill_md)
+        if sd["script_name"]:
+            scripts_dir = skill_dir / "scripts"
+            scripts_dir.mkdir(exist_ok=True)
+            atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
         deployed += 1
 
     return deployed

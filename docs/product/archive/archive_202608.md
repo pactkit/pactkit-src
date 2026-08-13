@@ -32,3 +32,19 @@
 - [x] pactkit schema config 可发现性
 - [x] 多副本同步写入+doctor 漂移检测
 - [x] golden 等价性测试+全量回归
+
+### [STORY-slim-140] commit-gate git-hook fallback for non-Claude environments
+> Spec: docs/specs/STORY-slim-140.md
+
+- [x] cli post-deploy 格式分派(无 classic→自动 git hook)
+- [x] 门禁通道状态输出
+- [x] 幂等/链式/no_git 单测
+
+### [STORY-slim-139] Skill manifest single source + adapter parity check
+> Spec: docs/specs/STORY-slim-139.md
+
+- [x] SKILL_MANIFEST 注册表+get_skill_manifest()
+- [x] _deploy_skills 迭代化+.pactkit-deployed.json 落盘
+- [x] doctor parity 检查(能力矩阵感知)
+- [x] 跨仓: pactkit-codex 消费契约+版本 bump
+- [x] 单测

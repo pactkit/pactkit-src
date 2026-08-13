@@ -132,6 +132,7 @@ graph TD
     _search_issue["_search_issue"]
     _should_refresh_audit["_should_refresh_audit"]
     _spec_status["_spec_status"]
+    _strip_code_spans["_strip_code_spans"]
     _suggest_action["_suggest_action"]
     _tool_version["_tool_version"]
     _update_stack_if_stale["_update_stack_if_stale"]
@@ -153,6 +154,7 @@ graph TD
     check_config_drift__exists_in_any["check_config_drift._exists_in_any"]
     check_coverage["check_coverage"]
     check_dead_imports["check_dead_imports"]
+    check_deploy_parity["check_deploy_parity"]
     check_deps["check_deps"]
     check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
@@ -177,13 +179,17 @@ graph TD
     detect_stack["detect_stack"]
     detect_stacks["detect_stacks"]
     detect_venv["detect_venv"]
+    ensure_gate_channel["ensure_gate_channel"]
     existing_config_copies["existing_config_copies"]
+    expected_components["expected_components"]
     find_pactkit_yaml["find_pactkit_yaml"]
     format_markdown_table["format_markdown_table"]
+    gate_channel["gate_channel"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     get_default_config["get_default_config"]
     get_profile["get_profile"]
+    get_skill_manifest["get_skill_manifest"]
     hook_entry["hook_entry"]
     install_deps["install_deps"]
     install_git_hook["install_git_hook"]
@@ -221,6 +227,7 @@ graph TD
     update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
     verify_story["verify_story"]
+    write_deploy_manifest["write_deploy_manifest"]
     check_deps --> _detect_platform
     check_deps --> _install_argv
     check_deps --> _tool_version
@@ -352,10 +359,17 @@ graph TD
     _no_git_enabled --> load_config
     install_hook --> _no_git_enabled
     install_git_hook --> _no_git_enabled
+    gate_channel --> _no_git_enabled
+    ensure_gate_channel --> gate_channel
+    ensure_gate_channel --> install_hook
+    ensure_gate_channel --> install_git_hook
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
     run_lint --> load_config
+    expected_components --> is_environment_format
+    expected_components --> get_profile
+    write_deploy_manifest --> expected_components
     should_visualize --> detect_stack
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
@@ -382,7 +396,7 @@ graph TD
     main --> check_deps
     main --> _schema_command
     main --> check_init_markers
-    main --> install_hook
+    main --> ensure_gate_channel
     main --> check_version_mismatch
     main --> load_config
     main --> next_story_id
@@ -407,6 +421,7 @@ graph TD
     main --> check_hld_module_count
     main --> check_config_copy_drift
     main --> check_deps
+    main --> check_deploy_parity
     main --> scan_and_replace_tbd
     main --> issue_sync
     main --> map_to_tests
@@ -449,6 +464,7 @@ graph TD
     check_requirement_evidence --> _parse_ac_to_reqs
     check_requirement_evidence --> _parse_requirements
     check_requirement_evidence --> map_to_tests
+    check_archive_honesty --> _strip_code_spans
     check_archive_honesty --> _read
     _changed_source_files --> _git
     _changed_source_files --> _git
@@ -471,6 +487,7 @@ graph TD
     check_config_drift --> check_config_drift__exists_in_any
     check_config_drift --> check_config_drift__dir_or_file_in_any
     check_stale_graphs --> load_config
+    check_deploy_parity --> expected_components
     _warn_deploy_violations --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
@@ -497,6 +514,7 @@ graph TD
     _deploy_classic --> _deploy_ci
     _deploy_classic --> _generate_config_if_missing
     _deploy_classic --> atomic_write
+    _deploy_classic --> write_deploy_manifest
     _deploy_classic --> _print_mcp_recommendations
     _deploy_classic --> find_pactkit_yaml
     _deploy_classic --> auto_merge_config_file
@@ -511,13 +529,11 @@ graph TD
     _deploy_plugin --> _print_mcp_recommendations
     _deploy_marketplace --> _deploy_plugin
     _deploy_marketplace --> _deploy_marketplace_json
-    _deploy_skills --> _render_skill_md
-    _deploy_skills --> atomic_write
-    _deploy_skills --> atomic_write
+    _deploy_skills --> get_skill_manifest
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
     _deploy_skills --> _warn_deploy_violations
-    _deploy_skills --> _warn_deploy_violations
+    _deploy_skills --> atomic_write
     _deploy_rules --> _build_rule_id_to_key
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt

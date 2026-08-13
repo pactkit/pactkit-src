@@ -23,6 +23,8 @@ graph TD
     click src_pactkit_lint_runner_py href "src/pactkit/lint_runner.py"
     src_pactkit_validators_py["validators.py"]
     click src_pactkit_validators_py href "src/pactkit/validators.py"
+    src_pactkit_deploy_manifest_py["deploy_manifest.py"]
+    click src_pactkit_deploy_manifest_py href "src/pactkit/deploy_manifest.py"
     src_pactkit___init___py["__init__.py"]
     click src_pactkit___init___py href "src/pactkit/__init__.py"
     src_pactkit_lazy_visualize_py["lazy_visualize.py"]
@@ -101,6 +103,9 @@ graph TD
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
     src_pactkit_lint_runner_py --> src_pactkit_config_py
     src_pactkit_validators_py --> src_pactkit_schemas_py
+    src_pactkit_deploy_manifest_py --> src_pactkit___init___py
+    src_pactkit_deploy_manifest_py --> src_pactkit_config_py
+    src_pactkit_deploy_manifest_py --> src_pactkit_profiles_py
     src_pactkit_lazy_visualize_py --> src_pactkit_cleaners_py
     src_pactkit_lazy_visualize_py --> src_pactkit_prompts_workflows_py
     src_pactkit_context_gen_py --> src_pactkit_schemas_py
@@ -140,6 +145,7 @@ graph TD
     src_pactkit_done_verify_py --> src_pactkit___init___py
     src_pactkit_done_verify_py --> src_pactkit_test_mapper_py
     src_pactkit_doctor_py --> src_pactkit_config_py
+    src_pactkit_doctor_py --> src_pactkit_deploy_manifest_py
     src_pactkit_doctor_py --> src_pactkit_profiles_py
     src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
     src_pactkit___main___py --> src_pactkit_cli_py
@@ -152,6 +158,8 @@ graph TD
     src_pactkit_generators_deployer_py --> src_pactkit_profiles_py
     src_pactkit_generators_deployer_py --> src_pactkit_utils_py
     src_pactkit_generators_deployer_py --> src_pactkit_schemas_py
+    src_pactkit_generators_deployer_py --> src_pactkit_deploy_manifest_py
+    src_pactkit_generators_deployer_py --> src_pactkit_prompts_skills_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_guides_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py
     src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py

@@ -222,3 +222,66 @@ def check_hld_module_count(project_root: Path) -> dict:
         "hld_nodes": hld_nodes,
         "drift": source_modules - hld_nodes,
     }
+
+
+# Deployment roots probed for .pactkit-deployed.json (STORY-slim-139 R3).
+# {home} / {root} are substituted at scan time.
+DEPLOY_PROBE_PATHS = (
+    "{home}/.claude",
+    "{home}/.codex",
+    "{home}/.config/opencode",
+    "{root}/.claude",
+    "{root}/.github",
+    "{root}/.codex",
+    "{root}/.opencode",
+)
+
+
+def check_deploy_parity(project_root: Path) -> dict:
+    """Compare per-format deployment manifests against the current registry.
+
+    Returns {"drift": bool, "details": [str], "warnings": [str]}.
+    Missing manifest on a deployed-looking directory -> warning (pre-2.17
+    deploy), not drift. Corrupt JSON degrades to a warning (SEC-2/SEC-7).
+    Profile capability exclusions (e.g. project-sprint off Claude) never
+    count as drift (R5).
+    """
+    import json
+
+    from pactkit.deploy_manifest import MANIFEST_NAME, expected_components
+
+    details: list[str] = []
+    warnings: list[str] = []
+    seen_formats: set[str] = set()
+
+    for template in DEPLOY_PROBE_PATHS:
+        probe = Path(
+            template.replace("{home}", str(Path.home())).replace("{root}", str(project_root))
+        )
+        manifest = probe / MANIFEST_NAME
+        if not manifest.exists():
+            # A directory that looks deployed but has no manifest = old version
+            if probe.is_dir() and (probe / "skills").is_dir():
+                warnings.append(f"{probe}: no deployment manifest — re-run `pactkit update`")
+            continue
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            warnings.append(f"{manifest}: unreadable ({exc}) — re-run `pactkit update`")
+            continue
+
+        fmt = data.get("format", "")
+        if not fmt or fmt in seen_formats:
+            continue
+        seen_formats.add(fmt)
+
+        expected = expected_components(fmt)
+        for kind in ("skills", "commands", "agents"):
+            deployed = set(data.get(kind, []))
+            missing = sorted(set(expected[kind]) - deployed)
+            for item in missing:
+                details.append(
+                    f"Deployed drift: {fmt} missing {kind[:-1]} '{item}' — upgrade adapter / re-run `pactkit update`"
+                )
+
+    return {"drift": bool(details), "details": details, "warnings": warnings}
