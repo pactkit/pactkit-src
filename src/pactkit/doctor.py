@@ -312,3 +312,42 @@ def check_deploy_parity(project_root: Path) -> dict:
                     details.append(f"Content drift: {fmt} '{rel}' — re-run `pactkit update`")
 
     return {"drift": bool(details), "details": details, "warnings": warnings}
+
+
+def check_adapter_skew() -> list[str]:
+    """Warn when an installed adapter package lags behind the core version.
+
+    STORY-slim-142 R3: the manifest's pactkit_version is stamped by core, so
+    it can never reveal an outdated adapter — read package metadata directly.
+    Adapters discovered via the ``pactkit.deployers`` entry-point group; a
+    missing/unreadable package is skipped silently (SEC-7).
+    """
+    import importlib.metadata
+
+    from pactkit import __version__
+
+    def _major_minor(v: str) -> tuple[int, ...]:
+        parts = []
+        for chunk in v.split(".")[:2]:
+            digits = "".join(c for c in chunk if c.isdigit())
+            parts.append(int(digits) if digits else 0)
+        return tuple(parts)
+
+    warnings: list[str] = []
+    try:
+        eps = importlib.metadata.entry_points(group="pactkit.deployers")
+    except Exception:
+        return warnings  # SEC-7: metadata backend failure must not crash doctor
+    core = _major_minor(__version__)
+    for ep in eps:
+        pkg = f"pactkit-{ep.name}"
+        try:
+            adapter_version = importlib.metadata.version(pkg)
+        except importlib.metadata.PackageNotFoundError:
+            continue
+        if _major_minor(adapter_version) < core:
+            warnings.append(
+                f"Adapter skew: {pkg} {adapter_version} < core {__version__} — "
+                f"upgrade via `pipx inject pactkit {pkg}=={__version__}`"
+            )
+    return warnings

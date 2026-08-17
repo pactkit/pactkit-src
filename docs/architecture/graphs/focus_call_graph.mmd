@@ -203,6 +203,7 @@ graph TD
     main["main"]
     map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
+    pactkit_owned_files["pactkit_owned_files"]
     parse_pytest_summary["parse_pytest_summary"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
@@ -218,6 +219,7 @@ graph TD
     run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
     schema_config_report["schema_config_report"]
+    sha256_file["sha256_file"]
     should_visualize["should_visualize"]
     strip_frontmatter["strip_frontmatter"]
     sync_config_copies["sync_config_copies"]
@@ -369,7 +371,12 @@ graph TD
     run_lint --> load_config
     expected_components --> is_environment_format
     expected_components --> get_profile
+    pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> sha256_file
     write_deploy_manifest --> expected_components
+    write_deploy_manifest --> pactkit_owned_files
     should_visualize --> detect_stack
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
@@ -488,6 +495,7 @@ graph TD
     check_config_drift --> check_config_drift__dir_or_file_in_any
     check_stale_graphs --> load_config
     check_deploy_parity --> expected_components
+    check_deploy_parity --> sha256_file
     _warn_deploy_violations --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix

@@ -56,3 +56,12 @@
 - [x] deploy_manifest.py: _hash_deployed_files + files 字段
 - [x] doctor.py: 内容级 parity 比对 + 旧 manifest 降级
 - [x] 回归 test_story_slim139
+
+### [STORY-slim-142] deploy format=all with target must skip adapters + adapter skew guard
+> Spec: docs/specs/STORY-slim-142.md
+
+- [x] TDD spy 测试 AC1-AC4 (RED)
+- [x] deployer.py: format=all+target 跳过 adapter
+- [x] doctor.py: adapter 版本偏斜 warning
+- [x] 运维: 本机 adapter 升级 2.17.0
+- [x] AC3 双跑全量套件验证

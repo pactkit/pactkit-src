@@ -773,6 +773,12 @@ def main():
         for warning in parity["warnings"]:
             print(f"  ⚠️  {warning}")
 
+        # STORY-slim-142 R3: adapter package version skew (report-only)
+        from pactkit.doctor import check_adapter_skew
+
+        for warning in check_adapter_skew():
+            print(f"  ⚠️  {warning}")
+
         if not has_issues:
             print("Health: OK")
         else:

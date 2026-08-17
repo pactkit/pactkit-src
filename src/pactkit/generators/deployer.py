@@ -280,14 +280,23 @@ def deploy(
     # Skips deployment modes (plugin, marketplace) — those are distribution
     # formats, not IDE targets.  Canonical source: profiles._DEPLOYMENT_MODES
     if format == "all":
+        skipped: list[str] = []
         for fmt_name in sorted(_DEPLOYER_REGISTRY):
             if fmt_name in _DEPLOYMENT_MODES:
+                continue
+            # STORY-slim-142 R1: adapters cannot honor -t (they always deploy
+            # to their own home dirs); with an explicit target the call is a
+            # preview/test — deploying into real homes would pollute them.
+            if target is not None and fmt_name != "classic":
+                skipped.append(fmt_name)
                 continue
             deployer_cls = _DEPLOYER_REGISTRY[fmt_name]
             deployer_instance = deployer_cls()
             # Classic respects -t target; adapters always deploy to their own default
             fmt_target = target if fmt_name == "classic" else None
             deployer_instance.deploy(config=config, target=fmt_target)
+        if skipped:
+            print(f"Skipping adapter formats ({', '.join(skipped)}): -t target only applies to classic")
         return
 
     if format not in VALID_FORMATS:

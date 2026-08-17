@@ -146,6 +146,8 @@ graph TD
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
     build_report["build_report"]
+    check_adapter_skew["check_adapter_skew"]
+    check_adapter_skew__major_minor["check_adapter_skew._major_minor"]
     check_archive_honesty["check_archive_honesty"]
     check_config_completeness["check_config_completeness"]
     check_config_copy_drift["check_config_copy_drift"]
@@ -429,6 +431,7 @@ graph TD
     main --> check_config_copy_drift
     main --> check_deps
     main --> check_deploy_parity
+    main --> check_adapter_skew
     main --> scan_and_replace_tbd
     main --> issue_sync
     main --> map_to_tests
@@ -496,6 +499,8 @@ graph TD
     check_stale_graphs --> load_config
     check_deploy_parity --> expected_components
     check_deploy_parity --> sha256_file
+    check_adapter_skew --> check_adapter_skew__major_minor
+    check_adapter_skew --> check_adapter_skew__major_minor
     _warn_deploy_violations --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
