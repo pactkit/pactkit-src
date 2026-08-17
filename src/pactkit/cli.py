@@ -249,6 +249,20 @@ def main():
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
     sec_scope_parser.add_argument("files", nargs="*", help="Changed file paths")
 
+    # pactkit spec-graph (STORY-slim-143)
+    spec_graph_parser = subparsers.add_parser(
+        "spec-graph", help="Story dependency graph: execution waves + conflict matrix"
+    )
+    spec_graph_parser.add_argument(
+        "--specs-dir", default="docs/specs", help="Directory containing spec files"
+    )
+    spec_graph_parser.add_argument(
+        "--write-graph", action="store_true", help="Write Mermaid graph to --graph-path"
+    )
+    spec_graph_parser.add_argument(
+        "--graph-path", default="docs/architecture/graphs/story_graph.mmd", help="Mermaid output path"
+    )
+
     # pactkit lint-context (STORY-slim-014 R2)
     lint_ctx_parser = subparsers.add_parser("lint-context", help="Validate context.md structure")
     lint_ctx_parser.add_argument("path", nargs="?", default="docs/product/context.md", help="Path to context.md")
@@ -573,6 +587,14 @@ def main():
         ctx_path.parent.mkdir(parents=True, exist_ok=True)
         ctx_path.write_text(content, encoding="utf-8")
         print(f"Generated {ctx_path}")
+
+    elif args.command == "spec-graph":
+        from pactkit.spec_graph import main as spec_graph_main
+
+        argv = ["--specs-dir", args.specs_dir, "--graph-path", args.graph_path]
+        if args.write_graph:
+            argv.append("--write-graph")
+        raise SystemExit(spec_graph_main(argv))
 
     elif args.command == "sec-scope":
         from pathlib import Path

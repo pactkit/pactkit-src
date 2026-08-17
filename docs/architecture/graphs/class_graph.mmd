@@ -11,6 +11,15 @@ classDiagram
     class GateUnavailable {
     }
     Exception <|-- GateUnavailable
+    class DependencyCycleError {
+    }
+    Exception <|-- DependencyCycleError
+    class StoryNode {
+    }
+    class Conflict {
+    }
+    class StoryGraph {
+    }
     class CheckResult {
         +render()
     }

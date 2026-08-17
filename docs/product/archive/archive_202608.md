@@ -65,3 +65,13 @@
 - [x] doctor.py: adapter 版本偏斜 warning
 - [x] 运维: 本机 adapter 升级 2.17.0
 - [x] AC3 双跑全量套件验证
+
+### [STORY-slim-143] Spec Dependency Surface & Story DAG (spec-graph)
+> Spec: docs/specs/STORY-slim-143.md
+
+- [x] schemas.py Dependency Surface constants+template
+- [x] spec_linter dangling-ref/missing-section rules
+- [x] spec_graph.py DAG+waves+conflict matrix
+- [x] cli.py spec-graph subcommand
+- [x] TDD tests AC1-AC7
+- [x] plan playbook Phase 3.2 step

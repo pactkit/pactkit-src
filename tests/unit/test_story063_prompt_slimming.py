@@ -216,7 +216,8 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-128: bumped +1650 for Engineering Concerns phases in Plan Phase 2 + Act Phase 1.5
 # Context slim: +170 for explicit {SKILLS_ROOT}/_rules/ paths in on-demand Read references
 # STORY-slim-133: bumped +8000 for new project-debug command (~4.5K chars, headroom for iteration)
-BASELINE_TOTAL_CHARS = 100264
+# STORY-slim-143: bumped +86 for Plan Dependency Surface bullet (dangling-ID E010 + spec-graph ref)
+BASELINE_TOTAL_CHARS = 100350
 
 
 class TestAC7PromptSizeReduced:

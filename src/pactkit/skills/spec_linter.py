@@ -20,6 +20,9 @@ from pathlib import Path
 # Import schema constants (STORY-slim-007: single source of truth)
 try:
     from pactkit.schemas import (
+        DEP_SURFACE_FIELDS,
+        DEP_SURFACE_SECTION,
+        ITEM_ID_PATTERN,
         SPEC_AC_PATTERN,
         SPEC_GIVEN_WHEN_THEN,
         SPEC_REQUIRED_METADATA_FIELDS,
@@ -44,6 +47,9 @@ except ImportError:
     SPEC_VALID_STATUSES = ("Draft", "In Progress", "Done")
     SPEC_SECURITY_SCOPE_SECTION = "Security Scope"
     SPEC_SEC_PATTERN = r"\|\s*SEC-|^###\s*SEC-"
+    DEP_SURFACE_SECTION = "Dependency Surface"
+    DEP_SURFACE_FIELDS = ("Depends on", "Provides", "Touches", "Conflict risk")
+    ITEM_ID_PATTERN = r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+"
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -137,6 +143,13 @@ def _section_text(text: str, heading: str, result: LintResult | None = None) -> 
 
 def _line_number(text: str, idx: int) -> int:
     return text[:idx].count("\n") + 1
+
+
+# Public API for pactkit.spec_graph (STORY-slim-143). Module-design rule:
+# external modules MUST NOT access _private members — these aliases are the
+# supported surface. Bodies stay single-sourced above.
+strip_code_blocks = _strip_code_blocks
+section_text = _section_text
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +370,49 @@ def _check_lateral_scan(text: str, result: LintResult) -> None:
         )
 
 
+_ITEM_ID_RE = re.compile(ITEM_ID_PATTERN)
+
+
+def _check_dependency_surface(text: str, result: LintResult, spec_path: str | None = None) -> None:
+    """E010, W011 — Dependency Surface section (STORY-slim-143).
+
+    W011: section missing, or its table lacks required fields.
+    E010: a `Depends on` entry references a story ID with no spec file
+          (dangling dependency — ordering decisions rely on these edges).
+    """
+    body = _section_text(text, DEP_SURFACE_SECTION)
+    if body is None:
+        result.warnings.append(
+            LintIssue("W011", f"Missing '## {DEP_SURFACE_SECTION}' section (recommended for parallel scheduling)")
+        )
+        return
+
+    fields: dict[str, str] = {}
+    for m in _METADATA_ROW.finditer(body):
+        key = m.group(1).strip()
+        if key.lower() == "field" or re.match(r"^-+$", key):
+            continue
+        fields[key] = m.group(2).strip()
+
+    missing = [f for f in DEP_SURFACE_FIELDS if f not in fields]
+    if missing:
+        result.warnings.append(
+            LintIssue("W011", f"Dependency Surface missing field(s): {', '.join(missing)}")
+        )
+        return  # Without Depends on there is nothing to resolve
+
+    depends_val = fields.get("Depends on", "")
+    if not depends_val or depends_val.lower() == "none":
+        return
+
+    specs_dir = Path(spec_path).parent if spec_path else Path("docs/specs")
+    for dep_id in sorted(set(_ITEM_ID_RE.findall(depends_val))):
+        if not (specs_dir / f"{dep_id}.md").exists():
+            result.errors.append(
+                LintIssue("E010", f"Depends on references '{dep_id}' but no such spec exists in {specs_dir}")
+            )
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -393,6 +449,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_req_ac_coverage(text, result)  # STORY-slim-024: W007
     _check_security_scope(text, result)  # STORY-slim-025: E009
     _check_lateral_scan(text, result)  # STORY-slim-106: W010
+    _check_dependency_surface(text, result, spec_path=spec_path)  # STORY-slim-143: E010/W011
     return result
 
 

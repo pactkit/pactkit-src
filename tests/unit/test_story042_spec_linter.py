@@ -46,6 +46,15 @@ This requirement MUST be satisfied.
 |-------|------------|--------|
 | SEC-1 | N/A | Test only |
 
+## Dependency Surface
+
+| Field | Value |
+|-------|-------|
+| Depends on | None |
+| Provides | None |
+| Touches | `tests/` |
+| Conflict risk | LOW |
+
 ## Out of Scope
 
 - Not in scope.

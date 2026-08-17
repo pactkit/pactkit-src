@@ -26,7 +26,19 @@ SPEC_OPTIONAL_SECTIONS = (
     "## Implementation Steps",
     "## Out of Scope",
     "## Non-Goals",
+    "## Dependency Surface",
 )
+
+# ─── Dependency Surface Schema (STORY-slim-143) ─────────────────────────────
+# Machine-readable story dependency declaration in each Spec. Consumed by
+# spec_linter (E010/W011) and `pactkit spec-graph` (DAG / waves / conflicts).
+
+DEP_SURFACE_SECTION = "Dependency Surface"
+DEP_SURFACE_FIELDS = ("Depends on", "Provides", "Touches", "Conflict risk")
+DEP_SURFACE_RISK_LEVELS = ("LOW", "MEDIUM", "HIGH")
+
+# Story/bug/hotfix ID pattern, e.g. STORY-042, STORY-slim-143, HOTFIX-slim-087
+ITEM_ID_PATTERN = r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+"
 
 # E004: requirement subsection pattern
 SPEC_REQUIREMENT_PATTERN = r"### R\d+[:\s]"
@@ -101,6 +113,15 @@ SPEC_TEMPLATE = """\
 | Check | Applicable | Reason |
 |-------|------------|--------|
 | SEC-1 | N/A | (Reason) |
+
+## Dependency Surface
+
+| Field | Value |
+|-------|-------|
+| Depends on | None |
+| Provides | None |
+| Touches | (files this story modifies) |
+| Conflict risk | LOW |
 
 ## Out of Scope
 
@@ -202,6 +223,11 @@ SCHEMA_REGISTRY = {
         "keywords": {
             "rfc2119": SPEC_RFC_KEYWORDS,
             "given_when_then": SPEC_GIVEN_WHEN_THEN,
+        },
+        "dependency_surface": {
+            "section": DEP_SURFACE_SECTION,
+            "fields": DEP_SURFACE_FIELDS,
+            "risk_levels": DEP_SURFACE_RISK_LEVELS,
         },
     },
     "board": {

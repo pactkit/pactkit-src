@@ -1,5 +1,4 @@
 graph TD
-    CheckResult_render["CheckResult.render"]
     ClassicDeployer_deploy["ClassicDeployer.deploy"]
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
@@ -103,13 +102,16 @@ graph TD
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
     _parse_coverage_output["_parse_coverage_output"]
+    _parse_field_table["_parse_field_table"]
     _parse_item_type["_parse_item_type"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
     _parse_requirements["_parse_requirements"]
+    _parse_touches["_parse_touches"]
     _parse_version["_parse_version"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
+    _paths_overlap["_paths_overlap"]
     _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _pytest_command["_pytest_command"]
@@ -173,6 +175,8 @@ graph TD
     clean_artifacts["clean_artifacts"]
     codegraph_sync["codegraph_sync"]
     collect_changed_files["collect_changed_files"]
+    compute_conflicts["compute_conflicts"]
+    compute_waves["compute_waves"]
     current_branch["current_branch"]
     decide_test_set["decide_test_set"]
     deploy["deploy"]
@@ -202,15 +206,19 @@ graph TD
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
     load_config["load_config"]
+    load_story_graph["load_story_graph"]
     main["main"]
     map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
     pactkit_owned_files["pactkit_owned_files"]
     parse_pytest_summary["parse_pytest_summary"]
+    parse_story["parse_story"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
+    render["render"]
     render_check_report["render_check_report"]
     render_config_yaml["render_config_yaml"]
+    render_mermaid["render_mermaid"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     run_garden["run_garden"]
     run_gate["run_gate"]
@@ -359,7 +367,7 @@ graph TD
     run_gate --> run_pytest
     run_gate --> parse_pytest_summary
     hook_entry --> run_gate
-    hook_entry --> CheckResult_render
+    hook_entry --> render
     _no_git_enabled --> load_config
     install_hook --> _no_git_enabled
     install_git_hook --> _no_git_enabled
@@ -442,21 +450,32 @@ graph TD
     main --> update_spec_status
     main --> verify_story
     main --> check_deps
-    main --> CheckResult_render
+    main --> render
     main --> install_deps
     main --> run_gate
     main --> render_check_report
     main --> hook_entry
-    main --> CheckResult_render
+    main --> render
     main --> install_git_hook
     main --> detect_stacks
     main --> update_yaml_stack
     main --> load_config
+    main --> load_story_graph
+    main --> compute_waves
+    main --> render
+    main --> render_mermaid
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
     clean_artifacts --> _inside_protected
     clean_artifacts --> _inside_protected
+    parse_story --> _parse_field_table
+    parse_story --> _parse_touches
+    parse_story --> _parse_field_table
+    load_story_graph --> parse_story
+    compute_conflicts --> _paths_overlap
+    render --> compute_waves
+    render --> compute_conflicts
     _parse_coverage_output --> _classify_coverage
     check_coverage --> _parse_coverage_output
     check_coverage --> _extract_module_path
