@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.18.0] - 2026-08-17
+
+### Added
+- **Deployment manifest content hashes** (STORY-slim-141) — `write_deploy_manifest` now records a per-file sha256 under a `files` field (skills/commands-as-skills/agents/managed rules/guides; merge-semantics files like `CLAUDE.md` and user configs are structurally excluded). `pactkit doctor` deepens the parity check from component-name lists to content level: hash mismatch or missing-on-disk becomes an explicit `Content drift:` report, so "version stamp says new, content is old" deployments can no longer pass silently. Pre-2.18 manifests degrade to a warning; unreadable files and corrupted `files` fields degrade per SEC-7 and never crash doctor. Manifest keys are POSIX-normalized for cross-platform consistency.
+- **Adapter version skew warning in doctor** (STORY-slim-142) — doctor now reads adapter package metadata (`pactkit-opencode` etc.) and warns when an installed adapter lags behind core, with a `pipx inject` upgrade hint. The manifest's version field is core-stamped and could never reveal adapter skew.
+
+### Fixed
+- **`deploy(format="all", target=...)` no longer deploys adapters** (STORY-slim-142) — adapter deployers cannot honor `-t` and previously always wrote into real home dirs, which let test-suite or preview `init` calls silently overwrite live deployments (root cause of repeated `~/.config/opencode` stale-content incidents). With an explicit target, adapters are skipped with a printed notice; `target=None` behavior is unchanged.
+
 ## [2.17.0] - 2026-08-13
 
 ### Added
