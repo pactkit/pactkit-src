@@ -244,7 +244,7 @@ PactKit ships 36 deterministic CLI subcommands — operations that were previous
 | `pactkit upgrade` | Upgrade with format selection |
 | `pactkit version` | Show installed version |
 | `pactkit schema` | Print document schemas |
-| `pactkit doctor` | Diagnose project health (HLD drift, board, config) |
+| `pactkit doctor` | Diagnose project health (HLD drift, board, config, deployment content parity, adapter skew) |
 | `pactkit spec-lint` | Validate spec structure (14 rules: E001-E008, W001-W006) |
 | `pactkit spec-status` | Update spec Status field (Draft/In Progress/Done) |
 | `pactkit guard` | Check project init markers |
