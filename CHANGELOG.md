@@ -4,6 +4,15 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.19.0] - 2026-08-17
+
+### Added
+- **Spec Dependency Surface** (STORY-slim-143) — every scaffolded Spec now carries a machine-readable `## Dependency Surface` table (`Depends on` / `Provides` / `Touches` / `Conflict risk`). Story dependencies and file-level conflict surface are no longer implicit in the architect's head — they're data.
+- **`pactkit spec-graph`** (STORY-slim-143) — deterministic story dependency DAG from all Specs: topological **execution waves** (wave N depends only on waves < N; same-wave stories are parallelizable), a **file-overlap conflict matrix** (same-wave overlaps flagged unsafe-parallel), cycle detection with non-zero exit, and Mermaid output to `docs/architecture/graphs/story_graph.mmd`. Stdlib only (`graphlib`, `fnmatch`), zero new dependencies.
+- **Spec linter rules E010/W011** (STORY-slim-143) — dangling `Depends on` references (story ID with no Spec file) are now an Act-blocking ERROR; missing Dependency Surface is a WARNING. Reuses spec_linter's section-parsing helpers (newly public: `strip_code_blocks` / `section_text`).
+- **Sprint Wave Mode** (STORY-slim-144) — `/project-sprint` with empty arguments scans the backlog, consumes `pactkit spec-graph --json` (new flag), and runs conflict-free same-wave stories as parallel worktree subagents (cap `sprint.max_parallel`, default 3). Stories with same-wave conflicts or undeclared Touches are serialized safe-by-default. Wave gate: wave N+1 starts only after wave N is fully merged green; fail-fast with no auto-retry; resume by re-running (idempotent). Single-story mode with arguments is byte-for-byte unchanged.
+- **Plan playbook Dependency Surface step** (STORY-slim-143) — `/project-plan` Phase 3.2a now fills the table from Phase 1 trace findings, so every new Spec ships scheduling data.
+
 ## [2.18.0] - 2026-08-17
 
 ### Added
