@@ -48,3 +48,11 @@
 - [x] doctor parity 检查(能力矩阵感知)
 - [x] 跨仓: pactkit-codex 消费契约+版本 bump
 - [x] 单测
+
+### [STORY-slim-141] Deployment manifest content hash verification
+> Spec: docs/specs/STORY-slim-141.md
+
+- [x] TDD 测试 AC1-AC6 (RED)
+- [x] deploy_manifest.py: _hash_deployed_files + files 字段
+- [x] doctor.py: 内容级 parity 比对 + 旧 manifest 降级
+- [x] 回归 test_story_slim139

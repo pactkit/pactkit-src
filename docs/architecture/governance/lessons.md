@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-03-31 | config.py load_config() deep merge was single-level; adding check.pactguard (nested dict inside check) required upgrading to two-level merge to preserve sub-dict defaults like mode and blocking | src/pactkit/config.py:load_config |
 | 2026-03-31 | Adding pactkit-garden to VALID_SKILLS broke 5 hardcoded count assertions in test_config.py, test_pdca_slim.py, test_selective_deploy.py, test_prompt_structural_invariants.py, test_story_slim063.py — grep == 21 and == 10 in tests before releasing a new skill | tests/unit/test_pdca_slim.py:test_valid_skills_count |
 | 2026-03-31 | DETECTED_ENV in commands.py init playbook was unnecessary — _render_prompt(template, profile) already resolves per-format at deploy time. Added FORMAT_NAME to deployer.py var_map to enable pactkit init --format {FORMAT_NAME}. | deployer.py:_render_prompt |
 | 2026-04-01 | Graduated safety language: retire MANDATORY keyword across prompts/commands.py, workflows.py, skills.py — use CRITICAL for safety gates (T1) and MUST for required steps (T2). Consistency prevents AI from treating all-caps keywords as equally urgent. | prompts/commands.py:MANDATORY→MUST/CRITICAL |
@@ -53,3 +52,4 @@
 | 2026-08-13 | guardrail 测试（行数/字符数上限）触线时，优先把组装逻辑上移到 CLI 组合层而不是抬阈值——deployer 保持精简，init/update 的副作用归 cli 编排 | cli.py:init/update post-deploy housekeeping |
 | 2026-08-13 | 配置副本同步 canonical 不能用键数启发式（默认值墙副本键数多但意图少，会覆盖手工配置），必须用显式优先级——见 config.py:sync_config_copies 的 CANONICAL_PREFERENCE | config.py:sync_config_copies |
 | 2026-08-13 | 门禁词表扫描须先剥离 code fence/inline code span（done_verify.py:_strip_code_spans），否则词表元讨论自身误报 | done_verify.py:_strip_code_spans |
+| 2026-08-17 | check_deploy_parity 新增 hash 路径漏了 SEC-7 降级守卫（PermissionError/AttributeError 穿透 doctor）——Spec Security Scope 逐条自查 + 独立评审实重现能抓作者盲区 | doctor.py:check_deploy_parity |

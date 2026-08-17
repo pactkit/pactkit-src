@@ -284,4 +284,31 @@ def check_deploy_parity(project_root: Path) -> dict:
                     f"Deployed drift: {fmt} missing {kind[:-1]} '{item}' — upgrade adapter / re-run `pactkit update`"
                 )
 
+        # STORY-slim-141 R2: content-level verification via per-file hashes.
+        from pactkit.deploy_manifest import sha256_file
+
+        files = data.get("files")
+        if files is None:
+            # R3: pre-2.18 manifest — degrade to a hint, never drift.
+            warnings.append(
+                f"{probe}: manifest predates content hashing — re-run `pactkit update` to enable content verification"
+            )
+        elif not isinstance(files, dict):
+            # SEC-7: corrupt files field degrades to warning, never crashes.
+            warnings.append(f"{probe}: manifest 'files' field corrupt (not a mapping) — re-run `pactkit update`")
+        else:
+            for rel, expected_hash in files.items():
+                path = probe / rel
+                if not path.is_file():
+                    details.append(f"Content drift: {fmt} '{rel}' missing on disk — re-run `pactkit update`")
+                    continue
+                try:
+                    actual = sha256_file(path)
+                except OSError:
+                    # SEC-7: unreadable file degrades to warning, never crashes.
+                    warnings.append(f"{probe}: '{rel}' unreadable — check permissions")
+                    continue
+                if actual != expected_hash:
+                    details.append(f"Content drift: {fmt} '{rel}' — re-run `pactkit update`")
+
     return {"drift": bool(details), "details": details, "warnings": warnings}

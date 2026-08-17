@@ -1,7 +1,18 @@
 classDiagram
+    class DepStatus {
+    }
     class EnterpriseConfig {
     }
     class PactKitConfig {
+    }
+    class GateResult {
+        +render()
+    }
+    class GateUnavailable {
+    }
+    Exception <|-- GateUnavailable
+    class CheckResult {
+        +render()
     }
     class FormatProfile {
     }
