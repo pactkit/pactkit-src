@@ -72,8 +72,9 @@ class TestAC1SharedProtocols:
 class TestAC2SprintProtocolOnly:
     def test_sprint_under_3000_chars(self):
         _, wf, _ = _prompts()
-        assert len(wf.SPRINT_PROMPT) < 3000, (
-            f"SPRINT_PROMPT is {len(wf.SPRINT_PROMPT)} chars, must be < 3000"
+        # STORY-slim-144: cap raised 3000 -> 4700 for Wave Mode section (parallel orchestration protocol)
+        assert len(wf.SPRINT_PROMPT) < 4700, (
+            f"SPRINT_PROMPT is {len(wf.SPRINT_PROMPT)} chars, must be < 4700"
         )
 
     @pytest.mark.parametrize("keyword", [
@@ -217,7 +218,8 @@ class TestAC6DevRefGhostResolved:
 # Context slim: +170 for explicit {SKILLS_ROOT}/_rules/ paths in on-demand Read references
 # STORY-slim-133: bumped +8000 for new project-debug command (~4.5K chars, headroom for iteration)
 # STORY-slim-143: bumped +86 for Plan Dependency Surface bullet (dangling-ID E010 + spec-graph ref)
-BASELINE_TOTAL_CHARS = 100350
+# STORY-slim-144: bumped +1989 for Sprint Wave Mode section (parallel orchestration protocol)
+BASELINE_TOTAL_CHARS = 102339
 
 
 class TestAC7PromptSizeReduced:

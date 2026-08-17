@@ -262,6 +262,9 @@ def main():
     spec_graph_parser.add_argument(
         "--graph-path", default="docs/architecture/graphs/story_graph.mmd", help="Mermaid output path"
     )
+    spec_graph_parser.add_argument(
+        "--json", action="store_true", help="Emit machine-readable JSON (waves + conflicts)"
+    )
 
     # pactkit lint-context (STORY-slim-014 R2)
     lint_ctx_parser = subparsers.add_parser("lint-context", help="Validate context.md structure")
@@ -594,6 +597,8 @@ def main():
         argv = ["--specs-dir", args.specs_dir, "--graph-path", args.graph_path]
         if args.write_graph:
             argv.append("--write-graph")
+        if args.json:
+            argv.append("--json")
         raise SystemExit(spec_graph_main(argv))
 
     elif args.command == "sec-scope":

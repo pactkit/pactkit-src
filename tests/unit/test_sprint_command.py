@@ -266,5 +266,6 @@ class TestSprintPerformanceOptimization:
     def test_sprint_prompt_under_3000_chars(self):
         """AC6: SPRINT_PROMPT must stay under 3000 chars"""
         from pactkit.prompts import SPRINT_PROMPT
-        assert len(SPRINT_PROMPT) < 3000, \
-            f'SPRINT_PROMPT is {len(SPRINT_PROMPT)} chars, exceeds 3000 limit'
+        # STORY-slim-144: cap raised 3000 -> 4700 for Wave Mode section
+        assert len(SPRINT_PROMPT) < 4700, \
+            f'SPRINT_PROMPT is {len(SPRINT_PROMPT)} chars, exceeds 4700 limit'

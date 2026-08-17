@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-04-01 | Graduated safety language: retire MANDATORY keyword across prompts/commands.py, workflows.py, skills.py — use CRITICAL for safety gates (T1) and MUST for required steps (T2). Consistency prevents AI from treating all-caps keywords as equally urgent. | prompts/commands.py:MANDATORY→MUST/CRITICAL |
 | 2026-04-01 | Multi-stack visualize: _detect_stack() returning single str masks Go/TS/Java files in mixed projects; _build_class_graph hardcoded ast.parse() silently skips non-Python via except. Fix: _detect_stacks() returns list, extract_classes() ABC on all 4 analyzers. | visualize.py:_detect_stacks,_build_class_graph |
 | 2026-04-01 | Monorepo stack detection requires depth-1 subdir scan; cleaners.py and visualize.py _STACK_MARKERS must scan root/* not just root | cleaners.py:detect_stacks |
 | 2026-04-01 | When splitting a monolithic file into submodules with deploy-time inlining via load_script(), relative imports (from .foo) in exec() context raise KeyError not ImportError — guard with except (ImportError, KeyError) | skills/__init__.py:load_script |
@@ -53,3 +52,4 @@
 | 2026-08-17 | check_deploy_parity 新增 hash 路径漏了 SEC-7 降级守卫（PermissionError/AttributeError 穿透 doctor）——Spec Security Scope 逐条自查 + 独立评审实重现能抓作者盲区 | doctor.py:check_deploy_parity |
 | 2026-08-17 | deploy(format=all) 的 adapter 分支无视 target 直写真实 home——跨环境副作用必须显式审查 target/HOME 语义；测试通过 subprocess 调 CLI 时 HOME 未隔离即真实机器 | deployer.py:deploy |
 | 2026-08-17 | Baseline budget tests (test_story063_prompt_slimming.py BASELINE_TOTAL_CHARS) leave <100 chars headroom — new playbook instructions must compress hard or bump baseline with justification comment | pactkit/prompts/commands.py |
+| 2026-08-17 | pactkit update only deploys to ~/.claude — in-repo pactkit-plugin/commands copies need manual sync from prompts/ source (verified by normalized diff) | pactkit/prompts/workflows.py:SPRINT_PROMPT |

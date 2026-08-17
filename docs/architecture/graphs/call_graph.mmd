@@ -234,6 +234,7 @@ graph TD
     strip_frontmatter["strip_frontmatter"]
     sync_config_copies["sync_config_copies"]
     sync_config_copies__pref["sync_config_copies._pref"]
+    to_json["to_json"]
     transform["transform"]
     update_spec_status["update_spec_status"]
     update_yaml_stack["update_yaml_stack"]
@@ -464,6 +465,7 @@ graph TD
     main --> compute_waves
     main --> render
     main --> render_mermaid
+    main --> to_json
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
@@ -476,6 +478,8 @@ graph TD
     compute_conflicts --> _paths_overlap
     render --> compute_waves
     render --> compute_conflicts
+    to_json --> compute_waves
+    to_json --> compute_conflicts
     _parse_coverage_output --> _classify_coverage
     check_coverage --> _parse_coverage_output
     check_coverage --> _extract_module_path

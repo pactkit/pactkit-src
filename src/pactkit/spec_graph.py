@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import re
 import sys
 from dataclasses import dataclass, field
@@ -234,6 +235,29 @@ def render(graph: StoryGraph) -> str:
     return "\n".join(lines) + "\n"
 
 
+def to_json(graph: StoryGraph) -> str:
+    """Machine-readable waves + conflicts for orchestrators (STORY-slim-144).
+
+    Deterministic: waves/conflicts are already sorted by compute_*; keys are
+    fixed-order. Raises DependencyCycleError on cycles (caller handles exit).
+    """
+    waves = compute_waves(graph)
+    conflicts = compute_conflicts(graph, waves)
+    payload = {
+        "waves": waves,
+        "conflicts": [
+            {
+                "story_a": c.story_a,
+                "story_b": c.story_b,
+                "shared": c.shared,
+                "same_wave": c.same_wave,
+            }
+            for c in conflicts
+        ],
+    }
+    return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -246,10 +270,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--specs-dir", default="docs/specs", help="Directory containing spec files")
     parser.add_argument("--write-graph", action="store_true", help="Write Mermaid graph to --graph-path")
     parser.add_argument("--graph-path", default=DEFAULT_GRAPH_PATH, help="Mermaid output path")
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON (waves + conflicts)")
     args = parser.parse_args(argv)
 
     graph = load_story_graph(args.specs_dir)
     try:
+        if args.json:
+            sys.stdout.write(to_json(graph))
+            return 0
         sys.stdout.write(render(graph))
         waves = compute_waves(graph)
     except DependencyCycleError as exc:

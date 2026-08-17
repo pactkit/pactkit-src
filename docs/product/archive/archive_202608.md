@@ -75,3 +75,12 @@
 - [x] cli.py spec-graph subcommand
 - [x] TDD tests AC1-AC7
 - [x] plan playbook Phase 3.2 step
+
+### [STORY-slim-144] Sprint Wave Mode: conflict-aware parallel orchestration
+> Spec: docs/specs/STORY-slim-144.md
+
+- [x] spec-graph --json serializer
+- [x] TDD json tests AC1-AC2
+- [x] SPRINT_PROMPT wave mode section R2-R5
+- [x] regenerate deployed sprint playbook
+- [x] prompt content tests AC3-AC6
