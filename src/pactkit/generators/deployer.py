@@ -1077,8 +1077,8 @@ def _build_github_workflow(stack, ci_config, lang_profile, is_ghe=False):
     lint_command = lang_profile.get("lint_command", "ruff check src/ tests/")
     actions_ref = ci_config.get("actions_ref", "")
 
-    # Apply actions_ref prefix: "my-org/" -> "my-org/actions/checkout@v4"
-    checkout_action = f"{actions_ref}actions/checkout@v4"
+    # Apply actions_ref prefix: "my-org/" -> "my-org/actions/checkout@v7"
+    checkout_action = f"{actions_ref}actions/checkout@v7"
     setup_action = ci_prof["setup_action"]
     if actions_ref:
         setup_action = f"{actions_ref}{setup_action}"

@@ -301,7 +301,7 @@ class TestAC10BackwardCompatibility:
         """Default Python CI with no extra config produces same output as old template."""
         content = _deploy_github(tmp_path, stack="python")
         # Must contain all original elements
-        assert "actions/checkout@v4" in content
+        assert "actions/checkout@v7" in content
         assert "actions/setup-python" in content
         assert "pip install -e" in content
         assert "pactkit init" in content
@@ -440,7 +440,7 @@ class TestAC13ActionsRef:
             tmp_path, stack="python",
             ci_extra={"actions_ref": "my-org/"},
         )
-        assert "my-org/actions/checkout@v4" in content
+        assert "my-org/actions/checkout@v7" in content
         # Should not have bare actions/checkout
         lines = [l for l in content.splitlines() if "checkout" in l]
         for line in lines:
@@ -460,7 +460,7 @@ class TestAC13ActionsRef:
             tmp_path, stack="python",
             ci_extra={"actions_ref": ""},
         )
-        assert "actions/checkout@v4" in content
+        assert "actions/checkout@v7" in content
         assert "my-org/" not in content
 
     def test_actions_ref_with_different_stack(self, tmp_path):
@@ -469,7 +469,7 @@ class TestAC13ActionsRef:
             tmp_path, stack="node",
             ci_extra={"actions_ref": "enterprise/"},
         )
-        assert "enterprise/actions/checkout@v4" in content
+        assert "enterprise/actions/checkout@v7" in content
         assert "enterprise/actions/setup-node" in content
 
 

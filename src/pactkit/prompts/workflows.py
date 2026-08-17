@@ -96,7 +96,7 @@ LANG_PROFILES = {
 
 CI_PROFILES = {
     "python": {
-        "setup_action": "actions/setup-python@v5",
+        "setup_action": "actions/setup-python@v7",
         "setup_key": "python-version",
         "default_version": "3.11",
         "install_cmd": (
