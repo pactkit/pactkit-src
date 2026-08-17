@@ -149,7 +149,7 @@ Or run the full cycle in one command:
 | **Done** | `/project-done` | Repo Maintainer | Regression gate -> Archive -> Conventional commit |
 | **Release** | `/project-release` | Repo Maintainer | Version bump -> Snapshot -> Git tag -> GitHub Release |
 | **PR** | `/project-pr` | Repo Maintainer | Push branch -> Create pull request via gh CLI |
-| **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration |
+| **Sprint** | `/project-sprint` | Team Lead | One-command automated PDCA orchestration; empty args = Wave Mode (parallel backlog stories via `spec-graph` waves + conflict matrix) |
 | **Hotfix** | `/project-hotfix` | Senior Developer | Fast-track fix bypassing PDCA (with traceability) |
 | **Init** | `/project-init` | System Architect | Bootstrap project structure and governance |
 | **Design** | `/project-design` | Product Designer | PRD generation -> Story decomposition -> Board setup |
@@ -245,7 +245,8 @@ PactKit ships 36 deterministic CLI subcommands — operations that were previous
 | `pactkit version` | Show installed version |
 | `pactkit schema` | Print document schemas |
 | `pactkit doctor` | Diagnose project health (HLD drift, board, config, deployment content parity, adapter skew) |
-| `pactkit spec-lint` | Validate spec structure (14 rules: E001-E008, W001-W006) |
+| `pactkit spec-lint` | Validate spec structure (E001-E010, W001-W011; incl. dependency surface checks) |
+| `pactkit spec-graph` | Story dependency DAG: topological execution waves + file-conflict matrix (`--json` for orchestrators, `--write-graph` for Mermaid) |
 | `pactkit spec-status` | Update spec Status field (Draft/In Progress/Done) |
 | `pactkit guard` | Check project init markers |
 | `pactkit next-id` | Generate next Story/Bug ID |
