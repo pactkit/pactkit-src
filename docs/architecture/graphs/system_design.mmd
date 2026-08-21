@@ -5,6 +5,8 @@ graph TD
         Config["config.py<br/>pactkit.yaml"]
         DeployBase["deploy_base.py<br/>DeployerBase<br/>(skills/rules/agents/commands/ci)"]
         DeployManifest["deploy_manifest.py<br/>.pactkit-deployed.json<br/>+ content hashes (slim-141)"]
+        PromptIntegrity["Prompt Integrity Contract<br/>structured operations + semantic parity<br/>(STORY-slim-145)"]
+        AdapterCompat["Adapter Compatibility Gate<br/>runtime + distribution versions<br/>(STORY-slim-145)"]
     end
 
     subgraph "Adapter Packages (External)"
@@ -72,9 +74,13 @@ graph TD
 
     CLI --> Deployer
     CLI --> Config
+    CLI --> AdapterCompat
+    AdapterCompat --> Deployer
     Deployer --> DeployBase
+    Deployer --> PromptIntegrity
     OpenCodePkg -.->|"depends on"| DeployBase
     CodexPkg -.->|"depends on"| DeployBase
+    CodexPkg -.->|"consumes operation contract"| PromptIntegrity
     CopilotPkg -.->|"depends on"| DeployBase
     TraePkg -.->|"depends on"| DeployBase
     CLI -->|"pactkit subcommands"| Garden

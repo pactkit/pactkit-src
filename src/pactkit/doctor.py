@@ -314,6 +314,15 @@ def check_deploy_parity(project_root: Path) -> dict:
     return {"drift": bool(details), "details": details, "warnings": warnings}
 
 
+def _major_minor(v: str) -> tuple[int, ...]:
+    """Extract (major, minor) tuple from a version string (STORY-slim-142)."""
+    parts = []
+    for chunk in v.split(".")[:2]:
+        digits = "".join(c for c in chunk if c.isdigit())
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
 def check_adapter_skew() -> list[str]:
     """Warn when an installed adapter package lags behind the core version.
 
@@ -325,13 +334,6 @@ def check_adapter_skew() -> list[str]:
     import importlib.metadata
 
     from pactkit import __version__
-
-    def _major_minor(v: str) -> tuple[int, ...]:
-        parts = []
-        for chunk in v.split(".")[:2]:
-            digits = "".join(c for c in chunk if c.isdigit())
-            parts.append(int(digits) if digits else 0)
-        return tuple(parts)
 
     warnings: list[str] = []
     try:
@@ -351,3 +353,60 @@ def check_adapter_skew() -> list[str]:
                 f"upgrade via `pipx inject pactkit {pkg}=={__version__}`"
             )
     return warnings
+
+
+def check_core_metadata_divergence() -> list[str]:
+    """STORY-slim-145 R6 / AC6: editable-install metadata divergence.
+
+    Compares ``pactkit.__version__`` (source) against
+    ``importlib.metadata.version("pactkit")`` (distribution). Divergence indicates
+    an editable or partially upgraded install reporting one source version and
+    another distribution version. PackageNotFound degrades silently (SEC-7).
+    """
+    import importlib.metadata
+
+    from pactkit import __version__
+
+    try:
+        dist_version = importlib.metadata.version("pactkit")
+    except importlib.metadata.PackageNotFoundError:
+        return []  # SEC-7: not installed as a distribution — no divergence to report
+    except Exception:
+        return []  # SEC-7: metadata backend failure must not crash
+    if dist_version != __version__:
+        return [
+            f"Core metadata divergence: source {__version__} != distribution "
+            f"{dist_version} (editable/partial install) — reinstall via "
+            f"`pipx install pactkit`"
+        ]
+    return []
+
+
+def check_adapter_compat(format_name: str, allow_skew: bool = False) -> list[str]:
+    """STORY-slim-145 R6 / AC5: deploy-time adapter compatibility gate.
+
+    Blocks adapter deployment on major/minor mismatch with the core version.
+    Returns a list of blocking error strings (empty = OK to deploy). An explicit
+    ``allow_skew`` override skips the block. Foreign/internal formats (classic,
+    plugin, marketplace) have no external adapter and always pass.
+    """
+    import importlib.metadata
+
+    from pactkit import __version__
+
+    if format_name in ("classic", "plugin", "marketplace"):
+        return []
+    pkg = f"pactkit-{format_name}"
+    try:
+        adapter_version = importlib.metadata.version(pkg)
+    except importlib.metadata.PackageNotFoundError:
+        return []  # adapter not installed — not a compat error, handled elsewhere
+    except Exception:
+        return []  # SEC-7: metadata backend failure must not block unrelated deploy
+    if _major_minor(adapter_version) != _major_minor(__version__) and not allow_skew:
+        return [
+            f"Adapter {pkg} {adapter_version} incompatible with core {__version__} "
+            f"(major/minor mismatch) — upgrade via `pipx inject pactkit {pkg}=="
+            f"{__version__}` or pass --allow-adapter-skew"
+        ]
+    return []

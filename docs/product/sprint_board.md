@@ -38,5 +38,13 @@
 
 ## 🔄 In Progress
 
-## ✅ Done
+### [STORY-slim-145] Codex 部署命令语义完整性与 Adapter 兼容门禁
+> Spec: docs/specs/STORY-slim-145.md
 
+- [x] 建立 CLI policy 与结构化操作渲染契约
+- [x] 移除 pactkit-codex 有损命令前缀替换
+- [x] 增加 prompt 完整性与 Classic/Codex parity 门禁
+- [x] 阻止不兼容 Core/adapter 组合静默部署
+- [ ] 完成隔离迁移、双仓回归与同版本发布验证
+
+## ✅ Done

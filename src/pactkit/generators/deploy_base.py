@@ -64,6 +64,47 @@ _FORBIDDEN_CLI_PATTERNS: list[str] = [
 ]
 
 
+# --- Prompt integrity validators (STORY-slim-145 R4) ---
+_DOUBLE_IMPERATIVE = re.compile(r"\bRun\s+run\b", re.IGNORECASE)
+_STRANDED_OPTION = re.compile(r"\b(?:manually|directly|now|here)\s+--[\w-]+")
+_UNRESOLVED_VAR = re.compile(r"\{PACTKIT_OP_\w+\}")
+_PROJECT_ACT_MARKER = re.compile(r"project-act", re.IGNORECASE)
+_PROJECT_ACT_PLAYBOOK = re.compile(r"#\s*Command:\s*Act\b", re.IGNORECASE)
+_REQUIRED_ACT_OPS = ("regression", "coverage", "TDD", "Spec lint", "lint", "continuation")
+
+
+def _check_lexical_integrity(content: str) -> list[str]:
+    """Detect malformed Markdown introduced by deployment (R4 lexical layer)."""
+    v: list[str] = []
+    if _DOUBLE_IMPERATIVE.search(content):
+        v.append("Duplicated imperative fragment: 'Run run'")
+    # Count inline backticks only — strip paired fences, then any lone ```
+    # fence delimiters, so only stray inline backticks (the Codex corruption
+    # signature, e.g. a stranded closing backtick) trip the check. Pre-existing
+    # source fence imbalance (odd ``{M}`` tokens) is not a deployment defect.
+    _no_fences = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
+    _no_fences = re.sub(r"```", "", _no_fences)
+    if _no_fences.count("`") % 2 != 0:
+        v.append("Unbalanced Markdown backticks")
+    if _STRANDED_OPTION.search(content):
+        v.append("CLI option stranded in prose fallback (e.g. 'manually --continuation')")
+    if _UNRESOLVED_VAR.search(content):
+        v.append("Unresolved template variable: {PACTKIT_OP_*}")
+    return v
+
+
+def _check_semantic_integrity(content: str) -> list[str]:
+    """Verify required project-act workflow operations are present (R4 semantic layer)."""
+    v: list[str] = []
+    if not (_PROJECT_ACT_MARKER.search(content) and _PROJECT_ACT_PLAYBOOK.search(content)):
+        return v
+    lowered = content.lower()
+    for op in _REQUIRED_ACT_OPS:
+        if op.lower() not in lowered:
+            v.append(f"Missing required Act operation: {op}")
+    return v
+
+
 class DeployerBase:
     """Base class providing shared deployment methods.
 
@@ -108,6 +149,10 @@ class DeployerBase:
                     # hyphenated subcommand, e.g. `pactkit lint-context` ≠ `pactkit lint`).
                     if re.search(re.escape(cli_pat) + r"(?![-\w])", line):
                         violations.append(f"CLI reference in CLI-less profile: {cli_pat}")
+
+        # 3. Lexical + semantic prompt integrity (STORY-slim-145 R4) — all profiles.
+        violations.extend(_check_lexical_integrity(content))
+        violations.extend(_check_semantic_integrity(content))
 
         return violations
 

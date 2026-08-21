@@ -22,6 +22,7 @@ graph TD
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
     _changed_source_files["_changed_source_files"]
+    _check_adapter_compat["_check_adapter_compat"]
     _check_code_smells["_check_code_smells"]
     _check_dependency_health["_check_dependency_health"]
     _check_docstring_coverage["_check_docstring_coverage"]
@@ -33,6 +34,8 @@ graph TD
     _check_h5["_check_h5"]
     _check_h6["_check_h6"]
     _check_h7["_check_h7"]
+    _check_lexical_integrity["_check_lexical_integrity"]
+    _check_semantic_integrity["_check_semantic_integrity"]
     _check_test_coverage["_check_test_coverage"]
     _classify_coverage["_classify_coverage"]
     _cleanup_legacy["_cleanup_legacy"]
@@ -93,6 +96,7 @@ graph TD
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
     _load_entry_point_deployers["_load_entry_point_deployers"]
+    _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _new_public_symbols["_new_public_symbols"]
@@ -148,8 +152,8 @@ graph TD
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
     build_report["build_report"]
+    check_adapter_compat["check_adapter_compat"]
     check_adapter_skew["check_adapter_skew"]
-    check_adapter_skew__major_minor["check_adapter_skew._major_minor"]
     check_archive_honesty["check_archive_honesty"]
     check_config_completeness["check_config_completeness"]
     check_config_copy_drift["check_config_copy_drift"]
@@ -409,6 +413,7 @@ graph TD
     _schema_command --> schema_config_report
     main --> deploy
     main --> deploy
+    main --> _check_adapter_compat
     main --> sync_config_copies
     main --> render_check_report
     main --> check_deps
@@ -466,6 +471,7 @@ graph TD
     main --> render
     main --> render_mermaid
     main --> to_json
+    _check_adapter_compat --> check_adapter_compat
     scan_and_replace_tbd --> _get_done_ids
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
@@ -522,8 +528,10 @@ graph TD
     check_stale_graphs --> load_config
     check_deploy_parity --> expected_components
     check_deploy_parity --> sha256_file
-    check_adapter_skew --> check_adapter_skew__major_minor
-    check_adapter_skew --> check_adapter_skew__major_minor
+    check_adapter_skew --> _major_minor
+    check_adapter_skew --> _major_minor
+    check_adapter_compat --> _major_minor
+    check_adapter_compat --> _major_minor
     _warn_deploy_violations --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
@@ -632,6 +640,8 @@ graph TD
     PluginDeployer_deploy --> _deploy_plugin
     __module__ --> _generate_project_claude_md
     transform --> strip_frontmatter
+    DeployerBase_validate_deployed_content --> _check_lexical_integrity
+    DeployerBase_validate_deployed_content --> _check_semantic_integrity
     DeployerBase_render_prompt --> _render_prompt
     DeployerBase_deploy_skills --> _deploy_skills
     DeployerBase_deploy_rules --> _deploy_rules

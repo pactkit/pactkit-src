@@ -104,6 +104,12 @@ def main():
         default=False,
         help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
     )
+    init_parser.add_argument(
+        "--allow-adapter-skew",
+        action="store_true",
+        default=False,
+        help="Allow deploying an adapter whose major.minor differs from core (STORY-slim-145 R6)",
+    )
 
     # pactkit update (alias for init)
     update_parser = subparsers.add_parser("update", help="Re-deploy PactKit configuration")
@@ -153,6 +159,12 @@ def main():
         action="store_true",
         default=False,
         help="Only redeploy if installed version differs from global deploy marker",
+    )
+    update_parser.add_argument(
+        "--allow-adapter-skew",
+        action="store_true",
+        default=False,
+        help="Allow deploying an adapter whose major.minor differs from core (STORY-slim-145 R6)",
     )
 
     # pactkit upgrade (alias for init, migrates legacy scafpy files)
@@ -451,6 +463,22 @@ def main():
 
         from pactkit.generators.deployer import deploy
 
+        # STORY-slim-145 R6: gate adapter compat before any managed file is
+        # written (AC5). Single-format mismatch blocks before dispatch; the
+        # --allow-adapter-skew override skips the block with a warning.
+        if args.format not in ("all", "classic", "plugin", "marketplace"):
+            _allow_skew = getattr(args, "allow_adapter_skew", False)
+            _errors = _check_adapter_compat(args.format, allow_skew=_allow_skew)
+            if _errors:
+                for _e in _errors:
+                    print(f"  ✗ {_e}")
+                raise SystemExit(1)
+            if _allow_skew:
+                print(
+                    f"  ⚠ --allow-adapter-skew: compatibility NOT verified for "
+                    f"{args.format}; proceeding at your own risk."
+                )
+
         # STORY-slim-135 R4: sync config copies BEFORE deploy reads config
         # (canonical = .claude first). Real deploys only.
         if args.target is None:
@@ -468,6 +496,7 @@ def main():
             no_git=getattr(args, "no_git", False),
             no_external=getattr(args, "no_external", False),
             non_interactive=getattr(args, "non_interactive", False),
+            allow_skew=getattr(args, "allow_adapter_skew", False),
         )
 
         # Post-deploy housekeeping for real deploys: commit-gate channel
@@ -806,6 +835,15 @@ def main():
         for warning in check_adapter_skew():
             print(f"  ⚠️  {warning}")
 
+        # STORY-slim-145 R6/AC6: core source vs distribution metadata divergence
+        # (editable/partial install). Report and mark needs-attention — doctor
+        # must not claim the installation is aligned when source != distribution.
+        from pactkit.doctor import check_core_metadata_divergence
+
+        for warning in check_core_metadata_divergence():
+            print(f"  ⚠️  {warning}")
+            has_issues = True
+
         if not has_issues:
             print("Health: OK")
         else:
@@ -1104,6 +1142,18 @@ def main():
 
     else:
         parser.print_help()
+
+
+def _check_adapter_compat(format_name: str, allow_skew: bool = False) -> list[str]:
+    """STORY-slim-145 R6: deploy-time adapter compatibility gate (AC5).
+
+    Thin wrapper over ``pactkit.doctor.check_adapter_compat`` so the CLI module
+    can gate adapter dispatch before any managed file is written. Returns
+    blocking errors (empty = OK to deploy).
+    """
+    from pactkit.doctor import check_adapter_compat
+
+    return check_adapter_compat(format_name, allow_skew=allow_skew)
 
 
 if __name__ == "__main__":

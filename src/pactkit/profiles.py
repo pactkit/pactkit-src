@@ -11,7 +11,27 @@ Adding a new tool integration:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Literal
+
+
+class CLIPolicy(Enum):
+    """Deploy-output CLI availability policy (STORY-slim-145 R1).
+
+    Describes deploy-output behavior only — MUST NOT be read as a claim that a
+    product format is permanently sandboxed, and MUST NOT probe the runtime PATH
+    during module import. A 'preferred' format may ship CLI-preserving output
+    even though some installations lack the CLI at runtime.
+    """
+
+    REQUIRED = "required"
+    """Generated workflow relies on the PactKit CLI."""
+
+    PREFERRED = "preferred"
+    """Preserve PactKit CLI commands, with an explicit whole-operation fallback when unavailable."""
+
+    UNAVAILABLE = "unavailable"
+    """Generated workflow must not require the PactKit CLI."""
 
 
 @dataclass(frozen=True)
@@ -104,14 +124,24 @@ class FormatProfile:
     skills_path_var: str
     """Skills path used in deployed playbook templates. e.g. '~/.claude/skills'."""
 
-    # CLI Availability
-    has_pactkit_cli: bool = True
-    """Whether this format's runtime has access to the pactkit CLI.
+    # CLI Availability (STORY-slim-145 R1: policy, not fixed format fact)
+    cli_policy: CLIPolicy = CLIPolicy.REQUIRED
+    """Deploy-output CLI availability policy.
 
-    True for classic (terminal), opencode (terminal).
-    False for codex (sandboxed), copilot (IDE-only).
-    Default True for backward compat with custom profiles.
+    REQUIRED: generated workflow relies on the PactKit CLI (classic, opencode).
+    PREFERRED: preserve PactKit CLI commands with explicit fallback (codex).
+    UNAVAILABLE: workflow must not require the PactKit CLI (copilot).
+    Default REQUIRED for backward compat with third-party profiles that omit it.
     """
+
+    @property
+    def has_pactkit_cli(self) -> bool:
+        """Backward-compat derived boolean.
+
+        True when the policy preserves the PactKit CLI (required or preferred);
+        False only when the workflow must not require the CLI (unavailable).
+        """
+        return self.cli_policy is not CLIPolicy.UNAVAILABLE
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +211,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var="~/.codex/skills",
-        has_pactkit_cli=False,
+        cli_policy=CLIPolicy.PREFERRED,
     ),
     "copilot": FormatProfile(
         name="copilot",
@@ -203,7 +233,7 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var=".github/skills",
-        has_pactkit_cli=False,
+        cli_policy=CLIPolicy.UNAVAILABLE,
     ),
 }
 

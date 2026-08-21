@@ -23,7 +23,11 @@ classDiagram
     class CheckResult {
         +render()
     }
+    class CLIPolicy {
+    }
+    Enum <|-- CLIPolicy
     class FormatProfile {
+        +has_pactkit_cli()
     }
     class ClassicDeployer {
         +deploy(config, target)

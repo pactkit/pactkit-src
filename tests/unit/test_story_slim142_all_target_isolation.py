@@ -51,6 +51,10 @@ class TestAllTargetSkipsAdapters:
 
     def test_adapter_called_when_no_target(self, monkeypatch):
         calls = _registry_with_spies(monkeypatch)
+        # STORY-slim-145 R6: per-adapter compat gate now runs inside format=all.
+        # This test verifies the target-skip rule (142 R1), not the gate, so mock
+        # check_adapter_compat to pass and let adapters deploy to their homes.
+        monkeypatch.setattr("pactkit.doctor.check_adapter_compat", lambda fmt, allow_skew=False: [])
 
         from pactkit.generators.deployer import deploy
 

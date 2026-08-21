@@ -1,10 +1,22 @@
 import json
 import re
 import sys
-import warnings
 from pathlib import Path
 
 import yaml
+
+
+class DeployIntegrityError(Exception):
+    """Raised when deployed prompt content fails lexical/semantic integrity (STORY-slim-145 R4).
+
+    Carries (label, violations) so callers can report which artifact set was
+    refused before atomic_write. Replaces the prior warn-and-write behavior.
+    """
+
+    def __init__(self, label: str, violations: list[str]):
+        self.label = label
+        self.violations = violations
+        super().__init__(f"[{label}] {len(violations)} integrity violation(s): {violations}")
 
 # 确保能 import pactkit.prompts
 current_dir = Path(__file__).resolve().parent
@@ -43,12 +55,12 @@ CLASSIC_SKILLS_PREFIX = "~/.claude/skills"
 PLUGIN_SKILLS_PREFIX = "${CLAUDE_PLUGIN_ROOT}/skills"
 
 
-def _warn_deploy_violations(content: str, profile: FormatProfile, label: str) -> None:
-    """Run validate_deployed_content and emit warnings for any violations (STORY-slim-084 R3)."""
+def _enforce_deploy_integrity(content: str, profile: FormatProfile, label: str) -> None:
+    """Validate deployed content; raise DeployIntegrityError on any violation
+    (STORY-slim-145 R4: fail before atomic_write, never warn-and-write)."""
     violations = DeployerBase.validate_deployed_content(content, profile)
     if violations:
-        detail = "; ".join(violations)
-        warnings.warn(f"[{label}] Deploy content violations for {profile.name}: {detail}", stacklevel=3)
+        raise DeployIntegrityError(label, violations)
 
 
 def _render_prompt(template: str, profile: FormatProfile) -> str:
@@ -91,12 +103,81 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         # Backtick escape for prompts converted from f-string (M = "```")
         "M": _backtick,
     }
+
+    # Operation tokens (STORY-slim-145 R2): structured operation contract.
+    # Adapters consume these tokens instead of matching natural-language CLI
+    # prefixes. Value resolves via the profile CLI policy:
+    #   required/preferred (has_pactkit_cli True) -> canonical `pactkit` invocation
+    #   unavailable (has_pactkit_cli False)       -> complete fallback operation.
+    # Fallbacks are object-form (not verb-led) so a "Run {TOKEN}" prefix never
+    # produces "Run run", and no CLI option strays into prose.
+    _viz_cmd = var_map["VISUALIZE_CMD"]
+    _op_canonical = {
+        "REGRESSION": "`pactkit regression`",
+        "LINT": "`pactkit lint`",
+        "CONTEXT_CONTINUATION": "`pactkit context --continuation`",
+        "CLEANUP": "`pactkit clean`",
+        "LAZY_VISUALIZE": "`pactkit visualize --lazy`",
+        "INSTALL_UPDATE": "`pactkit update`",
+        "GUARD": "`pactkit guard`",
+        "DOCTOR": "`pactkit doctor`",
+    }
+    _op_fallback = {
+        "REGRESSION": (
+            "the test suite with impact classification "
+            "(SKIP/IMPACT/FULL; e.g., `python3 -m pytest tests/ -v`)"
+        ),
+        "LINT": "the project linter (e.g., `ruff check src/ tests/`)",
+        "CONTEXT_CONTINUATION": (
+            "the context continuation update in `docs/product/context.md` "
+            "— set `last-command` to the last PDCA command and `phase` to "
+            "the current phase in the continuation section, for session handoff"
+        ),
+        "CLEANUP": "language-specific cleanup (e.g., `find . -name '__pycache__' -exec rm -rf {} +`)",
+        "LAZY_VISUALIZE": f"`{_viz_cmd} --lazy` (file, `--mode class`, `--mode call` if source changed)",
+        "INSTALL_UPDATE": f"`pactkit init --format {profile.name}` from the terminal to reinstall",
+        "GUARD": "the init-marker and lint/test checks manually",
+        "DOCTOR": "the project file and structure checks manually",
+    }
+    _cli_preserving = profile.has_pactkit_cli
+    for _op in _op_canonical:
+        var_map["PACTKIT_OP_" + _op] = (
+            _op_canonical[_op] if _cli_preserving else _op_fallback[_op]
+        )
+
     # Replace only known variables via sequential string replacement.
     # This avoids str.format_map() issues with complex keys like {R1, R2, ...}
     # or {some description with commas} that appear in user-facing prompt text.
     result = template
     for key, value in var_map.items():
         result = result.replace("{" + key + "}", value)
+
+    # Core CLI→fallback replacement (STORY-slim-145 R2 equivalent): for
+    # CLI-unavailable profiles, replace canonical `pactkit <cmd>` code spans
+    # with complete fallback operations. Safe complete-span matching (never
+    # prefix), so no "Run run" or stranded args. Hyphenated subcommands
+    # (e.g. `pactkit lint-testcase`) are NOT matched — they stay as-is.
+    if not _cli_preserving:
+        _sub_fallback = {
+            "regression": _op_fallback["REGRESSION"],
+            "lint": _op_fallback["LINT"],
+            "context": _op_fallback["CONTEXT_CONTINUATION"],
+            "clean": _op_fallback["CLEANUP"],
+            "visualize": _op_fallback["LAZY_VISUALIZE"],
+            "guard": _op_fallback["GUARD"],
+            "doctor": _op_fallback["DOCTOR"],
+            "update": _op_fallback["INSTALL_UPDATE"],
+        }
+        _span_re = re.compile(r"`pactkit (" + "|".join(_sub_fallback) + r")(?=\s|`)[^`]*`")
+
+        def _core_cli_repl(m):
+            sub = m.group(1)
+            if sub is not None and sub in _sub_fallback:
+                return _sub_fallback[sub]
+            full = m.group(0)
+            return full if full is not None else ""
+
+        result = _span_re.sub(_core_cli_repl, result)
 
     # Strip references to excluded commands (e.g., project-sprint for non-Claude formats)
     if profile.excluded_commands:
@@ -258,7 +339,8 @@ def _ensure_entry_point_deployers():
 
 def deploy(
     config=None, target=None, format="classic", agent="claude",
-    no_git=False, no_external=False, non_interactive=False, mode=None
+    no_git=False, no_external=False, non_interactive=False, mode=None,
+    allow_skew: bool = False,
 ):
     """Deploy PactKit configuration.
 
@@ -281,6 +363,7 @@ def deploy(
     # formats, not IDE targets.  Canonical source: profiles._DEPLOYMENT_MODES
     if format == "all":
         skipped: list[str] = []
+        compat_skipped: list[str] = []
         for fmt_name in sorted(_DEPLOYER_REGISTRY):
             if fmt_name in _DEPLOYMENT_MODES:
                 continue
@@ -290,6 +373,18 @@ def deploy(
             if target is not None and fmt_name != "classic":
                 skipped.append(fmt_name)
                 continue
+            # STORY-slim-145 R6: per-adapter compat gate. For format=all an
+            # incompatible adapter is SKIPPED (skip-only) — other formats still
+            # deploy and existing deployments are not destroyed. --allow-adapter-skew
+            # overrides (warns, deploys anyway).
+            if fmt_name != "classic":
+                from pactkit.doctor import check_adapter_compat
+                errors = check_adapter_compat(fmt_name, allow_skew=allow_skew)
+                if errors:
+                    compat_skipped.append(fmt_name)
+                    for e in errors:
+                        print(f"  ✗ {e}")
+                    continue
             deployer_cls = _DEPLOYER_REGISTRY[fmt_name]
             deployer_instance = deployer_cls()
             # Classic respects -t target; adapters always deploy to their own default
@@ -297,6 +392,8 @@ def deploy(
             deployer_instance.deploy(config=config, target=fmt_target)
         if skipped:
             print(f"Skipping adapter formats ({', '.join(skipped)}): -t target only applies to classic")
+        if compat_skipped:
+            print(f"Skipped incompatible adapters ({', '.join(compat_skipped)}) — upgrade or pass --allow-adapter-skew")
         return
 
     if format not in VALID_FORMATS:
@@ -507,7 +604,7 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
 
         skill_md = _render_skill_md(sd, profile, _prefix)
         if profile is not None:
-            _warn_deploy_violations(skill_md, profile, f"skill:{sd['name']}")
+            _enforce_deploy_integrity(skill_md, profile, f"skill:{sd['name']}")
         atomic_write(skill_dir / "SKILL.md", skill_md)
         if sd["script_name"]:
             scripts_dir = skill_dir / "scripts"
@@ -651,7 +748,7 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
         dest_dir = rules_dir if filename in global_filenames else ondemand_dir
 
         if profile is not None:
-            _warn_deploy_violations(content, profile, f"rule:{rule_id}")
+            _enforce_deploy_integrity(content, profile, f"rule:{rule_id}")
         atomic_write(dest_dir / filename, content)
         deployed += 1
 
@@ -830,7 +927,7 @@ def _deploy_agents(
         rendered = (
             _render_prompt(raw, profile) if _legacy_prefix is None else _rewrite_skills_prefix(raw, _effective_prefix)
         )
-        _warn_deploy_violations(rendered, profile, f"agent:{name}")
+        _enforce_deploy_integrity(rendered, profile, f"agent:{name}")
         atomic_write(agent_path, rendered)
         deployed += 1
 
@@ -998,7 +1095,7 @@ def _deploy_commands(
             if _legacy_prefix is None
             else _rewrite_skills_prefix(content, _effective_prefix)
         )
-        _warn_deploy_violations(rendered, profile, f"command:{cmd_name}")
+        _enforce_deploy_integrity(rendered, profile, f"command:{cmd_name}")
 
         if _deploy_as_skill:
             # STORY-slim-063: Write as skills_dir/{name}/SKILL.md

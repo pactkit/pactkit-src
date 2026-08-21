@@ -8,7 +8,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from pactkit.generators.deploy_base import DeployerBase
-from pactkit.profiles import FORMAT_PROFILES, get_profile
+from pactkit.profiles import FORMAT_PROFILES, CLIPolicy, get_profile
 
 
 def _make_profile(*, name, global_config_dir, has_pactkit_cli=True):
@@ -99,8 +99,11 @@ class TestHasPactkitCli:
     def test_opencode_has_cli(self):
         assert get_profile("opencode").has_pactkit_cli is True
 
-    def test_codex_no_cli(self):
-        assert get_profile("codex").has_pactkit_cli is False
+    def test_codex_has_cli(self):
+        # STORY-slim-145 R1: codex is now CLIPolicy.PREFERRED -> has_pactkit_cli True.
+        # The CLI is preserved (preferred), with explicit fallback when unavailable.
+        assert get_profile("codex").has_pactkit_cli is True
+        assert get_profile("codex").cli_policy is CLIPolicy.PREFERRED
 
     def test_copilot_no_cli(self):
         assert get_profile("copilot").has_pactkit_cli is False
