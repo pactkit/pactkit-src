@@ -56,6 +56,8 @@ graph TD
 
     subgraph "Cross-Session Memory"
         Context["context.md<br/>Auto-generated project state"]
+        ResumeState[".pactkit/continuations/<br/>{story}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146)"]
+        ResumeVerifier["Continuation verifier<br/>contract / git / artifact checks<br/>(STORY-slim-146)"]
         Lessons["lessons.md<br/>Auto-appended decisions"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
         BoardFile["sprint_board.md<br/>Progress tracking"]
@@ -104,6 +106,12 @@ graph TD
     Commands -->|"Plan<br/>create"| Specs
     Commands -->|"Act/Done<br/>update"| BoardFile
     Commands -->|"Plan/Act/Done<br/>conditional"| MemoryMCP
+
+    Commands -->|"checkpoint / resume"| ResumeState
+    ResumeState --> ResumeVerifier
+    ResumeVerifier -->|"verified next safe step"| Commands
+    ResumeVerifier -.->|"human-confirmed blocker"| Context
+    Context -.->|"human-readable summary"| ResumeState
 
     Rules -->|"CLAUDE.md @import"| Context
     Observe -->|"conditional"| ChromeMCP

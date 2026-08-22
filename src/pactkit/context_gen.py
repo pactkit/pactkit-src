@@ -166,7 +166,7 @@ def _sanitize_text(text: str) -> str:
     return sanitized.strip()
 
 
-def _extract_sprint_contract(spec_path: Path) -> str:
+def _extract_sprint_contract(spec_path: Path, completed_acs: set[str] | None = None) -> str:
     """Extract AC titles from a spec file as a markdown checklist.
 
     Returns a string like:
@@ -185,9 +185,48 @@ def _extract_sprint_contract(spec_path: Path) -> str:
     # Extract story ID from filename
     stem = spec_path.stem
     lines = [f"### Sprint Contract ({stem})"]
+    completed_acs = completed_acs or set()
     for ac_title in ac_matches:
-        lines.append(f"- [ ] {ac_title}")
+        ac_id = ac_title.split(":", 1)[0]
+        marker = "x" if ac_id in completed_acs else " "
+        lines.append(f"- [{marker}] {ac_title}")
 
+    return "\n".join(lines)
+
+
+def _checkpoint_continuation(project_root: Path, story_id: str) -> str | None:
+    """Render authoritative checkpoint state, or None for legacy handoff."""
+    try:
+        from pactkit.continuation import ContinuationStore
+
+        store = ContinuationStore(project_root)
+        state = store.read(story_id)
+        if state is None:
+            return None
+        decision = store.resume(story_id)
+    except Exception:
+        return None
+
+    lines = [
+        f"Verified Continuation: {story_id}",
+        f"Status: {state['status']}",
+        f"Phase Reached: {state['phase']}",
+        f"Safe Boundary: {state['step_id']}",
+    ]
+    if decision["decision"] == "resume_at":
+        lines.append(f"Next Safe Step: {decision['next_step']}")
+    else:
+        lines.append("Continuation requires verification: " + "; ".join(decision["reasons"]))
+
+    spec_path = project_root / "docs" / "specs" / f"{story_id}.md"
+    completed_acs: set[str] = set()
+    if state["status"] == "completed":
+        coverage = state["evidence"].get("acceptance_coverage", {})
+        if isinstance(coverage, dict):
+            completed_acs = set(coverage)
+    contract = _extract_sprint_contract(spec_path, completed_acs)
+    if contract:
+        lines.extend(("", contract))
     return "\n".join(lines)
 
 
@@ -208,6 +247,15 @@ def _generate_continuation(
         Content for the ## Agent Continuation section (without the header).
     """
     if continuation_args is None:
+        # STORY-slim-146: checkpoint state is authoritative when available;
+        # legacy projects retain the original no-session response.
+        active = _parse_active_stories(board_text)
+        if active:
+            story_match = _STORY_ID_FROM_CMD_RE.search(active[0])
+            if story_match:
+                checkpoint = _checkpoint_continuation(project_root, story_match.group(1))
+                if checkpoint:
+                    return checkpoint
         return "No active work session."
 
     last_cmd = _sanitize_text(continuation_args.get("last_command", "unknown"))
@@ -226,6 +274,9 @@ def _generate_continuation(
     story_match = _STORY_ID_FROM_CMD_RE.search(last_cmd)
     if story_match:
         story_id = story_match.group(1)
+        checkpoint = _checkpoint_continuation(project_root, story_id)
+        if checkpoint:
+            return checkpoint
         spec_path = project_root / "docs" / "specs" / f"{story_id}.md"
         contract = _extract_sprint_contract(spec_path)
         if contract:

@@ -1,5 +1,25 @@
 graph TD
     ClassicDeployer_deploy["ClassicDeployer.deploy"]
+    ContinuationStore___init__["ContinuationStore.__init__"]
+    ContinuationStore__active_peer_story_ids["ContinuationStore._active_peer_story_ids"]
+    ContinuationStore__archive_completed["ContinuationStore._archive_completed"]
+    ContinuationStore__checkpoint_locked["ContinuationStore._checkpoint_locked"]
+    ContinuationStore__fingerprints["ContinuationStore._fingerprints"]
+    ContinuationStore__paths["ContinuationStore._paths"]
+    ContinuationStore__require_valid_spec["ContinuationStore._require_valid_spec"]
+    ContinuationStore__stale_reasons["ContinuationStore._stale_reasons"]
+    ContinuationStore__story_lock["ContinuationStore._story_lock"]
+    ContinuationStore__validate_completion["ContinuationStore._validate_completion"]
+    ContinuationStore__validate_step_evidence["ContinuationStore._validate_step_evidence"]
+    ContinuationStore__validate_story_id["ContinuationStore._validate_story_id"]
+    ContinuationStore_checkpoint["ContinuationStore.checkpoint"]
+    ContinuationStore_diagnostics["ContinuationStore.diagnostics"]
+    ContinuationStore_legacy_handoff["ContinuationStore.legacy_handoff"]
+    ContinuationStore_path_for["ContinuationStore.path_for"]
+    ContinuationStore_read["ContinuationStore.read"]
+    ContinuationStore_resume["ContinuationStore.resume"]
+    ContinuationStore_status["ContinuationStore.status"]
+    DeployIntegrityError___init__["DeployIntegrityError.__init__"]
     DeployerBase_deploy_agents["DeployerBase.deploy_agents"]
     DeployerBase_deploy_ci["DeployerBase.deploy_ci"]
     DeployerBase_deploy_commands["DeployerBase.deploy_commands"]
@@ -37,6 +57,7 @@ graph TD
     _check_lexical_integrity["_check_lexical_integrity"]
     _check_semantic_integrity["_check_semantic_integrity"]
     _check_test_coverage["_check_test_coverage"]
+    _checkpoint_continuation["_checkpoint_continuation"]
     _classify_coverage["_classify_coverage"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
@@ -65,10 +86,12 @@ graph TD
     _detect_ghe["_detect_ghe"]
     _detect_platform["_detect_platform"]
     _detect_sources["_detect_sources"]
+    _enforce_deploy_integrity["_enforce_deploy_integrity"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract_module_path["_extract_module_path"]
     _extract_sprint_contract["_extract_sprint_contract"]
     _find_existing_spec["_find_existing_spec"]
+    _fingerprint["_fingerprint"]
     _fmt_scalar["_fmt_scalar"]
     _generate_claude_local_md_if_missing["_generate_claude_local_md_if_missing"]
     _generate_config_if_missing["_generate_config_if_missing"]
@@ -82,6 +105,7 @@ graph TD
     _get_issue_tracker_provider["_get_issue_tracker_provider"]
     _get_last_n_entries["_get_last_n_entries"]
     _git["_git"]
+    _git_head["_git_head"]
     _has_dir_with_files["_has_dir_with_files"]
     _has_production_caller["_has_production_caller"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
@@ -132,6 +156,8 @@ graph TD
     _rewrite_yaml["_rewrite_yaml"]
     _rotate_if_needed["_rotate_if_needed"]
     _run_pytest_cov["_run_pytest_cov"]
+    _sanitize["_sanitize"]
+    _sanitize_evidence["_sanitize_evidence"]
     _sanitize_text["_sanitize_text"]
     _scaffold_audit_spec["_scaffold_audit_spec"]
     _schema_command["_schema_command"]
@@ -145,7 +171,7 @@ graph TD
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
-    _warn_deploy_violations["_warn_deploy_violations"]
+    _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
     append_lesson["append_lesson"]
     atomic_write["atomic_write"]
@@ -160,6 +186,7 @@ graph TD
     check_config_drift["check_config_drift"]
     check_config_drift__dir_or_file_in_any["check_config_drift._dir_or_file_in_any"]
     check_config_drift__exists_in_any["check_config_drift._exists_in_any"]
+    check_core_metadata_divergence["check_core_metadata_divergence"]
     check_coverage["check_coverage"]
     check_dead_imports["check_dead_imports"]
     check_deploy_parity["check_deploy_parity"]
@@ -243,6 +270,7 @@ graph TD
     update_spec_status["update_spec_status"]
     update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
+    validate_skill_recovery_contracts["validate_skill_recovery_contracts"]
     verify_story["verify_story"]
     write_deploy_manifest["write_deploy_manifest"]
     check_deps --> _detect_platform
@@ -355,6 +383,7 @@ graph TD
     detect_security_scope --> _path_ends_with_ext
     check_dead_imports --> _resolve_scope
     check_dead_imports --> _python_files
+    check_stale_docs --> ContinuationStore_diagnostics
     check_pattern_duplication --> _resolve_scope
     check_pattern_duplication --> _python_files
     run_garden --> check_dead_imports
@@ -396,9 +425,62 @@ graph TD
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
     _print_codegraph_sync --> codegraph_sync
+    _sanitize_evidence --> _sanitize
+    _sanitize_evidence --> _sanitize_evidence
+    _sanitize_evidence --> _sanitize_evidence
+    ContinuationStore_path_for --> ContinuationStore__validate_story_id
+    ContinuationStore__fingerprints --> ContinuationStore__paths
+    ContinuationStore__fingerprints --> _fingerprint
+    ContinuationStore__fingerprints --> _fingerprint
+    ContinuationStore__fingerprints --> _git_head
+    ContinuationStore__fingerprints --> _worktree_fingerprint
+    ContinuationStore_read --> ContinuationStore__validate_story_id
+    ContinuationStore_read --> ContinuationStore_path_for
+    ContinuationStore_legacy_handoff --> ContinuationStore__validate_story_id
+    ContinuationStore_status --> ContinuationStore_read
+    ContinuationStore_status --> ContinuationStore_legacy_handoff
+    ContinuationStore__story_lock --> ContinuationStore_path_for
+    ContinuationStore_checkpoint --> ContinuationStore__story_lock
+    ContinuationStore_checkpoint --> ContinuationStore__checkpoint_locked
+    ContinuationStore_checkpoint --> ContinuationStore_status
+    ContinuationStore__checkpoint_locked --> ContinuationStore__validate_story_id
+    ContinuationStore__checkpoint_locked --> ContinuationStore__validate_step_evidence
+    ContinuationStore__checkpoint_locked --> ContinuationStore_read
+    ContinuationStore__checkpoint_locked --> atomic_write
+    ContinuationStore__checkpoint_locked --> ContinuationStore__stale_reasons
+    ContinuationStore__checkpoint_locked --> ContinuationStore__archive_completed
+    ContinuationStore__checkpoint_locked --> ContinuationStore__validate_completion
+    ContinuationStore__checkpoint_locked --> _sanitize
+    ContinuationStore__checkpoint_locked --> _sanitize_evidence
+    ContinuationStore__checkpoint_locked --> _sanitize
+    ContinuationStore__checkpoint_locked --> ContinuationStore_path_for
+    ContinuationStore__checkpoint_locked --> ContinuationStore__fingerprints
+    ContinuationStore__checkpoint_locked --> ContinuationStore__stale_reasons
+    ContinuationStore__validate_step_evidence --> ContinuationStore__require_valid_spec
+    ContinuationStore__require_valid_spec --> ContinuationStore__paths
+    ContinuationStore__archive_completed --> atomic_write
+    ContinuationStore__validate_completion --> ContinuationStore__require_valid_spec
+    ContinuationStore__validate_completion --> ContinuationStore__paths
+    ContinuationStore__validate_completion --> ContinuationStore__paths
+    ContinuationStore_resume --> ContinuationStore_read
+    ContinuationStore_resume --> ContinuationStore__active_peer_story_ids
+    ContinuationStore_resume --> ContinuationStore_status
+    ContinuationStore_resume --> validate_skill_recovery_contracts
+    ContinuationStore_resume --> ContinuationStore__stale_reasons
+    ContinuationStore__stale_reasons --> ContinuationStore__fingerprints
+    ContinuationStore__active_peer_story_ids --> ContinuationStore_read
+    ContinuationStore_diagnostics --> ContinuationStore_read
+    ContinuationStore_diagnostics --> ContinuationStore_path_for
+    ContinuationStore_diagnostics --> ContinuationStore_resume
+    _checkpoint_continuation --> _extract_sprint_contract
+    _checkpoint_continuation --> ContinuationStore_read
+    _checkpoint_continuation --> ContinuationStore_resume
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _sanitize_text
+    _generate_continuation --> _parse_active_stories
+    _generate_continuation --> _checkpoint_continuation
     _generate_continuation --> _extract_sprint_contract
+    _generate_continuation --> _checkpoint_continuation
     _generate_continuation --> _sanitize_text
     generate_context --> _get_git_branches
     generate_context --> _parse_last_lessons
@@ -426,7 +508,10 @@ graph TD
     main --> clean_artifacts
     main --> classify_changes
     main --> generate_context
+    main --> ContinuationStore_checkpoint
     main --> detect_security_scope
+    main --> ContinuationStore_status
+    main --> ContinuationStore_resume
     main --> format_markdown_table
     main --> lint_context
     main --> lint_lessons
@@ -446,6 +531,8 @@ graph TD
     main --> check_deps
     main --> check_deploy_parity
     main --> check_adapter_skew
+    main --> check_core_metadata_divergence
+    main --> ContinuationStore_diagnostics
     main --> scan_and_replace_tbd
     main --> issue_sync
     main --> map_to_tests
@@ -463,6 +550,7 @@ graph TD
     main --> hook_entry
     main --> render
     main --> install_git_hook
+    main --> ContinuationStore_read
     main --> detect_stacks
     main --> update_yaml_stack
     main --> load_config
@@ -479,6 +567,7 @@ graph TD
     clean_artifacts --> _inside_protected
     parse_story --> _parse_field_table
     parse_story --> _parse_touches
+    parse_story --> ContinuationStore_status
     parse_story --> _parse_field_table
     load_story_graph --> parse_story
     compute_conflicts --> _paths_overlap
@@ -532,7 +621,7 @@ graph TD
     check_adapter_skew --> _major_minor
     check_adapter_compat --> _major_minor
     check_adapter_compat --> _major_minor
-    _warn_deploy_violations --> DeployerBase_validate_deployed_content
+    _enforce_deploy_integrity --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
@@ -544,6 +633,7 @@ graph TD
     deploy --> _deploy_marketplace
     deploy --> deploy
     deploy --> deploy
+    deploy --> check_adapter_compat
     _deploy_classic --> _migrate_from_scafpy
     _deploy_classic --> validate_config
     _deploy_classic --> get_profile
@@ -576,19 +666,19 @@ graph TD
     _deploy_skills --> get_skill_manifest
     _deploy_skills --> _render_skill_md
     _deploy_skills --> atomic_write
-    _deploy_skills --> _warn_deploy_violations
+    _deploy_skills --> _enforce_deploy_integrity
     _deploy_skills --> atomic_write
     _deploy_rules --> _build_rule_id_to_key
     _deploy_rules --> atomic_write
     _deploy_rules --> _render_prompt
-    _deploy_rules --> _warn_deploy_violations
+    _deploy_rules --> _enforce_deploy_integrity
     _deploy_guides --> atomic_write
     _deploy_guides --> _render_prompt
     _deploy_claude_md --> atomic_write
     _deploy_claude_md --> _is_pactkit_managed_global_md
     _deploy_claude_md --> atomic_write
     _deploy_claude_md --> atomic_write
-    _deploy_agents --> _warn_deploy_violations
+    _deploy_agents --> _enforce_deploy_integrity
     _deploy_agents --> atomic_write
     _deploy_agents --> get_profile
     _deploy_agents --> get_profile
@@ -596,7 +686,7 @@ graph TD
     _deploy_agents --> _rewrite_skills_prefix
     _build_command_rules_header --> _get_command_rules
     _build_command_rules_header --> _build_rule_id_to_filename
-    _deploy_commands --> _warn_deploy_violations
+    _deploy_commands --> _enforce_deploy_integrity
     _deploy_commands --> get_profile
     _deploy_commands --> get_profile
     _deploy_commands --> _convert_command_frontmatter_opencode
@@ -636,6 +726,7 @@ graph TD
     _deploy_claude_md_inline --> _rewrite_skills_prefix
     _deploy_claude_md_inline --> atomic_write
     _deploy_marketplace_json --> atomic_write
+    DeployIntegrityError___init__ --> ContinuationStore___init__
     ClassicDeployer_deploy --> _deploy_classic
     PluginDeployer_deploy --> _deploy_plugin
     __module__ --> _generate_project_claude_md

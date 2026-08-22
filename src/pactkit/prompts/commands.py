@@ -208,6 +208,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
+0.  **Resumable Act Preflight (MUST)**: Run `pactkit continuation resume {STORY_ID}` before writing. `--resume` only loads its verified plan; never writes or replays. Continue `resume_at`; resolve `blocked`. Completed is terminal. A fresh cycle uses `pactkit continuation checkpoint {STORY_ID} --fresh --step preflight --evidence '{"spec_lint":"pass"}'`, archiving evidence. New Stories use it without `--fresh`; it is the only writer.
 1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — Phase 4 handles that.
     - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
 2.  **Trace Verification** — use pactkit-trace skill:
@@ -239,6 +240,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
 2.  **Action**: Create a reproduction test case in `tests/unit/`.
     - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
+3.  **Checkpoint**: After confirming RED, run `pactkit continuation checkpoint {STORY_ID} --step red --evidence '{"story_tests":{"exit_code":1}}' --phase "Phase 2: RED"`.
 
 ## 🎬 Phase 3: Implementation
 1.  **Write Code**: Implement logic in the appropriate source directory.
@@ -249,11 +251,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
       - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
       - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
+    - After GREEN, run `pactkit continuation checkpoint {STORY_ID} --step green --evidence '{"story_tests":{"exit_code":0}}' --phase "Phase 3: GREEN"`.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
     - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`pactkit query --callers <file>` or `grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
+    - After regression and lint pass, run `pactkit continuation checkpoint {STORY_ID} --step regression_lint --evidence '{"regression":"pass","lint":"pass"}' --phase "Phase 3: regression/lint"`.
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
     - URLs (`http://`, `https://`) that should be config
     - Magic numbers (non-obvious integers like `30000`, `8080`) that should be named constants
@@ -283,6 +287,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For implemented items: show file:line location
     - For skipped SHOULD items: show DEFERRED with reason (must match comment in code)
     - User verifies this table — do not claim "done" without it
+5.  **Completion Checkpoint (MUST)**: Only after the complete coverage table, Story tests, regression, lint, and all Board tasks are verified, run `pactkit continuation checkpoint {STORY_ID} --step sync_coverage --status completed --evidence @<verified-evidence.json> --phase "Phase 4: complete"`. Never mark completed from prose alone. If blocked, write `--status blocked --blocker "reason"` instead.
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"

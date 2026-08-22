@@ -61,6 +61,7 @@ _FORBIDDEN_CLI_PATTERNS: list[str] = [
     "`pactkit context",
     "`pactkit doctor",
     "`pactkit update",
+    "`pactkit continuation",
 ]
 
 
@@ -70,7 +71,9 @@ _STRANDED_OPTION = re.compile(r"\b(?:manually|directly|now|here)\s+--[\w-]+")
 _UNRESOLVED_VAR = re.compile(r"\{PACTKIT_OP_\w+\}")
 _PROJECT_ACT_MARKER = re.compile(r"project-act", re.IGNORECASE)
 _PROJECT_ACT_PLAYBOOK = re.compile(r"#\s*Command:\s*Act\b", re.IGNORECASE)
-_REQUIRED_ACT_OPS = ("regression", "coverage", "TDD", "Spec lint", "lint", "continuation")
+_REQUIRED_ACT_OPS = (
+    "regression", "coverage", "TDD", "Spec lint", "lint", "continuation", "checkpoint", "resume",
+)
 
 
 def _check_lexical_integrity(content: str) -> list[str]:

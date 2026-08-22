@@ -219,7 +219,10 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-133: bumped +8000 for new project-debug command (~4.5K chars, headroom for iteration)
 # STORY-slim-143: bumped +86 for Plan Dependency Surface bullet (dangling-ID E010 + spec-graph ref)
 # STORY-slim-144: bumped +1989 for Sprint Wave Mode section (parallel orchestration protocol)
-BASELINE_TOTAL_CHARS = 102339
+# STORY-slim-146: bumped +1602 for explicit checkpoint/resume safety boundaries
+# in project-act. These commands replace unsafe prose-only handoff with a
+# verifiable state protocol, so they are intentionally retained in prompts.
+BASELINE_TOTAL_CHARS = 103941
 
 
 class TestAC7PromptSizeReduced:

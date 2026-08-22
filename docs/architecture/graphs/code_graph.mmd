@@ -29,6 +29,8 @@ graph TD
     click src_pactkit___init___py href "src/pactkit/__init__.py"
     src_pactkit_lazy_visualize_py["lazy_visualize.py"]
     click src_pactkit_lazy_visualize_py href "src/pactkit/lazy_visualize.py"
+    src_pactkit_continuation_py["continuation.py"]
+    click src_pactkit_continuation_py href "src/pactkit/continuation.py"
     src_pactkit_context_gen_py["context_gen.py"]
     click src_pactkit_context_gen_py href "src/pactkit/context_gen.py"
     src_pactkit_observe_py["observe.py"]
@@ -98,6 +100,7 @@ graph TD
     src_pactkit_audit_py --> src_pactkit_garden_py
     src_pactkit_audit_py --> src_pactkit_config_py
     src_pactkit_audit_py --> src_pactkit_id_generator_py
+    src_pactkit_garden_py --> src_pactkit_continuation_py
     src_pactkit_commit_gate_py --> src_pactkit_config_py
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
@@ -112,7 +115,11 @@ graph TD
     src_pactkit_deploy_manifest_py --> src_pactkit_prompts_rules_py
     src_pactkit_lazy_visualize_py --> src_pactkit_cleaners_py
     src_pactkit_lazy_visualize_py --> src_pactkit_prompts_workflows_py
+    src_pactkit_continuation_py --> src_pactkit_utils_py
+    src_pactkit_continuation_py --> src_pactkit___init___py
+    src_pactkit_continuation_py --> src_pactkit_prompts_skills_py
     src_pactkit_context_gen_py --> src_pactkit_schemas_py
+    src_pactkit_context_gen_py --> src_pactkit_continuation_py
     src_pactkit_cli_py --> src_pactkit___init___py
     src_pactkit_cli_py --> src_pactkit_profiles_py
     src_pactkit_cli_py --> src_pactkit_schemas_py
@@ -126,6 +133,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_cleaners_py
     src_pactkit_cli_py --> src_pactkit_regression_py
     src_pactkit_cli_py --> src_pactkit_context_gen_py
+    src_pactkit_cli_py --> src_pactkit_continuation_py
     src_pactkit_cli_py --> src_pactkit_spec_graph_py
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
@@ -171,5 +179,6 @@ graph TD
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_guides_py
     src_pactkit_generators_deployer_py --> src_pactkit_prompts_workflows_py
     src_pactkit_generators_deployer_py --> src_pactkit_cleaners_py
+    src_pactkit_generators_deployer_py --> src_pactkit_doctor_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_profiles_py
     src_pactkit_generators_deploy_base_py --> src_pactkit_generators_deployer_py

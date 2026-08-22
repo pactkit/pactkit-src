@@ -11,6 +11,30 @@ classDiagram
     class GateUnavailable {
     }
     Exception <|-- GateUnavailable
+    class ContinuationError {
+    }
+    ValueError <|-- ContinuationError
+    class ContinuationStore {
+        -__init__(project_root)
+        +path_for(story_id)
+        -_validate_story_id(story_id)
+        -_paths(story_id)
+        -_fingerprints(story_id)
+        +read(story_id)
+        +legacy_handoff(story_id)
+        +status(story_id)
+        -_story_lock(story_id)
+        +checkpoint(story_id)
+        -_checkpoint_locked(story_id)
+        -_validate_step_evidence(story_id, step_id, evidence, status)
+        -_require_valid_spec(story_id)
+        -_archive_completed(story_id, state)
+        -_validate_completion(step_id, evidence, story_id)
+        +resume(story_id)
+        -_stale_reasons(state, story_id)
+        -_active_peer_story_ids(story_id)
+        +diagnostics()
+    }
     class DependencyCycleError {
     }
     Exception <|-- DependencyCycleError
@@ -29,6 +53,10 @@ classDiagram
     class FormatProfile {
         +has_pactkit_cli()
     }
+    class DeployIntegrityError {
+        -__init__(label, violations)
+    }
+    Exception <|-- DeployIntegrityError
     class ClassicDeployer {
         +deploy(config, target)
     }

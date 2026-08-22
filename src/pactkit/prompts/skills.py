@@ -801,6 +801,52 @@ SKILL_MANIFEST: tuple[dict, ...] = (
     {"name": "pactkit-audit", "skill_md": SKILL_AUDIT_MD, "script_name": None},
 )
 
+# STORY-slim-146: every deployed runtime skill must declare resume behavior.
+# This is Core-owned so adapters cannot silently drift into unsafe replay rules.
+SKILL_RECOVERY_CONTRACTS: dict[str, dict[str, str]] = {
+    "pactkit-visualize": {"category": "derived_replayable", "recovery": "replay"},
+    "pactkit-board": {
+        "category": "local_write", "recovery": "idempotent_local_write",
+        "safe_operations": "move_story,update_task",
+        "manual_operations": "add_story,archive,snapshot",
+    },
+    "pactkit-scaffold": {"category": "create_only", "recovery": "manual_confirmation"},
+    "pactkit-report": {"category": "derived_replayable", "recovery": "replay"},
+    "pactkit-trace": {"category": "read_only", "recovery": "replay"},
+    "pactkit-draw": {"category": "user_owned_write", "recovery": "manual_confirmation"},
+    "pactkit-status": {"category": "read_only", "recovery": "replay"},
+    "pactkit-doctor": {"category": "read_only", "recovery": "replay"},
+    "pactkit-garden": {"category": "read_only", "recovery": "replay"},
+    "pactkit-review": {"category": "external_read", "recovery": "replay"},
+    "pactkit-release": {
+        "category": "high_side_effect", "recovery": "manual_confirmation",
+        "manual_operations": "release,tag,publish",
+    },
+    "pactkit-analyze": {"category": "read_only", "recovery": "replay"},
+    "pactkit-audit": {
+        "category": "derived_replayable", "recovery": "replay",
+        "manual_operations": "--append",
+    },
+}
+
+
+def validate_skill_recovery_contracts() -> list[str]:
+    """Return manifest/contract drift errors without mutating deployment state."""
+    names = [entry["name"] for entry in SKILL_MANIFEST]
+    errors: list[str] = []
+    if len(names) != len(set(names)):
+        errors.append("duplicate skill in SKILL_MANIFEST")
+    missing = set(names) - set(SKILL_RECOVERY_CONTRACTS)
+    extra = set(SKILL_RECOVERY_CONTRACTS) - set(names)
+    if missing:
+        errors.append("missing recovery contracts: " + ", ".join(sorted(missing)))
+    if extra:
+        errors.append("unknown recovery contracts: " + ", ".join(sorted(extra)))
+    for name, contract in SKILL_RECOVERY_CONTRACTS.items():
+        if not contract.get("category") or not contract.get("recovery"):
+            errors.append(f"invalid recovery contract: {name}")
+    return errors
+
 
 def get_skill_manifest() -> list[dict]:
     """Return the skill manifest with script sources resolved.

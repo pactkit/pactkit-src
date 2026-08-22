@@ -30,6 +30,16 @@ _SPEC_TEMPLATE = """\
 | Priority | P1 |
 | Release | 3.0.0 |
 
+## Requirements
+
+### R1: First requirement (MUST)
+
+The implementation MUST preserve verified continuation state.
+
+### R2: Second requirement (MUST)
+
+The implementation MUST render completed acceptance criteria.
+
 ## Acceptance Criteria
 
 ### AC1: First Check (R1)
@@ -49,6 +59,12 @@ _SPEC_TEMPLATE = """\
 - **Given** precondition
 - **When** action
 - **Then** result
+
+## Security Scope
+
+| Check | Applicable | Reason |
+|-------|------------|--------|
+| SEC-1 | N/A | Test fixture contains no credentials |
 """
 
 
@@ -117,6 +133,52 @@ class TestAgentContinuation:
             },
         )
         assert "Blockers: RFC: R3 unclear" in content
+
+    def test_checkpoint_overrides_stale_explicit_handoff_and_marks_completed_acs(self, project_tree: Path) -> None:
+        _write_board(
+            project_tree,
+            "### [STORY-slim-070] Test Story\n- [x] Task 1\n",
+        )
+        (project_tree / "docs" / "specs" / "STORY-slim-070.md").write_text(_SPEC_TEMPLATE)
+        from pactkit.continuation import ContinuationStore
+        from pactkit.context_gen import generate_context
+
+        store = ContinuationStore(project_tree)
+        store.checkpoint(
+            "STORY-slim-070", step_id="preflight", evidence={"spec_lint": "pass"},
+        )
+        store.checkpoint(
+            "STORY-slim-070", step_id="red", evidence={"story_tests": {"exit_code": 1}},
+        )
+        store.checkpoint(
+            "STORY-slim-070", step_id="green", evidence={"story_tests": {"exit_code": 0}},
+        )
+        store.checkpoint(
+            "STORY-slim-070", step_id="regression_lint",
+            evidence={"regression": "pass", "lint": "pass"},
+        )
+        store.checkpoint(
+            "STORY-slim-070", step_id="sync_coverage", status="completed",
+            phase="Phase 4: complete",
+            evidence={
+                "spec_lint": "pass", "story_tests": {"exit_code": 0},
+                "regression": "pass", "lint": "pass",
+                "coverage": {"R1": ["test"], "R2": ["test"]},
+                "acceptance_coverage": {"AC1": ["test"], "AC2": ["test"], "AC3": ["test"]},
+                "board_tasks": ["Task 1"],
+            },
+        )
+        content = generate_context(
+            project_tree, command="pactkit context",
+            continuation_args={"last_command": "/project-act STORY-slim-070", "phase": "stale"},
+        )
+        assert "Verified Continuation: STORY-slim-070" in content
+        assert "Phase Reached: Phase 4: complete" in content
+        assert "Phase Reached: stale" not in content
+        assert "- [x] AC1" in content
+        context_path = project_tree / "docs/product/context.md"
+        context_path.write_text(content, encoding="utf-8")
+        assert store.resume("STORY-slim-070")["reasons"] == ["checkpoint is completed"]
 
     def test_no_in_progress_shows_default(self, project_tree: Path) -> None:
         """AC7: no in-progress story → 'No active work session.'"""

@@ -84,3 +84,12 @@
 - [x] SPRINT_PROMPT wave mode section R2-R5
 - [x] regenerate deployed sprint playbook
 - [x] prompt content tests AC3-AC6
+
+### [STORY-slim-146] 全 Skill 可恢复执行契约与 Act 断点续作
+> Spec: docs/specs/STORY-slim-146.md
+
+- [x] 建立 13 个 runtime skill 的恢复契约与完整性校验
+- [x] 实现原子 continuation checkpoint、验证与安全 resume CLI
+- [x] 为 project-act 加入逐步 checkpoint 与完成覆盖门禁
+- [x] 接入 doctor/garden/status 诊断并验证 legacy 兼容
+- [x] 验证四种 format 与外部 adapter 的真实 project-act 部署 parity

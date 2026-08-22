@@ -121,6 +121,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "INSTALL_UPDATE": "`pactkit update`",
         "GUARD": "`pactkit guard`",
         "DOCTOR": "`pactkit doctor`",
+        "CONTINUATION": "`pactkit continuation resume`",
     }
     _op_fallback = {
         "REGRESSION": (
@@ -138,6 +139,10 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "INSTALL_UPDATE": f"`pactkit init --format {profile.name}` from the terminal to reinstall",
         "GUARD": "the init-marker and lint/test checks manually",
         "DOCTOR": "the project file and structure checks manually",
+        "CONTINUATION": (
+            "the continuation checkpoint verification manually; inspect the Story checkpoint, "
+            "Spec, Board, and worktree before continuing, and record a complete safe boundary"
+        ),
     }
     _cli_preserving = profile.has_pactkit_cli
     for _op in _op_canonical:
@@ -166,6 +171,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
             "visualize": _op_fallback["LAZY_VISUALIZE"],
             "guard": _op_fallback["GUARD"],
             "doctor": _op_fallback["DOCTOR"],
+            "continuation": _op_fallback["CONTINUATION"],
             "update": _op_fallback["INSTALL_UPDATE"],
         }
         _span_re = re.compile(r"`pactkit (" + "|".join(_sub_fallback) + r")(?=\s|`)[^`]*`")

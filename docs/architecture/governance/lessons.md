@@ -2,7 +2,6 @@
 
 | Date | Lesson | Context |
 |------|--------|---------|
-| 2026-04-01 | Multi-stack visualize: _detect_stack() returning single str masks Go/TS/Java files in mixed projects; _build_class_graph hardcoded ast.parse() silently skips non-Python via except. Fix: _detect_stacks() returns list, extract_classes() ABC on all 4 analyzers. | visualize.py:_detect_stacks,_build_class_graph |
 | 2026-04-01 | Monorepo stack detection requires depth-1 subdir scan; cleaners.py and visualize.py _STACK_MARKERS must scan root/* not just root | cleaners.py:detect_stacks |
 | 2026-04-01 | When splitting a monolithic file into submodules with deploy-time inlining via load_script(), relative imports (from .foo) in exec() context raise KeyError not ImportError — guard with except (ImportError, KeyError) | skills/__init__.py:load_script |
 | 2026-04-01 | TSAnalyzer._load_tsconfig_paths must search depth-1 subdirs like _detect_stacks does because visualize.py always passes monorepo root as root param, not stack subdir — tsconfig in frontend/ is invisible if only root is searched | src/pactkit/skills/analyzers/ts_analyzer.py:_load_tsconfig_paths |
@@ -53,3 +52,4 @@
 | 2026-08-17 | deploy(format=all) 的 adapter 分支无视 target 直写真实 home——跨环境副作用必须显式审查 target/HOME 语义；测试通过 subprocess 调 CLI 时 HOME 未隔离即真实机器 | deployer.py:deploy |
 | 2026-08-17 | Baseline budget tests (test_story063_prompt_slimming.py BASELINE_TOTAL_CHARS) leave <100 chars headroom — new playbook instructions must compress hard or bump baseline with justification comment | pactkit/prompts/commands.py |
 | 2026-08-17 | pactkit update only deploys to ~/.claude — in-repo pactkit-plugin/commands copies need manual sync from prompts/ source (verified by normalized diff) | pactkit/prompts/workflows.py:SPRINT_PROMPT |
+| 2026-08-22 | Continuation completion must validate real Spec/Board/test evidence and keep read-validate-write under a Story-level process lock; prompt-only evidence is insufficient. | src/pactkit/continuation.py:ContinuationStore |

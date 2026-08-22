@@ -257,6 +257,32 @@ def main():
     ctx_parser.add_argument("--phase", default=None, help="Phase reached")
     ctx_parser.add_argument("--blockers", default=None, help="Blockers or open questions")
 
+    # STORY-slim-146: checkpoint writes are explicit; resume is read-only.
+    continuation_parser = subparsers.add_parser(
+        "continuation", help="Manage verifiable resumable Act checkpoints"
+    )
+    continuation_actions = continuation_parser.add_subparsers(
+        dest="continuation_action", required=True
+    )
+    checkpoint_parser = continuation_actions.add_parser(
+        "checkpoint", help="Write an explicit Act checkpoint"
+    )
+    checkpoint_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
+    checkpoint_parser.add_argument("--step", required=True, help="Safe boundary step ID")
+    checkpoint_parser.add_argument("--evidence", required=True, help="JSON evidence object or @path")
+    checkpoint_parser.add_argument(
+        "--status", default="in_progress", choices=["in_progress", "blocked", "completed"]
+    )
+    checkpoint_parser.add_argument("--phase", default="", help="Human-readable Act phase")
+    checkpoint_parser.add_argument("--blocker", default="", help="Sanitized blocker handoff")
+    checkpoint_parser.add_argument(
+        "--fresh", action="store_true", default=False,
+        help="Archive a completed checkpoint and begin a separate preflight cycle",
+    )
+    for action in ("status", "verify", "resume"):
+        action_parser = continuation_actions.add_parser(action, help=f"Read-only continuation {action}")
+        action_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
+
     # pactkit sec-scope (STORY-slim-014 R6)
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
     sec_scope_parser.add_argument("files", nargs="*", help="Changed file paths")
@@ -620,6 +646,38 @@ def main():
         ctx_path.write_text(content, encoding="utf-8")
         print(f"Generated {ctx_path}")
 
+    elif args.command == "continuation":
+        import json
+        from pathlib import Path
+
+        from pactkit.continuation import ContinuationError, ContinuationStore
+
+        store = ContinuationStore(Path.cwd())
+        try:
+            if args.continuation_action == "checkpoint":
+                raw_evidence = args.evidence
+                if raw_evidence.startswith("@"):
+                    raw_evidence = Path(raw_evidence[1:]).read_text(encoding="utf-8")
+                result = store.checkpoint(
+                    args.story_id,
+                    step_id=args.step,
+                    evidence=json.loads(raw_evidence),
+                    status=args.status,
+                    phase=args.phase,
+                    blocker=args.blocker,
+                    fresh=args.fresh,
+                )
+            elif args.continuation_action == "status":
+                result = store.status(args.story_id)
+            else:
+                result = store.resume(args.story_id)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            if result.get("decision") == "blocked":
+                raise SystemExit(1)
+        except (ContinuationError, OSError, json.JSONDecodeError) as exc:
+            print(f"Continuation error: {exc}")
+            raise SystemExit(1)
+
     elif args.command == "spec-graph":
         from pactkit.spec_graph import main as spec_graph_main
 
@@ -841,6 +899,12 @@ def main():
         from pactkit.doctor import check_core_metadata_divergence
 
         for warning in check_core_metadata_divergence():
+            print(f"  ⚠️  {warning}")
+            has_issues = True
+
+        from pactkit.continuation import ContinuationStore
+
+        for warning in ContinuationStore(root).diagnostics():
             print(f"  ⚠️  {warning}")
             has_issues = True
 

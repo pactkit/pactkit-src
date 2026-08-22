@@ -153,6 +153,20 @@ def check_stale_docs(project_root: Path, scope: Path | None) -> dict:
     """
     findings: list[dict] = []
 
+    # STORY-slim-146: surface corrupt, stale, or blocked checkpoint state.
+    try:
+        from pactkit.continuation import ContinuationStore
+
+        for warning in ContinuationStore(project_root).diagnostics(include_completed=True):
+            findings.append({
+                "type": "STALE-CONTINUATION",
+                "file": ".pactkit/continuations",
+                "line": None,
+                "message": warning,
+            })
+    except Exception:
+        pass
+
     # --- Done specs referencing deleted files ---
     specs_dir = project_root / "docs" / "specs"
     if specs_dir.is_dir():

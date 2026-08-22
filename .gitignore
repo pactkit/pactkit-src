@@ -58,6 +58,7 @@ pactkit-plugin/
 # Backup
 *.bak
 .mcp.json
+.pactkit/
 coder/
 docker/
 docs/slides/
