@@ -1,0 +1,31 @@
+schema_version: 1
+id: STORY-slim-149
+title: Codegraph-first 静态分析路由与显式降级
+spec_path: docs/specs/STORY-slim-149.md
+status: archived
+tasks:
+- id: task-e2a13f6268
+  title: 实现统一 GraphProviderRouter 与结果模型
+  completed: true
+- id: task-a13bbbffbd
+  title: 实现 Codegraph 健康、新鲜度和单次 sync
+  completed: true
+- id: task-0099fdf79c
+  title: 扩展 query/explore/impact CLI 与显式 fallback
+  completed: true
+- id: task-a01100ae34
+  title: 让 Plan Act Trace 统一走查询路由
+  completed: true
+- id: task-bad258b75c
+  title: 校验 continuation provider evidence
+  completed: true
+- id: task-f9e5131da8
+  title: 增加 doctor 与部署完整性诊断
+  completed: true
+- id: task-e44b961688
+  title: 验证四种 Adapter 的查询语义
+  completed: true
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T10:51:55+00:00'
+completed_at: '2026-08-22T05:32:41+00:00'
+archived_at: '2026-08-22T10:51:55+00:00'

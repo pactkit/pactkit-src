@@ -27,6 +27,11 @@ from pactkit.schemas import (
 _STORY_TITLE_RE = re.compile(r"^#{3,4}\s+\[?(?:STORY|HOTFIX|BUG)-", re.MULTILINE)
 
 
+def context_output_path(project_root: Path) -> Path:
+    """Return the ignored local Context projection path."""
+    return project_root.resolve() / ".pactkit" / "context.md"
+
+
 # ---------------------------------------------------------------------------
 # Board parsing helpers
 # ---------------------------------------------------------------------------
@@ -309,10 +314,16 @@ def generate_context(
     """
     timestamp = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 
-    # ---- Board ----
+    # ---- Story facts (legacy Board is read-only fallback during migration) ----
+    from pactkit.governance import BoardRenderer, LessonRepository, StoryRepository
+
+    story_repo = StoryRepository(project_root)
+    records = story_repo.list()
     board_path = project_root / "docs" / "product" / "sprint_board.md"
-    board_found = board_path.exists()
-    board_text = board_path.read_text(encoding="utf-8") if board_found else ""
+    board_found = bool(records) or board_path.exists()
+    board_text = BoardRenderer(story_repo).render() if records else (
+        board_path.read_text(encoding="utf-8") if board_path.exists() else ""
+    )
 
     if board_found:
         counts = _parse_board(board_text)
@@ -331,8 +342,12 @@ def generate_context(
     branches = _get_git_branches(project_root)
 
     # ---- Lessons ----
-    lessons_path = project_root / "docs" / "architecture" / "governance" / "lessons.md"
-    lessons = _parse_last_lessons(lessons_path)
+    lesson_records = LessonRepository(project_root).recent()
+    if lesson_records:
+        lessons = [f"- {record['text']}" for record in reversed(lesson_records)]
+    else:
+        lessons_path = project_root / "docs" / "architecture" / "governance" / "lessons.md"
+        lessons = _parse_last_lessons(lessons_path)
 
     # ---- Compose output ----
     lines: list[str] = [

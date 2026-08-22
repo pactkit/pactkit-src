@@ -333,18 +333,19 @@ PactKit's PDCA lifecycle manages a `docs/` directory:
 ```
 docs/
 ├── product/
-│   ├── sprint_board.md          <- Current iteration board
-│   ├── context.md               <- Auto-generated session context
-│   └── archive/                 <- Archived completed stories
+│   ├── stories/                 <- One workflow/task fact file per Story
+│   └── sprint_board.md          <- Optional generated read-only projection
 ├── specs/                       <- The Law — requirement specifications
 ├── test_cases/                  <- Gherkin acceptance scenarios
 └── architecture/
     ├── graphs/                  <- Architecture graph files (Mermaid .mmd)
     ├── governance/
     │   ├── rules.md             <- Architecture decisions and invariants
-    │   └── lessons.md           <- Lessons learned per story
+    │   └── lessons/             <- One immutable record per lesson
     └── snapshots/               <- Versioned architecture graph snapshots
 ```
+
+Session context is generated locally at `.pactkit/context.md` and is ignored by Git.
 
 ### pactkit.yaml Configuration Reference
 

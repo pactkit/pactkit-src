@@ -1,0 +1,20 @@
+schema_version: 1
+id: HOTFIX-slim-127
+title: Add codegraph sync to PDCA command source templates
+spec_path: docs/specs/HOTFIX-slim-127.md
+status: backlog
+tasks:
+- id: task-59fb4145ef
+  title: Fix project-plan
+  completed: false
+- id: task-a8874c4bcd
+  title: Fix project-act
+  completed: false
+- id: task-c478f20790
+  title: Fix project-done
+  completed: false
+- id: task-8abbb34c86
+  title: Fix project-hotfix
+  completed: false
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T05:25:07+00:00'

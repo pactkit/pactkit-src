@@ -1,6 +1,28 @@
 graph TD
+    ActEvidenceValidator_validate["ActEvidenceValidator.validate"]
+    BoardRenderer___init__["BoardRenderer.__init__"]
+    BoardRenderer_check["BoardRenderer.check"]
+    BoardRenderer_render["BoardRenderer.render"]
+    BuiltinGraphProvider_health["BuiltinGraphProvider.health"]
+    BuiltinGraphProvider_query["BuiltinGraphProvider.query"]
+    BuiltinGraphProvider_sync["BuiltinGraphProvider.sync"]
     ClassicDeployer_deploy["ClassicDeployer.deploy"]
-    ContinuationStore___init__["ContinuationStore.__init__"]
+    CodegraphProvider__query_sqlite["CodegraphProvider._query_sqlite"]
+    CodegraphProvider__run["CodegraphProvider._run"]
+    CodegraphProvider__sync_lock["CodegraphProvider._sync_lock"]
+    CodegraphProvider_health["CodegraphProvider.health"]
+    CodegraphProvider_query["CodegraphProvider.query"]
+    CodegraphProvider_sync["CodegraphProvider.sync"]
+    ContinuationEngine__find["ContinuationEngine._find"]
+    ContinuationEngine__run_lock["ContinuationEngine._run_lock"]
+    ContinuationEngine__validate_run_id["ContinuationEngine._validate_run_id"]
+    ContinuationEngine_bind_story["ContinuationEngine.bind_story"]
+    ContinuationEngine_checkpoint["ContinuationEngine.checkpoint"]
+    ContinuationEngine_definition["ContinuationEngine.definition"]
+    ContinuationEngine_path_for["ContinuationEngine.path_for"]
+    ContinuationEngine_read["ContinuationEngine.read"]
+    ContinuationEngine_resume["ContinuationEngine.resume"]
+    ContinuationEngine_start["ContinuationEngine.start"]
     ContinuationStore__active_peer_story_ids["ContinuationStore._active_peer_story_ids"]
     ContinuationStore__archive_completed["ContinuationStore._archive_completed"]
     ContinuationStore__checkpoint_locked["ContinuationStore._checkpoint_locked"]
@@ -8,6 +30,7 @@ graph TD
     ContinuationStore__paths["ContinuationStore._paths"]
     ContinuationStore__require_valid_spec["ContinuationStore._require_valid_spec"]
     ContinuationStore__stale_reasons["ContinuationStore._stale_reasons"]
+    ContinuationStore__story_fact_path["ContinuationStore._story_fact_path"]
     ContinuationStore__story_lock["ContinuationStore._story_lock"]
     ContinuationStore__validate_completion["ContinuationStore._validate_completion"]
     ContinuationStore__validate_step_evidence["ContinuationStore._validate_step_evidence"]
@@ -29,7 +52,44 @@ graph TD
     DeployerBase_render_prompt["DeployerBase.render_prompt"]
     DeployerBase_strip_excluded_command_references["DeployerBase.strip_excluded_command_references"]
     DeployerBase_validate_deployed_content["DeployerBase.validate_deployed_content"]
+    GovernanceMigrator__legacy_lessons["GovernanceMigrator._legacy_lessons"]
+    GovernanceMigrator__legacy_stories["GovernanceMigrator._legacy_stories"]
+    GovernanceMigrator__remove_installed["GovernanceMigrator._remove_installed"]
+    GovernanceMigrator_migrate["GovernanceMigrator.migrate"]
+    GraphProviderError___init__["GraphProviderError.__init__"]
+    GraphProviderRouter__query_one["GraphProviderRouter._query_one"]
+    GraphProviderRouter_query["GraphProviderRouter.query"]
+    GraphQueryResult_to_dict["GraphQueryResult.to_dict"]
+    LessonRepository__load["LessonRepository._load"]
+    LessonRepository_add["LessonRepository.add"]
+    LessonRepository_import_legacy["LessonRepository.import_legacy"]
+    LessonRepository_recent["LessonRepository.recent"]
+    NoopValidator__require_graph_evidence["NoopValidator._require_graph_evidence"]
+    NoopValidator_fingerprints["NoopValidator.fingerprints"]
+    NoopValidator_validate["NoopValidator.validate"]
+    PlanEvidenceValidator__board["PlanEvidenceValidator._board"]
+    PlanEvidenceValidator__require_acceptance["PlanEvidenceValidator._require_acceptance"]
+    PlanEvidenceValidator__require_board["PlanEvidenceValidator._require_board"]
+    PlanEvidenceValidator__require_complete["PlanEvidenceValidator._require_complete"]
+    PlanEvidenceValidator__require_lint["PlanEvidenceValidator._require_lint"]
+    PlanEvidenceValidator__require_requirements["PlanEvidenceValidator._require_requirements"]
+    PlanEvidenceValidator__require_security["PlanEvidenceValidator._require_security"]
+    PlanEvidenceValidator__spec["PlanEvidenceValidator._spec"]
+    PlanEvidenceValidator__text["PlanEvidenceValidator._text"]
+    PlanEvidenceValidator_fingerprints["PlanEvidenceValidator.fingerprints"]
+    PlanEvidenceValidator_validate["PlanEvidenceValidator.validate"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
+    StoryRepository__validate["StoryRepository._validate"]
+    StoryRepository__write["StoryRepository._write"]
+    StoryRepository_add["StoryRepository.add"]
+    StoryRepository_complete_task["StoryRepository.complete_task"]
+    StoryRepository_list["StoryRepository.list"]
+    StoryRepository_load["StoryRepository.load"]
+    StoryRepository_move["StoryRepository.move"]
+    StoryRepository_path_for["StoryRepository.path_for"]
+    TextSearchProvider_health["TextSearchProvider.health"]
+    TextSearchProvider_query["TextSearchProvider.query"]
+    TextSearchProvider_sync["TextSearchProvider.sync"]
     __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
@@ -59,6 +119,7 @@ graph TD
     _check_test_coverage["_check_test_coverage"]
     _checkpoint_continuation["_checkpoint_continuation"]
     _classify_coverage["_classify_coverage"]
+    _clean["_clean"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_commands["_cleanup_legacy_commands"]
     _collect_findings["_collect_findings"]
@@ -108,6 +169,7 @@ graph TD
     _git_head["_git_head"]
     _has_dir_with_files["_has_dir_with_files"]
     _has_production_caller["_has_production_caller"]
+    _hash["_hash"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside_protected["_inside_protected"]
     _install_argv["_install_argv"]
@@ -126,6 +188,7 @@ graph TD
     _new_public_symbols["_new_public_symbols"]
     _no_external_enabled["_no_external_enabled"]
     _no_git_enabled["_no_git_enabled"]
+    _now["_now"]
     _parse_ac_to_reqs["_parse_ac_to_reqs"]
     _parse_active_stories["_parse_active_stories"]
     _parse_board["_parse_board"]
@@ -164,13 +227,16 @@ graph TD
     _search_issue["_search_issue"]
     _should_refresh_audit["_should_refresh_audit"]
     _spec_status["_spec_status"]
+    _story_fact_block["_story_fact_block"]
     _strip_code_spans["_strip_code_spans"]
     _suggest_action["_suggest_action"]
+    _task_id["_task_id"]
     _tool_version["_tool_version"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
     _validate_developer["_validate_developer"]
+    _validate_item_id["_validate_item_id"]
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
     append_lesson["append_lesson"]
@@ -191,6 +257,7 @@ graph TD
     check_dead_imports["check_dead_imports"]
     check_deploy_parity["check_deploy_parity"]
     check_deps["check_deps"]
+    check_graph_provider["check_graph_provider"]
     check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
@@ -208,6 +275,7 @@ graph TD
     collect_changed_files["collect_changed_files"]
     compute_conflicts["compute_conflicts"]
     compute_waves["compute_waves"]
+    context_output_path["context_output_path"]
     current_branch["current_branch"]
     decide_test_set["decide_test_set"]
     deploy["deploy"]
@@ -227,6 +295,7 @@ graph TD
     get_default_config["get_default_config"]
     get_profile["get_profile"]
     get_skill_manifest["get_skill_manifest"]
+    get_workflow["get_workflow"]
     hook_entry["hook_entry"]
     install_deps["install_deps"]
     install_git_hook["install_git_hook"]
@@ -239,11 +308,13 @@ graph TD
     load_config["load_config"]
     load_story_graph["load_story_graph"]
     main["main"]
+    main__workflow_evidence["main._workflow_evidence"]
     map_to_tests["map_to_tests"]
     next_story_id["next_story_id"]
     pactkit_owned_files["pactkit_owned_files"]
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
+    project_router["project_router"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
     render["render"]
@@ -270,6 +341,7 @@ graph TD
     update_spec_status["update_spec_status"]
     update_yaml_stack["update_yaml_stack"]
     validate_config["validate_config"]
+    validate_registry["validate_registry"]
     validate_skill_recovery_contracts["validate_skill_recovery_contracts"]
     verify_story["verify_story"]
     write_deploy_manifest["write_deploy_manifest"]
@@ -307,6 +379,7 @@ graph TD
     schema_config_report --> load_config
     schema_config_report --> get_default_config
     _is_duplicate --> _jaccard_similarity
+    _repair_table_structure --> ContinuationEngine_start
     append_lesson --> _get_last_n_entries
     append_lesson --> _is_duplicate
     append_lesson --> _rotate_if_needed
@@ -338,6 +411,11 @@ graph TD
     _check_h6 --> _compute_layer_level
     _check_h7 --> _compute_layer_level
     _collect_findings --> check_dead_imports
+    _collect_insights --> LessonRepository_add
+    _collect_insights --> LessonRepository_add
+    _collect_insights --> LessonRepository_add
+    _collect_insights --> LessonRepository_add
+    _collect_insights --> LessonRepository_add
     _collect_insights --> _collect_insights__dfs
     _collect_insights --> _collect_insights__dfs
     _check_code_smells --> _max_nesting_depth
@@ -366,7 +444,43 @@ graph TD
     audit --> _check_h7
     audit --> load_config
     audit --> _generate_suggested_tasks
+    _collect_insights__dfs --> LessonRepository_add
+    _collect_insights__dfs --> LessonRepository_add
     _collect_insights__dfs --> _collect_insights__dfs
+    NoopValidator_validate --> PlanEvidenceValidator_validate
+    NoopValidator_validate --> ActEvidenceValidator_validate
+    NoopValidator_fingerprints --> PlanEvidenceValidator_fingerprints
+    NoopValidator__require_graph_evidence --> find_pactkit_yaml
+    NoopValidator__require_graph_evidence --> load_config
+    PlanEvidenceValidator_validate --> ActEvidenceValidator_validate
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__spec
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_requirements
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_acceptance
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_security
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__spec
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_lint
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_board
+    PlanEvidenceValidator_validate --> PlanEvidenceValidator__require_complete
+    PlanEvidenceValidator__text --> PlanEvidenceValidator__spec
+    PlanEvidenceValidator__require_requirements --> PlanEvidenceValidator__text
+    PlanEvidenceValidator__require_acceptance --> PlanEvidenceValidator__text
+    PlanEvidenceValidator__require_security --> PlanEvidenceValidator__text
+    PlanEvidenceValidator__require_lint --> PlanEvidenceValidator__spec
+    PlanEvidenceValidator__require_board --> StoryRepository_load
+    PlanEvidenceValidator__require_board --> PlanEvidenceValidator__board
+    PlanEvidenceValidator__require_board --> PlanEvidenceValidator__board
+    PlanEvidenceValidator__require_board --> ContinuationEngine_start
+    PlanEvidenceValidator__require_complete --> PlanEvidenceValidator__require_requirements
+    PlanEvidenceValidator__require_complete --> PlanEvidenceValidator__require_acceptance
+    PlanEvidenceValidator__require_complete --> PlanEvidenceValidator__require_security
+    PlanEvidenceValidator__require_complete --> PlanEvidenceValidator__require_lint
+    PlanEvidenceValidator_fingerprints --> _hash
+    PlanEvidenceValidator_fingerprints --> _hash
+    PlanEvidenceValidator_fingerprints --> _hash
+    PlanEvidenceValidator_fingerprints --> _hash
+    PlanEvidenceValidator_fingerprints --> PlanEvidenceValidator__spec
+    PlanEvidenceValidator_fingerprints --> PlanEvidenceValidator__board
+    ActEvidenceValidator_validate --> ActEvidenceValidator_validate
     detect_security_scope --> _is_docs_or_tests_only
     detect_security_scope --> detect_security_scope__any_content_matches
     detect_security_scope --> detect_security_scope__any_content_matches
@@ -383,9 +497,17 @@ graph TD
     detect_security_scope --> _path_ends_with_ext
     check_dead_imports --> _resolve_scope
     check_dead_imports --> _python_files
+    check_dead_imports --> ContinuationEngine_start
+    check_dead_imports --> ContinuationEngine_start
+    check_dead_imports --> ContinuationEngine_start
+    check_dead_imports --> ContinuationEngine_start
+    check_dead_imports --> ContinuationEngine_start
+    check_stale_docs --> context_output_path
     check_stale_docs --> ContinuationStore_diagnostics
+    check_stale_docs --> LessonRepository_add
     check_pattern_duplication --> _resolve_scope
     check_pattern_duplication --> _python_files
+    check_pattern_duplication --> ContinuationEngine_start
     run_garden --> check_dead_imports
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
@@ -428,12 +550,42 @@ graph TD
     _sanitize_evidence --> _sanitize
     _sanitize_evidence --> _sanitize_evidence
     _sanitize_evidence --> _sanitize_evidence
+    ContinuationEngine__run_lock --> ContinuationEngine_path_for
+    ContinuationEngine_definition --> get_workflow
+    ContinuationEngine_path_for --> ContinuationEngine__validate_run_id
+    ContinuationEngine__find --> ContinuationEngine_path_for
+    ContinuationEngine_read --> ContinuationEngine__find
+    ContinuationEngine_start --> ContinuationEngine_definition
+    ContinuationEngine_start --> _sanitize_evidence
+    ContinuationEngine_start --> ActEvidenceValidator_validate
+    ContinuationEngine_start --> ContinuationEngine__run_lock
+    ContinuationEngine_start --> atomic_write
+    ContinuationEngine_start --> ContinuationEngine_path_for
+    ContinuationEngine_bind_story --> ContinuationEngine__find
+    ContinuationEngine_bind_story --> ContinuationEngine__run_lock
+    ContinuationEngine_bind_story --> ContinuationEngine__find
+    ContinuationEngine_bind_story --> atomic_write
+    ContinuationEngine_checkpoint --> ContinuationEngine__find
+    ContinuationEngine_checkpoint --> ContinuationEngine__run_lock
+    ContinuationEngine_checkpoint --> ContinuationEngine__find
+    ContinuationEngine_checkpoint --> ContinuationEngine_definition
+    ContinuationEngine_checkpoint --> atomic_write
+    ContinuationEngine_checkpoint --> ActEvidenceValidator_validate
+    ContinuationEngine_checkpoint --> _sanitize_evidence
+    ContinuationEngine_checkpoint --> _sanitize
+    ContinuationEngine_checkpoint --> NoopValidator_fingerprints
+    ContinuationEngine_resume --> ContinuationEngine__find
+    ContinuationEngine_resume --> NoopValidator_fingerprints
+    ContinuationEngine_resume --> ContinuationEngine_definition
+    ContinuationEngine_resume --> ContinuationEngine_definition
     ContinuationStore_path_for --> ContinuationStore__validate_story_id
     ContinuationStore__fingerprints --> ContinuationStore__paths
-    ContinuationStore__fingerprints --> _fingerprint
+    ContinuationStore__fingerprints --> ContinuationStore__story_fact_path
     ContinuationStore__fingerprints --> _fingerprint
     ContinuationStore__fingerprints --> _git_head
     ContinuationStore__fingerprints --> _worktree_fingerprint
+    ContinuationStore__fingerprints --> _fingerprint
+    ContinuationStore__fingerprints --> _fingerprint
     ContinuationStore_read --> ContinuationStore__validate_story_id
     ContinuationStore_read --> ContinuationStore_path_for
     ContinuationStore_legacy_handoff --> ContinuationStore__validate_story_id
@@ -457,10 +609,14 @@ graph TD
     ContinuationStore__checkpoint_locked --> ContinuationStore__fingerprints
     ContinuationStore__checkpoint_locked --> ContinuationStore__stale_reasons
     ContinuationStore__validate_step_evidence --> ContinuationStore__require_valid_spec
+    ContinuationStore__validate_step_evidence --> ActEvidenceValidator_validate
+    ContinuationStore__validate_step_evidence --> get_workflow
     ContinuationStore__require_valid_spec --> ContinuationStore__paths
     ContinuationStore__archive_completed --> atomic_write
     ContinuationStore__validate_completion --> ContinuationStore__require_valid_spec
+    ContinuationStore__validate_completion --> ContinuationStore__story_fact_path
     ContinuationStore__validate_completion --> ContinuationStore__paths
+    ContinuationStore__validate_completion --> StoryRepository_load
     ContinuationStore__validate_completion --> ContinuationStore__paths
     ContinuationStore_resume --> ContinuationStore_read
     ContinuationStore_resume --> ContinuationStore__active_peer_story_ids
@@ -473,8 +629,8 @@ graph TD
     ContinuationStore_diagnostics --> ContinuationStore_path_for
     ContinuationStore_diagnostics --> ContinuationStore_resume
     _checkpoint_continuation --> _extract_sprint_contract
-    _checkpoint_continuation --> ContinuationStore_read
-    _checkpoint_continuation --> ContinuationStore_resume
+    _checkpoint_continuation --> ContinuationEngine_read
+    _checkpoint_continuation --> ContinuationEngine_resume
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _sanitize_text
     _generate_continuation --> _parse_active_stories
@@ -483,11 +639,13 @@ graph TD
     _generate_continuation --> _checkpoint_continuation
     _generate_continuation --> _sanitize_text
     generate_context --> _get_git_branches
-    generate_context --> _parse_last_lessons
+    generate_context --> LessonRepository_recent
     generate_context --> _generate_continuation
+    generate_context --> render
     generate_context --> _parse_board
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
+    generate_context --> _parse_last_lessons
     run_observe --> _detect_sources
     run_observe --> _collect_signals
     run_observe --> classify_signals
@@ -508,14 +666,31 @@ graph TD
     main --> clean_artifacts
     main --> classify_changes
     main --> generate_context
-    main --> ContinuationStore_checkpoint
-    main --> detect_security_scope
+    main --> context_output_path
+    main --> atomic_write
+    main --> LessonRepository_add
+    main --> GovernanceMigrator_migrate
+    main --> StoryRepository_complete_task
+    main --> StoryRepository_move
+    main --> ContinuationEngine_checkpoint
+    main --> atomic_write
     main --> ContinuationStore_status
-    main --> ContinuationStore_resume
+    main --> ContinuationEngine_resume
+    main --> validate_registry
+    main --> detect_security_scope
+    main --> render
+    main --> ContinuationEngine_start
     main --> format_markdown_table
     main --> lint_context
+    main --> BoardRenderer_check
+    main --> ContinuationEngine_bind_story
     main --> lint_lessons
+    main --> main__workflow_evidence
+    main --> ContinuationEngine_checkpoint
     main --> lint_testcase
+    main --> ContinuationEngine_read
+    main --> ContinuationEngine_resume
+    main --> main__workflow_evidence
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
@@ -525,6 +700,7 @@ graph TD
     main --> run_observe
     main --> check_orphaned_specs
     main --> check_config_drift
+    main --> check_graph_provider
     main --> check_stale_graphs
     main --> check_hld_module_count
     main --> check_config_copy_drift
@@ -537,10 +713,13 @@ graph TD
     main --> issue_sync
     main --> map_to_tests
     main --> run_lint
-    main --> append_lesson
+    main --> _is_specific
+    main --> _is_duplicate
     main --> refresh_test_count
+    main --> LessonRepository_add
     main --> check_coverage
     main --> update_spec_status
+    main --> LessonRepository_recent
     main --> verify_story
     main --> check_deps
     main --> render
@@ -550,17 +729,23 @@ graph TD
     main --> hook_entry
     main --> render
     main --> install_git_hook
-    main --> ContinuationStore_read
+    main --> ContinuationEngine_read
     main --> detect_stacks
     main --> update_yaml_stack
     main --> load_config
+    main --> BuiltinGraphProvider_query
+    main --> project_router
+    main --> GraphQueryResult_to_dict
     main --> load_story_graph
     main --> compute_waves
     main --> render
     main --> render_mermaid
     main --> to_json
     _check_adapter_compat --> check_adapter_compat
+    _get_done_ids --> ContinuationEngine_start
     scan_and_replace_tbd --> _get_done_ids
+    detect_stacks --> LessonRepository_add
+    detect_stacks --> LessonRepository_add
     detect_stack --> detect_stacks
     clean_artifacts --> detect_stack
     clean_artifacts --> _inside_protected
@@ -586,6 +771,7 @@ graph TD
     issue_sync --> _create_issue
     issue_sync --> _check_gh_available
     map_to_tests --> detect_stack
+    _story_fact_block --> StoryRepository_load
     _archived --> _read
     check_requirement_evidence --> _read
     check_requirement_evidence --> _read
@@ -596,6 +782,7 @@ graph TD
     check_archive_honesty --> _read
     _changed_source_files --> _git
     _changed_source_files --> _git
+    _changed_source_files --> LessonRepository_add
     _new_public_symbols --> _git
     _new_public_symbols --> _read
     _new_public_symbols --> _git
@@ -605,28 +792,102 @@ graph TD
     check_status_consistency --> _read
     check_status_consistency --> _spec_status
     check_status_consistency --> _archived
+    verify_story --> _story_fact_block
     verify_story --> _read
     verify_story --> _board_block
     verify_story --> check_requirement_evidence
     verify_story --> check_archive_honesty
     verify_story --> check_wiring
     verify_story --> check_status_consistency
+    verify_story --> BoardRenderer_check
+    check_orphaned_specs --> LessonRepository_add
     check_config_drift --> find_pactkit_yaml
     check_config_drift --> check_config_drift__exists_in_any
     check_config_drift --> check_config_drift__dir_or_file_in_any
+    check_graph_provider --> find_pactkit_yaml
+    check_graph_provider --> BuiltinGraphProvider_health
+    check_graph_provider --> load_config
     check_stale_graphs --> load_config
+    check_deploy_parity --> LessonRepository_add
     check_deploy_parity --> expected_components
     check_deploy_parity --> sha256_file
     check_adapter_skew --> _major_minor
     check_adapter_skew --> _major_minor
     check_adapter_compat --> _major_minor
     check_adapter_compat --> _major_minor
+    GraphProviderError___init__ --> BoardRenderer___init__
+    CodegraphProvider_health --> CodegraphProvider__run
+    CodegraphProvider_health --> CodegraphProvider__run
+    CodegraphProvider_health --> _clean
+    CodegraphProvider_health --> _clean
+    CodegraphProvider_health --> _clean
+    CodegraphProvider_health --> _clean
+    CodegraphProvider_sync --> CodegraphProvider__sync_lock
+    CodegraphProvider_sync --> CodegraphProvider_health
+    CodegraphProvider_sync --> CodegraphProvider__run
+    CodegraphProvider_sync --> CodegraphProvider_health
+    CodegraphProvider_sync --> _clean
+    CodegraphProvider_query --> CodegraphProvider__run
+    CodegraphProvider_query --> CodegraphProvider__query_sqlite
+    CodegraphProvider_query --> _clean
+    CodegraphProvider_query --> _clean
+    BuiltinGraphProvider_sync --> BuiltinGraphProvider_health
+    TextSearchProvider_sync --> TextSearchProvider_health
+    TextSearchProvider_query --> _clean
+    TextSearchProvider_query --> _clean
+    TextSearchProvider_query --> _clean
+    GraphProviderRouter_query --> GraphProviderRouter__query_one
+    GraphProviderRouter_query --> GraphProviderRouter__query_one
+    GraphProviderRouter__query_one --> BuiltinGraphProvider_health
+    GraphProviderRouter__query_one --> BuiltinGraphProvider_query
+    GraphProviderRouter__query_one --> BuiltinGraphProvider_sync
+    StoryRepository_path_for --> _validate_item_id
+    StoryRepository__validate --> _validate_item_id
+    StoryRepository__validate --> LessonRepository_add
+    StoryRepository_load --> StoryRepository_path_for
+    StoryRepository_load --> StoryRepository__validate
+    StoryRepository_list --> StoryRepository_load
+    StoryRepository__write --> StoryRepository__validate
+    StoryRepository__write --> StoryRepository_path_for
+    StoryRepository__write --> atomic_write
+    StoryRepository_add --> _validate_item_id
+    StoryRepository_add --> _now
+    StoryRepository_add --> StoryRepository__write
+    StoryRepository_add --> _task_id
+    StoryRepository_complete_task --> StoryRepository_load
+    StoryRepository_complete_task --> _now
+    StoryRepository_complete_task --> StoryRepository__write
+    StoryRepository_complete_task --> _now
+    StoryRepository_move --> ContinuationStore_status
+    StoryRepository_move --> StoryRepository_load
+    StoryRepository_move --> _now
+    StoryRepository_move --> StoryRepository__write
+    StoryRepository_move --> _now
+    StoryRepository_move --> _now
+    BoardRenderer_render --> ContinuationStore_status
+    BoardRenderer_check --> BoardRenderer_render
+    LessonRepository_add --> _validate_item_id
+    LessonRepository_recent --> LessonRepository__load
+    GovernanceMigrator__legacy_stories --> LessonRepository_add
+    GovernanceMigrator__legacy_stories --> ContinuationStore_status
+    GovernanceMigrator__legacy_stories --> ContinuationEngine_start
+    GovernanceMigrator__legacy_stories --> ContinuationEngine_start
+    GovernanceMigrator__legacy_stories --> ContinuationEngine_start
+    GovernanceMigrator__legacy_lessons --> LessonRepository_add
+    GovernanceMigrator_migrate --> GovernanceMigrator__legacy_stories
+    GovernanceMigrator_migrate --> GovernanceMigrator__legacy_lessons
+    GovernanceMigrator_migrate --> LessonRepository_recent
+    GovernanceMigrator_migrate --> LessonRepository_add
+    GovernanceMigrator_migrate --> StoryRepository__write
+    GovernanceMigrator_migrate --> LessonRepository_import_legacy
+    GovernanceMigrator_migrate --> GovernanceMigrator__remove_installed
     _enforce_deploy_integrity --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
     _render_skill_md --> get_profile
+    _load_entry_point_deployers --> StoryRepository_load
     _load_entry_point_deployers --> register_deployer
     _ensure_entry_point_deployers --> _load_entry_point_deployers
     deploy --> _ensure_entry_point_deployers
@@ -726,7 +987,7 @@ graph TD
     _deploy_claude_md_inline --> _rewrite_skills_prefix
     _deploy_claude_md_inline --> atomic_write
     _deploy_marketplace_json --> atomic_write
-    DeployIntegrityError___init__ --> ContinuationStore___init__
+    DeployIntegrityError___init__ --> BoardRenderer___init__
     ClassicDeployer_deploy --> _deploy_classic
     PluginDeployer_deploy --> _deploy_plugin
     __module__ --> _generate_project_claude_md

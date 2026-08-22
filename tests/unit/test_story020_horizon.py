@@ -76,19 +76,18 @@ class TestMaxNodes:
 
 
 class TestPromptGuidance:
-    """Plan and Act prompts should recommend --focus --depth for large projects."""
+    """Plan and Act prompts must use the provider-routed bounded query API."""
 
-    def test_plan_prompt_mentions_depth(self):
-        """S4: Plan prompt should mention --depth for large codebases."""
+    def test_plan_prompt_uses_explore_router(self):
         prompt = COMMANDS_CONTENT["project-plan.md"]
-        assert "--depth" in prompt
+        assert "pactkit query --explore" in prompt
+        assert "--json --explain" in prompt
 
-    def test_plan_prompt_mentions_focus_heuristic(self):
-        """S4: Plan prompt should have a heuristic for large codebases."""
+    def test_plan_prompt_requires_explicit_fallback(self):
         prompt = COMMANDS_CONTENT["project-plan.md"]
-        assert "--focus" in prompt  # STORY-slim-020: replaced "50+ files" with targeted --focus
+        assert "--allow-fallback" in prompt
 
-    def test_act_prompt_mentions_depth(self):
-        """Act prompt should also mention --depth."""
+    def test_act_prompt_uses_explore_router(self):
         prompt = COMMANDS_CONTENT["project-act.md"]
-        assert "--depth" in prompt
+        assert "pactkit query --explore" in prompt
+        assert "--json --explain" in prompt

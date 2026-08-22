@@ -18,7 +18,7 @@ Analyze requirements, maintain the Intent Graph, and produce Specs. You are the 
 
 ## Output
 - `docs/specs/{ID}.md` — containing Requirements, Acceptance Criteria, Design
-- `docs/product/sprint_board.md` — add Story via `add_story`
+- `docs/product/stories/{ITEM_ID}.yaml` — create Story facts via `add_story`
 - `docs/architecture/graphs/system_design.mmd` — update high-level design diagram
 
 ## Protocol (/project-plan)
@@ -58,8 +58,8 @@ Implement code per Spec, strictly following TDD. You are the owner of the Act ph
 
 ## Protocol
 ### /project-act (Formal Development)
-1. **Visual Scan**: `visualize --focus <module>` to understand dependencies
-2. **Call Chain**: `visualize --mode call --entry <func>` to trace call chains
+1. **Provider-Routed Scan**: `pactkit query --explore <module> --json --explain`
+2. **Call Chain**: `pactkit query --chain <func> --json --explain`
 3. **Test First**: Write `tests/unit/` tests first (RED)
 4. **Implement**: Write code to make tests pass (GREEN)
 5. **Verify**: Report after the project's test suite passes (see `LANG_PROFILES` for test runner)
@@ -302,7 +302,7 @@ Transform product visions into comprehensive PRDs, decompose them into implement
 ## Output
 - `docs/product/prd.md` — Product Requirements Document (the master plan)
 - `docs/specs/STORY-{NNN}.md` — Individual Specs decomposed from PRD (one per Story)
-- `docs/product/sprint_board.md` — All stories added via `add_story`, ordered by priority
+- `docs/product/stories/{ITEM_ID}.yaml` — All stories created via `add_story`
 - `docs/architecture/graphs/system_design.mmd` — High-level architecture diagram
 
 ## Protocol (/project-design)

@@ -1,0 +1,23 @@
+schema_version: 1
+id: STORY-slim-119
+title: Improve Python Call Graph Coverage
+spec_path: docs/specs/STORY-slim-119.md
+status: backlog
+tasks:
+- id: task-20105a2311
+  title: Extend _extract_calls to capture non-self attribute method calls (R1)
+  completed: false
+- id: task-20e7f8ec2d
+  title: Capture function references in list/assignment contexts (R2)
+  completed: false
+- id: task-f6bf44e616
+  title: Use ast.walk to scan nested functions (R3)
+  completed: false
+- id: task-11b4ba1a8c
+  title: Write TDD tests for AC1-AC4
+  completed: false
+- id: task-0e5302f640
+  title: Run pactkit update to redeploy
+  completed: false
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T05:25:07+00:00'

@@ -8,12 +8,16 @@ import os
 import re
 import subprocess
 import time
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from pactkit.id_generator import ITEM_ID_PATTERN, ITEM_ID_RE
 from pactkit.utils import atomic_write
+from pactkit.workflow_registry import get_workflow
+from pactkit.workflow_validators import WorkflowEvidenceError
 
 SCHEMA_VERSION = 1
 STEPS = ("preflight", "red", "green", "regression_lint", "sync_coverage")
@@ -21,26 +25,198 @@ STATUSES = ("in_progress", "blocked", "completed")
 LOCK_TIMEOUT_SECONDS = 5.0
 LOCK_POLL_SECONDS = 0.05
 _NEXT_STEP = dict(zip(STEPS, STEPS[1:] + ("completed",)))
-_STORY_ID = re.compile(r"^(?:STORY|BUG|HOTFIX)(?:-[a-z]+)?-\d+$")
+_STORY_ID = ITEM_ID_RE
 _SECRET = re.compile(r"(?i)(?:token|password|secret|api[_-]?key)\s*=\s*[^\s,;]+")
 _BEARER = re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+")
 _SENSITIVE_KEY = re.compile(
     r"(?i)(?:authorization|credential|password|passwd|secret|token|api[_-]?key|private[_-]?key)"
 )
 _STORY_BLOCK = re.compile(
-    r"^###\s+\[(?P<id>(?:STORY|BUG|HOTFIX)(?:-[\w]+)?-\d+)\].*?(?=^###\s+\[|^##\s+|\Z)",
+    rf"^###\s+\[(?P<id>{ITEM_ID_PATTERN})\].*?(?=^###\s+\[|^##\s+|\Z)",
     re.MULTILINE | re.DOTALL,
 )
 _MUST_REQUIREMENT = re.compile(r"^###\s+(R\d+):.*?\(MUST\)", re.MULTILINE)
 _ACCEPTANCE_CRITERION = re.compile(r"^###\s+(AC\d+):", re.MULTILINE)
 _LEGACY_HANDOFF = re.compile(
-    r"^Last Command:\s*/project-act\s+(?P<story>(?:STORY|BUG|HOTFIX)(?:-[\w]+)?-\d+)\s*$",
+    rf"^Last Command:\s*/project-act\s+(?P<story>{ITEM_ID_PATTERN})\s*$",
     re.MULTILINE,
 )
 
 
 class ContinuationError(ValueError):
     """Raised when a checkpoint or its completion evidence is invalid."""
+
+
+class ContinuationEngine:
+    """Generic workflow-run store; the legacy Act store remains its compatibility facade."""
+
+    def __init__(self, project_root: Path):
+        self.root = project_root.resolve()
+        self.directory = self.root / ".pactkit" / "continuations" / "runs"
+
+    @contextmanager
+    def _run_lock(self, run_id: str):
+        lock_path = self.path_for(run_id).with_suffix(".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = lock_path.open("a+b")
+        acquired = False
+        deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+        try:
+            import fcntl
+            while time.monotonic() < deadline:
+                try:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    acquired = True
+                    break
+                except BlockingIOError:
+                    time.sleep(LOCK_POLL_SECONDS)
+            if not acquired:
+                raise ContinuationError(f"workflow lock timeout: {run_id}")
+            yield
+        finally:
+            if acquired:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            handle.close()
+
+    def definition(self, workflow_id: str):
+        return get_workflow(workflow_id)
+
+    def _validate_run_id(self, run_id: str) -> None:
+        if not re.fullmatch(r"run-[0-9a-f]{32}", run_id):
+            raise ContinuationError(f"invalid run ID: {run_id}")
+
+    def path_for(self, run_id: str) -> Path:
+        self._validate_run_id(run_id)
+        return self.directory / f"{run_id}.json"
+
+    def _find(self, identifier: str) -> tuple[Path, dict[str, Any]]:
+        candidates = (
+            [self.path_for(identifier)]
+            if identifier.startswith("run-")
+            else sorted(self.directory.glob("run-*.json"))
+        )
+        for path in candidates:
+            if not path.exists():
+                continue
+            try:
+                state = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ContinuationError(f"corrupt workflow checkpoint: {path.name}") from exc
+            if state.get("run_id") == identifier or state.get("story_id") == identifier:
+                return path, state
+        raise ContinuationError(f"workflow run not found: {identifier}")
+
+    def read(self, identifier: str) -> dict[str, Any]:
+        return self._find(identifier)[1]
+
+    def start(self, workflow_id: str, *, evidence: dict[str, Any]) -> dict[str, Any]:
+        definition = self.definition(workflow_id)
+        run_id = "run-" + uuid.uuid4().hex
+        state = {
+            "schema_version": 2, "workflow_id": workflow_id, "command": f"${workflow_id}",
+            "run_id": run_id, "story_id": None, "step_id": definition.steps[0],
+            "status": "in_progress", "evidence": _sanitize_evidence(evidence),
+            "fingerprints": {}, "blocker": "",
+            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
+        validator = definition.validator_factory(self.root)
+        try:
+            validator.validate(state, definition.steps[0], evidence, "in_progress")
+        except WorkflowEvidenceError as exc:
+            raise ContinuationError(str(exc)) from exc
+        with self._run_lock(run_id):
+            atomic_write(self.path_for(run_id), json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+        return state
+
+    def bind_story(self, identifier: str, story_id: str) -> dict[str, Any]:
+        if not _STORY_ID.fullmatch(story_id):
+            raise ContinuationError(f"invalid Story ID: {story_id}")
+        path, initial = self._find(identifier)
+        with self._run_lock(initial["run_id"]):
+            path, state = self._find(initial["run_id"])
+            if state.get("status") == "completed":
+                raise ContinuationError("completed workflow is immutable")
+            if state.get("story_id") and state["story_id"] != story_id:
+                raise ContinuationError(f"workflow run already bound to {state['story_id']}")
+            for candidate in self.directory.glob("run-*.json"):
+                if candidate == path:
+                    continue
+                other = json.loads(candidate.read_text(encoding="utf-8"))
+                if other.get("story_id") == story_id and other.get("status") != "completed":
+                    raise ContinuationError(f"Story already bound to active run: {story_id}")
+            state["story_id"] = story_id
+            state["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+        return state
+
+    def checkpoint(
+        self, identifier: str, *, step_id: str, evidence: dict[str, Any],
+        status: str = "in_progress", blocker: str = "",
+    ) -> dict[str, Any]:
+        _path, initial = self._find(identifier)
+        with self._run_lock(initial["run_id"]):
+            path, state = self._find(initial["run_id"])
+            definition = self.definition(state["workflow_id"])
+            if state["status"] == "completed":
+                raise ContinuationError("completed workflow is immutable")
+            if step_id not in definition.steps:
+                raise ContinuationError(f"invalid step_id: {step_id}")
+            current = definition.steps.index(state["step_id"])
+            target = definition.steps.index(step_id)
+            if target < current or target > current + 1:
+                raise ContinuationError("workflow checkpoint must advance exactly one step")
+            if status not in STATUSES:
+                raise ContinuationError(f"invalid workflow status: {status}")
+            if status == "blocked" and not blocker.strip():
+                raise ContinuationError("blocked checkpoint requires a blocker")
+            validator = definition.validator_factory(self.root)
+            try:
+                validator.validate(state, step_id, evidence, status)
+            except WorkflowEvidenceError as exc:
+                raise ContinuationError(str(exc)) from exc
+            state.update({
+                "step_id": step_id, "status": status,
+                "evidence": _sanitize_evidence(evidence), "blocker": _sanitize(blocker),
+                "fingerprints": validator.fingerprints(state),
+                "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            })
+            atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+        return state
+
+    def resume(self, identifier: str) -> dict[str, Any]:
+        _path, state = self._find(identifier)
+        if state["status"] == "completed":
+            return {"decision": "completed", "run_id": state["run_id"], "reasons": []}
+        if state["status"] == "blocked":
+            return {
+                "decision": "blocked",
+                "run_id": state["run_id"],
+                "reasons": [state.get("blocker") or "checkpoint is blocked"],
+            }
+        validator = self.definition(state["workflow_id"]).validator_factory(self.root)
+        actual = validator.fingerprints(state)
+        expected = state.get("fingerprints", {})
+        drift = [name for name, digest in expected.items() if actual.get(name) != digest]
+        if drift:
+            return {
+                "decision": "blocked",
+                "run_id": state["run_id"],
+                "story_id": state.get("story_id"),
+                "reasons": [
+                    "artifact drift: "
+                    + ", ".join(name.replace("_", " ") for name in drift)
+                ],
+            }
+        steps = self.definition(state["workflow_id"]).steps
+        index = steps.index(state["step_id"])
+        next_step = steps[index + 1] if index + 1 < len(steps) else "completed"
+        return {
+            "decision": "resume_at",
+            "run_id": state["run_id"],
+            "story_id": state.get("story_id"),
+            "next_step": next_step,
+            "reasons": [],
+        }
 
 
 def _fingerprint(path: Path) -> str:
@@ -131,14 +307,23 @@ class ContinuationStore:
             self.root / "docs" / "product" / "sprint_board.md",
         )
 
+    def _story_fact_path(self, story_id: str) -> Path | None:
+        directory = self.root / "docs" / "product" / "stories"
+        return directory / f"{story_id}.yaml" if directory.is_dir() else None
+
     def _fingerprints(self, story_id: str) -> dict[str, str]:
         spec, board = self._paths(story_id)
-        return {
+        fingerprints = {
             "spec": _fingerprint(spec),
-            "board": _fingerprint(board),
             "git_head": _git_head(self.root),
             "worktree": _worktree_fingerprint(self.root),
         }
+        story_fact = self._story_fact_path(story_id)
+        if story_fact is not None:
+            fingerprints["story_fact"] = _fingerprint(story_fact)
+        else:
+            fingerprints["board"] = _fingerprint(board)
+        return fingerprints
 
     def read(self, story_id: str) -> dict[str, Any] | None:
         self._validate_story_id(story_id)
@@ -348,6 +533,12 @@ class ContinuationStore:
             raise ContinuationError(f"invalid {step_id} evidence")
         if step_id == "preflight":
             self._require_valid_spec(story_id)
+            try:
+                get_workflow("project-act").validator_factory(self.root).validate(
+                    {"story_id": story_id}, step_id, evidence, status,
+                )
+            except WorkflowEvidenceError as exc:
+                raise ContinuationError(str(exc)) from exc
 
     def _require_valid_spec(self, story_id: str) -> None:
         """Run the canonical structural linter; never trust evidence prose alone."""
@@ -393,18 +584,30 @@ class ContinuationStore:
             raise ContinuationError("missing completion evidence")
         if not isinstance(evidence["story_tests"], dict) or evidence["story_tests"].get("exit_code") != 0:
             raise ContinuationError("missing completion evidence")
-        board = self._paths(story_id)[1]
-        board_text = board.read_text(encoding="utf-8") if board.exists() else ""
-        story_block = next(
-            (match.group(0) for match in _STORY_BLOCK.finditer(board_text) if match.group("id") == story_id),
-            "",
-        )
-        if not story_block or "- [ ]" in story_block:
-            raise ContinuationError("missing completion evidence")
-        board_tasks = [
-            match.group(1).strip()
-            for match in re.finditer(r"^- \[x\] (.+)$", story_block, re.MULTILINE)
-        ]
+        story_fact = self._story_fact_path(story_id)
+        if story_fact is not None:
+            from pactkit.governance import GovernanceError, StoryRepository
+
+            try:
+                record = StoryRepository(self.root).load(story_id)
+            except GovernanceError as exc:
+                raise ContinuationError("missing completion evidence") from exc
+            if any(not task["completed"] for task in record["tasks"]):
+                raise ContinuationError("missing completion evidence")
+            board_tasks = [task["title"] for task in record["tasks"]]
+        else:
+            board = self._paths(story_id)[1]
+            board_text = board.read_text(encoding="utf-8") if board.exists() else ""
+            story_block = next(
+                (match.group(0) for match in _STORY_BLOCK.finditer(board_text) if match.group("id") == story_id),
+                "",
+            )
+            if not story_block or "- [ ]" in story_block:
+                raise ContinuationError("missing completion evidence")
+            board_tasks = [
+                match.group(1).strip()
+                for match in re.finditer(r"^- \[x\] (.+)$", story_block, re.MULTILINE)
+            ]
         evidence_tasks = evidence["board_tasks"]
         if (
             not isinstance(evidence_tasks, list)
@@ -475,12 +678,13 @@ class ContinuationStore:
     def _stale_reasons(self, state: dict[str, Any], story_id: str) -> list[str]:
         current = self._fingerprints(story_id)
         reasons: list[str] = []
-        for key in ("spec", "board"):
-            if state.get("fingerprints", {}).get(key) != current[key]:
-                reasons.append(f"{key} fingerprint changed")
-        if state.get("fingerprints", {}).get("git_head") not in ("unavailable", current["git_head"]):
+        expected = state.get("fingerprints", {})
+        for key in ("spec", "story_fact", "board"):
+            if key in expected and expected[key] != current.get(key):
+                reasons.append(f"{key.replace('_', ' ')} fingerprint changed")
+        if expected.get("git_head") not in ("unavailable", current["git_head"]):
             reasons.append("git HEAD changed")
-        if state.get("fingerprints", {}).get("worktree") not in ("unavailable", current["worktree"]):
+        if expected.get("worktree") not in ("unavailable", current["worktree"]):
             reasons.append("worktree fingerprint changed")
         return reasons
 

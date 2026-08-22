@@ -149,8 +149,9 @@ class TestSkillFunctionalParity:
         from pactkit.prompts import BOARD_SOURCE
         exec_globals = {}
         exec(BOARD_SOURCE, exec_globals)
-        result = exec_globals['add_story']('TEST-001', 'Test', 'Task A|Task B')
+        result = exec_globals['add_story']('STORY-001', 'Test', 'Task A|Task B')
         assert '✅' in result
+        assert (tmp_path / 'docs/product/stories/STORY-001.yaml').is_file()
 
     def test_scaffold_functions_execute(self, tmp_path, monkeypatch):
         """create_spec() 实际执行不报错"""

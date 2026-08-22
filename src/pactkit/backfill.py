@@ -7,15 +7,25 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from pactkit.schemas import BOARD_SECTION_DONE
+from pactkit.id_generator import ITEM_ID_RE
+from pactkit.schemas import BOARD_SECTION_DONE, ITEM_ID_PATTERN
 
-_ITEM_ID_RE = re.compile(r"((?:STORY|BUG|HOTFIX)(?:-[\w]+)?-\d+)")
+_ITEM_ID_RE = re.compile(f"({ITEM_ID_PATTERN})")
 _TBD_RE = re.compile(r"\|\s*Release\s*\|\s*TBD\s*\|")
 
 
 def _get_done_ids(project_root: Path) -> set[str]:
     """Collect IDs of done stories from board Done section + archive."""
     done_ids: set[str] = set()
+    records_dir = project_root / "docs" / "product" / "stories"
+    if records_dir.is_dir():
+        from pactkit.governance import StoryRepository
+
+        return {
+            record["id"]
+            for record in StoryRepository(project_root).list()
+            if record["status"] in {"done", "archived"}
+        }
 
     board_path = project_root / "docs" / "product" / "sprint_board.md"
     if board_path.exists():
@@ -57,10 +67,9 @@ def scan_and_replace_tbd(project_root: Path, version: str) -> dict:
             continue  # No TBD → skip silently
 
         # Extract ID from filename
-        m = _ITEM_ID_RE.match(spec_file.stem)
-        if not m:
+        if not ITEM_ID_RE.fullmatch(spec_file.stem):
             continue
-        spec_id = m.group(1)
+        spec_id = spec_file.stem
 
         if spec_id in done_ids:
             new_content = _TBD_RE.sub(f"| Release | {version} |", content)

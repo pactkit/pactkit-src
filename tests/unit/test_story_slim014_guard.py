@@ -11,28 +11,26 @@ class TestCheckInitMarkers:
         (tmp_path / ".claude").mkdir()
         yaml_path = tmp_path / ".claude" / "pactkit.yaml"
         yaml_path.write_text('version: "2.2.0"\ndeveloper: "slim"\n')
-        (tmp_path / "docs" / "product").mkdir(parents=True)
-        (tmp_path / "docs" / "product" / "sprint_board.md").write_text("# Sprint Board\n")
+        (tmp_path / "docs" / "product" / "stories").mkdir(parents=True)
         (tmp_path / "docs" / "architecture" / "graphs").mkdir(parents=True)
 
         ok, missing = check_init_markers(tmp_path)
         assert ok is True
         assert missing == []
 
-    def test_missing_sprint_board(self, tmp_path):
-        """Given sprint_board.md missing, guard returns (False, [...])."""
+    def test_missing_story_facts(self, tmp_path):
+        """Given Story facts missing, guard returns (False, [...])."""
         (tmp_path / ".claude").mkdir()
         (tmp_path / ".claude" / "pactkit.yaml").write_text('developer: "slim"\n')
         (tmp_path / "docs" / "architecture" / "graphs").mkdir(parents=True)
 
         ok, missing = check_init_markers(tmp_path)
         assert ok is False
-        assert any("sprint_board" in m for m in missing)
+        assert any("stories" in m for m in missing)
 
     def test_missing_pactkit_yaml(self, tmp_path):
         """Given pactkit.yaml missing, guard returns (False, [...])."""
-        (tmp_path / "docs" / "product").mkdir(parents=True)
-        (tmp_path / "docs" / "product" / "sprint_board.md").write_text("# Sprint Board\n")
+        (tmp_path / "docs" / "product" / "stories").mkdir(parents=True)
         (tmp_path / "docs" / "architecture" / "graphs").mkdir(parents=True)
 
         ok, missing = check_init_markers(tmp_path)
@@ -43,8 +41,7 @@ class TestCheckInitMarkers:
         """Given graphs/ dir missing, guard returns (False, [...])."""
         (tmp_path / ".claude").mkdir()
         (tmp_path / ".claude" / "pactkit.yaml").write_text('developer: "slim"\n')
-        (tmp_path / "docs" / "product").mkdir(parents=True)
-        (tmp_path / "docs" / "product" / "sprint_board.md").write_text("# Sprint Board\n")
+        (tmp_path / "docs" / "product" / "stories").mkdir(parents=True)
 
         ok, missing = check_init_markers(tmp_path)
         assert ok is False
@@ -54,8 +51,7 @@ class TestCheckInitMarkers:
         """Given developer is empty, guard returns (True, []) with warning in messages."""
         (tmp_path / ".claude").mkdir()
         (tmp_path / ".claude" / "pactkit.yaml").write_text('developer: ""\n')
-        (tmp_path / "docs" / "product").mkdir(parents=True)
-        (tmp_path / "docs" / "product" / "sprint_board.md").write_text("# Sprint Board\n")
+        (tmp_path / "docs" / "product" / "stories").mkdir(parents=True)
         (tmp_path / "docs" / "architecture" / "graphs").mkdir(parents=True)
 
         ok, _missing = check_init_markers(tmp_path)

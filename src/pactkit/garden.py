@@ -212,7 +212,14 @@ def check_stale_docs(project_root: Path, scope: Path | None) -> dict:
                 })
 
     # --- Stale context.md ---
-    ctx_path = project_root / "docs" / "product" / "context.md"
+    from pactkit.context_gen import context_output_path
+
+    ctx_path = context_output_path(project_root)
+    if not ctx_path.exists():
+        # Read-only migration compatibility. New writes always target .pactkit.
+        legacy_ctx = project_root / "docs" / "product" / "context.md"
+        if legacy_ctx.exists():
+            ctx_path = legacy_ctx
     if ctx_path.exists():
         try:
             ctx_text = ctx_path.read_text(encoding="utf-8")
@@ -232,7 +239,7 @@ def check_stale_docs(project_root: Path, scope: Path | None) -> dict:
                 if days_ago > 7:
                     findings.append({
                         "type": "STALE-CTX",
-                        "file": "docs/product/context.md",
+                        "file": str(ctx_path.relative_to(project_root)),
                         "line": None,
                         "message": f"last updated {days_ago} days ago (threshold: 7 days)",
                     })

@@ -20,9 +20,9 @@ from pactkit.skills.board import (
     _parse_story_blocks,
     _write_board,
     add_story,
-    archive_stories,
-    fix_board,
-    move_story,
+    _legacy_archive_stories as archive_stories,
+    _legacy_fix_board as fix_board,
+    _legacy_move_story as move_story,
 )
 from pactkit.skills.spec_linter import (
     _check_metadata,
@@ -246,9 +246,10 @@ class TestAC8AddStoryDuplicateGuard:
         """)
         board_path = _make_board(tmp_path, board_content)
         original = board_path.read_text(encoding="utf-8")
+        assert "✅" in add_story("STORY-slim-099", "Existing story", "Task 1")
         result = add_story("STORY-slim-099", "Duplicate", "Task X")
         assert "❌" in result
-        assert "already on board" in result.lower()
+        assert "already exists" in result.lower()
         assert board_path.read_text(encoding="utf-8") == original
 
 

@@ -30,8 +30,14 @@ def _setup_board(tmp_path, content=None):
 
 
 def _board():
+    from types import SimpleNamespace
     from pactkit.skills import board
-    return board
+    return SimpleNamespace(
+        add_story=board.add_story,
+        archive_stories=board._legacy_archive_stories,
+        list_stories=board._legacy_list_stories,
+        fix_board=board._legacy_fix_board,
+    )
 
 
 def _scaffold():
@@ -43,7 +49,7 @@ def _scaffold():
 # R1: scaffold.py provides create_board() function
 # ---------------------------------------------------------------------------
 class TestCreateBoardFunction:
-    """R1: create_board() generates standard sprint_board.md."""
+    """R1: create_board() initializes sharded Story facts."""
 
     def test_create_board_exists(self):
         """create_board function should exist in scaffold module."""
@@ -51,39 +57,36 @@ class TestCreateBoardFunction:
         assert hasattr(s, 'create_board')
         assert callable(s.create_board)
 
-    def test_create_board_generates_file(self, tmp_path, monkeypatch):
-        """create_board creates docs/product/sprint_board.md."""
+    def test_create_board_generates_facts_directory(self, tmp_path, monkeypatch):
+        """create_board creates docs/product/stories without a projection."""
         monkeypatch.chdir(tmp_path)
         s = _scaffold()
         result = s.create_board()
         assert '✅' in result
-        board_file = tmp_path / 'docs' / 'product' / 'sprint_board.md'
-        assert board_file.exists()
+        assert (tmp_path / 'docs/product/stories').is_dir()
+        assert not (tmp_path / 'docs/product/sprint_board.md').exists()
 
-    def test_create_board_has_all_sections(self, tmp_path, monkeypatch):
-        """create_board output contains all three section headers."""
+    def test_projection_is_explicit(self, tmp_path, monkeypatch):
+        """The compatibility scaffold command never creates the projection."""
         monkeypatch.chdir(tmp_path)
         s = _scaffold()
         s.create_board()
-        content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
-        assert '## 📋 Backlog' in content
-        assert '## 🔄 In Progress' in content
-        assert '## ✅ Done' in content
+        assert not (tmp_path / 'docs/product/sprint_board.md').exists()
 
     def test_create_board_idempotent(self, tmp_path, monkeypatch):
         """create_board does not overwrite existing board."""
         monkeypatch.chdir(tmp_path)
         s = _scaffold()
-        # Create board first time
+        # Initialize facts first time
         s.create_board()
         # Add a story
         _board().add_story('STORY-001', 'Test', 'Task 1')
-        # Create board again (should not overwrite)
+        # Initialize again (should not overwrite records)
         result = s.create_board()
         assert 'exists' in result.lower() or '⚠️' in result
         # Story should still be there
-        content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
-        assert 'STORY-001' in content
+        record = tmp_path / 'docs/product/stories/STORY-001.yaml'
+        assert record.is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +171,8 @@ class TestAddStoryStandardFormat:
         _setup_board(tmp_path)
         b = _board()
         b.add_story('STORY-100', 'New Story', 'Task 1')
-        content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
+        from pactkit.governance import BoardRenderer, StoryRepository
+        content = BoardRenderer(StoryRepository(tmp_path)).render()
         # Should have ### not ####
         assert '### [STORY-100]' in content
         assert '#### [STORY-100]' not in content

@@ -1,0 +1,17 @@
+schema_version: 1
+id: STORY-slim-118
+title: codegraph MCP Integration for Semantic Code Queries
+spec_path: docs/specs/STORY-slim-118.md
+status: backlog
+tasks:
+- id: task-a515bb0b10
+  title: Document replacement vs augmentation decision
+  completed: false
+- id: task-5c74dfa07c
+  title: Add codegraph MCP conditional note to SKILL_VISUALIZE_MD Graph Query Protocol
+  completed: false
+- id: task-e3dcccd4e8
+  title: Run pactkit update to redeploy
+  completed: false
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T05:25:07+00:00'

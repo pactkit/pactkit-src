@@ -63,6 +63,9 @@ _FORBIDDEN_CLI_PATTERNS: list[str] = [
     "`pactkit update",
     "`pactkit continuation",
 ]
+_TERMINAL_CONTROL_PLANE = re.compile(
+    r"`pactkit (?:continuation(?:\s|`)|context --continuation(?:\s|`))"
+)
 
 
 # --- Prompt integrity validators (STORY-slim-145 R4) ---
@@ -145,6 +148,12 @@ class DeployerBase:
                 # Skip lines already annotated as terminal-only guidance:
                 # adapters convert unreachable CLI refs to "run from terminal" notes.
                 if "from the terminal" in line or "(run from terminal)" in line or "(terminal only)" in line:
+                    continue
+                # STORY-slim-147: recovery identity, checkpoint evidence, and
+                # state handoff are executable control-plane contracts. They
+                # remain valid terminal commands even for an adapter without
+                # embedded CLI execution support.
+                if _TERMINAL_CONTROL_PLANE.search(line):
                     continue
                 for cli_pat in _FORBIDDEN_CLI_PATTERNS:
                     # Use word-boundary check: the pattern must not be followed by a

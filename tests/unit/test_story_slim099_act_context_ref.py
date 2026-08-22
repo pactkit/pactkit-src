@@ -13,10 +13,10 @@ class TestAC1SharedProtocolsReference:
     def test_context_canonical_format_referenced_by_line(self):
         shared = RULES_MODULES["shared"]
         for line in shared.splitlines():
-            if "Context.md Canonical Format" in line:
+            if "Local Context Projection Format" in line:
                 break
         else:
-            raise AssertionError("Context.md Canonical Format section not found")
+            raise AssertionError("Local Context Projection Format section not found")
         # The next non-empty line should be the "Referenced by" line
         lines = shared.splitlines()
         idx = lines.index(line)

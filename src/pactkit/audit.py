@@ -106,9 +106,11 @@ def _check_h2(root):
     )
 
     code_checks = {}
-    code_checks['context_md'] = (root / 'docs' / 'product' / 'context.md').exists()
+    context = root / '.pactkit' / 'context.md'
+    legacy_context = root / 'docs' / 'product' / 'context.md'
+    code_checks['context_md'] = context.exists() or legacy_context.exists()
     code_checks['specs_exist'] = (root / 'docs' / 'specs').is_dir() and any((root / 'docs' / 'specs').glob('*.md'))
-    ctx = root / 'docs' / 'product' / 'context.md'
+    ctx = context if context.exists() else legacy_context
     code_checks['context_fresh'] = False
     if ctx.exists():
         import time
@@ -141,7 +143,9 @@ def _check_h3(root):
                 pass
 
     code_checks = {}
-    code_checks['sprint_board'] = (root / 'docs' / 'product' / 'sprint_board.md').exists()
+    stories = root / 'docs' / 'product' / 'stories'
+    legacy_board = root / 'docs' / 'product' / 'sprint_board.md'
+    code_checks['sprint_board'] = stories.is_dir() or legacy_board.exists()
     code_checks['tests_exist'] = (root / 'tests').is_dir() and any((root / 'tests').rglob('test_*.py'))
     code_checks['ci_config'] = (
         (root / '.github' / 'workflows').is_dir()
@@ -289,7 +293,9 @@ def _check_h6(root, manual=None):
                     pass
 
     code_checks = {}
-    code_checks['lessons_md'] = (root / 'docs' / 'architecture' / 'governance' / 'lessons.md').exists()
+    lessons = root / 'docs' / 'architecture' / 'governance' / 'lessons'
+    legacy_lessons = root / 'docs' / 'architecture' / 'governance' / 'lessons.md'
+    code_checks['lessons_md'] = lessons.is_dir() or legacy_lessons.exists()
     code_checks['changelog'] = (root / 'CHANGELOG.md').exists()
     # Commit recent: any commit in last 7 days
     code_checks['commit_recent'] = False

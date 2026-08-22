@@ -250,12 +250,35 @@ def main():
     regression_parser.add_argument("files", nargs="*", help="Changed file paths (default: git diff)")
 
     # pactkit context (STORY-slim-014 R1, STORY-slim-071 continuation)
-    ctx_parser = subparsers.add_parser("context", help="Generate docs/product/context.md")
+    ctx_parser = subparsers.add_parser("context", help="Generate local .pactkit/context.md")
     ctx_parser.add_argument("--continuation", action="store_true", default=False,
                             help="Update Agent Continuation section")
     ctx_parser.add_argument("--last-command", default=None, help="Last PDCA command run")
     ctx_parser.add_argument("--phase", default=None, help="Phase reached")
     ctx_parser.add_argument("--blockers", default=None, help="Blockers or open questions")
+    ctx_parser.add_argument("--stdout", action="store_true", default=False, help="Print without writing cache")
+
+    board_parser = subparsers.add_parser("board", help="Manage sharded Story records and Board projection")
+    board_actions = board_parser.add_subparsers(dest="board_action", required=True)
+    board_add = board_actions.add_parser("add", help="Create one Story record")
+    board_add.add_argument("story_id")
+    board_add.add_argument("title")
+    board_add.add_argument("tasks", help="Pipe-separated task titles")
+    board_task = board_actions.add_parser("complete-task", help="Complete one Story task")
+    board_task.add_argument("story_id")
+    board_task.add_argument("task", help="Exact task ID or title")
+    board_move = board_actions.add_parser("move", help="Change one Story workflow status")
+    board_move.add_argument("story_id")
+    board_move.add_argument("status", choices=["backlog", "in_progress", "done", "archived"])
+    board_actions.add_parser("list", help="List Story records")
+    board_render = board_actions.add_parser("render", help="Render the Board projection")
+    board_render.add_argument("--output", default="docs/product/sprint_board.md")
+    board_render.add_argument("--check", action="store_true", default=False)
+
+    governance_parser = subparsers.add_parser("governance", help="Governance records and migrations")
+    governance_actions = governance_parser.add_subparsers(dest="governance_action", required=True)
+    governance_migrate = governance_actions.add_parser("migrate", help="Migrate legacy aggregate files")
+    governance_migrate.add_argument("--apply", action="store_true", default=False)
 
     # STORY-slim-146: checkpoint writes are explicit; resume is read-only.
     continuation_parser = subparsers.add_parser(
@@ -283,6 +306,32 @@ def main():
         action_parser = continuation_actions.add_parser(action, help=f"Read-only continuation {action}")
         action_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
 
+    # STORY-slim-147: workflow-neutral continuation API.  The legacy
+    # ``continuation`` command above remains the stable project-act facade.
+    workflow_parser = subparsers.add_parser(
+        "workflow", help="Manage registered, verifiable workflow runs"
+    )
+    workflow_actions = workflow_parser.add_subparsers(dest="workflow_action", required=True)
+    workflow_start = workflow_actions.add_parser("start", help="Start a workflow run")
+    workflow_start.add_argument("workflow_id", help="Registered workflow, e.g. project-plan")
+    workflow_start.add_argument("--evidence", required=True, help="JSON evidence object or @path")
+    workflow_bind = workflow_actions.add_parser("bind", help="Bind a run to a Story")
+    workflow_bind.add_argument("identifier", help="Opaque run ID")
+    workflow_bind.add_argument("story_id", help="Story ID")
+    workflow_checkpoint = workflow_actions.add_parser("checkpoint", help="Write a workflow checkpoint")
+    workflow_checkpoint.add_argument("identifier", help="Run ID or bound Story ID")
+    workflow_checkpoint.add_argument("--step", required=True, help="Registered workflow step")
+    workflow_checkpoint.add_argument("--evidence", required=True, help="JSON evidence object or @path")
+    workflow_checkpoint.add_argument(
+        "--status", default="in_progress", choices=["in_progress", "blocked", "completed"]
+    )
+    workflow_checkpoint.add_argument("--blocker", default="", help="Sanitized blocker handoff")
+    for action in ("status", "verify", "resume"):
+        workflow_read = workflow_actions.add_parser(action, help=f"Read-only workflow {action}")
+        workflow_read.add_argument("identifier", help="Run ID or bound Story ID")
+    workflow_registry = workflow_actions.add_parser("registry", help="Audit reliability registry")
+    workflow_registry.add_argument("--json", action="store_true", default=False)
+
     # pactkit sec-scope (STORY-slim-014 R6)
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
     sec_scope_parser.add_argument("files", nargs="*", help="Changed file paths")
@@ -306,7 +355,7 @@ def main():
 
     # pactkit lint-context (STORY-slim-014 R2)
     lint_ctx_parser = subparsers.add_parser("lint-context", help="Validate context.md structure")
-    lint_ctx_parser.add_argument("path", nargs="?", default="docs/product/context.md", help="Path to context.md")
+    lint_ctx_parser.add_argument("path", nargs="?", default=".pactkit/context.md", help="Path to context.md")
 
     # pactkit lint-lessons (STORY-slim-014 R2)
     lint_les_parser = subparsers.add_parser("lint-lessons", help="Validate lessons.md structure")
@@ -442,18 +491,24 @@ def main():
     subparsers.add_parser("redetect-stack", help="Re-detect project stacks and update pactkit.yaml")
 
     # pactkit query (STORY-slim-121, STORY-slim-124: codegraph integration)
-    query_parser = subparsers.add_parser(
-        "query", help="Query codegraph call graph (requires graph_provider: codegraph)"
-    )
+    query_parser = subparsers.add_parser("query", help="Query the configured static-analysis provider")
     query_mode = query_parser.add_mutually_exclusive_group(required=True)
     query_mode.add_argument("--callers", metavar="FUNC", help="Fan-in: list all callers of FUNC")
     query_mode.add_argument("--callees", metavar="FUNC", help="Fan-out: list all callees of FUNC")
     query_mode.add_argument("--chain", metavar="FUNC", help="Transitive chain for FUNC")
+    query_mode.add_argument("--explore", metavar="QUERY", help="Explore relevant symbols and paths")
+    query_mode.add_argument("--impact", metavar="SYMBOL", help="Analyze affected code")
     query_parser.add_argument(
         "--down", action="store_true",
         help="With --chain: downstream callees (default: upstream callers)",
     )
     query_parser.add_argument("--db", metavar="PATH", help="Override default .codegraph/codegraph.db path")
+    query_parser.add_argument("--json", action="store_true", default=False, help="Structured result")
+    query_parser.add_argument("--explain", action="store_true", default=False, help="Show provider decision")
+    query_parser.add_argument(
+        "--allow-fallback", action="store_true", default=False,
+        help="Explicitly allow Codegraph to fall back to the built-in graph",
+    )
 
     # pactkit version
     subparsers.add_parser("version", help="Show PactKit version")
@@ -626,7 +681,7 @@ def main():
     elif args.command == "context":
         from pathlib import Path
 
-        from pactkit.context_gen import generate_context
+        from pactkit.context_gen import context_output_path, generate_context
 
         continuation_args = None
         if args.continuation and args.last_command:
@@ -641,10 +696,65 @@ def main():
             command="pactkit context",
             continuation_args=continuation_args,
         )
-        ctx_path = Path.cwd() / "docs" / "product" / "context.md"
-        ctx_path.parent.mkdir(parents=True, exist_ok=True)
-        ctx_path.write_text(content, encoding="utf-8")
-        print(f"Generated {ctx_path}")
+        if args.stdout:
+            print(content, end="")
+        else:
+            from pactkit.utils import atomic_write
+
+            ctx_path = context_output_path(Path.cwd())
+            atomic_write(ctx_path, content)
+            print(f"Generated {ctx_path}")
+
+    elif args.command == "board":
+        import json
+        from pathlib import Path
+
+        from pactkit.governance import BoardRenderer, GovernanceError, StoryRepository
+        from pactkit.utils import atomic_write
+
+        repository = StoryRepository(Path.cwd())
+        renderer = BoardRenderer(repository)
+        try:
+            if args.board_action == "add":
+                result = repository.add(
+                    args.story_id, args.title,
+                    [task.strip() for task in args.tasks.split("|") if task.strip()],
+                )
+            elif args.board_action == "complete-task":
+                result = repository.complete_task(args.story_id, args.task)
+            elif args.board_action == "move":
+                result = repository.move(args.story_id, args.status)
+            elif args.board_action == "list":
+                result = repository.list()
+            else:
+                output = Path(args.output)
+                if not output.is_absolute():
+                    output = Path.cwd() / output
+                if args.check:
+                    if not renderer.check(output):
+                        print(f"Board projection drift: {output}")
+                        raise SystemExit(1)
+                    print(f"Board projection current: {output}")
+                    return
+                atomic_write(output, renderer.render())
+                result = {"rendered": str(output)}
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        except GovernanceError as exc:
+            print(f"Governance error: {exc}")
+            raise SystemExit(1)
+
+    elif args.command == "governance":
+        import json
+        from pathlib import Path
+
+        from pactkit.governance import GovernanceError, GovernanceMigrator
+
+        try:
+            result = GovernanceMigrator(Path.cwd()).migrate(dry_run=not args.apply)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        except GovernanceError as exc:
+            print(f"Governance migration error: {exc}")
+            raise SystemExit(1)
 
     elif args.command == "continuation":
         import json
@@ -676,6 +786,65 @@ def main():
                 raise SystemExit(1)
         except (ContinuationError, OSError, json.JSONDecodeError) as exc:
             print(f"Continuation error: {exc}")
+            raise SystemExit(1)
+
+    elif args.command == "workflow":
+        import json
+        from pathlib import Path
+
+        from pactkit.continuation import ContinuationEngine, ContinuationError
+        from pactkit.workflow_registry import EXECUTION_RELIABILITY_REGISTRY, validate_registry
+
+        def _workflow_evidence(raw: str) -> dict:
+            if raw.startswith("@"):
+                raw = Path(raw[1:]).read_text(encoding="utf-8")
+            value = json.loads(raw)
+            if not isinstance(value, dict):
+                raise ContinuationError("workflow evidence must be a JSON object")
+            return value
+
+        try:
+            if args.workflow_action == "registry":
+                errors = validate_registry()
+                payload = {
+                    "valid": not errors,
+                    "errors": errors,
+                    "entries": {
+                        name: {
+                            "entry_type": item.entry_type,
+                            "category": item.category,
+                            "recovery": item.recovery,
+                            "persistence": item.persistence,
+                            "completion": item.completion,
+                            "manual_operations": list(item.manual_operations),
+                        }
+                        for name, item in sorted(EXECUTION_RELIABILITY_REGISTRY.items())
+                    },
+                }
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                if errors:
+                    raise SystemExit(1)
+            else:
+                engine = ContinuationEngine(Path.cwd())
+                if args.workflow_action == "start":
+                    result = engine.start(args.workflow_id, evidence=_workflow_evidence(args.evidence))
+                elif args.workflow_action == "bind":
+                    result = engine.bind_story(args.identifier, args.story_id)
+                elif args.workflow_action == "checkpoint":
+                    result = engine.checkpoint(
+                        args.identifier, step_id=args.step,
+                        evidence=_workflow_evidence(args.evidence), status=args.status,
+                        blocker=args.blocker,
+                    )
+                elif args.workflow_action == "status":
+                    result = engine.read(args.identifier)
+                else:
+                    result = engine.resume(args.identifier)
+                print(json.dumps(result, indent=2, ensure_ascii=False))
+                if result.get("decision") == "blocked":
+                    raise SystemExit(1)
+        except (ContinuationError, OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Workflow error: {exc}")
             raise SystemExit(1)
 
     elif args.command == "spec-graph":
@@ -821,7 +990,13 @@ def main():
     elif args.command == "doctor":
         from pathlib import Path
 
-        from pactkit.doctor import check_config_drift, check_hld_module_count, check_orphaned_specs, check_stale_graphs
+        from pactkit.doctor import (
+            check_config_drift,
+            check_graph_provider,
+            check_hld_module_count,
+            check_orphaned_specs,
+            check_stale_graphs,
+        )
 
         root = Path.cwd()
         has_issues = False
@@ -839,6 +1014,17 @@ def main():
         drift_result = check_config_drift(root)
         for item in drift_result["missing_deployments"]:
             print(f"  Drift: {item['type']} '{item['name']}' configured but not deployed")
+            has_issues = True
+
+        graph = check_graph_provider(root)
+        print(
+            "  Graph: "
+            f"configured={graph.get('configured') or 'default'} "
+            f"selected={graph['selected']} available={graph['available']} fresh={graph['fresh']}"
+        )
+        for warning in graph.get("warnings", []):
+            print(f"  Graph warning: {warning}")
+        if graph.get("configured") == "codegraph" and not graph.get("available"):
             has_issues = True
 
         # R3: Stale graphs
@@ -967,9 +1153,17 @@ def main():
     elif args.command == "lesson-append":
         from pathlib import Path
 
-        from pactkit.lessons import append_lesson
+        from pactkit.governance import LessonRepository
+        from pactkit.lessons import _is_duplicate, _is_specific
 
-        result = append_lesson(Path.cwd(), args.story, args.text, args.context)
+        repository = LessonRepository(Path.cwd())
+        if not _is_specific(args.text):
+            result = {"action": "skipped", "reason": "not specific enough — no file/function reference"}
+        elif _is_duplicate(args.text, [record["text"] for record in repository.recent(20)]):
+            result = {"action": "skipped", "reason": "duplicate of recent entry"}
+        else:
+            lesson = repository.add(args.story, args.text, args.context)
+            result = {"action": "appended", "reason": f"lesson added for {args.story}", **lesson}
         import json
         print(json.dumps(result))
 
@@ -1087,122 +1281,56 @@ def main():
         print(f"PactKit v{__version__}")
 
     elif args.command == "query":
-        import sqlite3
+        import json
         import sys
         from pathlib import Path
 
         from pactkit.config import load_config
+        from pactkit.graph_query import GraphProviderError, GraphQueryRequest, project_router
 
         config = load_config()
         graph_provider = config.get("visualize", {}).get("graph_provider")
-
-        if not graph_provider or graph_provider != "codegraph":
-            print(
-                "❌ pactkit query requires graph_provider: codegraph\n"
-                "Configure in pactkit.yaml:\n"
-                "  visualize:\n"
-                "    graph_provider: codegraph\n"
-                "Then run: codegraph init\n\n"
-                "Or use grep on .mmd files directly:\n"
-                "  grep \"<func>\" docs/architecture/graphs/call_graph.mmd",
-                file=sys.stderr,
+        try:
+            selected = next(
+                (
+                    (kind, value)
+                    for kind, value in (
+                        ("callers", args.callers), ("callees", args.callees),
+                        ("chain", args.chain), ("explore", args.explore), ("impact", args.impact),
+                    )
+                    if value is not None
+                )
             )
+            request = GraphQueryRequest(
+                selected[0], selected[1], direction="down" if args.down else "up"
+            )
+            db_path = Path(args.db) if args.db else None
+            result = project_router(Path.cwd(), db_path=db_path).query(
+                request, configured_provider=graph_provider, allow_fallback=args.allow_fallback,
+            )
+        except (GraphProviderError, ValueError) as exc:
+            reason = getattr(exc, "reason_code", "invalid_query")
+            print(f"Graph query error [{reason}]: {exc}", file=sys.stderr)
             raise SystemExit(1)
 
-        default_db = Path.cwd() / ".codegraph" / "codegraph.db"
-        db_path = Path(args.db) if args.db else default_db
-
-        if not db_path.exists():
-            import shutil
-            import subprocess
-            if shutil.which("codegraph"):
-                print("⚙️ codegraph.db not found — running codegraph init...",
-                      file=sys.stderr)
-                result = subprocess.run(
-                    ["codegraph", "init", "-i"],
-                    capture_output=True, text=True,
-                )
-                if result.returncode != 0:
-                    print(f"❌ codegraph init failed:\n{result.stderr}",
-                          file=sys.stderr)
-                    raise SystemExit(1)
-                if not db_path.exists():
-                    print("❌ codegraph init completed but db not created",
-                          file=sys.stderr)
-                    raise SystemExit(1)
-            else:
+        if args.json:
+            print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+        else:
+            if args.explain:
+                decision = result.decision
                 print(
-                    f"❌ codegraph.db not found at {db_path}\n"
-                    "Install codegraph: npm i -g @colbymchenry/codegraph\n"
-                    "Then run: codegraph init",
-                    file=sys.stderr,
+                    f"provider={decision.selected_provider} freshness={decision.freshness} "
+                    f"reason={decision.reason_code} fallback={decision.fallback}"
                 )
-                raise SystemExit(1)
-
-        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-        try:
-            if args.callers:
-                rows = con.execute(
-                    """
-                    SELECT DISTINCT ns.name, ns.file_path, ns.start_line
-                    FROM edges e
-                    JOIN nodes ns ON e.source = ns.id
-                    JOIN nodes nt ON e.target = nt.id
-                    WHERE e.kind = 'calls' AND nt.name LIKE ?
-                    """,
-                    (f"%{args.callers}%",),
-                ).fetchall()
-            elif args.callees:
-                rows = con.execute(
-                    """
-                    SELECT DISTINCT nt.name, nt.file_path, nt.start_line
-                    FROM edges e
-                    JOIN nodes ns ON e.source = ns.id
-                    JOIN nodes nt ON e.target = nt.id
-                    WHERE e.kind = 'calls' AND ns.name LIKE ?
-                    """,
-                    (f"%{args.callees}%",),
-                ).fetchall()
-            else:  # --chain
-                if args.down:
-                    rows = con.execute(
-                        """
-                        WITH RECURSIVE chain(id) AS (
-                            SELECT DISTINCT e.target
-                            FROM edges e JOIN nodes n ON e.source = n.id
-                            WHERE e.kind = 'calls' AND n.name LIKE ?
-                            UNION
-                            SELECT e.target FROM edges e
-                            JOIN chain c ON e.source = c.id
-                            WHERE e.kind = 'calls'
-                        )
-                        SELECT DISTINCT n.name, n.file_path, n.start_line
-                        FROM chain c JOIN nodes n ON c.id = n.id
-                        """,
-                        (f"%{args.chain}%",),
-                    ).fetchall()
+                for warning in decision.warnings:
+                    print(f"warning={warning}")
+            for item in result.results:
+                if {"name", "file_path", "start_line"} <= set(item):
+                    print(f"{item['name']} ({item['file_path']}:{item['start_line']})")
+                elif "text" in item:
+                    print(item["text"])
                 else:
-                    rows = con.execute(
-                        """
-                        WITH RECURSIVE chain(id) AS (
-                            SELECT DISTINCT e.source
-                            FROM edges e JOIN nodes n ON e.target = n.id
-                            WHERE e.kind = 'calls' AND n.name LIKE ?
-                            UNION
-                            SELECT e.source FROM edges e
-                            JOIN chain c ON e.target = c.id
-                            WHERE e.kind = 'calls'
-                        )
-                        SELECT DISTINCT n.name, n.file_path, n.start_line
-                        FROM chain c JOIN nodes n ON c.id = n.id
-                        """,
-                        (f"%{args.chain}%",),
-                    ).fetchall()
-        finally:
-            con.close()
-
-        for name, file_path, start_line in sorted(rows):
-            print(f"{name} ({file_path}:{start_line})")
+                    print(json.dumps(item, ensure_ascii=False))
 
     else:
         parser.print_help()

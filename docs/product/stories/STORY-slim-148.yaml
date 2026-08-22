@@ -1,0 +1,31 @@
+schema_version: 1
+id: STORY-slim-148
+title: Git 友好的分片治理事实源与无冲突投影视图
+spec_path: docs/specs/STORY-slim-148.md
+status: archived
+tasks:
+- id: task-d8f70f72a5
+  title: 定义 Story/Lesson 分片 schema 与唯一字段所有权
+  completed: true
+- id: task-8e30fdc052
+  title: 实现无中心唯一 ITEM ID 与新旧解析兼容
+  completed: true
+- id: task-cdd4e7b258
+  title: 迁移 Board 和 Lesson 写入到单记录 repository
+  completed: true
+- id: task-396f68c330
+  title: 将 Context 与 Board 降级为只读 projection
+  completed: true
+- id: task-d998146c36
+  title: 实现无损迁移、回滚与禁止双写门禁
+  completed: true
+- id: task-f37af35658
+  title: 迁移所有消费者并验证双工作树无冲突
+  completed: true
+- id: task-ce9cb13adb
+  title: 验证四种 Adapter 的新治理语义
+  completed: true
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T10:51:55+00:00'
+completed_at: '2026-08-22T05:32:41+00:00'
+archived_at: '2026-08-22T10:51:55+00:00'

@@ -6,12 +6,12 @@ RULES_MODULES = {
 ## Session Context
 On new session, run `pactkit update --if-needed` to sync project files if PactKit was upgraded.
 If `pactkit.yaml` does not exist (check `{PROJECT_CONFIG_DIR}/`), run `pactkit init` to create it before proceeding.
-Then read `docs/product/context.md` to understand project state before taking action.
+Then run `pactkit context` and read `.pactkit/context.md` to understand project state before taking action.
 If the file is missing, suggest `/project-init` to bootstrap the project.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## PDCA Nudge
-When AI analysis in free conversation (outside PDCA command context) yields actionable conclusions — bugs, architecture improvements, new feature needs — SHOULD recommend the appropriate PDCA command at the end of the reply. See the PDCA Nudge Protocol section below for trigger matrix and suppression rules.
+When free-conversation analysis yields actionable bugs, architecture improvements, or features, SHOULD recommend the appropriate PDCA command. See PDCA Nudge Protocol below.
 
 ## Visual First
 Before modifying code:
@@ -97,7 +97,8 @@ When skipping a SHOULD requirement, leave a traceable comment:
 |------|---------|
 | `docs/specs/{ID}.md` | **The Law** -- Requirement Specifications (Spec) |
 | `commands/*.md` | **The Playbooks** -- Command Execution Logic |
-| `docs/product/sprint_board.md` | Sprint Board -- Current Iteration Board |
+| `docs/product/stories/{ITEM_ID}.yaml` | Story workflow/task facts |
+| `docs/product/sprint_board.md` | Optional read-only Board projection |
 | `docs/test_cases/{ID}_case.md` | Test Cases -- Gherkin Acceptance Scenarios |
 | `docs/architecture/graphs/*.mmd` | Architecture Graphs -- Mermaid Architecture Diagrams |
 | `tests/unit/` | Unit Tests |
@@ -153,7 +154,7 @@ Choosing WORKAROUND is allowed, but incurs the cost of creating a tracking Story
 ### Init (`/project-init`)
 - **Role**: System Architect
 - **Playbook**: `commands/project-init.md`
-- **When NOT to use**: Project already has `pactkit.yaml` and `docs/product/sprint_board.md`. Use `pactkit update` instead to sync after upgrades.
+- **When NOT to use**: Project already has `pactkit.yaml` and `docs/product/stories/`. Use `pactkit update` instead to sync after upgrades.
 
 ### Plan (`/project-plan`)
 - **Role**: System Architect
@@ -267,10 +268,10 @@ If source files changed (per `LANG_PROFILES[stack].source_dirs`) OR `code_graph.
 
 Map changed source files to test files via `LANG_PROFILES[stack].test_map_pattern`. If no mapping can be determined, fall back to the full test suite.
 
-## Context.md Canonical Format
+## Local Context Projection Format
 > Referenced by: Init Phase 6, Plan Phase 3, Act Phase 4, Done Phase 4.5
 
-Write `docs/product/context.md` using this format:
+Generate ignored `.pactkit/context.md` using this format:
 ```markdown
 # Project Context (Auto-generated)
 > Last updated: {ISO timestamp} by {command}
@@ -288,7 +289,7 @@ Write `docs/product/context.md` using this format:
 {git branch output, or "None" if no feature/fix branches}
 
 ## Key Decisions
-{Last 5 lessons from lessons.md}
+{Last 5 records from docs/architecture/governance/lessons/}
 
 ## Next Recommended Action
 {If In Progress: `/project-act STORY-XXX` | If Backlog only: `/project-plan` | If empty: `/project-design`}
@@ -875,7 +876,7 @@ CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 
 {_claude_rules_imports}
 
-@./docs/product/context.md
+Run `pactkit context` at session start; `.pactkit/context.md` is generated locally and is not imported or committed.
 """
 
 # Backward-compatible: combine all modules for anything that still reads this

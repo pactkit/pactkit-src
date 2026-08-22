@@ -1,5 +1,4 @@
 """STORY-032: Multi-Prefix Work Item Support (STORY/HOTFIX/BUG)."""
-import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -17,6 +16,8 @@ def _load_board_ns(board_content, tmp_path):
     src = (project_root / 'src' / 'pactkit' / 'skills' / 'board.py').read_text()
     ns = {}
     exec(compile(src, 'board.py', 'exec'), ns)
+    ns['list_stories'] = ns['_legacy_list_stories']
+    ns['archive_stories'] = ns['_legacy_archive_stories']
     return ns
 
 
@@ -56,18 +57,17 @@ MULTI_PREFIX_BOARD = """\
 class TestListStoriesMultiPrefix:
     """Scenario 1: list_stories recognizes multi-prefix items."""
 
-    def test_list_stories_finds_all_prefixes(self, tmp_path):
+    def test_list_stories_finds_all_prefixes(self, tmp_path, monkeypatch):
         ns = _load_board_ns(MULTI_PREFIX_BOARD, tmp_path)
-        with patch('os.getcwd', return_value=str(tmp_path)):
-            os.chdir(tmp_path)
-            result = ns['list_stories']()
+        monkeypatch.chdir(tmp_path)
+        result = ns['list_stories']()
         assert 'STORY-001' in result
         assert 'HOTFIX-001' in result
         assert 'BUG-001' in result
 
-    def test_list_stories_shows_correct_status(self, tmp_path):
+    def test_list_stories_shows_correct_status(self, tmp_path, monkeypatch):
         ns = _load_board_ns(MULTI_PREFIX_BOARD, tmp_path)
-        os.chdir(tmp_path)
+        monkeypatch.chdir(tmp_path)
         result = ns['list_stories']()
         # HOTFIX-001 has all tasks done
         for line in result.splitlines():
@@ -78,9 +78,9 @@ class TestListStoriesMultiPrefix:
 class TestArchiveMultiPrefix:
     """Scenario 2: archive_stories handles multi-prefix items."""
 
-    def test_archive_hotfix_item(self, tmp_path):
+    def test_archive_hotfix_item(self, tmp_path, monkeypatch):
         ns = _load_board_ns(MULTI_PREFIX_BOARD, tmp_path)
-        os.chdir(tmp_path)
+        monkeypatch.chdir(tmp_path)
         result = ns['archive_stories']()
         assert 'Archived' in result
         # HOTFIX-001 (all done) should be archived
@@ -99,8 +99,9 @@ class TestArchiveMultiPrefix:
 class TestGitStartBranchMapping:
     """Scenario 3 & 4: git_start maps prefix to branch type."""
 
-    def _get_branch_from_git_start(self, ns, item_id):
+    def _get_branch_from_git_start(self, ns, item_id, tmp_path, monkeypatch):
         """Call git_start with mocked subprocess and return the branch name."""
+        monkeypatch.chdir(tmp_path)
         with patch.dict(ns, {'subprocess': type(sys)('mock_sp')}):
             branches = []
             def fake_run(cmd, **kw):
@@ -112,21 +113,21 @@ class TestGitStartBranchMapping:
                     ns_fresh['git_start'](item_id)
             return branches[0] if branches else ''
 
-    def test_hotfix_creates_fix_branch(self):
+    def test_hotfix_creates_fix_branch(self, tmp_path, monkeypatch):
         ns = _load_scaffold_ns()
-        branch = self._get_branch_from_git_start(ns, 'HOTFIX-001')
+        branch = self._get_branch_from_git_start(ns, 'HOTFIX-001', tmp_path, monkeypatch)
         assert branch.startswith('fix/'), f'Expected fix/ branch, got: {branch}'
         assert 'HOTFIX-001' in branch
 
-    def test_story_creates_feature_branch(self):
+    def test_story_creates_feature_branch(self, tmp_path, monkeypatch):
         ns = _load_scaffold_ns()
-        branch = self._get_branch_from_git_start(ns, 'STORY-033')
+        branch = self._get_branch_from_git_start(ns, 'STORY-033', tmp_path, monkeypatch)
         assert branch.startswith('feature/'), f'Expected feature/ branch, got: {branch}'
         assert 'STORY-033' in branch
 
-    def test_bug_creates_fix_branch(self):
+    def test_bug_creates_fix_branch(self, tmp_path, monkeypatch):
         ns = _load_scaffold_ns()
-        branch = self._get_branch_from_git_start(ns, 'BUG-001')
+        branch = self._get_branch_from_git_start(ns, 'BUG-001', tmp_path, monkeypatch)
         assert branch.startswith('fix/'), f'Expected fix/ branch, got: {branch}'
         assert 'BUG-001' in branch
 

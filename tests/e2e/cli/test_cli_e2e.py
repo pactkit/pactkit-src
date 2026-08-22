@@ -572,7 +572,7 @@ class TestContextContinuationCLI:
             cwd=str(tmp_path),
         )
         assert exit_code == 0, f"exit={exit_code}, stderr={stderr}"
-        content = (tmp_path / "docs" / "product" / "context.md").read_text()
+        content = (tmp_path / ".pactkit" / "context.md").read_text()
         assert "## Agent Continuation" in content
         assert "/project-act STORY-slim-070" in content
         assert "Phase 3: step 2/5" in content
@@ -585,6 +585,6 @@ class TestContextContinuationCLI:
             "context", cwd=str(tmp_path),
         )
         assert exit_code == 0
-        content = (tmp_path / "docs" / "product" / "context.md").read_text()
+        content = (tmp_path / ".pactkit" / "context.md").read_text()
         assert "## Agent Continuation" in content
         assert "No active work session." in content

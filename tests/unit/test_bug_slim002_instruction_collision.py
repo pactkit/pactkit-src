@@ -153,8 +153,8 @@ class TestR6ActVisualizeDeduplicated:
         phase2_start = act.find("Phase 2:")
         if phase1_start != -1 and phase2_start != -1:
             phase1_text = act[phase1_start:phase2_start]
-            assert "--focus" in phase1_text, (
-                "Act Phase 1 must use --focus for targeted visualize"
+            assert "pactkit query --explore" in phase1_text, (
+                "Act Phase 1 must use the provider-routed targeted query"
             )
 
     def test_act_phase1_does_not_run_three_modes(self):

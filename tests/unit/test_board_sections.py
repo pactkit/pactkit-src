@@ -34,6 +34,11 @@ def _board():
     return board
 
 
+def _render(board):
+    result = board.fix_board()
+    assert '✅' in result
+
+
 # ---------------------------------------------------------------------------
 # Scenario 1: add_story Inserts Under Backlog
 # ---------------------------------------------------------------------------
@@ -45,6 +50,7 @@ class TestAddStoryUnderBacklog:
         _setup_board(tmp_path)
         b = _board()
         b.add_story('STORY-100', 'Test Story', 'Task 1')
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         backlog_pos = content.index('## 📋 Backlog')
         in_progress_pos = content.index('## 🔄 In Progress')
@@ -56,6 +62,7 @@ class TestAddStoryUnderBacklog:
         _setup_board(tmp_path)
         b = _board()
         b.add_story('STORY-100', 'Test Story', 'Task 1')
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         # Story should NOT be after Done section
         done_pos = content.index('## ✅ Done')
@@ -75,6 +82,7 @@ class TestMultipleStoriesOrder:
         b = _board()
         b.add_story('STORY-100', 'First Story', 'Task A')
         b.add_story('STORY-101', 'Second Story', 'Task B')
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         s100_pos = content.index('### [STORY-100]')
         s101_pos = content.index('### [STORY-101]')
@@ -94,7 +102,7 @@ class TestFixBoard:
         broken_board = BOARD_TEMPLATE + "\n\n### [STORY-200] Misplaced\n> Spec: docs/specs/STORY-200.md\n\n- [ ] Unchecked task\n"
         _setup_board(tmp_path, broken_board)
         b = _board()
-        b.fix_board()
+        b._legacy_fix_board()
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         backlog_pos = content.index('## 📋 Backlog')
         in_progress_pos = content.index('## 🔄 In Progress')
@@ -106,7 +114,7 @@ class TestFixBoard:
         broken_board = BOARD_TEMPLATE + "\n\n### [STORY-201] Mixed\n> Spec: docs/specs/STORY-201.md\n\n- [x] Done task\n- [ ] Open task\n"
         _setup_board(tmp_path, broken_board)
         b = _board()
-        b.fix_board()
+        b._legacy_fix_board()
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         in_progress_pos = content.index('## 🔄 In Progress')
         done_pos = content.index('## ✅ Done')
@@ -118,7 +126,7 @@ class TestFixBoard:
         broken_board = BOARD_TEMPLATE + "\n\n### [STORY-202] Complete\n> Spec: docs/specs/STORY-202.md\n\n- [x] All done\n"
         _setup_board(tmp_path, broken_board)
         b = _board()
-        b.fix_board()
+        b._legacy_fix_board()
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         done_pos = content.index('## ✅ Done')
         story_pos = content.index('### [STORY-202]')
@@ -189,6 +197,7 @@ class TestSectionHeadersPreserved:
         _setup_board(tmp_path)
         b = _board()
         b.add_story('STORY-100', 'Test', 'Task 1')
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         assert '## 📋 Backlog' in content
         assert '## 🔄 In Progress' in content
@@ -199,7 +208,7 @@ class TestSectionHeadersPreserved:
         broken = BOARD_TEMPLATE + "\n### [STORY-300] Orphan\n- [ ] task\n"
         _setup_board(tmp_path, broken)
         b = _board()
-        b.fix_board()
+        b._legacy_fix_board()
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         assert '## 📋 Backlog' in content
         assert '## 🔄 In Progress' in content
@@ -218,6 +227,7 @@ class TestAutoMoveToInProgress:
         b = _board()
         b.add_story('STORY-100', 'Test Story', 'Task A|Task B')
         b.update_task('STORY-100', ['Task', 'A'])
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         in_progress_pos = content.index('## 🔄 In Progress')
         done_pos = content.index('## ✅ Done')
@@ -238,6 +248,7 @@ class TestAutoMoveToDone:
         b.add_story('STORY-100', 'Test Story', 'Task A|Task B')
         b.update_task('STORY-100', ['Task', 'A'])
         b.update_task('STORY-100', ['Task', 'B'])
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         done_pos = content.index('## ✅ Done')
         story_pos = content.index('### [STORY-100]')
@@ -255,6 +266,7 @@ class TestStaysInBacklog:
         _setup_board(tmp_path)
         b = _board()
         b.add_story('STORY-100', 'Test Story', 'Task A|Task B')
+        _render(b)
         content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
         backlog_pos = content.index('## 📋 Backlog')
         in_progress_pos = content.index('## 🔄 In Progress')

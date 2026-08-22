@@ -75,8 +75,8 @@ class TestPlanSecurityScopeGeneration:
         """R1.3: Security Scope generation should be part of Plan Phase 3 (Spec)."""
         plan = self._plan()
         # Phase 3 contains the Spec creation instructions
-        phase3_idx = plan.find('Phase 3')
-        security_scope_idx = plan.find('Security Scope')
+        phase3_idx = plan.find('Phase 3.1')
+        security_scope_idx = plan.find('Phase 3.2c: Security Scope')
         assert phase3_idx != -1, "Plan must have a Phase 3"
         assert security_scope_idx != -1, "Plan must mention Security Scope"
         # Security Scope instructions must appear in or after Phase 3

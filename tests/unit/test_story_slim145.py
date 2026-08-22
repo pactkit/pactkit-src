@@ -105,11 +105,10 @@ class TestOperationTokens:
         assert "Run run" not in out
         assert out.count("`") % 2 == 0
 
-    def test_unavailable_profile_replaces_context_continuation_span(self):
-        """Core replace: `pactkit context --continuation ...` span -> fallback, no stray option."""
+    def test_unavailable_profile_preserves_context_continuation_control_plane(self):
+        """Later workflow specs require exact continuation arguments for terminal use."""
         out = _render_prompt("Run `pactkit context --continuation --phase X`", get_profile("copilot"))
-        assert "`pactkit context" not in out  # CLI span replaced
-        assert "manually --continuation" not in out
+        assert "`pactkit context --continuation --phase X`" in out
         assert "Run run" not in out
 
 
@@ -140,6 +139,22 @@ class TestPromptIntegrityLexical:
         content = "Run `pactkit regression` to classify SKIP/IMPACT/FULL."
         v = DeployerBase.validate_deployed_content(content, get_profile("codex"))
         assert v == []
+
+    @pytest.mark.parametrize(
+        "command",
+        (
+            "pactkit continuation checkpoint STORY-1 --step red",
+            "pactkit context --continuation --phase green",
+        ),
+    )
+    def test_copilot_allows_executable_terminal_control_plane(self, command):
+        content = f"Run `{command}`"
+        assert DeployerBase.validate_deployed_content(content, get_profile("copilot")) == []
+
+    def test_copilot_still_rejects_non_control_plane_context_cli(self):
+        content = "Run `pactkit context`"
+        violations = DeployerBase.validate_deployed_content(content, get_profile("copilot"))
+        assert violations
 
 
 class TestPromptIntegritySemantic:
@@ -330,11 +345,8 @@ class TestFormatAllPerAdapterGate:
 
 
 class TestCopilotContinuationFallback:
-    """F5: copilot fallback mentions last-command/phase (executable, not just 'update')."""
+    """F5: copilot retains executable continuation state parameters."""
 
     def test_fallback_mentions_continuation_params(self):
         out = _render_prompt("Run {PACTKIT_OP_CONTEXT_CONTINUATION}", get_profile("copilot"))
-        assert "`pactkit context" not in out  # CLI span replaced
-        assert "last-command" in out
-        assert "phase" in out
-        assert "context.md" in out
+        assert "`pactkit context --continuation`" in out

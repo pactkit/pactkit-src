@@ -26,8 +26,9 @@ class TestInitPromptClaudeMdGeneration:
         ), "Prompt must instruct to skip generation if CLAUDE.md already exists"
 
     def test_prompt_includes_context_md_reference(self):
-        """Scenario 3: prompt instructs to include @./docs/product/context.md."""
-        assert "@./docs/product/context.md" in INIT_PROMPT
+        """Scenario 3: prompt uses local Context bootstrap, not a fragile import."""
+        assert "pactkit context" in INIT_PROMPT
+        assert "@./docs/product/context.md" not in INIT_PROMPT
 
     def test_prompt_references_lang_profiles_dev_commands(self):
         """Scenario 4: prompt references LANG_PROFILES for dev commands."""

@@ -265,29 +265,13 @@ def create_skill(name, desc, base_dir=None):
 
 # --- BOARD ---
 def create_board():
-    """Create standard sprint_board.md with all section headers."""
-    p = Path.cwd() / "docs" / "product" / "sprint_board.md"
-    if p.exists():
-        return f"⚠️ Board already exists: {p}"
-    if not p.parent.exists():
-        p.parent.mkdir(parents=True, exist_ok=True)
-    # Canonical: src/pactkit/schemas.py BOARD_SECTION_BACKLOG, BOARD_SECTION_IN_PROGRESS, BOARD_SECTION_DONE
-    c = nl().join(
-        [
-            "# Sprint Board",
-            "",
-            "## 📋 Backlog",
-            "",
-            "",
-            "## 🔄 In Progress",
-            "",
-            "",
-            "## ✅ Done",
-            "",
-        ]
-    )
-    p.write_text(c, encoding="utf-8")
-    return f"✅ Board Created: {p}"
+    """Initialize sharded Story facts under the historical command name."""
+    p = Path.cwd() / "docs" / "product" / "stories"
+    existed = p.is_dir()
+    p.mkdir(parents=True, exist_ok=True)
+    if existed:
+        return f"⚠️ Story facts directory already exists: {p}"
+    return f"✅ Story facts initialized: {p}"
 
 
 # --- PRD ---

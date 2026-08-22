@@ -31,12 +31,12 @@ class TestDoneContextGeneration:
         # There may be "Context Loading" earlier, so find the generation one
         assert "Generate Context" in done or "Update Context" in done or "Session Context" in done
 
-    def test_done_context_reads_board(self):
-        """Context generation must read sprint_board.md."""
+    def test_done_context_reads_story_facts(self):
+        """Done must read Story facts rather than the Board projection."""
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
-        # The context generation instructions should reference sprint_board
-        assert "sprint_board" in done
+        assert "pactkit board list" in done
+        assert "Read `docs/product/sprint_board.md`" not in done
 
     def test_done_context_reads_lessons(self):
         """Context generation must reference lessons.md."""
@@ -54,18 +54,20 @@ class TestDoneContextGeneration:
         """Context generation must include recommended next action (via {CONTEXT_SECTIONS})."""
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
-        assert "{CONTEXT_SECTIONS}" in done or "Next Recommended Action" in done or "next action" in done.lower()
+        assert "pactkit context" in done
 
 
 # ==============================================================================
 # Scenario 2: CLAUDE.md references context.md
 # ==============================================================================
 class TestClaudeMdContextReference:
-    """CLAUDE_MD_TEMPLATE must include @./docs/product/context.md."""
+    """CLAUDE_MD_TEMPLATE bootstraps ignored local Context."""
 
     def test_template_has_context_reference(self):
         p = _prompts()
-        assert "@./docs/product/context.md" in p.CLAUDE_MD_TEMPLATE
+        assert "pactkit context" in p.CLAUDE_MD_TEMPLATE
+        assert ".pactkit/context.md" in p.CLAUDE_MD_TEMPLATE
+        assert "@./docs/product/context.md" not in p.CLAUDE_MD_TEMPLATE
 
     def test_context_reference_after_rules(self):
         """The @context.md line must come after rule imports."""
@@ -73,7 +75,7 @@ class TestClaudeMdContextReference:
         template = p.CLAUDE_MD_TEMPLATE
         # Find last rule import
         last_rule_pos = template.rfind("@~/.claude/rules/")
-        context_pos = template.find("@./docs/product/context.md")
+        context_pos = template.find("pactkit context")
         assert context_pos > last_rule_pos
 
     def test_deployer_classic_produces_header(self):
@@ -102,7 +104,7 @@ class TestContextFileFormat:
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
         # Either the placeholder or the rendered section name must be present
-        assert "{CONTEXT_SECTIONS}" in done or "Sprint Status" in done
+        assert "pactkit context" in done
 
     def test_done_context_format_has_recent_completions(self):
         """After STORY-slim-007: section names come from schemas via {CONTEXT_SECTIONS} placeholder."""
@@ -110,29 +112,30 @@ class TestContextFileFormat:
         done = p.COMMANDS_CONTENT["project-done.md"]
 
         # Either the placeholder is present, or the rendered sections are present
-        assert "{CONTEXT_SECTIONS}" in done or "Recent Completions" in done
+        assert "pactkit context" in done
 
     def test_done_context_format_has_active_branches(self):
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
-        assert "{CONTEXT_SECTIONS}" in done or "Active Branches" in done
+        assert "pactkit context" in done
 
     def test_done_context_format_has_key_decisions(self):
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
-        assert "{CONTEXT_SECTIONS}" in done or "Key Decisions" in done
+        assert "pactkit context" in done
 
 
 # ==============================================================================
 # Scenario 4: Lessons auto-appended
 # ==============================================================================
 class TestLessonsAutoAppend:
-    """Done playbook must auto-append to lessons.md."""
+    """Done playbook must use sharded Lesson records."""
 
     def test_done_has_lessons_append(self):
         p = _prompts()
         done = p.COMMANDS_CONTENT["project-done.md"]
-        assert "lessons.md" in done
+        assert "lesson-append" in done
+        assert "lessons.md" not in done
 
     def test_done_lessons_not_conditional_on_mcp(self):
         """Lessons append must NOT be conditional on Memory MCP."""
@@ -143,11 +146,11 @@ class TestLessonsAutoAppend:
         lines = done.split("\n")
         found_unconditional_lessons = False
         for i, line in enumerate(lines):
-            if "lessons.md" in line and "mcp__memory" not in line:
+            if "lesson-append" in line and "mcp__memory" not in line:
                 # Check this line isn't inside an MCP conditional block
                 found_unconditional_lessons = True
                 break
-        assert found_unconditional_lessons, "lessons.md append must exist outside of Memory MCP conditional"
+        assert found_unconditional_lessons, "Lesson record append must exist outside Memory MCP conditional"
 
     def test_done_lessons_has_date_format(self):
         """Lessons entry must include date."""
@@ -162,14 +165,14 @@ class TestLessonsAutoAppend:
 # We just verify the template uses the right syntax.
 # ==============================================================================
 class TestContextMissingGraceful:
-    """@import of context.md should use project-relative path."""
+    """Missing local Context is rebuilt rather than imported."""
 
     def test_uses_relative_path(self):
         """Must use @./docs/... not @~/... or absolute path."""
         p = _prompts()
         template = p.CLAUDE_MD_TEMPLATE
-        assert "@./docs/product/context.md" in template
-        # Should NOT use home-relative path
+        assert "pactkit context" in template
+        assert "@./docs/product/context.md" not in template
         assert "@~/.claude/context.md" not in template
 
 

@@ -130,7 +130,7 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         ),
         "LINT": "the project linter (e.g., `ruff check src/ tests/`)",
         "CONTEXT_CONTINUATION": (
-            "the context continuation update in `docs/product/context.md` "
+            "the context continuation update in ignored `.pactkit/context.md` "
             "— set `last-command` to the last PDCA command and `phase` to "
             "the current phase in the continuation section, for session handoff"
         ),
@@ -145,9 +145,16 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         ),
     }
     _cli_preserving = profile.has_pactkit_cli
+    # Workflow control-plane operations must remain executable in every
+    # adapter.  A profile may lack an embedded PactKit CLI integration while
+    # still directing the user/agent to run these commands from a terminal.
+    # Replacing them with prose destroys checkpoint identity and evidence.
+    _terminal_control_plane = {"CONTINUATION", "CONTEXT_CONTINUATION"}
     for _op in _op_canonical:
         var_map["PACTKIT_OP_" + _op] = (
-            _op_canonical[_op] if _cli_preserving else _op_fallback[_op]
+            _op_canonical[_op]
+            if _cli_preserving or _op in _terminal_control_plane
+            else _op_fallback[_op]
         )
 
     # Replace only known variables via sequential string replacement.
@@ -166,12 +173,10 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         _sub_fallback = {
             "regression": _op_fallback["REGRESSION"],
             "lint": _op_fallback["LINT"],
-            "context": _op_fallback["CONTEXT_CONTINUATION"],
             "clean": _op_fallback["CLEANUP"],
             "visualize": _op_fallback["LAZY_VISUALIZE"],
             "guard": _op_fallback["GUARD"],
             "doctor": _op_fallback["DOCTOR"],
-            "continuation": _op_fallback["CONTINUATION"],
             "update": _op_fallback["INSTALL_UPDATE"],
         }
         _span_re = re.compile(r"`pactkit (" + "|".join(_sub_fallback) + r")(?=\s|`)[^`]*`")
@@ -1560,7 +1565,7 @@ def _upsert_claude_md_managed_block(claude_md_path, managed_content, project_nam
     - Legacy PactKit template (has project header): replace with managed block
     - User content (no PactKit header): append managed block at end
     """
-    at_imports = "\n@./docs/product/context.md\n@./.claude/CLAUDE.local.md\n"
+    at_imports = "\n@./.claude/CLAUDE.local.md\n"
     managed_block = f"{_CLAUDE_MD_START}\n{managed_content}\n{_CLAUDE_MD_END}\n"
 
     if not claude_md_path.exists():
@@ -1579,7 +1584,7 @@ def _upsert_claude_md_managed_block(claude_md_path, managed_content, project_nam
             flags=re.DOTALL,
         )
         # Ensure @imports exist after the end marker
-        if "@./docs/product/context.md" not in new_content:
+        if "@./.claude/CLAUDE.local.md" not in new_content:
             new_content = new_content.rstrip("\n") + "\n" + at_imports
         atomic_write(claude_md_path, new_content)
         return

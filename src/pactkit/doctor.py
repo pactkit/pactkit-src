@@ -7,8 +7,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# Pattern to extract item IDs from filenames and board text
-_ITEM_ID_RE = re.compile(r"((?:STORY|BUG|HOTFIX)(?:-[\w]+)?-\d+)")
+from pactkit.id_generator import ITEM_ID_RE
+from pactkit.schemas import ITEM_ID_PATTERN
 
 
 def check_orphaned_specs(project_root: Path) -> dict:
@@ -18,6 +18,7 @@ def check_orphaned_specs(project_root: Path) -> dict:
         {"orphaned": [{"id": ...}], "missing": [{"id": ...}]}
     """
     specs_dir = project_root / "docs" / "specs"
+    records_dir = project_root / "docs" / "product" / "stories"
     board_path = project_root / "docs" / "product" / "sprint_board.md"
     archive_dir = project_root / "docs" / "product" / "archive"
 
@@ -26,28 +27,30 @@ def check_orphaned_specs(project_root: Path) -> dict:
     if specs_dir.is_dir():
         for f in specs_dir.iterdir():
             if f.suffix == ".md":
-                m = _ITEM_ID_RE.match(f.stem)
-                if m:
-                    spec_ids.add(m.group(1))
+                if ITEM_ID_RE.fullmatch(f.stem):
+                    spec_ids.add(f.stem)
 
     # Collect board IDs
     board_ids: set[str] = set()
-    if board_path.exists():
+    if records_dir.is_dir():
+        from pactkit.governance import StoryRepository
+
+        board_ids.update(record["id"] for record in StoryRepository(project_root).list())
+    elif board_path.exists():
         board_text = board_path.read_text(encoding="utf-8")
-        board_ids.update(_ITEM_ID_RE.findall(board_text))
+        board_ids.update(re.findall(ITEM_ID_PATTERN, board_text))
 
     # Collect archive IDs
     archive_ids: set[str] = set()
     if archive_dir.is_dir():
         for f in archive_dir.iterdir():
             if f.suffix == ".md":
-                archive_ids.update(_ITEM_ID_RE.findall(f.read_text(encoding="utf-8")))
+                archive_ids.update(re.findall(ITEM_ID_PATTERN, f.read_text(encoding="utf-8")))
 
     all_referenced = board_ids | archive_ids
 
     orphaned = [{"id": sid} for sid in sorted(spec_ids - all_referenced)]
-    missing = [{"id": bid} for bid in sorted(all_referenced - spec_ids)
-               if _ITEM_ID_RE.match(bid)]
+    missing = [{"id": bid} for bid in sorted(all_referenced - spec_ids) if ITEM_ID_RE.fullmatch(bid)]
 
     return {"orphaned": orphaned, "missing": missing}
 
@@ -139,6 +142,24 @@ def check_config_drift(project_root: Path) -> dict:
                 missing.append({"type": "skill", "name": skill})
 
     return {"missing_deployments": missing}
+
+
+def check_graph_provider(project_root: Path) -> dict:
+    """Return read-only diagnostics for the configured graph provider."""
+    from pactkit.config import find_pactkit_yaml, load_config
+
+    config_path = find_pactkit_yaml(project_root)
+    config = load_config(config_path) if config_path else {}
+    configured = config.get("visualize", {}).get("graph_provider")
+    if configured != "codegraph":
+        return {
+            "configured": configured, "selected": "builtin_graph",
+            "available": True, "fresh": True, "warnings": [],
+        }
+    from pactkit.graph_query import CodegraphProvider
+
+    health = CodegraphProvider(project_root).health()
+    return {"configured": configured, "selected": "codegraph", **health}
 
 
 def check_stale_graphs(

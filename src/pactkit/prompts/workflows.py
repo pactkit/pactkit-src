@@ -327,7 +327,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Agent**: Team Lead (current session)
 
 > **CORE PRINCIPLE**: Thin Orchestrator — Lead does ZERO file reading, only dispatches.
-> Each subagent reads `docs/specs/`, `commands/*.md`, and `docs/product/sprint_board.md` from disk.
+> Each subagent reads `docs/specs/`, `commands/*.md`, and Story facts via `pactkit board list`.
 
 ## Phase 0: Setup
 0. **Mode Detection (STORY-slim-144)**: `$ARGUMENTS` non-empty → single-story mode (proceed below). Empty → Wave Mode (see Wave Mode section).
@@ -619,7 +619,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4.  **Update Board**: Run `{BOARD_CMD} update_task HOTFIX-{NNN} "Task Name"` for each task to mark it done.
 
 ## 📋 Phase 3.5: Session Context Update
-1.  **Update Context**: Run `pactkit context` to regenerate `docs/product/context.md`. Set "Last updated by" to `/project-hotfix`.
+1.  **Update Context**: Run `pactkit context` to refresh ignored local `.pactkit/context.md`; never stage it.
 
 ## 📊 Phase 3.6: Codegraph Sync
 1.  Run `pactkit sync` to update the codegraph index (auto-skips if codegraph is not configured).
@@ -788,10 +788,10 @@ Assign each Story to a horizon:
 ## 🎬 Phase 4: Board Setup
 1.  **Add Stories**: For each Story (ordered by horizon → priority):
     - Run `{BOARD_CMD} add_story "STORY-{NNN}" "{title}" "{task list}"`.
-2.  **Verify**: Read `docs/product/sprint_board.md` to confirm all stories are listed.
+2.  **Verify**: Run `pactkit board list` to confirm all Story records are listed.
 
 ## 🎬 Phase 4.5: Session Context Update
-1.  **Update Context**: Run `pactkit context` to regenerate `docs/product/context.md` with the newly created stories and board state.
+1.  **Update Context**: Run `pactkit context` to refresh ignored local `.pactkit/context.md` from Story records.
 
 ## 🎬 Phase 5: Handover
 1.  **Summary Table**: Output a table of all created artifacts:
@@ -801,7 +801,7 @@ Assign each Story to a horizon:
 | PRD | `docs/product/prd.md` | 1 |
 | Prototypes | `docs/prototypes/{page-name}.html` | M |
 | Specs | `docs/specs/STORY-{NNN}.md` | N |
-| Board Entries | `docs/product/sprint_board.md` | N |
+| Story Facts | `docs/product/stories/{ITEM_ID}.yaml` | N |
 | Architecture | `docs/architecture/graphs/system_design.mmd` | 1 |
 
 2.  **Story Overview**: List stories grouped by horizon (Now/Next/Later) with priority scores.
@@ -892,10 +892,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - Verification MUST be a concrete action (not "investigate further" or "look into")
     - Probabilities must sum to ≤100% (leave room for unknown unknowns)
 
-4.  **Codegraph Priority (R7)**: If `.codegraph/` exists, prefer codegraph for tracing:
-    - `codegraph callers <function>` over `grep -rn "function_name"`
-    - `codegraph callees <function>` for downstream impact
-    - Fallback to grep only if codegraph unavailable
+4.  **Provider-Routed Trace (R7)**: Run `pactkit query --callers <function> --json --explain` and `pactkit query --callees <function> --json --explain`. The router enforces configured Codegraph priority and fails closed; fallback requires explicit `--allow-fallback` authorization.
 
 ## 🔬 Phase 3: Verification Loop
 > **CONSTRAINT**: One hypothesis at a time. Execute → Observe → Conclude before moving to next.

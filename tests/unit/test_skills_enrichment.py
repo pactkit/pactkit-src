@@ -55,9 +55,10 @@ class TestPrerequisites:
         text = p.SKILL_VISUALIZE_MD.lower()
         assert '前置' in text or 'prerequisite' in text or '条件' in text
 
-    def test_board_mentions_sprint_board_file(self):
+    def test_board_mentions_fact_source_and_projection(self):
         p = _prompts()
-        assert 'sprint_board.md' in p.SKILL_BOARD_MD
+        assert 'docs/product/stories/' in p.SKILL_BOARD_MD
+        assert 'projection' in p.SKILL_BOARD_MD.lower()
 
 
 class TestUsageContext:

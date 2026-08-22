@@ -101,11 +101,12 @@ class TestNextIdCommand:
         assert "STORY-" in stdout or "story" in stdout.lower() or stdout.strip()
 
     def test_next_id_no_specs_returns_initial(self, tmp_path):
-        """next-id with no existing specs returns 001."""
+        """next-id with no existing specs returns a collision-resistant ID."""
         _init_project(tmp_path)
         stdout, _, rc = run_pactkit("next-id", cwd=str(tmp_path))
         assert rc == 0
-        assert "001" in stdout
+        from pactkit.id_generator import ITEM_ID_RE
+        assert ITEM_ID_RE.fullmatch(stdout.strip())
 
 
 @pytest.mark.e2e
@@ -159,18 +160,18 @@ class TestContextCommand:
     """E2E tests for pactkit context."""
 
     def test_context_creates_file(self, tmp_path):
-        """context generates docs/product/context.md."""
+        """context generates local .pactkit/context.md."""
         _init_project(tmp_path)
         stdout, stderr, rc = run_pactkit("context", cwd=str(tmp_path))
         assert rc == 0, f"context failed: {stderr}"
-        ctx = tmp_path / "docs" / "product" / "context.md"
+        ctx = tmp_path / ".pactkit" / "context.md"
         assert ctx.exists()
 
     def test_context_contains_sections(self, tmp_path):
         """context output contains canonical sections."""
         _init_project(tmp_path)
         run_pactkit("context", cwd=str(tmp_path))
-        content = (tmp_path / "docs" / "product" / "context.md").read_text(encoding="utf-8")
+        content = (tmp_path / ".pactkit" / "context.md").read_text(encoding="utf-8")
         assert "Sprint Status" in content
         assert "Next Recommended Action" in content
 
@@ -255,7 +256,7 @@ class TestLintContextCommand:
         _init_project(tmp_path)
         # Generate a valid context.md first
         run_pactkit("context", cwd=str(tmp_path))
-        ctx = tmp_path / "docs" / "product" / "context.md"
+        ctx = tmp_path / ".pactkit" / "context.md"
         stdout, stderr, rc = run_pactkit("lint-context", str(ctx))
         assert rc == 0, f"lint-context failed: {stderr}"
 

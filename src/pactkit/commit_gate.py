@@ -15,6 +15,7 @@ fixing the gate is worse than a gate that warns.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -29,6 +30,15 @@ MAIN_BRANCHES = frozenset({"main", "master", "develop"})
 SKIP_WARN_THRESHOLD = 0
 
 PYTEST_TIMEOUT_SECONDS = 600
+
+# Git exports these repository-specific variables while running hooks.  They
+# must not leak into pytest because tests may create and operate on their own
+# temporary repositories.
+GIT_REPOSITORY_ENV_VARS = frozenset({
+    "GIT_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_WORK_TREE",
+})
 
 # Hook command matching: git commit with any flag ordering (git -C x commit …)
 _GIT_COMMIT_RE = re.compile(r"\bgit\s+(?:-\S+\s+\S+\s+|-\S+\s+)*commit\b")
@@ -100,10 +110,13 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
         cmd.extend(test_files)
     else:
         cmd.append("tests/unit/")
+    env = os.environ.copy()
+    for key in GIT_REPOSITORY_ENV_VARS:
+        env.pop(key, None)
     try:
         proc = subprocess.run(
             cmd, cwd=root, capture_output=True, text=True,
-            timeout=PYTEST_TIMEOUT_SECONDS,
+            timeout=PYTEST_TIMEOUT_SECONDS, env=env,
         )
         return proc.returncode, proc.stdout + proc.stderr
     except FileNotFoundError:

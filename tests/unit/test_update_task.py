@@ -47,7 +47,7 @@ def _import_update_task():
 
     import pactkit.skills.board as board_mod
     importlib.reload(board_mod)
-    return board_mod.update_task
+    return board_mod._legacy_update_task
 
 
 class TestUpdateTaskModifiesFile:
@@ -102,7 +102,7 @@ class TestUpdateTaskModifiesFile:
         try:
             update_task = _import_update_task()
             result = update_task('STORY-001', ['T1:Foo'])
-            assert 'No Board' in result
+            assert 'No Board' in result or 'not found' in result
         finally:
             os.chdir(original)
 

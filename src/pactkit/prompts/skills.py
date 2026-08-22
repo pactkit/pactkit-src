@@ -74,43 +74,26 @@ Generate project code relationship graphs (Mermaid format), supporting four anal
 | `--focus` (call) | `docs/architecture/graphs/focus_call_graph.mmd` | graph TD |
 
 ## Usage Scenarios
-- `/project-plan`: Run `visualize` to understand current project state before making design decisions
-- `/project-act`: Run `visualize --focus <module>` to understand dependencies of the modification target
-- `pactkit-doctor` skill: Run `visualize` to check whether architecture graphs can be generated correctly
-- `pactkit-trace` skill: Run `visualize --mode call --entry <func>` to trace call chains
+- `project-plan`, `project-act`, and `pactkit-trace` use `pactkit query --json --explain` for analysis.
+- Use `visualize` only to explicitly regenerate derived Mermaid projections.
+- `pactkit-doctor` checks graph-provider health and derived graph status.
 
 ## Graph Query Protocol
 
 > **MUST NOT `Read` a full `.mmd` graph file** — graph files are large (50K–120K, 1000–2000+ lines). Full reads waste tokens before any work begins.
 
-### Codegraph Mode (when `graph_provider: codegraph` in pactkit.yaml)
-
-Setup: `codegraph init` (first time), `codegraph sync` (after code changes).
-When codegraph MCP server is running, file changes auto-sync (2-second debounce).
+### Unified Query Router
 
 ```bash
-# Unified pactkit query (reads .codegraph/codegraph.db):
-pactkit query --callers atomic_write
-pactkit query --callees deploy
-pactkit query --chain atomic_write       # transitive upstream
-pactkit query --chain deploy --down      # transitive downstream
-
-# Direct codegraph CLI — run `codegraph --help` for full command list.
+pactkit query --callers atomic_write --json --explain
+pactkit query --callees deploy --json --explain
+pactkit query --chain atomic_write --json --explain
+pactkit query --chain deploy --down --json --explain
+pactkit query --explore deployer --json --explain
+pactkit query --impact deploy --json --explain
 ```
 
-MCP tools (if codegraph MCP server configured): run `codegraph --help` or check ToolSearch for available `codegraph_*` tools.
-
-### Grep Mode (default — when graph_provider not set, use .mmd files)
-
-```bash
-grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd  # fan-in (importers)
-grep "deployer.* --> " docs/architecture/graphs/code_graph.mmd  # fan-out (deps)
-grep " --> .*deployer" docs/architecture/graphs/code_graph.mmd | wc -l  # count
-grep "my_func" docs/architecture/graphs/call_graph.mmd  # call-level
-grep "MyClass" docs/architecture/graphs/class_graph.mmd  # class-level
-```
-
-**Fallback rule**: If grep returns 0 results, fall back to full `Read`.
+The router owns Codegraph health, bounded sync, and provider selection. Configured Codegraph fails closed. Only an explicit `--allow-fallback` may select `builtin_graph` and then `text_search`; a healthy empty result never triggers fallback.
 """
 
 SKILL_BOARD_MD = """---
@@ -121,13 +104,13 @@ model: haiku
 
 # PactKit Board
 
-Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
+Atomic operations tool for sharded Story facts (`docs/product/stories/{ITEM_ID}.yaml`). `docs/product/sprint_board.md` is an optional read-only projection.
 
 > **Script location**: Use the base directory from the skill invocation header to resolve script paths.
 
 ## Prerequisites
-- `docs/product/sprint_board.md` must exist (created by `/project-init`)
-- `docs/product/archive/` directory is used for archiving (automatically created by the archive command)
+- PactKit Core must provide the `StoryRepository` schema used by every adapter.
+- Commands modify one Story record only. Run `render` explicitly to update the optional projection.
 
 ## Command Reference
 
@@ -145,18 +128,24 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 {BOARD_CMD} update_task ITEM-ID "Task Name"
 ```
 - `Task Name`: Must be an exact match with the task name in the Board
-- Changes `- [ ] Task Name` to `- [x] Task Name`
+- Changes only the matching task in the Story YAML record.
 - Output: `✅ Task updated` or `❌ Task not found`
 
 ### archive -- Archive completed Stories
 ```
 {BOARD_CMD} archive
 ```
-- Moves all Stories with every task marked `[x]` to `docs/product/archive/archive_YYYYMM.md`
+- Marks completed Story records as `archived`; no shared archive file is appended.
 
 ### list_stories -- View current Stories
 ```
 {BOARD_CMD} list_stories
+```
+
+### render -- Explicitly generate/check Board projection
+```
+{BOARD_CMD} render
+{BOARD_CMD} render --check
 ```
 
 ### snapshot -- Architecture snapshot
@@ -169,11 +158,7 @@ Atomic operations tool for Sprint Board (`docs/product/sprint_board.md`).
 ```
 {BOARD_CMD} fix_board
 ```
-- Scans for stories outside their correct section and relocates them based on task status:
-  - All `[ ]` → `## 📋 Backlog`
-  - Mixed `[ ]`/`[x]` → `## 🔄 In Progress`
-  - All `[x]` → `## ✅ Done`
-- Output: `✅ Board fixed: N stories relocated.` or `✅ No misplaced stories found.`
+- Rebuilds the deterministic projection from Story records; it never parses the projection as facts.
 
 ## Usage Scenarios
 - `/project-plan`: Use `add_story` to create a Story
@@ -241,16 +226,16 @@ Project file scaffolding tool for quickly creating standardized project files.
 - Output: `{SKILLS_ROOT}/{skill-name}/` with `SKILL.md`, `scripts/{clean_name}.py`, `references/.gitkeep`
 - Refuses to overwrite if the skill directory already exists
 
-### create_board -- Create Sprint Board
+### create_board -- Initialize Story Facts
 ```
 {SCAFFOLD_CMD} create_board
 ```
-- Creates `docs/product/sprint_board.md` with standard section headers
+- Creates `docs/product/stories/`; use `pactkit board render` only for an explicit projection
 - Output: Standard board with `## 📋 Backlog`, `## 🔄 In Progress`, `## ✅ Done` sections
 - Refuses to overwrite if the board already exists
 
 ## Usage Scenarios
-- `/project-init`: Use `create_board` to create Sprint Board (Phase 4)
+- `/project-init`: Use `create_board` to initialize Story facts (Phase 4)
 - `/project-plan`: Use `create_spec` to create a Spec template
 - `/project-act`: Use `create_test_file` to create test scaffolding
 - `/project-check`: Use `create_e2e_test` to create E2E tests
@@ -269,6 +254,9 @@ description: "Deep code tracing and execution flow analysis"
 model: sonnet
 ---
 
+## Provider Routing (MUST)
+Start every callers, callees, chain, explore or impact trace with `pactkit query ... --json --explain`. When `graph_provider: codegraph` is configured, Codegraph is mandatory and failures are closed by default. Never select Mermaid or grep yourself; only use `--allow-fallback` when the caller explicitly authorizes degradation, and retain the provider decision as evidence. A healthy empty result is `valid_empty`, not a fallback signal.
+
 # PactKit Trace
 
 Deep code analysis and execution path tracing via static analysis.
@@ -280,12 +268,12 @@ Deep code analysis and execution path tracing via static analysis.
 ## Protocol
 
 ### 1. Feature Discovery
-- Use `Grep` to locate entry points (API route, CLI arg, Event handler).
+- Use `pactkit query --explore <target> --json --explain` to locate entry points.
 - Map core files involved — don't read everything yet.
 
 ### 2. Call Graph Analysis
-- Run `visualize --mode call --entry <function_name>` to obtain call chains.
-- Query callers/callees: use `pactkit query --callers/--callees <func>` (when graph_provider: codegraph), or grep `docs/architecture/graphs/call_graph.mmd`.
+- Run `pactkit query --chain <function_name> --json --explain` to obtain call chains.
+- Query callers/callees through the same router; never select Codegraph, Mermaid, SQLite, or text search directly.
 
 ### 3. Deep Tracing
 - Follow call chain file by file, recording data transformations.
@@ -426,7 +414,7 @@ Read-only project state report. Provides sprint board summary, git state, and he
 ## Protocol
 
 ### 1. Gather Data
-- Check if `docs/product/sprint_board.md` exists.
+- Check if `docs/product/stories/` exists; accept legacy `docs/product/sprint_board.md` only with a migration warning.
 - If yes: extract story counts by section (Backlog / In Progress / Done).
 - Count Specs in `docs/specs/*.md` vs total board stories.
 - Check architecture graph freshness.

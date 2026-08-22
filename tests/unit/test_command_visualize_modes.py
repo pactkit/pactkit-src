@@ -9,15 +9,15 @@ from pactkit.prompts.agents import AGENTS_EXPERT
 class TestProjectTrace:
     def test_trace_skill_has_call_mode(self):
         from pactkit.prompts import SKILL_TRACE_MD
-        assert '--mode call' in SKILL_TRACE_MD
+        assert 'pactkit query --chain' in SKILL_TRACE_MD
 
     def test_trace_skill_has_entry_param(self):
         from pactkit.prompts import SKILL_TRACE_MD
-        assert '--entry' in SKILL_TRACE_MD
+        assert '--json --explain' in SKILL_TRACE_MD
 
     def test_trace_skill_references_call_graph_mmd(self):
         from pactkit.prompts import SKILL_TRACE_MD
-        assert 'call_graph.mmd' in SKILL_TRACE_MD
+        assert 'never select Codegraph, Mermaid, SQLite, or text search directly' in SKILL_TRACE_MD
 
 
 # ==============================================================================
@@ -26,7 +26,7 @@ class TestProjectTrace:
 class TestProjectPlan:
     def test_plan_has_mode_class(self):
         content = COMMANDS_CONTENT['project-plan.md']
-        assert '--mode class' in content
+        assert 'pactkit query --explore' in content
 
     def test_plan_has_mode_call(self):
         content = COMMANDS_CONTENT['project-plan.md']
@@ -45,7 +45,7 @@ class TestProjectPlan:
 class TestProjectAct:
     def test_act_has_call_entry(self):
         content = COMMANDS_CONTENT['project-act.md']
-        assert '--mode call' in content or '--entry' in content
+        assert 'pactkit query --chain' in content
 
     def test_act_phase4_updates_class_graph(self):
         content = COMMANDS_CONTENT['project-act.md']
@@ -80,4 +80,4 @@ class TestAgents:
 
     def test_senior_developer_knows_call_mode(self):
         content = AGENTS_EXPERT['senior-developer']['prompt']
-        assert '--mode call' in content or '--entry' in content
+        assert 'pactkit query --chain' in content

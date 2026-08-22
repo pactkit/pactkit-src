@@ -19,6 +19,7 @@ class TestCreateSpec:
 
         exec_globals = {}
         exec(p.TOOLS_SOURCE, exec_globals)
+        exec_globals["archive_stories"] = exec_globals["_legacy_archive_stories"]
 
         exec_globals["create_spec"]("TEST-001", "Test Feature")
         content = (tmp_path / "docs/specs/TEST-001.md").read_text()
@@ -92,6 +93,7 @@ class TestArchiveStories:
 
         exec_globals = {}
         exec(p.TOOLS_SOURCE, exec_globals)
+        exec_globals["archive_stories"] = exec_globals["_legacy_archive_stories"]
 
         result = exec_globals["archive_stories"]()
         assert "1" in result  # 1 story archived

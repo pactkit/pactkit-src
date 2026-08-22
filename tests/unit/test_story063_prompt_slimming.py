@@ -222,7 +222,9 @@ class TestAC6DevRefGhostResolved:
 # STORY-slim-146: bumped +1602 for explicit checkpoint/resume safety boundaries
 # in project-act. These commands replace unsafe prose-only handoff with a
 # verifiable state protocol, so they are intentionally retained in prompts.
-BASELINE_TOTAL_CHARS = 103941
+# STORY-slim-147/149: +2400 for Plan workflow recovery and provider-router
+# evidence gates across canonical command prompts.
+BASELINE_TOTAL_CHARS = 106341
 
 
 class TestAC7PromptSizeReduced:

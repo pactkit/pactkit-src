@@ -1,0 +1,11 @@
+schema_version: 1
+id: HOTFIX-slim-132
+title: Add explicit board.py move_story command to project-act
+spec_path: docs/specs/HOTFIX-slim-132.md
+status: backlog
+tasks:
+- id: task-e888c3d5d1
+  title: Add move_story command template to Phase 0.6
+  completed: false
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T05:25:07+00:00'

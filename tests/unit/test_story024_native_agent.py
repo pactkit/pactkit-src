@@ -34,6 +34,9 @@ def _parse_frontmatter(text):
 
 def _deploy_to(tmp_path, config=None):
     """Deploy PactKit to tmp_path and return the agents dir."""
+    if config is None:
+        from pactkit.config import get_default_config
+        config = get_default_config()
     from pactkit.generators.deployer import deploy
     deploy(config=config, target=str(tmp_path / '.claude'))
     return tmp_path / '.claude' / 'agents'

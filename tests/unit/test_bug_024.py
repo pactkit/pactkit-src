@@ -18,8 +18,15 @@ def _setup_board(tmp_path, content):
 
 
 def _board():
+    from types import SimpleNamespace
     from pactkit.skills import board
-    return board
+    return SimpleNamespace(
+        add_story=board.add_story,
+        archive_stories=board._legacy_archive_stories,
+        list_stories=board._legacy_list_stories,
+        update_task=board._legacy_update_task,
+        fix_board=board._legacy_fix_board,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +187,8 @@ class TestAC6AddStoryCanonical:
         _setup_board(tmp_path, content)
         b = _board()
         b.add_story('STORY-101', 'New feature', 'Task A|Task B')
-        board_content = (tmp_path / 'docs' / 'product' / 'sprint_board.md').read_text()
+        from pactkit.governance import BoardRenderer, StoryRepository
+        board_content = BoardRenderer(StoryRepository(tmp_path)).render()
         assert '### [STORY-101] New feature' in board_content
 
 

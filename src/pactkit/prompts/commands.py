@@ -15,6 +15,13 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-plan "$ARGUMENTS"`
 - **Agent**: System Architect
 
+## Resumable Workflow Contract (MUST)
+1. Before writing, run `pactkit workflow start project-plan --evidence '{"guard":"pass","input_fingerprint":"<sha256>"}'` and retain the opaque `run_id`. If resuming, run `pactkit workflow resume <run-or-story-id>`; it is read-only and MUST NOT replay writes.
+2. Checkpoint each safe boundary in order: `preflight → intent_clarified → archaeology → story_identified → spec_scaffolded → requirements_written → acceptance_written → security_scoped → spec_linted → board_synced`. Use `pactkit workflow checkpoint <id> --step <step> --evidence @<json-file>`.
+3. After `pactkit next-id`, bind the same run exactly once with `pactkit workflow bind <run-id> <story-id>` before checkpointing `story_identified`. Create-only Spec and Board operations MUST verify an existing matching artifact before treating a retry as complete.
+4. On an unresolved question or unsafe drift, write `--status blocked --blocker "<reason>"` and hand off the run ID. Never claim completion from prose.
+5. Only checkpoint `board_synced --status completed` after the engine validates the real Spec, zero-error/zero-warning lint, Security Scope, unique Board identity, title, and task list.
+
 ## 🧠 Phase 0: The Thinking Process
 > **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan the entire Spec in your head before producing output. Start each phase, show your findings, then move to the next.
 > **Tool Integration Note**: If the request involves adapting PactKit to a new AI coding tool (new `format` value like `cursor`, `trae`, etc.), **always start** by consulting `docs/guides/tool-integration-checklist.md`. Complete Dimension 0 (capability matrix) before writing any code.
@@ -31,7 +38,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **If existing project** (stories on board, source files present): Skip this check — greenfield detection does not apply to established projects.
 
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
-1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/sprint_board.md`, `docs/architecture/graphs/`).
+1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/stories/`, `docs/architecture/graphs/`).
 2.  If exit code 1: project is not initialized — print the missing markers and **STOP**. Suggest running `/project-init`.
 3.  If all exist: check config completeness (ci, issue_tracker sections). If stale, run `pactkit update` and report what was added.
 4.  If PASS: proceed to Phase 1.
@@ -63,13 +70,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - User answers all/some → merge into `enriched_input`; proceed to Phase 1 with `enriched_input`
     - User inputs "skip" or declines → proceed with original input (Clarify MUST NOT block Plan)
 6.  **Output**: The enriched_input (original + answers) is used as context for Phase 1 onwards.
+7.  **Checkpoint**: Record `intent_clarified` with the original input fingerprint and the sanitized confirmed answers.
 
 ## 🎬 Phase 1: Archaeology (The "Know Before You Change" Step)
 > **Subagent Scope Rule**: When delegating research to an Explore subagent, always provide a **bounded** prompt: target function/class, directory scope, file limit, and expected output. Never delegate open-ended "trace the whole codebase" tasks.
 
-1.  **Visual Scan**: Run `visualize --focus <module> --depth 2` to see the targeted dependency graph. Only expand to `--mode class` or `--mode call` if the focused scan is insufficient.
-    - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
-    - **Codegraph auto-setup**: If `which codegraph` succeeds AND `.codegraph/` does not exist, run `codegraph init -i` and set `visualize.graph_provider: codegraph` in pactkit.yaml. Skip if `.codegraph/` exists.
+1.  **Provider-Routed Scan**: Run `pactkit query --explore <target> --json --explain`. The router enforces configured Codegraph priority, freshness and fail-closed behavior. Do not invoke `visualize`, Codegraph, SQLite or `rg` directly. Use `--allow-fallback` only after explicitly recording why degradation is acceptable.
 2.  **Logic Trace (CRITICAL)** — use pactkit-trace skill:
     - If modifying existing logic, trace the current implementation.
     - *Goal*: Identify the exact function/class responsible for the logic.
@@ -100,6 +106,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
     - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
     - Include the Capability Assessment output in Phase 2 Spec writing.
+6.  **Checkpoint**: Record `archaeology` with provider decision, freshness, query targets, and bounded trace summary.
 
 ## 🎬 Phase 2: Design & Impact
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
@@ -115,6 +122,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🎬 Phase 3.1: Story ID Generation
 1.  Run `pactkit next-id` to get the next Story ID (reads developer prefix from pactkit.yaml, scans `docs/specs/`).
 2.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
+3.  **Bind + checkpoint**: Run `pactkit workflow bind <run-id> {ID}`, then checkpoint `story_identified` with exact Story identity evidence.
 
 ## 🎬 Phase 3.2a: Scaffold + Metadata Table & Requirements
 1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_spec "{ID}" "{title}"` to generate `docs/specs/{ID}.md` from SPEC_TEMPLATE. This creates all sections, tables, and Given/When/Then skeleton — format is guaranteed by Code.
@@ -138,30 +146,35 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       ```
     - If the Story does not affect any journey: do NOT add this section (Act Phase 4 Journey Sync will auto-skip).
 5.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
+6.  **Checkpoint**: Record `spec_scaffolded`, then `requirements_written`; each checkpoint is accepted only from the real Spec file.
 
 ## 🎬 Phase 3.2b: Acceptance Criteria & Implementation Steps
 1.  **Edit AC** (use Edit tool): Replace `### AC1: (Scenario Name) (R1)` and its Given/When/Then placeholders with actual scenarios. The template already provides the `- **Given**` / `- **When**` / `- **Then**` structure — fill in the content. Add more AC{N} sections as needed.
     - Each Scenario SHOULD map to a verifiable test case in `docs/test_cases/`.
 2.  **Edit Implementation Steps** (optional): If Phase 1 Trace identifies 2+ files to modify, replace the placeholder rows in `## Implementation Steps` with actual steps. The table skeleton (headers + separator) is already in the template.
 3.  **Output checkpoint**: Print "Acceptance criteria written. Running security scope."
+4.  **Checkpoint**: Record `acceptance_written`; placeholders or missing Given/When/Then MUST fail.
 
 ## 🎬 Phase 3.2c: Security Scope
 1.  **MUST**: Run `pactkit sec-scope <changed-files>` to auto-detect SEC-1~SEC-8 applicability.
 2.  **Edit** the `## Security Scope` section already in the template: replace the placeholder SEC-1 row with actual SEC-* assessments from the output above. The table skeleton (Check/Applicable/Reason headers) is already in the template.
 3.  **Fallback**: If `pactkit sec-scope` is unavailable, manually Edit each SEC-1 through SEC-8 entry. Apply docs/tests-only shortcut if applicable (mark ALL N/A with Reason "docs/tests only").
 4.  **Output checkpoint**: Print "Security scope filled. Running lint."
+5.  **Checkpoint**: Record `security_scoped` from the real Spec.
 
 ## 🎬 Phase 3.2d: Spec Lint Self-Check
 1.  Run `pactkit spec-lint docs/specs/{ID}.md`. If `pactkit` is not on `$PATH`, use `python3 -m pactkit spec-lint docs/specs/{ID}.md` instead.
 2.  If any ERROR or WARNING rules fire, self-correct the Spec immediately (you wrote it — you have authority to fix it). Re-run until `pactkit spec-lint` reports 0 errors AND 0 warnings.
 3.  This prevents the Spec from being rejected at Act Phase 0.5.
 4.  **Output checkpoint**: Print "Spec lint passed (0 errors AND 0 warnings)."
+5.  **Checkpoint**: Record `spec_linted`; the engine reruns canonical lint and rejects warnings.
 
 ## 🎬 Phase 3.3: Board, Memory & Handover
 1.  **Board**: Add Story: `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|{task2}|..."` (all three arguments are required).
 2.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
-3.  **Session Context Update**: Run `pactkit context` to generate `docs/product/context.md`. Set "Last updated by" to `/project-plan`.
+3.  **Session Context Update**: Run `pactkit context` to refresh ignored `.pactkit/context.md` with canonical sections `{CONTEXT_SECTIONS}`. Never stage or commit it.
 4.  **Handover**: "Trace complete. Spec created. Ready for Act."
+5.  **Completion checkpoint**: Record `board_synced --status completed` with exact title and ordered task list. If validation fails, write a blocked checkpoint and hand off the run ID.
 """,
     # [FIX] Added Board Update Step to Phase 4
     "project-act.md": """---
@@ -203,16 +216,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **PURPOSE**: Quick pre-flight to verify artifacts exist. Full alignment analysis is deferred to `/project-check` (normal workflow).
 > **NON-BLOCKING**: This phase NEVER stops Act.
 1.  **Spec exists?**: Check if `docs/specs/{STORY_ID}.md` exists. If not: WARN "Spec not found".
-2.  **Board entry exists?**: Check if `{STORY_ID}` appears in `docs/product/sprint_board.md`. If not: WARN "Board entry not found".
+2.  **Story record exists?**: Run `pactkit board list` and check `{STORY_ID}`. Treat `sprint_board.md` as a projection only.
 3.  **Move to In Progress**: If `{STORY_ID}` is found on the board, run `{BOARD_CMD} move_story "{STORY_ID}" "in_progress"`.
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
 ## 🎬 Phase 1: Precision Targeting
-0.  **Resumable Act Preflight (MUST)**: Run `pactkit continuation resume {STORY_ID}` before writing. `--resume` only loads its verified plan; never writes or replays. Continue `resume_at`; resolve `blocked`. Completed is terminal. A fresh cycle uses `pactkit continuation checkpoint {STORY_ID} --fresh --step preflight --evidence '{"spec_lint":"pass"}'`, archiving evidence. New Stories use it without `--fresh`; it is the only writer.
-1.  **Targeted Visual Scan**: Run `visualize --focus <module>` only (single targeted mode). For large codebases, add `--depth 2`. Do NOT run full 3-mode visualize here — Phase 4 handles that.
-    - **MUST NOT `Read` a full `.mmd` graph file** — use `pactkit query` or `grep` (see Graph Query Protocol).
+0.  **Resumable Act Preflight (MUST)**: Run `pactkit continuation resume {STORY_ID}` before writing. It only loads its verified plan; never writes or replays. Continue `resume_at`; resolve `blocked`. Completed is terminal. A fresh cycle uses `pactkit continuation checkpoint {STORY_ID} --fresh --step preflight --evidence '{"spec_lint":"pass"}'`, archiving evidence. New Stories omit `--fresh`; it is the only writer.
+1.  **Provider-Routed Scan**: Run `pactkit query --explore <module> --json --explain`. Record the complete provider decision in preflight evidence. Do not invoke Codegraph, visualize, SQLite or `rg` directly; `--allow-fallback` must be explicit and auditable.
 2.  **Trace Verification** — use pactkit-trace skill:
-    - Before touching any code, confirm the call site and ensure you don't break existing callers.
+    - Run `pactkit query --chain <symbol> --json --explain`; confirm the call site and existing callers before editing.
 3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
     - Run `pactkit interface-summary <file>` for each related module you do NOT plan to modify.
     - This outputs signatures + types + docstrings only (function bodies excluded by code).
@@ -254,7 +266,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - After GREEN, run `pactkit continuation checkpoint {STORY_ID} --step green --evidence '{"story_tests":{"exit_code":0}}' --phase "Phase 3: GREEN"`.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. If any changed file has 3+ importers (`pactkit query --callers <file>` or `grep " --> .*<file>" docs/architecture/graphs/code_graph.mmd | wc -l`), run full suite. Fallback: full suite.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. Query importers through `pactkit query --callers <file> --json --explain`; if any changed file has 3+ importers, run full suite. Fallback is allowed only through router policy.
     - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
     - After regression and lint pass, run `pactkit continuation checkpoint {STORY_ID} --step regression_lint --evidence '{"regression":"pass","lint":"pass"}' --phase "Phase 3: regression/lint"`.
@@ -517,7 +529,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 
 ## 🎬 Phase 1: Context Loading
 1.  **Read Spec**: Read `docs/specs/{ID}.md`.
-2.  **Read Board**: Read `docs/product/sprint_board.md`.
+2.  **Read Story Facts**: Run `pactkit board list`; never use the Board projection for completion decisions.
 
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
 1.  Run `pactkit clean` to remove language-specific temp artifacts.
@@ -534,7 +546,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 - If **no source/test files changed** since the last commit (e.g., only docs, board, graphs, or config changed): log `"Regression: SKIP — no source/test changes since Act"` and proceed directly to Step 2.7 (Smart Lint Gate). This avoids re-running 3000+ tests when Act already verified the code.
 
 ### Step 1: Impact Analysis
-- Check if call graph is available: `pactkit query` (if graph_provider: codegraph) or `docs/architecture/graphs/code_graph.mmd` (grep).
+- Check graph availability through `pactkit query --impact <target> --json --explain`; do not select providers manually.
 
 ### Step 1.3: Classification Shortcut
 Run `pactkit regression` (or `pactkit regression <files>`) to classify changes (doc-only → SKIP):
@@ -550,7 +562,7 @@ Otherwise continue to Step 1.7.
 > **PURPOSE**: Target only tests affected by changed functions via call graph.
 
 1. **Preconditions**:
-   - Call graph available (`pactkit query` or `call_graph.mmd`).
+   - Graph provider decision available from `pactkit query --json --explain`.
    - `regression.strategy` is `impact` (read from `pactkit.yaml`; default: `impact`).
 2. **Identify changed functions**: Use `git diff HEAD~1 --unified=0` on changed source files to extract modified function names (look for `def ` in the diff).
 3. **Run impact command** for each changed function:
@@ -605,18 +617,18 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
 1.  **Verify**: Are tasks for this Story marked `[x]`?
 2.  **Auto-Fix**:
     - If tests are GREEN but tasks are `[ ]`, **Ask the user**: "Tests passed but tasks are unchecked. Mark as done?"
-    - If user agrees, update `sprint_board.md` immediately.
+    - If user agrees, run `pactkit board complete-task {STORY_ID} "<exact task>"` for each task.
 3.  **Lessons Auto-append (MUST)**: Run `pactkit lesson-append --story {STORY_ID} --text "lesson text" [--context "file.py:func"]`.
     - The command checks specificity (references concrete file/function?) and dedup (different from last 5 entries?).
     - If both pass: appends row using format `{LESSONS_ROW_FORMAT}` where date=YYYY-MM-DD, context={STORY_ID}
     - If either fails: skip with log from command output.
-    - If `pactkit lesson-append` is unavailable, fall back to manual append with the same checks.
+    - If `pactkit lesson-append` is unavailable, stop and request a Core upgrade; never write a shared Lesson projection manually.
 4.  **Invariants Refresh (MUST)**: Run `pactkit invariants-refresh --test-count {N}` where {N} is the actual count from the most recent test run.
     - The command updates `docs/architecture/governance/rules.md` invariant "All {N}+ tests must pass".
     - If `pactkit invariants-refresh` is unavailable, fall back to manual: read rules.md, find the pattern, replace the number.
 5.  **Document Validators (Non-blocking)**: Run document structure checks as warnings:
-    - `pactkit lint-context` — validates `docs/product/context.md` structure
-    - `pactkit lint-lessons` — validates `docs/architecture/governance/lessons.md` structure
+    - `pactkit context --stdout` — validates generation from Story/Lesson facts without writing tracked files
+    - `pactkit board render --check` — validates the optional Board projection
     - These are non-blocking: report warnings but do not stop the Done flow.
 6.  **Spec Status Update (MUST)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file. If `pactkit spec-status` is unavailable, manually edit the spec file.
 7.  **Archive Honesty Gate (CRITICAL — STORY-slim-136)**: Run `pactkit done-verify {STORY_ID}` — it mechanically verifies requirement→test evidence, checkbox↔case honesty, and status consistency (Spec Done + Board `[x]` + archive).
@@ -671,8 +683,8 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
       4. If `gh` CLI is unavailable or command fails, skip silently.
 
 ## 🎬 Phase 4.5: Session Context Update
-1.  Run `pactkit context` to generate `docs/product/context.md` (sections: {CONTEXT_SECTIONS}). Set "Last updated by" to `/project-done`. This also clears the Agent Continuation section to `No active work session.` since no `--continuation` flag is passed.
-2.  **Commit Context**: `git add docs/product/context.md && git commit --amend --no-edit` to include context.md in the commit.
+1.  Run `pactkit context` to refresh ignored local `.pactkit/context.md`. This clears its Agent Continuation section because no `--continuation` flag is passed.
+2.  **Never Commit Context**: `.pactkit/context.md` is a local cache; do not stage, commit, or amend it.
 """,
     "project-clarify.md": """---
 description: "Standalone requirement clarification before planning"
@@ -756,7 +768,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - Do NOT block on user input for stack selection mid-flow.
 4.  **Project Instructions File**: Check/Create `./{PROJECT_CONFIG_DIR}/{INSTRUCTIONS_FILE}` if missing (do NOT overwrite).
     - Use the directory name as the project name. Fill test_runner and lint_command from the detected language stack in LANG_PROFILES.
-    - Include: venv instructions (if detected), dev commands, `@./docs/product/context.md` reference for cross-session context.
+    - Include: venv instructions, dev commands, and `pactkit context` as the cold-start bootstrap; do not `@import` generated Context.
 
 ## 🔌 Phase 1.5: External Dependencies (STORY-slim-137)
 > Runs BEFORE Phase 3 — Discovery (codegraph) depends on these tools.
@@ -779,15 +791,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
     - *Check*: Is it still "No code yet"? If files exist in src, this graph MUST contain classes.
 
 ## 🎬 Phase 4: Project Skeleton
-1.  **Board**: Run `{SCAFFOLD_CMD} create_board` if `docs/product/sprint_board.md` does not exist.
+1.  **Story Facts**: Create `docs/product/stories/`. Do not create a writable Board; render one explicitly with `pactkit board render` only when configured. For an existing aggregate project, preview `pactkit governance migrate`, then ask before applying `pactkit governance migrate --apply`.
     - This ensures the board has all three section headers: `## 📋 Backlog`, `## 🔄 In Progress`, `## ✅ Done`.
 
 ## 🎬 Phase 5: Knowledge Base (The Law)
 1.  **Law**: Write `docs/architecture/governance/rules.md`.
-2.  **History**: Write `docs/architecture/governance/lessons.md` with table header `| Date | Lesson | Context |` and separator `|------|--------|---------|`. The third column MUST be `Context`, not `Source`.
+2.  **History**: Create `docs/architecture/governance/lessons/`; every Lesson is a create-only record written by `pactkit lesson-append`.
 
 ## 🎬 Phase 6: Session Context Bootstrap
-1.  **Generate Context**: Run `pactkit context` to generate `docs/product/context.md`. Set "Last updated by" to `/project-init`.
+1.  **Generate Context**: Run `pactkit context` to generate ignored local `.pactkit/context.md`; never stage it.
 
 ## 🎬 Phase 7: Handover
 1.  **Output**: "✅ PactKit Initialized. Reality Graph captured. Knowledge Base ready."

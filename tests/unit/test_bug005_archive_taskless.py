@@ -3,7 +3,7 @@
 archive_stories() must NOT archive stories that have zero tasks.
 Only stories with all tasks checked `[x]` should be archived.
 """
-from pactkit.skills.board import archive_stories
+from pactkit.skills.board import _legacy_archive_stories as archive_stories
 
 
 def _make_board(tmp_path, stories_md):

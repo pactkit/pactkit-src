@@ -124,4 +124,5 @@ class TestAC5CharCount:
     def test_plan_prompt_not_longer_than_baseline(self):
         """Plan prompt SHOULD be shorter or equal to baseline (STORY-slim-128: engineering concerns)."""
         prompt = _get_plan_prompt()
-        assert len(prompt) <= 13750, f"Plan prompt grew to {len(prompt)} chars (baseline: 13750, STORY-slim-143: +50 for Dependency Surface bullet)"
+        # STORY-slim-147/149 add resumable workflow and provider-router gates.
+        assert len(prompt) <= 15850, f"Plan prompt grew to {len(prompt)} chars (baseline: 15850 after STORY-slim-147/149)"

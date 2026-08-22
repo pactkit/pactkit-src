@@ -5,20 +5,70 @@ classDiagram
     }
     class PactKitConfig {
     }
+    class WorkflowEvidenceError {
+    }
+    ValueError <|-- WorkflowEvidenceError
+    class NoopValidator {
+        -__init__(root)
+        +validate(state, step, evidence, status)
+        +fingerprints(state)
+        -_require_graph_evidence(evidence)
+    }
+    class PlanEvidenceValidator {
+        -_spec(state)
+        -_board()
+        +validate(state, step, evidence, status)
+        -_text(state)
+        -_require_requirements(state)
+        -_require_acceptance(state)
+        -_require_security(state)
+        -_require_lint(state)
+        -_require_board(state, evidence)
+        -_require_complete(state, evidence)
+        +fingerprints(state)
+    }
+    NoopValidator <|-- PlanEvidenceValidator
+    class ActEvidenceValidator {
+        +validate(state, step, evidence, status)
+    }
+    NoopValidator <|-- ActEvidenceValidator
     class GateResult {
         +render()
     }
     class GateUnavailable {
     }
     Exception <|-- GateUnavailable
+    class WorkflowValidator {
+        +validate(state, step, evidence, status)
+        +fingerprints(state)
+    }
+    Protocol <|-- WorkflowValidator
+    class WorkflowDefinition {
+    }
+    class ReliabilityContract {
+    }
     class ContinuationError {
     }
     ValueError <|-- ContinuationError
+    class ContinuationEngine {
+        -__init__(project_root)
+        -_run_lock(run_id)
+        +definition(workflow_id)
+        -_validate_run_id(run_id)
+        +path_for(run_id)
+        -_find(identifier)
+        +read(identifier)
+        +start(workflow_id)
+        +bind_story(identifier, story_id)
+        +checkpoint(identifier)
+        +resume(identifier)
+    }
     class ContinuationStore {
         -__init__(project_root)
         +path_for(story_id)
         -_validate_story_id(story_id)
         -_paths(story_id)
+        -_story_fact_path(story_id)
         -_fingerprints(story_id)
         +read(story_id)
         +legacy_handoff(story_id)
@@ -52,6 +102,83 @@ classDiagram
     Enum <|-- CLIPolicy
     class FormatProfile {
         +has_pactkit_cli()
+    }
+    class GraphProviderError {
+        -__init__(reason_code, message)
+    }
+    RuntimeError <|-- GraphProviderError
+    class GraphQueryRequest {
+        -__post_init__()
+    }
+    class ProviderDecision {
+    }
+    class GraphQueryResult {
+        +to_dict()
+    }
+    class GraphProvider {
+        +health()
+        +sync()
+        +query(request)
+    }
+    Protocol <|-- GraphProvider
+    class CodegraphProvider {
+        -__init__(root)
+        -_run()
+        +health()
+        -_sync_lock()
+        +sync()
+        +query(request)
+        -_query_sqlite(request)
+    }
+    class BuiltinGraphProvider {
+        -__init__(root)
+        +health()
+        +sync()
+        +query(request)
+    }
+    class TextSearchProvider {
+        -__init__(root)
+        +health()
+        +sync()
+        +query(request)
+    }
+    class GraphProviderRouter {
+        -__init__(providers)
+        +query(request)
+        -_query_one(name, request, requested)
+    }
+    class GovernanceError {
+    }
+    ValueError <|-- GovernanceError
+    class StoryRepository {
+        -__init__(root)
+        +path_for(item_id)
+        -_validate(record)
+        +load(item_id)
+        +list()
+        -_write(record)
+        +add(item_id, title, tasks)
+        +complete_task(item_id, task)
+        +move(item_id, status)
+    }
+    class BoardRenderer {
+        -__init__(repository)
+        +render()
+        +check(path)
+    }
+    class LessonRepository {
+        -__init__(root)
+        +add(story_id, text, context, tags)
+        +import_legacy(lesson_id, lesson_date, text, context)
+        -_load(path)
+        +recent(limit)
+    }
+    class GovernanceMigrator {
+        -__init__(root)
+        -_legacy_stories()
+        -_legacy_lessons()
+        -_remove_installed(paths)
+        +migrate()
     }
     class DeployIntegrityError {
         -__init__(label, violations)

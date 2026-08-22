@@ -34,10 +34,11 @@ class TestSkillsPromptCodegraphSection:
                 "Replace with `codegraph --help` fallback."
             )
 
-    def test_help_fallback_present(self):
-        """AC1/R1: `codegraph --help` fallback must be present."""
+    def test_router_fallback_policy_present(self):
+        """The router, not provider-specific help, owns explicit fallback."""
         content = self._get_codegraph_section()
-        assert "codegraph --help" in content
+        assert "--allow-fallback" in content
+        assert "fails closed" in content
 
     def test_no_mcp_tool_name_list(self):
         """AC1/R4: hardcoded MCP tool names must not appear."""

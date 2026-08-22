@@ -37,8 +37,11 @@ DEP_SURFACE_SECTION = "Dependency Surface"
 DEP_SURFACE_FIELDS = ("Depends on", "Provides", "Touches", "Conflict risk")
 DEP_SURFACE_RISK_LEVELS = ("LOW", "MEDIUM", "HIGH")
 
-# Story/bug/hotfix ID pattern, e.g. STORY-042, STORY-slim-143, HOTFIX-slim-087
-ITEM_ID_PATTERN = r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+"
+# Story/bug/hotfix ID pattern: historical sequential IDs plus decentralized IDs.
+ITEM_ID_PATTERN = (
+    r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-"
+    r"(?:\d+(?:-[0-9a-f]{4,32})?|\d{8}[0-9a-f]{12})"
+)
 
 # E004: requirement subsection pattern
 SPEC_REQUIREMENT_PATTERN = r"### R\d+[:\s]"

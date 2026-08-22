@@ -1,0 +1,28 @@
+schema_version: 1
+id: STORY-slim-147
+title: 全 Skill 执行可靠性协议与 Plan 可恢复工作流
+spec_path: docs/specs/STORY-slim-147.md
+status: archived
+tasks:
+- id: task-bead88aa1e
+  title: 建立 25 入口执行可靠性注册表
+  completed: true
+- id: task-f8544c144e
+  title: 抽象通用 continuation engine
+  completed: true
+- id: task-6416b44af2
+  title: 无损迁移 project-act
+  completed: true
+- id: task-ba2e254a31
+  title: 接入 project-plan 可恢复 workflow
+  completed: true
+- id: task-81e0917f03
+  title: 增加迁移诊断与安全门禁
+  completed: true
+- id: task-5bde2df040
+  title: 验证四种部署目标语义一致
+  completed: true
+created_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-22T10:51:55+00:00'
+completed_at: '2026-08-22T05:32:41+00:00'
+archived_at: '2026-08-22T10:51:55+00:00'

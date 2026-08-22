@@ -58,7 +58,8 @@ class TestFreshInstall:
         content = claude_md.read_text()
         end_pos = content.index(_CLAUDE_MD_END)
         after_end = content[end_pos:]
-        assert "@./docs/product/context.md" in after_end
+        assert "@./docs/product/context.md" not in after_end
+        assert "@./.claude/CLAUDE.local.md" in after_end
         assert "@./.claude/CLAUDE.local.md" in after_end
 
 
@@ -200,7 +201,8 @@ class TestUpsertFunction:
         assert _CLAUDE_MD_START in content
         assert _CLAUDE_MD_END in content
         assert "## Managed" in content
-        assert "@./docs/product/context.md" in content
+        assert "@./docs/product/context.md" not in content
+        assert "@./.claude/CLAUDE.local.md" in content
 
     def test_replace_existing_markers(self, tmp_path):
         path = tmp_path / "CLAUDE.md"

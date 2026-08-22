@@ -1,8 +1,8 @@
 # Project Context (Auto-generated)
-> Last updated: 2026-08-22T08:48:25+08:00 by pactkit context
+> Last updated: 2026-08-22T12:40:51+08:00 by pactkit context
 
 ## Sprint Status
-Backlog: 5 | In Progress: 1 | Done: 0 stories
+Backlog: 8 | In Progress: 1 | Done: 0 stories
 
 ## Current Stories
 - STORY-slim-145: Codex 部署命令语义完整性与 Adapter 兼容门禁

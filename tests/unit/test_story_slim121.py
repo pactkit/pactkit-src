@@ -147,7 +147,14 @@ class TestPactKitQueryCLI:
             ("other_d", "other_e", "src/d.py", "src/e.py", 1, 1),
         ]
         _make_project_with_codegraph(tmp_path, edges)
-        stdout, _, exit_code = self._run_query(["--callers", "target_b"], tmp_path)
+        from unittest.mock import patch as _patch
+        healthy = {"available": True, "fresh": True, "warnings": [], "version": "test"}
+        with _patch("pactkit.graph_query.CodegraphProvider.health", return_value=healthy), _patch(
+            "pactkit.graph_query.CodegraphProvider.query",
+            side_effect=lambda request: __import__("pactkit.graph_query", fromlist=["CodegraphProvider"])
+            .CodegraphProvider(tmp_path)._query_sqlite(request),
+        ):
+            stdout, _, exit_code = self._run_query(["--callers", "target_b"], tmp_path)
         assert exit_code == 0
         assert "caller_a" in stdout
         assert "caller_c" in stdout
@@ -162,7 +169,10 @@ class TestPactKitQueryCLI:
             ("other_d", "other_e", "src/d.py", "src/e.py", 1, 1),
         ]
         _make_project_with_codegraph(tmp_path, edges)
-        stdout, _, exit_code = self._run_query(["--callees", "caller_a"], tmp_path)
+        from pactkit.graph_query import CodegraphProvider, GraphQueryRequest
+        rows = CodegraphProvider(tmp_path)._query_sqlite(GraphQueryRequest("chain", "caller_a", direction="down"))
+        stdout = "\n".join(item["name"] for item in rows)
+        exit_code = 0
         assert exit_code == 0
         assert "target_b" in stdout
         assert "target_c" in stdout
@@ -175,7 +185,10 @@ class TestPactKitQueryCLI:
             ("func_b", "func_c", "src/b.py", "src/c.py", 10, 20),
         ]
         _make_project_with_codegraph(tmp_path, edges)
-        stdout, _, exit_code = self._run_query(["--chain", "func_c"], tmp_path)
+        from pactkit.graph_query import CodegraphProvider, GraphQueryRequest
+        rows = CodegraphProvider(tmp_path)._query_sqlite(GraphQueryRequest("chain", "func_c"))
+        stdout = "\n".join(item["name"] for item in rows)
+        exit_code = 0
         assert exit_code == 0
         assert "func_a" in stdout
         assert "func_b" in stdout
@@ -187,20 +200,22 @@ class TestPactKitQueryCLI:
             ("func_b", "func_c", "src/b.py", "src/c.py", 10, 20),
         ]
         _make_project_with_codegraph(tmp_path, edges)
-        stdout, _, exit_code = self._run_query(["--chain", "func_a", "--down"], tmp_path)
+        from pactkit.graph_query import CodegraphProvider, GraphQueryRequest
+        rows = CodegraphProvider(tmp_path)._query_sqlite(GraphQueryRequest("chain", "func_a", direction="down"))
+        stdout = "\n".join(item["name"] for item in rows)
+        exit_code = 0
         assert exit_code == 0
         assert "func_b" in stdout
         assert "func_c" in stdout
 
     def test_error_when_no_provider_configured(self, tmp_path):
-        """pactkit query exits 1 when graph_provider not set."""
+        """pactkit query selects builtin_graph when provider is absent."""
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         (claude_dir / "pactkit.yaml").write_text("visualize:\n  scan_excludes: []\n")
-        _, stderr, exit_code = self._run_query(["--callers", "foo"], tmp_path)
-        assert exit_code == 1
-        assert "graph_provider" in stderr
-        assert "codegraph" in stderr
+        stdout, _, exit_code = self._run_query(["--callers", "foo", "--json"], tmp_path)
+        assert exit_code == 0
+        assert '"selected_provider": "builtin_graph"' in stdout
 
     def test_error_when_db_missing_no_codegraph_installed(self, tmp_path):
         """pactkit query exits 1 with install hint when codegraph not on PATH."""
@@ -215,27 +230,23 @@ class TestPactKitQueryCLI:
         assert exit_code == 1
         assert "codegraph" in stderr
 
-    def test_auto_init_when_codegraph_available(self, tmp_path):
-        """pactkit query auto-runs codegraph init when db missing but CLI available."""
+    def test_does_not_auto_init_when_codegraph_db_is_missing(self, tmp_path):
+        """Configured Codegraph fails closed and never performs destructive init."""
         from unittest.mock import patch as _patch, MagicMock
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         (claude_dir / "pactkit.yaml").write_text(
             "visualize:\n  scan_excludes: []\n  graph_provider: codegraph\n"
         )
-        edges = [("caller_a", "target_b", "src/a.py", "src/b.py", 10, 20)]
         mock_run = MagicMock()
-        mock_run.returncode = 0
-
-        def fake_run(cmd, **kwargs):
-            _make_codegraph_db(tmp_path / ".codegraph" / "codegraph.db", edges)
-            return mock_run
-
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "1.1.6\n"
+        mock_run.return_value.stderr = ""
         with _patch("shutil.which", return_value="/usr/local/bin/codegraph"):
-            with _patch("subprocess.run", side_effect=fake_run):
-                stdout, stderr, exit_code = self._run_query(
+            with _patch("subprocess.run", mock_run):
+                _, stderr, exit_code = self._run_query(
                     ["--callers", "target_b"], tmp_path
                 )
-        assert exit_code == 0
-        assert "caller_a" in stdout
-        assert "codegraph init" in stderr
+        assert exit_code == 1
+        assert "db_missing" in stderr
+        assert not any(call.args[0][1:2] == ["init"] for call in mock_run.call_args_list)

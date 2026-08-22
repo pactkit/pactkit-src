@@ -126,7 +126,7 @@ class TestReadOnlyConstraint:
 # ===========================================================================
 
 class TestNonInitializedFallback:
-    """Skill must handle projects without sprint_board.md."""
+    """Skill must handle projects without sharded Story facts."""
 
     def test_mentions_uninitialized_handling(self):
         p = _prompts()
@@ -135,9 +135,9 @@ class TestNonInitializedFallback:
             'missing' in content or 'project-init' in content or \
             'exist' in content
 
-    def test_mentions_sprint_board(self):
+    def test_mentions_story_facts(self):
         p = _prompts()
-        assert 'sprint_board.md' in p.SKILL_STATUS_MD
+        assert 'docs/product/stories/' in p.SKILL_STATUS_MD
 
 
 # ===========================================================================

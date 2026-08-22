@@ -49,18 +49,21 @@ graph TD
         SecScope["sec_scope.py<br/>Security scoping"]
         IdGenerator["id_generator.py<br/>Story ID generation"]
         LazyVisualize["lazy_visualize.py<br/>Conditional graph regen"]
+        GraphRouter["graph_query.py<br/>Codegraph-first provider routing<br/>freshness + explicit fallback<br/>(STORY-slim-149)"]
         Backfill["backfill.py<br/>Release backfill"]
         IssueSync["issue_sync.py<br/>GitHub issue sync"]
         SpecStatus["spec_status.py<br/>Spec status update"]
     end
 
     subgraph "Cross-Session Memory"
-        Context["context.md<br/>Auto-generated project state"]
-        ResumeState[".pactkit/continuations/<br/>{story}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146)"]
-        ResumeVerifier["Continuation verifier<br/>contract / git / artifact checks<br/>(STORY-slim-146)"]
-        Lessons["lessons.md<br/>Auto-appended decisions"]
+        Context[".pactkit/context.md<br/>local generated session view<br/>(STORY-slim-148)"]
+        WorkflowRegistry["Workflow Registry<br/>25 deployed entry contracts<br/>steps / evidence / replay policy<br/>(STORY-slim-147)"]
+        ResumeState[".pactkit/continuations/<br/>{workflow-run}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146/147)"]
+        ResumeVerifier["Continuation Engine<br/>workflow-specific evidence +<br/>git/artifact validation<br/>(STORY-slim-147)"]
+        LessonRecords["docs/architecture/governance/lessons/*.md<br/>append-only lesson facts<br/>(STORY-slim-148)"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
-        BoardFile["sprint_board.md<br/>Progress tracking"]
+        StoryRecords["docs/product/stories/*.yaml<br/>per-Story execution state<br/>(STORY-slim-148)"]
+        BoardView["sprint_board.md<br/>generated read-only projection<br/>(STORY-slim-148)"]
         MemoryMCP["Memory MCP<br/>Knowledge graph"]
     end
 
@@ -94,6 +97,9 @@ graph TD
     CLI -->|"pactkit subcommands"| Regression
     CLI -->|"pactkit subcommands"| ContextGen
     CLI -->|"pactkit interface-summary"| InterfaceSummary
+    CLI -->|"pactkit query/explore"| GraphRouter
+    GraphRouter -->|"preferred provider"| Codegraph["Codegraph index + CLI"]
+    GraphRouter -.->|"reasoned fallback"| Visualize
     Deployer --> Rules
     Deployer --> Commands
     Deployer --> Agents
@@ -101,12 +107,18 @@ graph TD
     Config -->|"visualize.scan_excludes<br/>stack (file_ext detection)"| Visualize
     Workflows -.->|"LANG_PROFILES.test_map_pattern<br/>(inlined canonical copy)"| Visualize
 
-    Commands -->|"Done/Plan/Init<br/>generate"| Context
-    Commands -->|"Done<br/>auto-append"| Lessons
+    Commands -->|"Done/Plan/Init<br/>generate local view"| Context
+    Commands -->|"Done<br/>append one record"| LessonRecords
     Commands -->|"Plan<br/>create"| Specs
-    Commands -->|"Act/Done<br/>update"| BoardFile
+    Commands -->|"Plan/Act/Done<br/>update one record"| StoryRecords
+    StoryRecords -->|"deterministic render"| BoardView
+    StoryRecords -->|"status summary"| Context
+    LessonRecords -->|"recent decisions"| Context
     Commands -->|"Plan/Act/Done<br/>conditional"| MemoryMCP
 
+    Commands -->|"workflow definition"| WorkflowRegistry
+    Skills -->|"recovery classification"| WorkflowRegistry
+    WorkflowRegistry --> ResumeVerifier
     Commands -->|"checkpoint / resume"| ResumeState
     ResumeState --> ResumeVerifier
     ResumeVerifier -->|"verified next safe step"| Commands

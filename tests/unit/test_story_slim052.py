@@ -12,9 +12,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 from pactkit.skills.board import (
     _mark_done,
     _parse_story_blocks,
-    archive_stories,
+    _legacy_archive_stories as archive_stories,
     fix_board,
-    update_task,
+    _legacy_update_task as update_task,
 )
 from pactkit.skills.scaffold import (
     _read_developer_prefix,

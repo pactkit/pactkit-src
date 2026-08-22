@@ -16,6 +16,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from pactkit.id_generator import ITEM_ID_RE as STORY_ID_RE
+
 # R3: unresolved-declaration vocabulary (case-insensitive substring scan).
 # Module-level constant per No Magic Values; may migrate to pactkit.yaml later.
 BLOCKER_TERMS = (
@@ -41,10 +43,6 @@ def _strip_code_spans(text: str) -> str:
     only prose occurrences count.
     """
     return _INLINE_CODE_RE.sub("", _CODE_FENCE_RE.sub("", text))
-
-# SEC-1: story IDs must match this shape — anything else (incl. path
-# traversal attempts like "../x") is rejected before touching the filesystem.
-STORY_ID_RE = re.compile(r"^(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+$")
 
 _REQ_RE = re.compile(r"^###\s+(R\d+):.*?\((MUST NOT|MUST|SHOULD|MAY)\)", re.MULTILINE)
 _AC_RE = re.compile(r"^###\s+(AC\d+):.*?\((R\d+(?:\s*[-,]\s*R?\d+)*)\)", re.MULTILINE)
@@ -104,6 +102,22 @@ def _board_block(board_text: str, story_id: str) -> str | None:
         if sid == story_id:
             return block_text
     return None
+
+
+def _story_fact_block(project_root: Path, story_id: str) -> str | None:
+    """Return a compatibility-shaped block derived from the Story fact."""
+    records = project_root / "docs" / "product" / "stories"
+    if not records.is_dir():
+        return None
+    from pactkit.governance import GovernanceError, StoryRepository
+
+    try:
+        record = StoryRepository(project_root).load(story_id)
+    except GovernanceError:
+        return None
+    lines = [f"### [{story_id}] {record['title']}"]
+    lines.extend(f"- [{'x' if task['completed'] else ' '}] {task['title']}" for task in record["tasks"])
+    return "\n".join(lines)
 
 
 def _spec_status(spec_text: str) -> str | None:
@@ -349,8 +363,10 @@ def verify_story(story_id: str, project_root: Path) -> tuple[list[CheckResult], 
         return [CheckResult("input", "FAIL", f"invalid story ID: {story_id!r}")], 1
 
     project_root = Path(project_root)
-    board_text = _read(project_root / "docs" / "product" / "sprint_board.md")
-    board_block = _board_block(board_text, story_id)
+    board_block = _story_fact_block(project_root, story_id)
+    if board_block is None:
+        board_text = _read(project_root / "docs" / "product" / "sprint_board.md")
+        board_block = _board_block(board_text, story_id)
 
     results: list[CheckResult] = []
     for check in (

@@ -13,6 +13,7 @@ from pactkit.commit_gate import (
     install_hook,
     parse_pytest_summary,
     run_gate,
+    run_pytest,
 )
 
 
@@ -38,6 +39,26 @@ def mock_pytest(monkeypatch, returncode=0, output="10 passed in 1.0s"):
 
     monkeypatch.setattr(commit_gate, "run_pytest", _run)
     return calls
+
+
+def test_run_pytest_does_not_leak_parent_git_repository_environment(repo, monkeypatch):
+    observed = {}
+
+    def fake_run(command, **kwargs):
+        observed.update(kwargs["env"])
+        return type("Result", (), {"returncode": 0, "stdout": "1 passed", "stderr": ""})()
+
+    monkeypatch.setenv("GIT_INDEX_FILE", "/parent/.git/index.lock")
+    monkeypatch.setenv("GIT_DIR", "/parent/.git")
+    monkeypatch.setenv("GIT_WORK_TREE", "/parent")
+    monkeypatch.setenv("PACTKIT_KEEP_ME", "yes")
+    monkeypatch.setattr(commit_gate.subprocess, "run", fake_run)
+
+    assert run_pytest(repo, None) == (0, "1 passed")
+    assert "GIT_INDEX_FILE" not in observed
+    assert "GIT_DIR" not in observed
+    assert "GIT_WORK_TREE" not in observed
+    assert observed["PACTKIT_KEEP_ME"] == "yes"
 
 
 # ---------------------------------------------------------------------------

@@ -5,33 +5,30 @@ Replaces the prompt-based ID generation from Plan Phase 3.1.
 from __future__ import annotations
 
 import re
+import secrets
 from pathlib import Path
+
+ITEM_ID_PATTERN = (
+    r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-"
+    r"(?:\d+(?:-[0-9a-f]{4,32})?|\d{8}[0-9a-f]{12})"
+)
+ITEM_ID_RE = re.compile(rf"^{ITEM_ID_PATTERN}$")
 
 
 def next_story_id(specs_dir: Path, developer: str) -> str:
-    """Generate the next Story ID by scanning existing specs.
+    """Generate a decentralized Story ID safe across parallel branches.
 
     Args:
         specs_dir: Path to docs/specs/ directory.
         developer: Developer name from pactkit.yaml (empty = no prefix).
 
     Returns:
-        Next Story ID string, e.g. "STORY-slim-014" or "STORY-001".
+        New entropy-bearing ID; historical sequential IDs remain readable.
     """
-    if developer:
-        prefix = f"STORY-{developer}-"
-        pattern = re.compile(rf"^STORY-{re.escape(developer)}-(\d+)\.md$")
-    else:
-        prefix = "STORY-"
-        pattern = re.compile(r"^STORY-(\d+)\.md$")
+    del specs_dir  # uniqueness does not depend on a branch-local snapshot
+    if developer and not re.fullmatch(r"[a-z]+", developer):
+        raise ValueError("developer must contain lowercase ASCII letters only")
+    from datetime import datetime, timezone
 
-    max_num = 0
-    if specs_dir.is_dir():
-        for f in specs_dir.iterdir():
-            m = pattern.match(f.name)
-            if m:
-                num = int(m.group(1))
-                if num > max_num:
-                    max_num = num
-
-    return f"{prefix}{max_num + 1:03d}"
+    prefix = f"STORY-{developer}-" if developer else "STORY-"
+    return prefix + datetime.now(timezone.utc).strftime("%Y%m%d") + secrets.token_hex(6)

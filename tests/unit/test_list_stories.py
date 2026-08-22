@@ -14,6 +14,8 @@ def _load_board_funcs():
 
     ns = {}
     exec(p.TOOLS_SOURCE, ns)
+    ns["list_stories"] = ns["_legacy_list_stories"]
+    ns["archive_stories"] = ns["_legacy_archive_stories"]
     return ns
 
 
@@ -158,10 +160,11 @@ class TestListStoriesBackwardCompat:
         (board_dir / "sprint_board.md").write_text("# Sprint Board\n", encoding="utf-8")
 
         ns = _load_board_funcs()
-        result = ns["add_story"]("STORY-TEST", "Test Story", "T1:foo|T2:bar")
-        assert "STORY-TEST" in result
-        board = (board_dir / "sprint_board.md").read_text()
-        assert "STORY-TEST" in board
+        result = ns["add_story"]("STORY-999", "Test Story", "T1:foo|T2:bar")
+        assert "STORY-999" in result
+        record = tmp_path / "docs/product/stories/STORY-999.yaml"
+        assert record.is_file()
+        assert "Test Story" in record.read_text(encoding="utf-8")
 
     def test_archive_still_works(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)

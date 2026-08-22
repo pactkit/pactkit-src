@@ -93,7 +93,7 @@ class TestAC4PromptTemplateUpdated:
         content = self._plan()
         # pactkit.yaml check now uses {PACTKIT_YAML} template variable
         assert "{PACTKIT_YAML}" in content or "pactkit.yaml" in content
-        assert "docs/product/sprint_board.md" in content
+        assert "docs/product/stories/" in content
         assert "docs/architecture/graphs/" in content
 
     def test_project_init_trigger_preserved(self):

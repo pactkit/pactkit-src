@@ -43,19 +43,19 @@ class TestR1HotfixLint:
 
 
 # ---------------------------------------------------------------------------
-# R2: DONE_PROMPT must reference lint-context and lint-lessons
+# R2: DONE_PROMPT must validate generated governance views
 # ---------------------------------------------------------------------------
 class TestR2DoneDocValidators:
-    def test_done_prompt_contains_lint_context(self):
+    def test_done_prompt_contains_context_stdout(self):
         done = _get_done_prompt()
-        assert "pactkit lint-context" in done, (
-            "Done prompt must reference 'pactkit lint-context'"
+        assert "pactkit context --stdout" in done, (
+            "Done prompt must validate local Context generation"
         )
 
-    def test_done_prompt_contains_lint_lessons(self):
+    def test_done_prompt_contains_board_projection_check(self):
         done = _get_done_prompt()
-        assert "pactkit lint-lessons" in done, (
-            "Done prompt must reference 'pactkit lint-lessons'"
+        assert "pactkit board render --check" in done, (
+            "Done prompt must validate the optional Board projection"
         )
 
     def test_done_lint_validators_in_phase3(self):
@@ -63,8 +63,8 @@ class TestR2DoneDocValidators:
         phase3_start = done.index("Phase 3: Hygiene")
         phase35_start = done.index("Phase 3.5:")
         phase3_text = done[phase3_start:phase35_start]
-        assert "pactkit lint-context" in phase3_text
-        assert "pactkit lint-lessons" in phase3_text
+        assert "pactkit context --stdout" in phase3_text
+        assert "pactkit board render --check" in phase3_text
 
 
 # ---------------------------------------------------------------------------

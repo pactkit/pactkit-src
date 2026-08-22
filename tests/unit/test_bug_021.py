@@ -325,8 +325,8 @@ class TestR5BackwardCompatibility:
         # Should NOT have venv section
         assert 'Virtual Environment' not in content
 
-    def test_context_md_reference_preserved(self, tmp_path):
-        """Generated CLAUDE.md must include @./docs/product/context.md."""
+    def test_local_context_bootstrap_preserved(self, tmp_path):
+        """Generated CLAUDE.md must not import an absent tracked Context."""
         project_root = tmp_path / 'myproject'
         project_root.mkdir()
         claude_dir = project_root / '.claude'
@@ -338,4 +338,5 @@ class TestR5BackwardCompatibility:
             _deployer()._generate_project_claude_md_if_missing(config)
 
         content = (claude_dir / 'CLAUDE.md').read_text()
-        assert '@./docs/product/context.md' in content
+        assert '@./docs/product/context.md' not in content
+        assert '@./.claude/CLAUDE.local.md' in content

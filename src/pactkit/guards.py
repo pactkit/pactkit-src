@@ -15,7 +15,7 @@ def check_init_markers(project_root: Path) -> tuple[bool, list[str]]:
 
     Checks 3 markers:
         1. pactkit.yaml exists (via find_pactkit_yaml)
-        2. docs/product/sprint_board.md exists
+        2. docs/product/stories exists (legacy board accepted during migration)
         3. docs/architecture/graphs/ directory exists
 
     Returns:
@@ -28,9 +28,10 @@ def check_init_markers(project_root: Path) -> tuple[bool, list[str]]:
         missing.append("pactkit.yaml not found (run `pactkit init`)")
 
     # 2. Sprint board
+    stories = project_root / "docs" / "product" / "stories"
     board = project_root / "docs" / "product" / "sprint_board.md"
-    if not board.exists():
-        missing.append("docs/product/sprint_board.md not found (run `/project-init`)")
+    if not stories.is_dir() and not board.exists():
+        missing.append("docs/product/stories not found (run `/project-init` or governance migrate)")
 
     # 3. Architecture graphs dir
     graphs = project_root / "docs" / "architecture" / "graphs"

@@ -20,10 +20,10 @@ class TestPlanInitGuard:
         content = COMMANDS_CONTENT["project-plan.md"]
         assert "{PACTKIT_YAML}" in content or "pactkit.yaml" in content
 
-    def test_plan_checks_sprint_board(self):
-        """Guard must check docs/product/sprint_board.md."""
+    def test_plan_checks_story_facts(self):
+        """Guard must check the sharded Story facts directory."""
         content = COMMANDS_CONTENT["project-plan.md"]
-        assert "docs/product/sprint_board.md" in content
+        assert "docs/product/stories/" in content
 
     def test_plan_checks_architecture_graphs(self):
         """Guard must check docs/architecture/graphs/."""
