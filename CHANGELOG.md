@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.20.0] - 2026-08-22
+
+### Added
+- **Verified resumable Act checkpoints** (STORY-slim-146) — PactKit now persists Story-scoped continuation state with validated Spec, Board, test, regression, and lint evidence. `pactkit continuation status/verify/resume/checkpoint` supports safe cross-process recovery, stale-state detection, terminal completion, fresh-cycle archival, secret/path sanitization, and Story-level locking. All 13 runtime skills and the Classic, OpenCode, Codex, and Copilot deployments share the recovery contract.
+
+### Fixed
+- **Adapter-safe command rendering and deployment gates** (STORY-slim-145) — operation-aware prompt rendering preserves PactKit CLI semantics across adapters, rejects lossy command transformations, checks generated prompt integrity before writing, and blocks incompatible Core/adapter versions unless skew is explicitly acknowledged.
+
 ## [2.19.0] - 2026-08-17
 
 ### Added
