@@ -60,6 +60,8 @@ graph TD
         WorkflowRegistry["Workflow Registry<br/>25 deployed entry contracts<br/>steps / evidence / replay policy<br/>(STORY-slim-147)"]
         ResumeState[".pactkit/continuations/<br/>{workflow-run}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146/147)"]
         ResumeVerifier["Continuation Engine<br/>workflow-specific evidence +<br/>git/artifact validation<br/>(STORY-slim-147)"]
+        FinishGuard["Workflow Finish Guard<br/>pre-final decision + managed writes<br/>(STORY-slim-2026082381e832771d4e)"]
+        HostRunner["Host Continuation Protocol<br/>capability handshake + bounded resume<br/>(STORY-slim-2026082381e832771d4e)"]
         LessonRecords["docs/architecture/governance/lessons/*.md<br/>append-only lesson facts<br/>(STORY-slim-148)"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
         StoryRecords["docs/product/stories/*.yaml<br/>per-Story execution state<br/>(STORY-slim-148)"]
@@ -122,6 +124,10 @@ graph TD
     Commands -->|"checkpoint / resume"| ResumeState
     ResumeState --> ResumeVerifier
     ResumeVerifier -->|"verified next safe step"| Commands
+    ResumeVerifier --> FinishGuard
+    Commands -->|"pre-final check"| FinishGuard
+    FinishGuard -->|"continue / await user / done"| HostRunner
+    HostRunner -.->|"supported host session re-entry"| Commands
     ResumeVerifier -.->|"human-confirmed blocker"| Context
     Context -.->|"human-readable summary"| ResumeState
 

@@ -28,10 +28,25 @@ classDiagram
         +fingerprints(state)
     }
     NoopValidator <|-- PlanEvidenceValidator
+    class ProjectCommandValidator {
+        +validate(state, step, evidence, status)
+    }
+    NoopValidator <|-- ProjectCommandValidator
     class ActEvidenceValidator {
         +validate(state, step, evidence, status)
     }
     NoopValidator <|-- ActEvidenceValidator
+    class HostCapabilities {
+        +auto_resume_available()
+    }
+    class HostContinuationRunner {
+        -__init__(engine, capabilities)
+        -_digest(state)
+        -_session_reference(session_locator)
+        +after_model_turn(identifier)
+        +before_operation(identifier, operation)
+        +record_resume_failure(identifier)
+    }
     class GateResult {
         +render()
     }
@@ -62,6 +77,9 @@ classDiagram
         +bind_story(identifier, story_id)
         +checkpoint(identifier)
         +resume(identifier)
+        +finish_guard(identifier)
+        -_legacy_finish_guard(story_id, state)
+        +validate_managed_operation(identifier)
     }
     class ContinuationStore {
         -__init__(project_root)
@@ -152,6 +170,7 @@ classDiagram
     ValueError <|-- GovernanceError
     class StoryRepository {
         -__init__(root)
+        -_authorize(operation, item_id)
         +path_for(item_id)
         -_validate(record)
         +load(item_id)

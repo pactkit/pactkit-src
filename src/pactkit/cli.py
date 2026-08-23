@@ -264,6 +264,9 @@ def main():
     board_add.add_argument("story_id")
     board_add.add_argument("title")
     board_add.add_argument("tasks", help="Pipe-separated task titles")
+    board_add.add_argument("--run-id")
+    board_add.add_argument("--workflow-id", default="project-plan")
+    board_add.add_argument("--standalone", action="store_true", default=False)
     board_task = board_actions.add_parser("complete-task", help="Complete one Story task")
     board_task.add_argument("story_id")
     board_task.add_argument("task", help="Exact task ID or title")
@@ -299,6 +302,10 @@ def main():
     checkpoint_parser.add_argument("--phase", default="", help="Human-readable Act phase")
     checkpoint_parser.add_argument("--blocker", default="", help="Sanitized blocker handoff")
     checkpoint_parser.add_argument(
+        "--blocker-kind",
+        choices=["user_input", "authorization", "external_state"],
+    )
+    checkpoint_parser.add_argument(
         "--fresh", action="store_true", default=False,
         help="Archive a completed checkpoint and begin a separate preflight cycle",
     )
@@ -326,11 +333,26 @@ def main():
         "--status", default="in_progress", choices=["in_progress", "blocked", "completed"]
     )
     workflow_checkpoint.add_argument("--blocker", default="", help="Sanitized blocker handoff")
-    for action in ("status", "verify", "resume"):
+    workflow_checkpoint.add_argument(
+        "--blocker-kind", choices=["user_input", "authorization", "external_state"],
+        help="Machine-readable external blocker category",
+    )
+    for action in ("status", "verify", "resume", "finish-guard"):
         workflow_read = workflow_actions.add_parser(action, help=f"Read-only workflow {action}")
         workflow_read.add_argument("identifier", help="Run ID or bound Story ID")
+        workflow_read.add_argument("--json", action="store_true", default=False)
+        if action == "finish-guard":
+            workflow_read.add_argument(
+                "--auto-resume-available", action="store_true", default=False,
+                help="Host has both completion-hook and session re-entry support",
+            )
     workflow_registry = workflow_actions.add_parser("registry", help="Audit reliability registry")
     workflow_registry.add_argument("--json", action="store_true", default=False)
+    workflow_contract = workflow_actions.add_parser(
+        "contract", help="Print the executable lifecycle contract for a workflow"
+    )
+    workflow_contract.add_argument("workflow_id", help="Registered project command")
+    workflow_contract.add_argument("--json", action="store_true", default=False)
 
     # pactkit sec-scope (STORY-slim-014 R6)
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
@@ -716,6 +738,10 @@ def main():
         renderer = BoardRenderer(repository)
         try:
             if args.board_action == "add":
+                repository = StoryRepository(
+                    Path.cwd(), run_id=args.run_id, workflow_id=args.workflow_id,
+                    standalone=args.standalone or not args.run_id,
+                )
                 result = repository.add(
                     args.story_id, args.title,
                     [task.strip() for task in args.tasks.split("|") if task.strip()],
@@ -775,6 +801,7 @@ def main():
                     status=args.status,
                     phase=args.phase,
                     blocker=args.blocker,
+                    blocker_kind=args.blocker_kind,
                     fresh=args.fresh,
                 )
             elif args.continuation_action == "status":
@@ -793,7 +820,11 @@ def main():
         from pathlib import Path
 
         from pactkit.continuation import ContinuationEngine, ContinuationError
-        from pactkit.workflow_registry import EXECUTION_RELIABILITY_REGISTRY, validate_registry
+        from pactkit.workflow_registry import (
+            EXECUTION_RELIABILITY_REGISTRY,
+            get_workflow,
+            validate_registry,
+        )
 
         def _workflow_evidence(raw: str) -> dict:
             if raw.startswith("@"):
@@ -824,6 +855,31 @@ def main():
                 print(json.dumps(payload, indent=2, ensure_ascii=False))
                 if errors:
                     raise SystemExit(1)
+            elif args.workflow_action == "contract":
+                definition = get_workflow(args.workflow_id)
+                manual = EXECUTION_RELIABILITY_REGISTRY[args.workflow_id].manual_operations
+                payload = {
+                    "workflow_id": definition.name,
+                    "steps": list(definition.steps),
+                    "start_evidence_requirements": list(
+                        definition.start_evidence_requirements
+                    ),
+                    "completion_evidence_requirements": list(
+                        definition.completion_evidence_requirements
+                    ),
+                    "start": (
+                        f"pactkit workflow start {definition.name} "
+                        "--evidence @<evidence.json>"
+                    ),
+                    "resume": "pactkit workflow resume <run-id>",
+                    "checkpoint": (
+                        "pactkit workflow checkpoint <run-id> --step <next-step> "
+                        "--evidence @<evidence.json>"
+                    ),
+                    "finish_guard": "pactkit workflow finish-guard <run-id> --json",
+                    "manual_operations": list(manual),
+                }
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
             else:
                 engine = ContinuationEngine(Path.cwd())
                 if args.workflow_action == "start":
@@ -834,14 +890,22 @@ def main():
                     result = engine.checkpoint(
                         args.identifier, step_id=args.step,
                         evidence=_workflow_evidence(args.evidence), status=args.status,
-                        blocker=args.blocker,
+                        blocker=args.blocker, blocker_kind=args.blocker_kind,
                     )
                 elif args.workflow_action == "status":
                     result = engine.read(args.identifier)
+                elif args.workflow_action == "finish-guard":
+                    result = engine.finish_guard(
+                        args.identifier,
+                        auto_resume_available=args.auto_resume_available,
+                    )
                 else:
                     result = engine.resume(args.identifier)
                 print(json.dumps(result, indent=2, ensure_ascii=False))
-                if result.get("decision") == "blocked":
+                if args.workflow_action == "finish-guard":
+                    if result.get("exit_code"):
+                        raise SystemExit(result["exit_code"])
+                elif result.get("decision") == "blocked":
                     raise SystemExit(1)
         except (ContinuationError, OSError, json.JSONDecodeError, ValueError) as exc:
             print(f"Workflow error: {exc}")
@@ -996,6 +1060,7 @@ def main():
             check_hld_module_count,
             check_orphaned_specs,
             check_stale_graphs,
+            check_workflow_continuation,
         )
 
         root = Path.cwd()
@@ -1091,6 +1156,17 @@ def main():
         from pactkit.continuation import ContinuationStore
 
         for warning in ContinuationStore(root).diagnostics():
+            print(f"  ⚠️  {warning}")
+            has_issues = True
+
+        workflow_health = check_workflow_continuation(root)
+        print(
+            "  Workflow continuation: "
+            f"guarantee={workflow_health['guarantee_level']} "
+            f"finish_guard={str(workflow_health['finish_guard_supported']).lower()} "
+            f"auto_resume_available={str(workflow_health['auto_resume_available']).lower()}"
+        )
+        for warning in workflow_health["warnings"]:
             print(f"  ⚠️  {warning}")
             has_issues = True
 

@@ -326,16 +326,18 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-sprint "$ARGUMENTS"`
 - **Agent**: Team Lead (current session)
 
-> **CORE PRINCIPLE**: Thin Orchestrator — Lead does ZERO file reading, only dispatches.
-> Each subagent reads `docs/specs/`, `commands/*.md`, and Story facts via `pactkit board list`.
+> **CORE PRINCIPLE**: Thin Orchestrator — Lead only dispatches; subagents read `docs/specs/`,
+> command playbooks, and Story facts via `pactkit board list`.
 
 ## Phase 0: Setup
-0. **Mode Detection (STORY-slim-144)**: `$ARGUMENTS` non-empty → single-story mode (proceed below). Empty → Wave Mode (see Wave Mode section).
+0. `$ARGUMENTS` non-empty → single-story mode; empty → Wave Mode.
+0a. If `TeamCreate`/`TaskCreate`/`SendMessage`/`TeamDelete` are unavailable,
+keep this run and execute Plan → Act → Check → Close sequentially; omit no stage.
 1. Parse requirement from `$ARGUMENTS`. Run `pactkit next-id` to determine next STORY-ID.
 2. `TeamCreate("sprint-{STORY_ID}")`.
 3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Close (blockedBy: Check-QA).
-4. Verify worktree support (`git worktree list`). Use `isolation="worktree"` if supported.
-5. Read `pactkit.yaml` (check `{PACTKIT_YAML}`), extract `agent_models`: `plan_model=agent_models.get('system-architect','opus')`, `act_model=agent_models.get('senior-developer','sonnet')`. Default: fallback to `sonnet` if model unavailable.
+4. If `git worktree list` succeeds, use `isolation="worktree"`.
+5. Read `pactkit.yaml` (`{PACTKIT_YAML}`) `agent_models`; defaults: system-architect=opus, senior-developer=sonnet.
 
 ## Phase 1: PDCA Execution
 
@@ -359,10 +361,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## Phase 2: Cleanup
 1. `SendMessage(type="shutdown_request")` to all teammates.
 2. `TeamDelete` to remove task directory.
-3. Report: Spec path, test results, commit hash, report files.
+3. Report Spec, tests, commit, and reports.
 
 ## Wave Mode (STORY-slim-144)
-> Trigger: `/project-sprint` with empty `$ARGUMENTS` — conflict-aware parallel orchestration over the backlog. Scheduling data comes from code (`spec-graph`), NEVER from Lead judgment.
+> Empty `$ARGUMENTS`: use `spec-graph` data for conflict-aware backlog scheduling.
+> Without team/worktree orchestration, execute batches sequentially.
 
 1. **Wave Plan (before any dispatch)**: Run `{BOARD_CMD} list_stories` (BACKLOG IDs) + `pactkit spec-graph --json` (waves + conflicts, deterministic). Filter to backlog IDs with Specs. Partition each wave:
    - **Parallel batch**: declared Touches (no placeholder) AND pairwise non-conflicting per the matrix. Cap: `sprint.max_parallel` from `{PACTKIT_YAML}` (default 3); excess spills to the next sub-batch.
@@ -374,7 +377,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5. **Failure policy**: fail-fast — any story failure STOPs the wave; report completed/merged vs pending; NEVER auto-retry. Resume = re-run `/project-sprint` (spec-graph excludes Done stories, so re-runs are idempotent).
 
 ## Error Handling
-- ANY stage failure → STOP immediately, report, always run `TeamDelete`.
+- ANY stage failure → STOP, report, and run `TeamDelete`.
 - Merge conflict → STOP, report conflicting files, suggest `git merge --abort`.
 - Worktree fallback: If `git worktree list` fails (e.g., shallow clone), run without isolation and warn about potential conflicts.
 

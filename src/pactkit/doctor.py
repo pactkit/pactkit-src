@@ -11,6 +11,71 @@ from pactkit.id_generator import ITEM_ID_RE
 from pactkit.schemas import ITEM_ID_PATTERN
 
 
+def check_workflow_continuation(project_root: Path) -> dict:
+    """Report active runs, host guarantee level, and unsafe host state."""
+    import json
+    from datetime import datetime, timezone
+
+    runs_dir = project_root / ".pactkit" / "continuations" / "runs"
+    hosts_dir = project_root / ".pactkit" / "continuations" / "hosts"
+    active: list[dict] = []
+    warnings: list[str] = []
+    run_paths = sorted(runs_dir.glob("run-*.json")) if runs_dir.is_dir() else []
+    for path in run_paths:
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            warnings.append(f"corrupt workflow state: {path.name}")
+            continue
+        if state.get("status") == "in_progress":
+            active.append({
+                "run_id": state.get("run_id"), "workflow_id": state.get("workflow_id"),
+                "step_id": state.get("step_id"),
+            })
+        host = state.get("host_continuation")
+        if isinstance(host, dict):
+            _append_host_warnings(host, path.name, warnings)
+    now = datetime.now(timezone.utc)
+    host_paths = sorted(hosts_dir.glob("run-*.json")) if hosts_dir.is_dir() else []
+    for path in host_paths:
+        try:
+            host = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            warnings.append(f"corrupt host lease: {path.name}")
+            continue
+        _append_host_warnings(host, path.name, warnings, now=now)
+    return {
+        "finish_guard_supported": True, "auto_resume_available": False,
+        "guarantee_level": "process", "active": active, "warnings": warnings,
+    }
+
+
+def _append_host_warnings(
+    host: dict, fallback: str, warnings: list[str], *, now=None,
+) -> None:
+    from datetime import datetime, timezone
+
+    now = now or datetime.now(timezone.utc)
+    expiry_raw = host.get("lease_expires_at")
+    if expiry_raw is None:
+        expiry = None
+    else:
+        try:
+            expiry = datetime.fromisoformat(expiry_raw)
+        except (TypeError, ValueError):
+            warnings.append(f"corrupt host lease: {fallback}")
+            return
+    attempt = host.get("attempt")
+    if attempt is not None and (not isinstance(attempt, int) or attempt < 0):
+        warnings.append(f"corrupt host lease: {fallback}")
+        return
+    run_id = host.get("run_id", fallback)
+    if expiry is not None and expiry <= now:
+        warnings.append(f"stale host lease: {run_id}")
+    if host.get("termination_reason") in {"no_progress", "attempt_limit"}:
+        warnings.append(f"workflow {run_id} stopped: {host['termination_reason']}")
+
+
 def check_orphaned_specs(project_root: Path) -> dict:
     """Cross-reference specs dir vs board + archive.
 

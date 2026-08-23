@@ -14,15 +14,18 @@ graph TD
     CodegraphProvider_query["CodegraphProvider.query"]
     CodegraphProvider_sync["CodegraphProvider.sync"]
     ContinuationEngine__find["ContinuationEngine._find"]
+    ContinuationEngine__legacy_finish_guard["ContinuationEngine._legacy_finish_guard"]
     ContinuationEngine__run_lock["ContinuationEngine._run_lock"]
     ContinuationEngine__validate_run_id["ContinuationEngine._validate_run_id"]
     ContinuationEngine_bind_story["ContinuationEngine.bind_story"]
     ContinuationEngine_checkpoint["ContinuationEngine.checkpoint"]
     ContinuationEngine_definition["ContinuationEngine.definition"]
+    ContinuationEngine_finish_guard["ContinuationEngine.finish_guard"]
     ContinuationEngine_path_for["ContinuationEngine.path_for"]
     ContinuationEngine_read["ContinuationEngine.read"]
     ContinuationEngine_resume["ContinuationEngine.resume"]
     ContinuationEngine_start["ContinuationEngine.start"]
+    ContinuationEngine_validate_managed_operation["ContinuationEngine.validate_managed_operation"]
     ContinuationStore__active_peer_story_ids["ContinuationStore._active_peer_story_ids"]
     ContinuationStore__archive_completed["ContinuationStore._archive_completed"]
     ContinuationStore__checkpoint_locked["ContinuationStore._checkpoint_locked"]
@@ -60,6 +63,12 @@ graph TD
     GraphProviderRouter__query_one["GraphProviderRouter._query_one"]
     GraphProviderRouter_query["GraphProviderRouter.query"]
     GraphQueryResult_to_dict["GraphQueryResult.to_dict"]
+    HostCapabilities_auto_resume_available["HostCapabilities.auto_resume_available"]
+    HostContinuationRunner__digest["HostContinuationRunner._digest"]
+    HostContinuationRunner__session_reference["HostContinuationRunner._session_reference"]
+    HostContinuationRunner_after_model_turn["HostContinuationRunner.after_model_turn"]
+    HostContinuationRunner_before_operation["HostContinuationRunner.before_operation"]
+    HostContinuationRunner_record_resume_failure["HostContinuationRunner.record_resume_failure"]
     LessonRepository__load["LessonRepository._load"]
     LessonRepository_add["LessonRepository.add"]
     LessonRepository_import_legacy["LessonRepository.import_legacy"]
@@ -79,6 +88,8 @@ graph TD
     PlanEvidenceValidator_fingerprints["PlanEvidenceValidator.fingerprints"]
     PlanEvidenceValidator_validate["PlanEvidenceValidator.validate"]
     PluginDeployer_deploy["PluginDeployer.deploy"]
+    ProjectCommandValidator_validate["ProjectCommandValidator.validate"]
+    StoryRepository__authorize["StoryRepository._authorize"]
     StoryRepository__validate["StoryRepository._validate"]
     StoryRepository__write["StoryRepository._write"]
     StoryRepository_add["StoryRepository.add"]
@@ -93,6 +104,7 @@ graph TD
     __module__["__module__"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
+    _append_host_warnings["_append_host_warnings"]
     _archived["_archived"]
     _board_block["_board_block"]
     _build_claude_md_managed_content["_build_claude_md_managed_content"]
@@ -104,6 +116,7 @@ graph TD
     _changed_source_files["_changed_source_files"]
     _check_adapter_compat["_check_adapter_compat"]
     _check_code_smells["_check_code_smells"]
+    _check_completion["_check_completion"]
     _check_dependency_health["_check_dependency_health"]
     _check_docstring_coverage["_check_docstring_coverage"]
     _check_gh_available["_check_gh_available"]
@@ -131,6 +144,7 @@ graph TD
     _compute_score["_compute_score"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
+    _debug_completion["_debug_completion"]
     _deploy_agents["_deploy_agents"]
     _deploy_ci["_deploy_ci"]
     _deploy_classic["_deploy_classic"]
@@ -147,6 +161,7 @@ graph TD
     _detect_ghe["_detect_ghe"]
     _detect_platform["_detect_platform"]
     _detect_sources["_detect_sources"]
+    _done_completion["_done_completion"]
     _enforce_deploy_integrity["_enforce_deploy_integrity"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract_module_path["_extract_module_path"]
@@ -170,6 +185,7 @@ graph TD
     _has_dir_with_files["_has_dir_with_files"]
     _has_production_caller["_has_production_caller"]
     _hash["_hash"]
+    _hotfix_completion["_hotfix_completion"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside_protected["_inside_protected"]
     _install_argv["_install_argv"]
@@ -188,6 +204,7 @@ graph TD
     _new_public_symbols["_new_public_symbols"]
     _no_external_enabled["_no_external_enabled"]
     _no_git_enabled["_no_git_enabled"]
+    _nonempty["_nonempty"]
     _now["_now"]
     _parse_ac_to_reqs["_parse_ac_to_reqs"]
     _parse_active_stories["_parse_active_stories"]
@@ -200,15 +217,18 @@ graph TD
     _parse_requirements["_parse_requirements"]
     _parse_touches["_parse_touches"]
     _parse_version["_parse_version"]
+    _pass["_pass"]
     _path_ends_with_ext["_path_ends_with_ext"]
     _path_matches_any["_path_matches_any"]
     _paths_overlap["_paths_overlap"]
+    _pr_completion["_pr_completion"]
     _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _pytest_command["_pytest_command"]
     _python_files["_python_files"]
     _read["_read"]
     _read_content["_read_content"]
+    _release_completion["_release_completion"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
@@ -227,10 +247,12 @@ graph TD
     _search_issue["_search_issue"]
     _should_refresh_audit["_should_refresh_audit"]
     _spec_status["_spec_status"]
+    _sprint_completion["_sprint_completion"]
     _story_fact_block["_story_fact_block"]
     _strip_code_spans["_strip_code_spans"]
     _suggest_action["_suggest_action"]
     _task_id["_task_id"]
+    _tests_pass["_tests_pass"]
     _tool_version["_tool_version"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
@@ -268,6 +290,7 @@ graph TD
     check_status_consistency["check_status_consistency"]
     check_version_mismatch["check_version_mismatch"]
     check_wiring["check_wiring"]
+    check_workflow_continuation["check_workflow_continuation"]
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
@@ -285,6 +308,7 @@ graph TD
     detect_stacks["detect_stacks"]
     detect_venv["detect_venv"]
     ensure_gate_channel["ensure_gate_channel"]
+    evaluate_agent_final["evaluate_agent_final"]
     existing_config_copies["existing_config_copies"]
     expected_components["expected_components"]
     find_pactkit_yaml["find_pactkit_yaml"]
@@ -447,7 +471,22 @@ graph TD
     _collect_insights__dfs --> LessonRepository_add
     _collect_insights__dfs --> LessonRepository_add
     _collect_insights__dfs --> _collect_insights__dfs
+    _check_completion --> _pass
+    _check_completion --> _tests_pass
+    _done_completion --> _pass
+    _sprint_completion --> _nonempty
+    _hotfix_completion --> _tests_pass
+    _release_completion --> _nonempty
+    _release_completion --> _nonempty
+    _release_completion --> _nonempty
+    _pr_completion --> _nonempty
+    _pr_completion --> _nonempty
+    _pr_completion --> _nonempty
+    _debug_completion --> _nonempty
+    _debug_completion --> _nonempty
+    _debug_completion --> _nonempty
     NoopValidator_validate --> PlanEvidenceValidator_validate
+    NoopValidator_validate --> ProjectCommandValidator_validate
     NoopValidator_validate --> ActEvidenceValidator_validate
     NoopValidator_fingerprints --> PlanEvidenceValidator_fingerprints
     NoopValidator__require_graph_evidence --> find_pactkit_yaml
@@ -480,6 +519,7 @@ graph TD
     PlanEvidenceValidator_fingerprints --> _hash
     PlanEvidenceValidator_fingerprints --> PlanEvidenceValidator__spec
     PlanEvidenceValidator_fingerprints --> PlanEvidenceValidator__board
+    ProjectCommandValidator_validate --> ActEvidenceValidator_validate
     ActEvidenceValidator_validate --> ActEvidenceValidator_validate
     detect_security_scope --> _is_docs_or_tests_only
     detect_security_scope --> detect_security_scope__any_content_matches
@@ -511,6 +551,23 @@ graph TD
     run_garden --> check_dead_imports
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
+    evaluate_agent_final --> ContinuationEngine_finish_guard
+    HostContinuationRunner__session_reference --> _sanitize
+    HostContinuationRunner_after_model_turn --> ContinuationEngine_finish_guard
+    HostContinuationRunner_after_model_turn --> HostContinuationRunner_record_resume_failure
+    HostContinuationRunner_after_model_turn --> ContinuationEngine__run_lock
+    HostContinuationRunner_after_model_turn --> ContinuationEngine__find
+    HostContinuationRunner_after_model_turn --> HostContinuationRunner__digest
+    HostContinuationRunner_after_model_turn --> atomic_write
+    HostContinuationRunner_after_model_turn --> HostContinuationRunner__session_reference
+    HostContinuationRunner_after_model_turn --> HostContinuationRunner__session_reference
+    HostContinuationRunner_before_operation --> ContinuationEngine_finish_guard
+    HostContinuationRunner_record_resume_failure --> ContinuationEngine_read
+    HostContinuationRunner_record_resume_failure --> ContinuationEngine__run_lock
+    HostContinuationRunner_record_resume_failure --> ContinuationEngine__find
+    HostContinuationRunner_record_resume_failure --> atomic_write
+    HostContinuationRunner_record_resume_failure --> HostContinuationRunner__digest
+    HostContinuationRunner_record_resume_failure --> HostContinuationRunner__session_reference
     collect_changed_files --> _git
     current_branch --> _git
     _pytest_command --> detect_venv
@@ -578,6 +635,19 @@ graph TD
     ContinuationEngine_resume --> NoopValidator_fingerprints
     ContinuationEngine_resume --> ContinuationEngine_definition
     ContinuationEngine_resume --> ContinuationEngine_definition
+    ContinuationEngine_finish_guard --> ContinuationEngine_read
+    ContinuationEngine_finish_guard --> ContinuationEngine__find
+    ContinuationEngine_finish_guard --> ContinuationEngine_definition
+    ContinuationEngine_finish_guard --> NoopValidator_fingerprints
+    ContinuationEngine_finish_guard --> ContinuationEngine__legacy_finish_guard
+    ContinuationEngine_finish_guard --> ContinuationEngine__find
+    ContinuationEngine_finish_guard --> HostCapabilities_auto_resume_available
+    ContinuationEngine_finish_guard --> ActEvidenceValidator_validate
+    ContinuationEngine_finish_guard --> _sanitize
+    ContinuationEngine_finish_guard --> _sanitize
+    ContinuationEngine__legacy_finish_guard --> ContinuationEngine_resume
+    ContinuationEngine_validate_managed_operation --> ContinuationEngine__find
+    ContinuationEngine_validate_managed_operation --> ContinuationEngine_definition
     ContinuationStore_path_for --> ContinuationStore__validate_story_id
     ContinuationStore__fingerprints --> ContinuationStore__paths
     ContinuationStore__fingerprints --> ContinuationStore__story_fact_path
@@ -679,22 +749,24 @@ graph TD
     main --> validate_registry
     main --> detect_security_scope
     main --> render
-    main --> ContinuationEngine_start
+    main --> get_workflow
     main --> format_markdown_table
     main --> lint_context
     main --> BoardRenderer_check
-    main --> ContinuationEngine_bind_story
+    main --> ContinuationEngine_start
     main --> lint_lessons
+    main --> ContinuationEngine_bind_story
+    main --> lint_testcase
     main --> main__workflow_evidence
     main --> ContinuationEngine_checkpoint
-    main --> lint_testcase
     main --> ContinuationEngine_read
-    main --> ContinuationEngine_resume
-    main --> main__workflow_evidence
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
     main --> codegraph_sync
+    main --> main__workflow_evidence
+    main --> ContinuationEngine_finish_guard
+    main --> ContinuationEngine_resume
     main --> run_garden
     main --> codegraph_sync
     main --> run_observe
@@ -709,6 +781,7 @@ graph TD
     main --> check_adapter_skew
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics
+    main --> check_workflow_continuation
     main --> scan_and_replace_tbd
     main --> issue_sync
     main --> map_to_tests
@@ -800,6 +873,8 @@ graph TD
     verify_story --> check_wiring
     verify_story --> check_status_consistency
     verify_story --> BoardRenderer_check
+    check_workflow_continuation --> _append_host_warnings
+    check_workflow_continuation --> _append_host_warnings
     check_orphaned_specs --> LessonRepository_add
     check_config_drift --> find_pactkit_yaml
     check_config_drift --> check_config_drift__exists_in_any
@@ -841,6 +916,7 @@ graph TD
     GraphProviderRouter__query_one --> BuiltinGraphProvider_health
     GraphProviderRouter__query_one --> BuiltinGraphProvider_query
     GraphProviderRouter__query_one --> BuiltinGraphProvider_sync
+    StoryRepository__authorize --> ContinuationEngine_validate_managed_operation
     StoryRepository_path_for --> _validate_item_id
     StoryRepository__validate --> _validate_item_id
     StoryRepository__validate --> LessonRepository_add
@@ -851,14 +927,19 @@ graph TD
     StoryRepository__write --> StoryRepository_path_for
     StoryRepository__write --> atomic_write
     StoryRepository_add --> _validate_item_id
+    StoryRepository_add --> StoryRepository__authorize
+    StoryRepository_add --> StoryRepository_path_for
     StoryRepository_add --> _now
     StoryRepository_add --> StoryRepository__write
+    StoryRepository_add --> StoryRepository_load
     StoryRepository_add --> _task_id
+    StoryRepository_complete_task --> StoryRepository__authorize
     StoryRepository_complete_task --> StoryRepository_load
     StoryRepository_complete_task --> _now
     StoryRepository_complete_task --> StoryRepository__write
     StoryRepository_complete_task --> _now
     StoryRepository_move --> ContinuationStore_status
+    StoryRepository_move --> StoryRepository__authorize
     StoryRepository_move --> StoryRepository_load
     StoryRepository_move --> _now
     StoryRepository_move --> StoryRepository__write

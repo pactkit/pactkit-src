@@ -183,19 +183,38 @@ _SPEC_TEMPLATE = """\
 """
 
 
-def create_spec(i, t):
+def create_spec(i, t, *, run_id=None, standalone=True, project_root=None):
+    root = Path(project_root or Path.cwd())
+    if run_id:
+        from pactkit.continuation import ContinuationEngine
+
+        ContinuationEngine(root).validate_managed_operation(
+            run_id, workflow_id="project-plan", operation="create_spec", story_id=i,
+        )
+        managed = True
+    elif standalone:
+        managed = False
+    else:
+        return "❌ create_spec requires --run-id or explicit --standalone mode"
     i = _inject_developer_prefix(i)
-    p = Path.cwd() / f"docs/specs/{i}.md"
-    if p.exists():
-        return f"❌ Spec already exists: {p}"
-    if not p.parent.exists():
-        p.parent.mkdir(parents=True, exist_ok=True)
+    p = root / f"docs/specs/{i}.md"
     # R7 (STORY-slim-052): Use sequential str.replace() instead of .format()
     # to avoid KeyError/ValueError when title contains { or } characters.
     # Follows Architecture Principle 7 (template rendering safety).
     c = _SPEC_TEMPLATE.replace("{id}", i).replace("{title}", t)
+    if p.exists():
+        if managed:
+            try:
+                if p.read_text(encoding="utf-8") == c:
+                    return f"✅ Spec already exists (verified, managed={str(managed).lower()})"
+            except OSError:
+                pass
+            return f"❌ Existing Spec mismatch: {p}"
+        return f"❌ Spec already exists: {p}"
+    if not p.parent.exists():
+        p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(c, encoding="utf-8")
-    return "✅ Spec Created"
+    return f"✅ Spec Created (managed={str(managed).lower()})"
 
 
 # --- SKILL ---
@@ -444,6 +463,9 @@ if __name__ == "__main__":
     p_spec = sub.add_parser("create_spec")
     p_spec.add_argument("story_id")
     p_spec.add_argument("title")
+    mode = p_spec.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--run-id")
+    mode.add_argument("--standalone", action="store_true")
     p_prd = sub.add_parser("create_prd")
     p_prd.add_argument("product_name")
     p_skill = sub.add_parser("create_skill")
@@ -459,7 +481,7 @@ if __name__ == "__main__":
     elif a.cmd == "git_start":
         print(git_start(a.story_id))
     elif a.cmd == "create_spec":
-        print(create_spec(a.story_id, a.title))
+        print(create_spec(a.story_id, a.title, run_id=a.run_id, standalone=a.standalone))
     elif a.cmd == "create_prd":
         print(create_prd(a.product_name))
     elif a.cmd == "create_skill":

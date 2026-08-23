@@ -22,6 +22,7 @@ from pactkit.workflow_validators import WorkflowEvidenceError
 SCHEMA_VERSION = 1
 STEPS = ("preflight", "red", "green", "regression_lint", "sync_coverage")
 STATUSES = ("in_progress", "blocked", "completed")
+BLOCKER_KINDS = ("user_input", "authorization", "external_state")
 LOCK_TIMEOUT_SECONDS = 5.0
 LOCK_POLL_SECONDS = 0.05
 _NEXT_STEP = dict(zip(STEPS, STEPS[1:] + ("completed",)))
@@ -40,6 +41,10 @@ _ACCEPTANCE_CRITERION = re.compile(r"^###\s+(AC\d+):", re.MULTILINE)
 _LEGACY_HANDOFF = re.compile(
     rf"^Last Command:\s*/project-act\s+(?P<story>{ITEM_ID_PATTERN})\s*$",
     re.MULTILINE,
+)
+_INVALID_BLOCKER = re.compile(
+    r"(?i)(?:ran out of context|tool returned|more work remains|progress summary|"
+    r"remaining work|continue later|context limit)"
 )
 
 
@@ -90,11 +95,11 @@ class ContinuationEngine:
         return self.directory / f"{run_id}.json"
 
     def _find(self, identifier: str) -> tuple[Path, dict[str, Any]]:
-        candidates = (
-            [self.path_for(identifier)]
-            if identifier.startswith("run-")
-            else sorted(self.directory.glob("run-*.json"))
+        exact = identifier.startswith("run-")
+        candidates = [self.path_for(identifier)] if exact else sorted(
+            self.directory.glob("run-*.json")
         )
+        matches: list[tuple[Path, dict[str, Any]]] = []
         for path in candidates:
             if not path.exists():
                 continue
@@ -103,7 +108,19 @@ class ContinuationEngine:
             except (OSError, json.JSONDecodeError) as exc:
                 raise ContinuationError(f"corrupt workflow checkpoint: {path.name}") from exc
             if state.get("run_id") == identifier or state.get("story_id") == identifier:
-                return path, state
+                if exact:
+                    return path, state
+                matches.append((path, state))
+        if matches:
+            status_rank = {"in_progress": 2, "blocked": 1, "completed": 0}
+            return max(
+                matches,
+                key=lambda item: (
+                    status_rank.get(item[1].get("status"), -1),
+                    str(item[1].get("updated_at", "")),
+                    item[0].name,
+                ),
+            )
         raise ContinuationError(f"workflow run not found: {identifier}")
 
     def read(self, identifier: str) -> dict[str, Any]:
@@ -117,6 +134,8 @@ class ContinuationEngine:
             "run_id": run_id, "story_id": None, "step_id": definition.steps[0],
             "status": "in_progress", "evidence": _sanitize_evidence(evidence),
             "fingerprints": {}, "blocker": "",
+            "blocker_kind": None,
+            "completion_validated": False,
             "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
         validator = definition.validator_factory(self.root)
@@ -152,6 +171,7 @@ class ContinuationEngine:
     def checkpoint(
         self, identifier: str, *, step_id: str, evidence: dict[str, Any],
         status: str = "in_progress", blocker: str = "",
+        blocker_kind: str | None = None,
     ) -> dict[str, Any]:
         _path, initial = self._find(identifier)
         with self._run_lock(initial["run_id"]):
@@ -169,6 +189,8 @@ class ContinuationEngine:
                 raise ContinuationError(f"invalid workflow status: {status}")
             if status == "blocked" and not blocker.strip():
                 raise ContinuationError("blocked checkpoint requires a blocker")
+            if status == "blocked" and blocker_kind not in BLOCKER_KINDS:
+                raise ContinuationError("blocked checkpoint requires a valid blocker kind")
             validator = definition.validator_factory(self.root)
             try:
                 validator.validate(state, step_id, evidence, status)
@@ -177,6 +199,8 @@ class ContinuationEngine:
             state.update({
                 "step_id": step_id, "status": status,
                 "evidence": _sanitize_evidence(evidence), "blocker": _sanitize(blocker),
+                "blocker_kind": blocker_kind if status == "blocked" else None,
+                "completion_validated": status == "completed",
                 "fingerprints": validator.fingerprints(state),
                 "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             })
@@ -217,6 +241,168 @@ class ContinuationEngine:
             "next_step": next_step,
             "reasons": [],
         }
+
+    def finish_guard(
+        self, identifier: str, *, auto_resume_available: bool = False,
+    ) -> dict[str, Any]:
+        """Return the only authoritative, read-only turn termination decision."""
+        # STORY-slim-146 Act checkpoints predate generic run files.  A Story
+        # may therefore have a completed Plan run and an active legacy Act
+        # checkpoint at the same time.  Never let historical completion mask
+        # the active workflow.
+        if not identifier.startswith("run-") and _STORY_ID.fullmatch(identifier):
+            legacy = ContinuationStore(self.root).read(identifier)
+            generic = None
+            try:
+                generic = self._find(identifier)[1]
+            except ContinuationError:
+                pass
+            rank = {"in_progress": 0, "blocked": 1, "completed": 2}
+            if legacy is not None and (
+                generic is None
+                or rank.get(legacy.get("status"), -1)
+                < rank.get(generic.get("status"), -1)
+                or (
+                    legacy.get("status") == "completed"
+                    and generic.get("status") == "completed"
+                    and generic.get("workflow_id") != "project-act"
+                )
+            ):
+                return self._legacy_finish_guard(
+                    identifier, legacy, auto_resume_available=auto_resume_available,
+                )
+        try:
+            _path, state = self._find(identifier)
+            definition = self.definition(str(state.get("workflow_id", "")))
+            required = {"run_id", "workflow_id", "step_id", "status", "evidence"}
+            if required - state.keys() or state.get("step_id") not in definition.steps:
+                raise ContinuationError("invalid workflow checkpoint state")
+            status = state.get("status")
+            step = str(state["step_id"])
+            base = {
+                "workflow_id": state["workflow_id"],
+                "run_id": state["run_id"],
+                "story_id": state.get("story_id"),
+                "step_id": step,
+                "status": status,
+                "auto_resume_available": bool(auto_resume_available),
+                "resume_token": state["run_id"],
+                "manual_resume_command": f"pactkit workflow resume {state['run_id']}",
+            }
+            if status == "completed":
+                if step != definition.steps[-1] or state.get("completion_validated") is False:
+                    return {
+                        **base, "decision": "fail_closed", "next_step": None,
+                        "reasons": ["completed state is not at the final workflow step"],
+                        "reason_code": "invalid_completion", "exit_code": 2,
+                    }
+                try:
+                    definition.validator_factory(self.root).validate(
+                        state, step, state.get("evidence", {}), "completed",
+                    )
+                except WorkflowEvidenceError as exc:
+                    return {
+                        **base, "decision": "fail_closed", "next_step": None,
+                        "reasons": [_sanitize(str(exc))],
+                        "reason_code": "invalid_completion", "exit_code": 2,
+                    }
+                return {**base, "decision": "done", "next_step": None,
+                        "reasons": [], "reason_code": "completed", "exit_code": 0}
+            if status == "blocked":
+                blocker = str(state.get("blocker", "")).strip()
+                blocker_kind = state.get("blocker_kind")
+                if (
+                    blocker
+                    and blocker_kind in BLOCKER_KINDS
+                    and not _INVALID_BLOCKER.search(blocker)
+                ):
+                    return {**base, "decision": "await_user", "next_step": None,
+                            "reasons": [blocker], "reason_code": "external_blocker",
+                            "exit_code": 0}
+                return {**base, "decision": "fail_closed", "next_step": None,
+                        "reasons": ["blocked state lacks a verified external dependency"],
+                        "reason_code": "invalid_blocker", "exit_code": 2}
+            if status != "in_progress":
+                raise ContinuationError("invalid workflow status")
+            validator = definition.validator_factory(self.root)
+            actual = validator.fingerprints(state)
+            expected = state.get("fingerprints", {})
+            drift = [key for key, digest in expected.items() if actual.get(key) != digest]
+            index = definition.steps.index(step)
+            next_step = definition.steps[index + 1] if index + 1 < len(definition.steps) else "completed"
+            if drift:
+                return {**base, "decision": "fail_closed", "next_step": next_step,
+                        "reasons": ["artifact drift: " + ", ".join(drift)],
+                        "reason_code": "artifact_drift", "exit_code": 2}
+            return {**base, "decision": "continue_current_turn", "next_step": next_step,
+                    "reasons": [], "reason_code": "in_progress", "exit_code": 2}
+        except (ContinuationError, ValueError, KeyError, TypeError) as exc:
+            return {
+                "decision": "fail_closed", "workflow_id": None, "run_id": None,
+                "story_id": None, "step_id": None, "next_step": None,
+                "status": "invalid", "reasons": [_sanitize(str(exc))],
+                "reason_code": "invalid_state", "auto_resume_available": False,
+                "resume_token": None, "exit_code": 2,
+                "manual_resume_command": None,
+            }
+
+    def _legacy_finish_guard(
+        self, story_id: str, state: dict[str, Any], *, auto_resume_available: bool,
+    ) -> dict[str, Any]:
+        """Project the legacy Act store into the generic finish contract."""
+        run_id = "run-" + hashlib.sha256(story_id.encode()).hexdigest()[:32]
+        base = {
+            "workflow_id": "project-act", "run_id": run_id,
+            "story_id": story_id, "step_id": state["step_id"],
+            "status": state["status"],
+            "auto_resume_available": bool(auto_resume_available),
+            "resume_token": run_id, "legacy_checkpoint": True,
+            "manual_resume_command": f"pactkit continuation resume {story_id}",
+        }
+        if state["status"] == "completed":
+            return {**base, "decision": "done", "next_step": None,
+                    "reasons": [], "reason_code": "completed", "exit_code": 0}
+        if state["status"] == "blocked":
+            blocker = str(state.get("blocker", "")).strip()
+            blocker_kind = state.get("blocker_kind")
+            if (
+                blocker
+                and blocker_kind in BLOCKER_KINDS
+                and not _INVALID_BLOCKER.search(blocker)
+            ):
+                return {**base, "decision": "await_user", "next_step": None,
+                        "reasons": [blocker], "reason_code": "external_blocker",
+                        "exit_code": 0}
+            return {**base, "decision": "fail_closed", "next_step": None,
+                    "reasons": ["blocked state lacks a verified external dependency"],
+                    "reason_code": "invalid_blocker", "exit_code": 2}
+        resumed = ContinuationStore(self.root).resume(story_id)
+        if resumed.get("decision") == "blocked":
+            return {**base, "decision": "fail_closed", "next_step": None,
+                    "reasons": resumed.get("reasons", []),
+                    "reason_code": "artifact_drift", "exit_code": 2}
+        return {**base, "decision": "continue_current_turn",
+                "next_step": resumed.get("next_step"), "reasons": [],
+                "reason_code": "in_progress", "exit_code": 2}
+
+    def validate_managed_operation(
+        self, identifier: str, *, workflow_id: str, operation: str, story_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Authorize a workflow-owned write before the target is mutated."""
+        _path, state = self._find(identifier)
+        if state.get("status") != "in_progress":
+            raise ContinuationError("managed operation requires an active run")
+        if state.get("workflow_id") != workflow_id:
+            raise ContinuationError("managed operation workflow mismatch")
+        allowed = self.definition(workflow_id).managed_operations.get(state["step_id"], ())
+        if operation not in allowed:
+            raise ContinuationError(
+                f"managed operation {operation} is not allowed at step {state['step_id']}"
+            )
+        bound = state.get("story_id")
+        if story_id is not None and bound != story_id:
+            raise ContinuationError("managed operation Story binding mismatch")
+        return {"managed": True, "run_id": state["run_id"], "operation": operation}
 
 
 def _fingerprint(path: Path) -> str:
@@ -430,12 +616,13 @@ class ContinuationStore:
         status: str = "in_progress",
         phase: str = "",
         blocker: str = "",
+        blocker_kind: str | None = None,
         fresh: bool = False,
     ) -> dict[str, Any]:
         with self._story_lock(story_id):
             return self._checkpoint_locked(
                 story_id, step_id=step_id, evidence=evidence, status=status,
-                phase=phase, blocker=blocker, fresh=fresh,
+                phase=phase, blocker=blocker, blocker_kind=blocker_kind, fresh=fresh,
             )
 
     def _checkpoint_locked(
@@ -447,6 +634,7 @@ class ContinuationStore:
         status: str = "in_progress",
         phase: str = "",
         blocker: str = "",
+        blocker_kind: str | None = None,
         fresh: bool = False,
     ) -> dict[str, Any]:
         self._validate_story_id(story_id)
@@ -458,6 +646,8 @@ class ContinuationStore:
             raise ContinuationError("evidence must be a JSON object")
         if status == "blocked" and not blocker.strip():
             raise ContinuationError("blocked checkpoint requires a blocker with a manual next action")
+        if blocker_kind is not None and blocker_kind not in BLOCKER_KINDS:
+            raise ContinuationError("invalid blocker kind")
         self._validate_step_evidence(story_id, step_id, evidence, status)
         if fresh and (step_id != "preflight" or status != "in_progress"):
             raise ContinuationError("--fresh requires an in_progress preflight checkpoint")
@@ -507,6 +697,7 @@ class ContinuationStore:
                 else self._fingerprints(story_id)
             ),
             "blocker": _sanitize(blocker),
+            "blocker_kind": blocker_kind if status == "blocked" else None,
             "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
         atomic_write(self.path_for(story_id), json.dumps(value, indent=2, ensure_ascii=False) + "\n")

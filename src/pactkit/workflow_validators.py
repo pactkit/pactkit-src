@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -235,6 +236,162 @@ def plan_validator(root: Path) -> PlanEvidenceValidator:
 
 def noop_validator(root: Path) -> NoopValidator:
     return NoopValidator(root)
+
+
+class ProjectCommandValidator(NoopValidator):
+    """Validate generic project-command lifecycle boundaries."""
+
+    def validate(
+        self, state: dict[str, Any], step: str, evidence: dict[str, Any], status: str,
+    ) -> None:
+        super().validate(state, step, evidence, status)
+        if status == "blocked":
+            return
+        if step == "started" and evidence.get("started") is not True:
+            raise WorkflowEvidenceError("invalid workflow start evidence")
+        if status == "completed":
+            validator = _COMMAND_COMPLETION_VALIDATORS.get(state.get("workflow_id"))
+            if validator is None or not validator(self.root, evidence):
+                raise WorkflowEvidenceError(
+                    f"invalid {state.get('workflow_id', 'project command')} completion evidence"
+                )
+
+
+def project_command_validator(root: Path) -> ProjectCommandValidator:
+    return ProjectCommandValidator(root)
+
+
+def _pass(evidence: dict[str, Any], *keys: str) -> bool:
+    return all(evidence.get(key) == "pass" for key in keys)
+
+
+def _tests_pass(evidence: dict[str, Any]) -> bool:
+    tests = evidence.get("tests")
+    return isinstance(tests, dict) and tests.get("exit_code") == 0
+
+
+def _nonempty(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _check_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    return (
+        _pass(evidence, "security_scan", "quality_scan", "spec_alignment")
+        and _tests_pass(evidence)
+    )
+
+
+def _done_completion(root: Path, evidence: dict[str, Any]) -> bool:
+    if not _pass(evidence, "audit", "governance", "deployment"):
+        return False
+    git = evidence.get("git")
+    if not isinstance(git, dict):
+        return False
+    inside = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"], cwd=root,
+        capture_output=True, text=True,
+    )
+    if inside.returncode != 0:
+        return git.get("mode") == "no_git"
+    commit = git.get("commit")
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{7,64}", commit):
+        return False
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True,
+    )
+    return head.returncode == 0 and head.stdout.strip().startswith(commit)
+
+
+def _init_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("guard") == "pass"
+        and evidence.get("configuration_created") is True
+        and evidence.get("governance_created") is True
+    )
+
+
+def _sprint_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    stories = evidence.get("stories")
+    return (
+        evidence.get("planned") is True and evidence.get("executed") is True
+        and evidence.get("cleanup") == "pass"
+        and isinstance(stories, list) and bool(stories)
+        and all(_nonempty(story) for story in stories)
+    )
+
+
+def _hotfix_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("traceability") is True and _tests_pass(evidence)
+        and evidence.get("lint") == "pass"
+    )
+
+
+def _design_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    count = evidence.get("stories_created")
+    return (
+        evidence.get("prd_created") is True
+        and isinstance(count, int) and not isinstance(count, bool) and count > 0
+        and evidence.get("board_synced") is True
+    )
+
+
+def _clarify_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    count = evidence.get("decision_count")
+    return (
+        evidence.get("requirements_confirmed") is True
+        and isinstance(count, int) and not isinstance(count, bool) and count > 0
+    )
+
+
+def _release_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    release = evidence.get("release")
+    return (
+        _nonempty(evidence.get("version")) and _nonempty(evidence.get("tag"))
+        and isinstance(release, dict)
+        and (
+            _nonempty(release.get("url"))
+            or release.get("mode") == "local_only"
+        )
+    )
+
+
+def _pr_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    pull_request = evidence.get("pull_request")
+    return (
+        _nonempty(evidence.get("branch")) and isinstance(pull_request, dict)
+        and (
+            _nonempty(pull_request.get("url"))
+            or (
+                pull_request.get("mode") == "not_required"
+                and _nonempty(pull_request.get("reason"))
+            )
+        )
+    )
+
+
+def _debug_completion(_root: Path, evidence: dict[str, Any]) -> bool:
+    findings = evidence.get("evidence")
+    return (
+        _nonempty(evidence.get("root_cause"))
+        and isinstance(findings, list) and bool(findings)
+        and all(_nonempty(item) for item in findings)
+        and _nonempty(evidence.get("next_action"))
+    )
+
+
+_COMMAND_COMPLETION_VALIDATORS = {
+    "project-check": _check_completion,
+    "project-done": _done_completion,
+    "project-init": _init_completion,
+    "project-sprint": _sprint_completion,
+    "project-hotfix": _hotfix_completion,
+    "project-design": _design_completion,
+    "project-clarify": _clarify_completion,
+    "project-release": _release_completion,
+    "project-pr": _pr_completion,
+    "project-debug": _debug_completion,
+}
 
 
 class ActEvidenceValidator(NoopValidator):

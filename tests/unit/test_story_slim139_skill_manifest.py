@@ -88,13 +88,13 @@ class TestDeployManifest:
         assert sorted(data["skills"]) == PACTKIT_SKILLS
         assert "project-sprint" in data["commands"]  # classic has no exclusions
 
-    def test_commands_respect_profile_exclusions(self, tmp_path):
+    def test_all_commands_are_declared_for_codex(self, tmp_path):
         from pactkit.deploy_manifest import write_deploy_manifest
 
         config = {"skills": PACTKIT_SKILLS, "commands": sorted(VALID_COMMANDS)}
         path = write_deploy_manifest(tmp_path, "codex", config)
         data = json.loads(path.read_text())
-        assert "project-sprint" not in data["commands"]
+        assert "project-sprint" in data["commands"]
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +129,8 @@ class TestDeployParity:
         assert result["drift"] is True
         assert any("codex" in d and "pactkit-garden" in d for d in result["details"])
 
-    def test_capability_matrix_no_false_positive(self, tmp_path, monkeypatch):
-        """AC4: codex without project-sprint is legal — no drift."""
+    def test_capability_matrix_requires_sprint_entry(self, tmp_path, monkeypatch):
+        """All canonical commands, including sequential Sprint, are required."""
         from pactkit.doctor import check_deploy_parity
 
         fake_home = tmp_path / "home"
@@ -143,7 +143,8 @@ class TestDeployParity:
         project = tmp_path / "project"
         project.mkdir()
         result = check_deploy_parity(project)
-        assert result["drift"] is False, result["details"]
+        assert result["drift"] is True
+        assert any("project-sprint" in detail for detail in result["details"])
 
     def test_missing_manifest_warns_not_fails(self, tmp_path, monkeypatch):
         """Pre-manifest deployments degrade to a re-deploy hint, not drift."""

@@ -19,6 +19,8 @@ graph TD
     click src_pactkit_sec_scope_py href "src/pactkit/sec_scope.py"
     src_pactkit_garden_py["garden.py"]
     click src_pactkit_garden_py href "src/pactkit/garden.py"
+    src_pactkit_host_continuation_py["host_continuation.py"]
+    click src_pactkit_host_continuation_py href "src/pactkit/host_continuation.py"
     src_pactkit_commit_gate_py["commit_gate.py"]
     click src_pactkit_commit_gate_py href "src/pactkit/commit_gate.py"
     src_pactkit_lint_runner_py["lint_runner.py"]
@@ -113,6 +115,9 @@ graph TD
     src_pactkit_workflow_validators_py --> src_pactkit_governance_py
     src_pactkit_garden_py --> src_pactkit_context_gen_py
     src_pactkit_garden_py --> src_pactkit_continuation_py
+    src_pactkit_host_continuation_py --> src_pactkit_continuation_py
+    src_pactkit_host_continuation_py --> src_pactkit_utils_py
+    src_pactkit_host_continuation_py --> src_pactkit_workflow_registry_py
     src_pactkit_commit_gate_py --> src_pactkit_config_py
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
@@ -200,6 +205,7 @@ graph TD
     src_pactkit___main___py --> src_pactkit_cli_py
     src_pactkit_governance_py --> src_pactkit_id_generator_py
     src_pactkit_governance_py --> src_pactkit_utils_py
+    src_pactkit_governance_py --> src_pactkit_continuation_py
     src_pactkit_prompts_skills_py --> src_pactkit___init___py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
     src_pactkit_prompts_commands_py --> src_pactkit_prompts_workflows_py

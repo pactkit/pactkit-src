@@ -5,6 +5,12 @@ from pactkit.prompts.workflows import (
     SPRINT_PROMPT,
 )
 
+MANAGED_WORKFLOW_PROTOCOL = """
+## Pre-Final Protocol (MUST)
+Run and obey `pactkit workflow contract {command} --json`. Before final run `pactkit workflow finish-guard <run-id> --json`: `continue_current_turn` means continue; only `done`/`await_user` ends. Progress is not final.
+
+"""
+
 COMMANDS_CONTENT = {
     "project-plan.md": """---
 description: "Analyze requirements, create Spec and Story"
@@ -15,12 +21,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-plan "$ARGUMENTS"`
 - **Agent**: System Architect
 
-## Resumable Workflow Contract (MUST)
-1. Before writing, run `pactkit workflow start project-plan --evidence '{"guard":"pass","input_fingerprint":"<sha256>"}'` and retain the opaque `run_id`. If resuming, run `pactkit workflow resume <run-or-story-id>`; it is read-only and MUST NOT replay writes.
-2. Checkpoint each safe boundary in order: `preflight → intent_clarified → archaeology → story_identified → spec_scaffolded → requirements_written → acceptance_written → security_scoped → spec_linted → board_synced`. Use `pactkit workflow checkpoint <id> --step <step> --evidence @<json-file>`.
-3. After `pactkit next-id`, bind the same run exactly once with `pactkit workflow bind <run-id> <story-id>` before checkpointing `story_identified`. Create-only Spec and Board operations MUST verify an existing matching artifact before treating a retry as complete.
-4. On an unresolved question or unsafe drift, write `--status blocked --blocker "<reason>"` and hand off the run ID. Never claim completion from prose.
-5. Only checkpoint `board_synced --status completed` after the engine validates the real Spec, zero-error/zero-warning lint, Security Scope, unique Board identity, title, and task list.
+Blocked checkpoints require `--blocker-kind`.
+Lifecycle bootstrap: `pactkit workflow start project-plan --evidence @<evidence.json>`;
+resume with `pactkit workflow resume <run-id>`. Bind via `pactkit workflow bind`;
+blocked/completed checkpoints use `--status blocked` / `--status completed`.
 
 ## 🧠 Phase 0: The Thinking Process
 > **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan the entire Spec in your head before producing output. Start each phase, show your findings, then move to the next.
@@ -125,7 +129,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Bind + checkpoint**: Run `pactkit workflow bind <run-id> {ID}`, then checkpoint `story_identified` with exact Story identity evidence.
 
 ## 🎬 Phase 3.2a: Scaffold + Metadata Table & Requirements
-1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_spec "{ID}" "{title}"` to generate `docs/specs/{ID}.md` from SPEC_TEMPLATE. This creates all sections, tables, and Given/When/Then skeleton — format is guaranteed by Code.
+1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_spec "{ID}" "{title}" --run-id <run-id>`; managed ownership is mandatory for Plan.
 2.  **Read**: Read `docs/specs/{ID}.md` to see the scaffolded template.
 3.  **Edit placeholders** (use Edit tool, NOT Write):
     - Edit `Release | TBD` → `Release | {version}` (from `pyproject.toml`/`package.json`, NOT `{PACTKIT_YAML}`)
@@ -170,7 +174,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Checkpoint**: Record `spec_linted`; the engine reruns canonical lint and rejects warnings.
 
 ## 🎬 Phase 3.3: Board, Memory & Handover
-1.  **Board**: Add Story: `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|{task2}|..."` (all three arguments are required).
+1.  **Board**: Plan uses managed `pactkit board add "{STORY_ID}" "{title}" "{task1}|{task2}|..." --run-id <run-id>`; standalone compatibility is `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|..."`.
 2.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
 3.  **Session Context Update**: Run `pactkit context` to refresh ignored `.pactkit/context.md` with canonical sections `{CONTEXT_SECTIONS}`. Never stage or commit it.
 4.  **Handover**: "Trace complete. Spec created. Ready for Act."
@@ -533,17 +537,15 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 
 ## 🎬 Phase 2: Housekeeping (Deep Clean)
 1.  Run `pactkit clean` to remove language-specific temp artifacts.
-2.  Run `pactkit visualize --lazy` to update graphs only if source files changed (file, `--mode class`, `--mode call`; codegraph sync is handled automatically). If skipped, log: "Graph up-to-date — no source changes".
+2.  Run `pactkit visualize --lazy` when `LANG_PROFILES.source_dirs` changed; it updates file, `--mode class`, then `--mode call` graphs and Codegraph. Otherwise log: "Graph up-to-date — no source changes".
 3.  **HLD Consistency Check**: Run `pactkit doctor` and check HLD drift. If drift > 3, WARN user: "system_design.mmd is {N} modules behind — consider updating it."
 
 ## 🎬 Phase 2.5: Regression Gate (CRITICAL)
 > **CRITICAL**: Do NOT skip this step. This is the safety net before commit.
 
 ### Step 0: Source Change Pre-Check
-- **Act-to-Done Fast Path**: If `context.md` shows the last command was `/project-act` AND the Act commit already passed regression + lint (check context.md Agent Continuation or last-command field), skip the entire Phase 2.5 with log: `"Regression: SKIP — Act already verified, no intervening changes"`. Proceed directly to Phase 3.
-- Run `git diff --name-only HEAD~1` (or vs. branch base) to list all changed files.
-- Filter for source and test files only (exclude docs, configs, graphs).
-- If **no source/test files changed** since the last commit (e.g., only docs, board, graphs, or config changed): log `"Regression: SKIP — no source/test changes since Act"` and proceed directly to Step 2.7 (Smart Lint Gate). This avoids re-running 3000+ tests when Act already verified the code.
+- If context records a verified `/project-act` and no source/test changed since it, log `"Regression: SKIP — Act already verified, no intervening changes"` and continue at Phase 3.
+- Otherwise classify changed files with `git diff --name-only HEAD~1`; doc/config/graph-only changes log `"Regression: SKIP — no source/test changes since Act"` and continue at Smart Lint Gate.
 
 ### Step 1: Impact Analysis
 - Check graph availability through `pactkit query --impact <target> --json --explain`; do not select providers manually.
@@ -559,52 +561,20 @@ If `pactkit regression` returns FULL (version/dependency change detected), proce
 Otherwise continue to Step 1.7.
 
 ### Step 1.7: Impact-Based Analysis (STORY-053)
-> **PURPOSE**: Target only tests affected by changed functions via call graph.
-
-1. **Preconditions**:
-   - Graph provider decision available from `pactkit query --json --explain`.
-   - `regression.strategy` is `impact` (read from `pactkit.yaml`; default: `impact`).
-2. **Identify changed functions**: Use `git diff HEAD~1 --unified=0` on changed source files to extract modified function names (look for `def ` in the diff).
-3. **Run impact command** for each changed function:
-   ```bash
-   {VISUALIZE_CMD} impact --entry <func_name>
-   ```
-   Collect all returned test file paths (space-separated).
-4. **Deduplicate** the collected test paths.
-5. **Decision** (threshold from `regression.max_impact_tests`, default 50):
-   - If total impacted files < threshold: run only impacted test files.
-     - Log: `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`
-     - Run: `pytest {space-separated test paths}`
-     - Skip Step 2. Proceed to Step 2.3 for logging.
-   - If impacted files ≥ threshold or impact command fails: fall through to Step 2 (Decision Tree).
-   - If no changed functions found in diff: fall through to Step 2.
+With `regression.strategy=impact`, extract changed `def` names from `git diff HEAD~1 --unified=0`; run `{VISUALIZE_CMD} impact --entry <func_name>`, deduplicate mapped tests, and run them when below `regression.max_impact_tests` (default 50). Log `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`; missing functions, failures, or threshold overflow fall through to Decision Tree.
 
 ### Step 2: Decision Tree (Safe-by-Default)
-> **DEFAULT**: Run **full regression**. Run incremental only if: `code_graph.mmd` recently updated, ≤ 3 source files changed, test mappings exist via `LANG_PROFILES[stack].test_map_pattern`, no high-fan-in files (3+ importers), no test infra changes. For fast/small suites (< 500 tests), skip the decision tree and run full.
-> **Fallback**: If `code_graph.mmd` does not exist, always run full regression.
+Run full regression by default. Incremental requires a fresh `code_graph.mmd`, ≤3 source files, mappings from `LANG_PROFILES[stack].test_map_pattern`, no test-infra changes, and no file with 3+ importers; missing graph or fast suite (<500 tests) means full.
 
 ### Step 2.3: Decision Logging (MUST)
 After evaluating the decision tree, log the decision with format: `"Regression: {TYPE} — {reason}"` (e.g., SKIP, STORY-ONLY, FULL, IMPACT-BASED, INCREMENTAL).
 
 ### Step 2.5: Coverage Verification (Conditional)
 Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source files.
-- The command auto-detects modules, runs pytest --cov, and applies 3-tier thresholds:
-  - **≥ 80%**: PASS — proceed normally
-  - **50-79%**: WARN — output: "Changed file `{file}` has {N}% coverage. Consider running `/project-check` to generate missing tests."
-  - **< 50%**: BLOCK — require user confirmation: "Changed file `{file}` has only {N}% coverage. Proceed anyway?"
-- If `pactkit coverage-gate` is unavailable, fall back to manual: construct `pytest --cov=<changed_modules> --cov-report=term-missing tests/` and parse output.
-- Include coverage data in the output so the user can evaluate test quality.
+- ≥80% PASS; 50–79% WARN with file/coverage; <50% BLOCK for confirmation. If unavailable, run equivalent `pytest --cov`; report results.
 
 ### Step 2.7: Smart Lint Gate (STORY-030)
-> **Purpose**: Stack-aware lint check with configurable behavior.
-
-0. **Act-to-Done Fast Path**: If `context.md` shows the last command was `/project-act` AND `git diff HEAD --name-only` shows no source/test file changes since the Act commit, skip lint with log: `"Lint: SKIP — Act already passed lint, no new changes"`. Proceed to Step 3.
-1. Run `pactkit lint` to execute the stack-aware lint gate. This auto-detects the project stack, reads `lint_command` from `LANG_PROFILES`, and respects `auto_fix` and `lint_blocking` from `pactkit.yaml`.
-   - If `auto_fix: true` in config: `pactkit lint` runs fix pass first, then check pass.
-   - If `lint_blocking: true` and lint fails: **STOP** the commit. Report errors and do NOT proceed.
-   - If `lint_blocking: false` (default): Lint failures are reported as **warnings**. Print findings but proceed with commit.
-2. If `pactkit lint` is unavailable, fall back to manual lint: detect stack, read `lint_command` from LANG_PROFILES, run the command directly.
-3. **Skip**: If no lint command found for the stack, skip silently: "No lint command configured — skipping lint gate."
+If Act already verified lint with no later source/test change, log `"Lint: SKIP — Act already passed lint, no new changes"`. Otherwise run `pactkit lint` (or `LANG_PROFILES[stack].lint_command`); honor `auto_fix` and `lint_blocking`, and report non-blocking warnings. No configured command means skip.
 
 ### Step 3: Gate
 - If any test fails, **STOP immediately**. Do NOT proceed to commit.
@@ -889,3 +859,33 @@ COMMANDS_CONTENT["project-sprint.md"] = SPRINT_PROMPT
 COMMANDS_CONTENT["project-hotfix.md"] = HOTFIX_PROMPT
 COMMANDS_CONTENT["project-design.md"] = DESIGN_PROMPT
 COMMANDS_CONTENT["project-debug.md"] = DEBUG_PROMPT
+
+
+def _inject_managed_workflow(command: str, prompt: str) -> str:
+    """Attach one lossless lifecycle contract to every project command."""
+    if "## Pre-Final Protocol (MUST)" in prompt:
+        return prompt
+    marker = "\n# Command:"
+    position = prompt.find(marker)
+    if position < 0:
+        return MANAGED_WORKFLOW_PROTOCOL.format(command=command) + prompt
+    heading_end = prompt.find("\n\n", position + 1)
+    if heading_end < 0:
+        heading_end = len(prompt)
+    return (
+        prompt[:heading_end + 2]
+        + MANAGED_WORKFLOW_PROTOCOL.format(command=command)
+        + prompt[heading_end + 2:]
+    )
+
+
+COMMANDS_CONTENT = {
+    filename: _inject_managed_workflow(filename.removesuffix(".md"), prompt)
+    for filename, prompt in COMMANDS_CONTENT.items()
+}
+
+# Exported prompt constants are canonical rendered command bodies too.
+SPRINT_PROMPT = COMMANDS_CONTENT["project-sprint.md"]
+HOTFIX_PROMPT = COMMANDS_CONTENT["project-hotfix.md"]
+DESIGN_PROMPT = COMMANDS_CONTENT["project-design.md"]
+DEBUG_PROMPT = COMMANDS_CONTENT["project-debug.md"]

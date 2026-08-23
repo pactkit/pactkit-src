@@ -258,6 +258,9 @@ Choosing WORKAROUND is allowed, but incurs the cost of creating a tracking Story
 """,
     "shared": """# Shared Protocols
 
+## Managed Workflow and Pre-Final Protocol
+Every `project-*` command starts or resumes its registered run, checkpoints each declared boundary, and completes only with verified evidence. Before final output run `pactkit workflow finish-guard <run-id> --json`. A non-zero or `continue_current_turn` decision means continue tools at `next_step` in the same turn; progress summaries are never final. Only `done` or a verified external `await_user` blocker may end. Manual operations such as commit, archive, tag, publish, release, push, and pull request always require fresh authorization.
+
 ## Lazy Visualize Protocol
 > Referenced by: Act Phase 4, Done Phase 2
 

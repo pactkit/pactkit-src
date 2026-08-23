@@ -80,3 +80,16 @@
 - [x] 校验 continuation provider evidence
 - [x] 增加 doctor 与部署完整性诊断
 - [x] 验证四种 Adapter 的查询语义
+
+### [STORY-slim-2026082381e832771d4e] Codex 未完成 Workflow 终止门禁与宿主续跑协议
+> Spec: docs/specs/STORY-slim-2026082381e832771d4e.md
+
+- [x] 实现 workflow finish-guard 与稳定终止决策
+- [x] 为关键写操作增加 managed active-run ownership
+- [x] 定义宿主 capability handshake 与 bounded resume runner
+- [x] 加入 lease、无进展检测与人工副作用边界
+- [x] 在四平台模板中部署 Pre-Final Protocol
+- [x] 建立 transcript-level agent-loop 与 adapter 验收
+- [x] 补充 doctor、manifest 与保证等级文档
+- [x] 为十个通用 Project Workflow 增加命令级完成证据
+- [x] 在 Codex、OpenCode 与 Copilot 部署 Sprint 串行降级入口

@@ -27,7 +27,7 @@ def test_reliability_registry_covers_all_deployed_entries():
     assert validate_registry() == []
     assert EXECUTION_RELIABILITY_REGISTRY["project-plan"].persistence == "full"
     assert EXECUTION_RELIABILITY_REGISTRY["project-release"].recovery == "manual_confirmation"
-    assert EXECUTION_RELIABILITY_REGISTRY["project-check"].persistence == "not_persisted"
+    assert EXECUTION_RELIABILITY_REGISTRY["project-check"].persistence == "full"
 
 
 def test_generic_engine_dispatches_act_and_plan_without_embedded_steps(tmp_path):

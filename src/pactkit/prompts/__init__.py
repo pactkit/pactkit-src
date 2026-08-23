@@ -1,7 +1,13 @@
 from .agents import (
     AGENTS_EXPERT,
 )
-from .commands import COMMANDS_CONTENT
+from .commands import (
+    COMMANDS_CONTENT,
+    DEBUG_PROMPT,
+    DESIGN_PROMPT,
+    HOTFIX_PROMPT,
+    SPRINT_PROMPT,
+)
 from .references import (
     DEV_REF_BACKEND,
     DEV_REF_FRONTEND,
@@ -51,14 +57,11 @@ from .skills import (
     VISUALIZE_SOURCE,
 )
 from .workflows import (
-    DESIGN_PROMPT,
     DRAW_PROMPT_TEMPLATE,
     DRAW_REF_ANTI_BUGS,
     DRAW_REF_LAYOUTS,
     DRAW_REF_STYLES,
-    HOTFIX_PROMPT,
     LANG_PROFILES,
     REVIEW_PROMPT,
-    SPRINT_PROMPT,
     TRACE_PROMPT,
 )

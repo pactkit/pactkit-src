@@ -119,7 +119,7 @@ class TestContentParity:
         from pactkit.doctor import check_deploy_parity
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
@@ -134,7 +134,7 @@ class TestContentParity:
         from pactkit.doctor import check_deploy_parity
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
@@ -150,7 +150,7 @@ class TestContentParity:
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
         (codex_dir / "skills").mkdir(parents=True)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         (codex_dir / ".pactkit-deployed.json").write_text(json.dumps({
             "format": "codex", "pactkit_version": "2.17.0",
             "skills": PACTKIT_SKILLS, "commands": codex_cmds, "agents": sorted(VALID_AGENTS),
@@ -164,7 +164,7 @@ class TestContentParity:
         from pactkit.doctor import check_deploy_parity
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
@@ -179,7 +179,7 @@ class TestContentParity:
         from pactkit.doctor import check_deploy_parity
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
@@ -197,7 +197,7 @@ class TestContentParity:
         from pactkit.doctor import check_deploy_parity
 
         codex_dir, project = self._probe(tmp_path, monkeypatch)
-        codex_cmds = sorted(set(VALID_COMMANDS) - {"project-sprint"})
+        codex_cmds = sorted(VALID_COMMANDS)
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 

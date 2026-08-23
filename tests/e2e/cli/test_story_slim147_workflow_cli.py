@@ -48,4 +48,18 @@ def test_registry_cli_reports_all_25_entries(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["valid"] is True
     assert len(payload["entries"]) == 25
-    assert payload["entries"]["project-check"]["persistence"] == "not_persisted"
+    assert payload["entries"]["project-check"]["persistence"] == "full"
+
+
+def test_workflow_contract_reports_executable_done_lifecycle(tmp_path):
+    result = _run("workflow", "contract", "project-done", "--json", cwd=tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["steps"] == [
+        "started", "audited", "governance_synced", "completed",
+    ]
+    assert payload["start_evidence_requirements"] == ["started=true"]
+    assert "workflow start project-done" in payload["start"]
+    assert "workflow checkpoint" in payload["checkpoint"]
+    assert "workflow finish-guard" in payload["finish_guard"]
+    assert payload["manual_operations"] == ["commit", "archive"]

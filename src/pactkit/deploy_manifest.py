@@ -103,6 +103,11 @@ def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | No
     payload = {
         "pactkit_version": __version__,
         "format": format_name,
+        "workflow_continuation": {
+            "finish_guard_supported": True,
+            "auto_resume_available": False,
+            "guarantee_level": "process",
+        },
         **components,
         # STORY-slim-141 R1: content hashes for doctor's content-level parity.
         "files": pactkit_owned_files(deploy_root, components),

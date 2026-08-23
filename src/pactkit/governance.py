@@ -51,9 +51,32 @@ def _task_id(title: str, position: int) -> str:
 
 
 class StoryRepository:
-    def __init__(self, root: Path):
+    def __init__(
+        self, root: Path, *, run_id: str | None = None,
+        workflow_id: str | None = None, standalone: bool = True,
+    ):
         self.root = root.resolve()
         self.directory = self.root / "docs" / "product" / "stories"
+        self.run_id = run_id
+        self.workflow_id = workflow_id
+        self.standalone = standalone
+
+    def _authorize(self, operation: str, item_id: str) -> dict[str, Any]:
+        if self.run_id:
+            from pactkit.continuation import ContinuationEngine
+
+            if not self.workflow_id:
+                raise GovernanceError("managed Story write requires workflow identity")
+            try:
+                return ContinuationEngine(self.root).validate_managed_operation(
+                    self.run_id, workflow_id=self.workflow_id, operation=operation,
+                    story_id=item_id,
+                )
+            except ValueError as exc:
+                raise GovernanceError(str(exc)) from exc
+        if not self.standalone:
+            raise GovernanceError("Story write requires managed run or explicit standalone mode")
+        return {"managed": False}
 
     def path_for(self, item_id: str) -> Path:
         _validate_item_id(item_id)
@@ -112,24 +135,39 @@ class StoryRepository:
 
     def add(self, item_id: str, title: str, tasks: list[str], *, status: str = "backlog") -> dict[str, Any]:
         _validate_item_id(item_id)
+        ownership = self._authorize("create_story", item_id)
+        normalized_title = title.strip()
+        normalized_tasks = [task.strip() for task in tasks if task.strip()]
+        path = self.path_for(item_id)
+        if path.exists() and ownership["managed"]:
+            existing = self.load(item_id)
+            actual_tasks = [task["title"] for task in existing["tasks"]]
+            if (
+                existing["title"] == normalized_title
+                and existing["status"] == status
+                and actual_tasks == normalized_tasks
+            ):
+                return {**existing, "managed": True}
+            raise GovernanceError(f"existing Story mismatch: {item_id}")
         timestamp = _now()
         record = {
             "schema_version": STORY_SCHEMA_VERSION,
             "id": item_id,
-            "title": title.strip(),
+            "title": normalized_title,
             "spec_path": f"docs/specs/{item_id}.md",
             "status": status,
             "tasks": [
                 {"id": _task_id(task.strip(), index), "title": task.strip(), "completed": False}
-                for index, task in enumerate(tasks) if task.strip()
+                for index, task in enumerate(normalized_tasks)
             ],
             "created_at": timestamp,
             "updated_at": timestamp,
         }
         self._write(record, create_only=True)
-        return record
+        return {**record, "managed": ownership["managed"]}
 
     def complete_task(self, item_id: str, task: str) -> dict[str, Any]:
+        ownership = self._authorize("update_story", item_id)
         record = self.load(item_id)
         matches = [entry for entry in record["tasks"] if entry["id"] == task or entry["title"] == task]
         if len(matches) != 1:
@@ -142,11 +180,12 @@ class StoryRepository:
             record["status"] = "in_progress"
         record["updated_at"] = _now()
         self._write(record)
-        return record
+        return {**record, "managed": ownership["managed"]}
 
     def move(self, item_id: str, status: str) -> dict[str, Any]:
         if status not in STATUSES:
             raise GovernanceError(f"unknown Story status: {status}")
+        ownership = self._authorize("update_story", item_id)
         record = self.load(item_id)
         record["status"] = status
         record["updated_at"] = _now()
@@ -155,7 +194,7 @@ class StoryRepository:
         if status == "archived":
             record["archived_at"] = _now()
         self._write(record)
-        return record
+        return {**record, "managed": ownership["managed"]}
 
 
 class BoardRenderer:
