@@ -67,10 +67,16 @@ class HostContinuationRunner:
             return decision
         if not self.capabilities.auto_resume_available:
             return {**decision, "reason_code": "host_reentry_unavailable"}
+        if decision.get("legacy_checkpoint"):
+            return self._after_legacy_turn(
+                identifier, decision=decision, session_locator=session_locator,
+            )
         run_id = decision["run_id"]
         now = datetime.now(timezone.utc)
         with self.engine._run_lock(run_id):
             path, state = self.engine._find(run_id)
+            if state.get("status") == "completed":
+                return self.engine.finish_guard(run_id)
             previous = state.get("host_continuation", {})
             if not isinstance(previous, dict):
                 raise ContinuationError("corrupt host continuation state")
@@ -109,6 +115,56 @@ class HostContinuationRunner:
                 state["blocker_kind"] = "external_state"
             atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
         if reason != "resume_scheduled":
+            return {**decision, "decision": "await_user", "attempt": attempt,
+                    "reason_code": reason, "exit_code": 0}
+        return {**decision, "decision": "resume_session", "attempt": attempt,
+                "session_locator": self._session_reference(session_locator),
+                "reason_code": reason}
+
+    def _after_legacy_turn(
+        self, identifier: str, *, decision: dict[str, Any], session_locator: str,
+    ) -> dict[str, Any]:
+        from pactkit.continuation import ContinuationStore
+
+        story_id = decision.get("story_id") or identifier
+        state = ContinuationStore(self.engine.root).read(story_id)
+        if state is None:
+            raise ContinuationError("legacy checkpoint not found")
+        run_id = decision["run_id"]
+        host_dir = self.engine.root / ".pactkit" / "continuations" / "hosts"
+        host_path = host_dir / f"{run_id}.json"
+        previous: dict[str, Any] = {}
+        if host_path.exists():
+            try:
+                previous = json.loads(host_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ContinuationError("corrupt legacy host continuation state") from exc
+        digest = self._digest(state)
+        attempt = int(previous.get("attempt", 0)) + 1
+        if previous.get("progress_digest") == digest:
+            reason = "no_progress"
+        elif attempt > self.max_attempts:
+            reason = "attempt_limit"
+        else:
+            reason = "resume_scheduled"
+        record = {
+            "run_id": run_id, "owner": self.owner, "attempt": attempt,
+            "step_id": state["step_id"], "progress_digest": digest,
+            "session_locator": self._session_reference(session_locator),
+            "lease_expires_at": None, "termination_reason": reason,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        atomic_write(host_path, json.dumps(record, indent=2, ensure_ascii=False) + "\n")
+        if reason != "resume_scheduled":
+            ContinuationStore(self.engine.root).checkpoint(
+                story_id,
+                step_id=state["step_id"],
+                evidence=state.get("evidence", {}),
+                status="blocked",
+                phase=state.get("phase", ""),
+                blocker=f"External host intervention required after {reason}",
+                blocker_kind="external_state",
+            )
             return {**decision, "decision": "await_user", "attempt": attempt,
                     "reason_code": reason, "exit_code": 0}
         return {**decision, "decision": "resume_session", "attempt": attempt,

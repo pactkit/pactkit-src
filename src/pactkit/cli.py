@@ -884,6 +884,12 @@ def main():
                 engine = ContinuationEngine(Path.cwd())
                 if args.workflow_action == "start":
                     result = engine.start(args.workflow_id, evidence=_workflow_evidence(args.evidence))
+                    import os
+
+                    session_id = os.environ.get("CODEX_SESSION_ID") or os.environ.get("CODEX_THREAD_ID")
+                    if session_id:
+                        engine.bind_host_session(result["run_id"], session_id=session_id)
+                        result = engine.read(result["run_id"])
                 elif args.workflow_action == "bind":
                     result = engine.bind_story(args.identifier, args.story_id)
                 elif args.workflow_action == "checkpoint":
@@ -1136,6 +1142,20 @@ def main():
             print(f"  {detail}")
             has_issues = True
         for warning in parity["warnings"]:
+            print(f"  ⚠️  {warning}")
+
+        from pactkit.doctor import check_codex_hook_capability
+
+        hook = check_codex_hook_capability()
+        print(
+            "  Codex Stop hook: "
+            f"installed={str(hook['installed']).lower()} "
+            f"trusted={str(hook['trusted']).lower()} "
+            f"observed={str(hook['observed']).lower()} "
+            f"validated={str(hook['validated']).lower()} "
+            f"guarantee={hook['guarantee_level']}"
+        )
+        for warning in hook["warnings"]:
             print(f"  ⚠️  {warning}")
 
         # STORY-slim-142 R3: adapter package version skew (report-only)

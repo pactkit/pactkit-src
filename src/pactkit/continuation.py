@@ -126,6 +126,91 @@ class ContinuationEngine:
     def read(self, identifier: str) -> dict[str, Any]:
         return self._find(identifier)[1]
 
+    @staticmethod
+    def _host_reference(value: str, field: str) -> str:
+        if not isinstance(value, str) or not value.strip() or len(value) > 4096:
+            raise ContinuationError(f"invalid {field}")
+        return "sha256:" + hashlib.sha256(value.encode()).hexdigest()
+
+    def _host_binding_path(self, session_ref: str) -> Path:
+        digest = session_ref.removeprefix("sha256:")
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ContinuationError("invalid host session reference")
+        return self.root / ".pactkit" / "continuations" / "bindings" / f"{digest}.json"
+
+    def bind_host_session(
+        self, identifier: str, *, session_id: str, turn_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Bind an opaque host session to the currently executing workflow run."""
+        _path, initial = self._find(identifier)
+        session_ref = self._host_reference(session_id, "session ID")
+        turn_ref = self._host_reference(turn_id, "turn ID") if turn_id else None
+        with self._run_lock(initial["run_id"]):
+            path, state = self._find(initial["run_id"])
+            if state.get("status") == "completed":
+                raise ContinuationError("completed workflow is immutable")
+            binding = {
+                "session_ref": session_ref,
+                "turn_ref": turn_ref,
+                "run_id": state["run_id"],
+                "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
+            state["host_binding"] = binding
+            state["updated_at"] = binding["updated_at"]
+            atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+            atomic_write(
+                self._host_binding_path(session_ref),
+                json.dumps(binding, indent=2, ensure_ascii=False) + "\n",
+            )
+        return binding
+
+    def resolve_host_run(
+        self, *, session_id: str, turn_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Resolve the workflow owned by a host session without trusting prose."""
+        session_ref = self._host_reference(session_id, "session ID")
+        turn_ref = self._host_reference(turn_id, "turn ID") if turn_id else None
+        binding_path = self._host_binding_path(session_ref)
+        if binding_path.exists():
+            try:
+                binding = json.loads(binding_path.read_text(encoding="utf-8"))
+                state = self.read(str(binding["run_id"]))
+            except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+                raise ContinuationError("corrupt host session binding") from exc
+            if binding.get("session_ref") != session_ref:
+                raise ContinuationError("host session binding mismatch")
+            if turn_ref and binding.get("turn_ref") not in (None, turn_ref):
+                # A session binding remains authoritative across continuation turns.
+                pass
+            return self._host_resolution(state)
+
+        active: list[dict[str, Any]] = []
+        if self.directory.is_dir():
+            for path in sorted(self.directory.glob("run-*.json")):
+                try:
+                    state = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise ContinuationError(f"corrupt workflow checkpoint: {path.name}") from exc
+                if state.get("status") == "in_progress":
+                    active.append(state)
+        if not active:
+            raise ContinuationError("no active workflow run")
+        if len(active) != 1:
+            raise ContinuationError("multiple active workflow runs")
+        return self._host_resolution(active[0])
+
+    @staticmethod
+    def _host_resolution(state: dict[str, Any]) -> dict[str, Any]:
+        story_id = state.get("story_id")
+        return {
+            "identifier": state.get("run_id"),
+            "run_id": state.get("run_id"),
+            "story_id": story_id,
+            "workflow_id": state.get("workflow_id"),
+            "step_id": state.get("step_id"),
+            "status": state.get("status"),
+        }
+
     def start(self, workflow_id: str, *, evidence: dict[str, Any]) -> dict[str, Any]:
         definition = self.definition(workflow_id)
         run_id = "run-" + uuid.uuid4().hex

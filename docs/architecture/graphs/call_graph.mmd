@@ -14,15 +14,20 @@ graph TD
     CodegraphProvider_query["CodegraphProvider.query"]
     CodegraphProvider_sync["CodegraphProvider.sync"]
     ContinuationEngine__find["ContinuationEngine._find"]
+    ContinuationEngine__host_binding_path["ContinuationEngine._host_binding_path"]
+    ContinuationEngine__host_reference["ContinuationEngine._host_reference"]
+    ContinuationEngine__host_resolution["ContinuationEngine._host_resolution"]
     ContinuationEngine__legacy_finish_guard["ContinuationEngine._legacy_finish_guard"]
     ContinuationEngine__run_lock["ContinuationEngine._run_lock"]
     ContinuationEngine__validate_run_id["ContinuationEngine._validate_run_id"]
+    ContinuationEngine_bind_host_session["ContinuationEngine.bind_host_session"]
     ContinuationEngine_bind_story["ContinuationEngine.bind_story"]
     ContinuationEngine_checkpoint["ContinuationEngine.checkpoint"]
     ContinuationEngine_definition["ContinuationEngine.definition"]
     ContinuationEngine_finish_guard["ContinuationEngine.finish_guard"]
     ContinuationEngine_path_for["ContinuationEngine.path_for"]
     ContinuationEngine_read["ContinuationEngine.read"]
+    ContinuationEngine_resolve_host_run["ContinuationEngine.resolve_host_run"]
     ContinuationEngine_resume["ContinuationEngine.resume"]
     ContinuationEngine_start["ContinuationEngine.start"]
     ContinuationEngine_validate_managed_operation["ContinuationEngine.validate_managed_operation"]
@@ -64,6 +69,7 @@ graph TD
     GraphProviderRouter_query["GraphProviderRouter.query"]
     GraphQueryResult_to_dict["GraphQueryResult.to_dict"]
     HostCapabilities_auto_resume_available["HostCapabilities.auto_resume_available"]
+    HostContinuationRunner__after_legacy_turn["HostContinuationRunner._after_legacy_turn"]
     HostContinuationRunner__digest["HostContinuationRunner._digest"]
     HostContinuationRunner__session_reference["HostContinuationRunner._session_reference"]
     HostContinuationRunner_after_model_turn["HostContinuationRunner.after_model_turn"]
@@ -269,6 +275,7 @@ graph TD
     check_adapter_compat["check_adapter_compat"]
     check_adapter_skew["check_adapter_skew"]
     check_archive_honesty["check_archive_honesty"]
+    check_codex_hook_capability["check_codex_hook_capability"]
     check_config_completeness["check_config_completeness"]
     check_config_copy_drift["check_config_copy_drift"]
     check_config_drift["check_config_drift"]
@@ -555,12 +562,20 @@ graph TD
     HostContinuationRunner__session_reference --> _sanitize
     HostContinuationRunner_after_model_turn --> ContinuationEngine_finish_guard
     HostContinuationRunner_after_model_turn --> HostContinuationRunner_record_resume_failure
+    HostContinuationRunner_after_model_turn --> HostContinuationRunner__after_legacy_turn
     HostContinuationRunner_after_model_turn --> ContinuationEngine__run_lock
     HostContinuationRunner_after_model_turn --> ContinuationEngine__find
     HostContinuationRunner_after_model_turn --> HostContinuationRunner__digest
     HostContinuationRunner_after_model_turn --> atomic_write
     HostContinuationRunner_after_model_turn --> HostContinuationRunner__session_reference
+    HostContinuationRunner_after_model_turn --> ContinuationEngine_finish_guard
     HostContinuationRunner_after_model_turn --> HostContinuationRunner__session_reference
+    HostContinuationRunner__after_legacy_turn --> ContinuationEngine_read
+    HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__digest
+    HostContinuationRunner__after_legacy_turn --> atomic_write
+    HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__session_reference
+    HostContinuationRunner__after_legacy_turn --> ContinuationEngine_checkpoint
+    HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__session_reference
     HostContinuationRunner_before_operation --> ContinuationEngine_finish_guard
     HostContinuationRunner_record_resume_failure --> ContinuationEngine_read
     HostContinuationRunner_record_resume_failure --> ContinuationEngine__run_lock
@@ -612,6 +627,20 @@ graph TD
     ContinuationEngine_path_for --> ContinuationEngine__validate_run_id
     ContinuationEngine__find --> ContinuationEngine_path_for
     ContinuationEngine_read --> ContinuationEngine__find
+    ContinuationEngine_bind_host_session --> ContinuationEngine__find
+    ContinuationEngine_bind_host_session --> ContinuationEngine__host_reference
+    ContinuationEngine_bind_host_session --> ContinuationEngine__host_reference
+    ContinuationEngine_bind_host_session --> ContinuationEngine__run_lock
+    ContinuationEngine_bind_host_session --> ContinuationEngine__find
+    ContinuationEngine_bind_host_session --> atomic_write
+    ContinuationEngine_bind_host_session --> atomic_write
+    ContinuationEngine_bind_host_session --> ContinuationEngine__host_binding_path
+    ContinuationEngine_resolve_host_run --> ContinuationEngine__host_reference
+    ContinuationEngine_resolve_host_run --> ContinuationEngine__host_binding_path
+    ContinuationEngine_resolve_host_run --> ContinuationEngine__host_resolution
+    ContinuationEngine_resolve_host_run --> ContinuationEngine__host_reference
+    ContinuationEngine_resolve_host_run --> ContinuationEngine__host_resolution
+    ContinuationEngine_resolve_host_run --> ContinuationEngine_read
     ContinuationEngine_start --> ContinuationEngine_definition
     ContinuationEngine_start --> _sanitize_evidence
     ContinuationEngine_start --> ActEvidenceValidator_validate
@@ -755,6 +784,8 @@ graph TD
     main --> BoardRenderer_check
     main --> ContinuationEngine_start
     main --> lint_lessons
+    main --> ContinuationEngine_bind_host_session
+    main --> ContinuationEngine_read
     main --> ContinuationEngine_bind_story
     main --> lint_testcase
     main --> main__workflow_evidence
@@ -778,6 +809,7 @@ graph TD
     main --> check_config_copy_drift
     main --> check_deps
     main --> check_deploy_parity
+    main --> check_codex_hook_capability
     main --> check_adapter_skew
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics

@@ -1,0 +1,31 @@
+schema_version: 1
+id: STORY-slim-20260823de7e85d6042a
+title: Codex Stop Hook 强制续跑与真实宿主完成门禁
+spec_path: docs/specs/STORY-slim-20260823de7e85d6042a.md
+status: archived
+tasks:
+- id: task-f132bee822
+  title: 实现 Core session/turn 绑定与 hook-facing decision 接口
+  completed: true
+- id: task-00347f49c7
+  title: 实现 Codex Stop handler 与 finish-guard 映射
+  completed: true
+- id: task-047abe0304
+  title: 部署并无损管理 Codex hooks 配置
+  completed: true
+- id: task-2823b9c9a5
+  title: 增加 trust/capability/doctor 与 manifest 诊断
+  completed: true
+- id: task-7793aa3e26
+  title: 覆盖 handler、部署和防循环测试
+  completed: true
+- id: task-2701967841
+  title: 完成真实 Codex Plan/Done 提前终止 E2E
+  completed: true
+- id: task-eddd0af721
+  title: pip 更新并验证真实本机 Codex 部署
+  completed: true
+created_at: '2026-08-23T03:44:12+00:00'
+updated_at: '2026-08-23T05:07:06+00:00'
+completed_at: '2026-08-23T04:24:46+00:00'
+archived_at: '2026-08-23T05:07:06+00:00'

@@ -323,6 +323,45 @@ DEPLOY_PROBE_PATHS = (
 )
 
 
+def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
+    """Read the deployed Codex hook lifecycle report without importing an adapter."""
+    import json
+
+    root = codex_root or Path.home() / ".codex"
+    manifest = root / ".pactkit-deployed.json"
+    default = {
+        "installed": False, "trusted": False, "observed": False,
+        "validated": False, "guarantee_level": "process", "warnings": [],
+    }
+    if not manifest.is_file():
+        return default
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        capability = payload.get("workflow_continuation", {})
+    except (OSError, json.JSONDecodeError):
+        return {**default, "warnings": ["Codex hook manifest unreadable — re-run `pactkit update`"]}
+    if not isinstance(capability, dict):
+        return {**default, "warnings": ["Codex hook capability is corrupt — re-run `pactkit update`"]}
+    result = {
+        "installed": capability.get("hook_installed") is True,
+        "trusted": capability.get("hook_trusted") is True,
+        "observed": capability.get("hook_observed") is True,
+        "validated": capability.get("continuation_validated") is True,
+        "guarantee_level": capability.get("guarantee_level", "process"),
+        "warnings": [],
+    }
+    if result["installed"] and not result["trusted"]:
+        review = capability.get("trust_review_command") or "/hooks"
+        result["warnings"].append(
+            f"Codex Stop hook installed but not trusted — review it with `{review}`"
+        )
+    elif result["trusted"] and not result["validated"]:
+        result["warnings"].append(
+            "Codex Stop hook trusted but host continuation has not been validated"
+        )
+    return result
+
+
 def check_deploy_parity(project_root: Path) -> dict:
     """Compare per-format deployment manifests against the current registry.
 

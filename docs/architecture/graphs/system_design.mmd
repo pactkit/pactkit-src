@@ -62,6 +62,7 @@ graph TD
         ResumeVerifier["Continuation Engine<br/>workflow-specific evidence +<br/>git/artifact validation<br/>(STORY-slim-147)"]
         FinishGuard["Workflow Finish Guard<br/>pre-final decision + managed writes<br/>(STORY-slim-2026082381e832771d4e)"]
         HostRunner["Host Continuation Protocol<br/>capability handshake + bounded resume<br/>(STORY-slim-2026082381e832771d4e)"]
+        CodexStopHook["Codex Stop Hook<br/>session-bound finish enforcement<br/>(STORY-slim-20260823de7e85d6042a)"]
         LessonRecords["docs/architecture/governance/lessons/*.md<br/>append-only lesson facts<br/>(STORY-slim-148)"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
         StoryRecords["docs/product/stories/*.yaml<br/>per-Story execution state<br/>(STORY-slim-148)"]
@@ -128,6 +129,9 @@ graph TD
     Commands -->|"pre-final check"| FinishGuard
     FinishGuard -->|"continue / await user / done"| HostRunner
     HostRunner -.->|"supported host session re-entry"| Commands
+    CodexPkg -->|"deploys lifecycle handler"| CodexStopHook
+    CodexStopHook -->|"resolve active run"| HostRunner
+    HostRunner -->|"block unfinished Stop"| CodexStopHook
     ResumeVerifier -.->|"human-confirmed blocker"| Context
     Context -.->|"human-readable summary"| ResumeState
 
