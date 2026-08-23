@@ -589,6 +589,7 @@ def test_all_project_commands_are_persistent_registered_workflows():
         contract = EXECUTION_RELIABILITY_REGISTRY[command]
         workflow = WORKFLOW_REGISTRY[command]
         assert contract.persistence == "full"
+        assert contract.completion == "validated"
         assert len(workflow.steps) >= 2
         assert workflow.steps[0] == "started" or command in {"project-plan", "project-act"}
 

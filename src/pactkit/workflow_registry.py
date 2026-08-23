@@ -155,7 +155,10 @@ _SKILL_CONTRACTS = {
 
 EXECUTION_RELIABILITY_REGISTRY = {
     **{
-        name: ReliabilityContract(name, "command", category, recovery, persistence, manual_operations=manual)
+        name: ReliabilityContract(
+            name, "command", category, recovery, persistence,
+            completion="validated", manual_operations=manual,
+        )
         for name, (category, recovery, persistence, manual) in _COMMAND_CONTRACTS.items()
     },
     **{
