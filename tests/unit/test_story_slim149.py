@@ -1,6 +1,7 @@
 """STORY-slim-149: Codegraph-first graph provider routing."""
 
 from pathlib import Path
+import shutil
 import subprocess
 import threading
 import time
@@ -104,6 +105,7 @@ def test_unconfigured_project_uses_builtin_without_error():
     assert result.status == "valid_empty"
 
 
+@pytest.mark.skipif(shutil.which("codegraph") is None, reason="codegraph binary is not installed")
 def test_codegraph_provider_reports_real_index_status():
     from pactkit.graph_query import CodegraphProvider
 

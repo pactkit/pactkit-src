@@ -2,10 +2,13 @@
 
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 
 def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -60,6 +63,7 @@ def test_chain_compatibility_uses_read_only_parameterized_db(tmp_path):
     assert rows == [{"name": "caller", "file_path": "src/a.py", "start_line": 1}]
 
 
+@pytest.mark.skipif(shutil.which("codegraph") is None, reason="codegraph binary is not installed")
 def test_real_codegraph_json_exposes_provider_evidence():
     root = Path(__file__).parents[3]
     result = _run("query", "--callers", "codegraph_sync", "--json", cwd=root)
