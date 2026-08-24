@@ -4,6 +4,14 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.22.0] - 2026-08-24
+
+### Added
+- **Unified WorkUnit scope derivation for non-standard directory layouts** — WorkUnit read/write scope is no longer a hardcoded `src/**`|`tests/**` whitelist. A `resolve_scope` SSoT unions each unit's frozen template floor with project-declared `write_scope` roots (`source_roots`/`test_roots`/`docs_roots`) and the Spec's `Touches`, so projects with `frontend/src/`, `backend/`, `directus-extensions/` layouts no longer block `project-act`/`project-hotfix`. Union (not intersection): the Spec (Tier-1) is never clipped by mutable config. `spec_linter` rejects pathological `Touches` (`**`, absolute, `..`); runtime path-escape stays in `_safe_repo_path`.
+
+### Fixed
+- **Completed runs survive legitimate cross-workflow projection evolution** — after Plan → Act, `project-check`/`project-done` start and `pactkit work-unit status <plan-run>` no longer crash with `invalid_workflow_state`. `_completed_run_for_story` scans sibling journals leniently (existence lookups don't re-validate projection fingerprints), and `finalize-workflow` regenerates `context.md` to the post-completion canonical. Execution reads (`_read`) stay strict, so genuine tampering is still detected.
+
 ## [2.21.0] - 2026-08-24
 
 ### Added
