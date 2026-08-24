@@ -366,6 +366,7 @@ Session context is generated locally at `.pactkit/context.md` and is ignored by 
 | `auto_fix` | bool | `false` | Whether to auto-fix lint errors |
 | `agent_models` | object | `{}` | Per-agent model overrides (`haiku`, `sonnet`, `opus`, `inherit`) |
 | `command_models` | object | defaults | Per-command model overrides for OpenCode deployment |
+| `write_scope` | object | (absent) | Declare `source_roots`/`test_roots`/`docs_roots` for non-standard directory layouts (e.g. `frontend/src`, `backend/`, `directus-extensions/`). WorkUnit read/write scope is derived per-Story from the Spec `Touches` + these roots (union, not intersection), so non-standard layouts no longer block `project-act`. Absent ⇒ the frozen template scope (`src/**`/`tests/**`) applies |
 
 ## Safe Regression
 
