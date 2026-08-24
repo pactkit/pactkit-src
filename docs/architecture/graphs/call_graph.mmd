@@ -208,6 +208,7 @@ graph TD
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _create_issue["_create_issue"]
     _debug_completion["_debug_completion"]
+    _dedupe_scope["_dedupe_scope"]
     _deploy_agents["_deploy_agents"]
     _deploy_ci["_deploy_ci"]
     _deploy_classic["_deploy_classic"]
@@ -265,6 +266,8 @@ graph TD
     _is_version_file["_is_version_file"]
     _jaccard_similarity["_jaccard_similarity"]
     _load_entry_point_deployers["_load_entry_point_deployers"]
+    _load_touches["_load_touches"]
+    _load_write_scope["_load_write_scope"]
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
@@ -272,6 +275,7 @@ graph TD
     _no_external_enabled["_no_external_enabled"]
     _no_git_enabled["_no_git_enabled"]
     _nonempty["_nonempty"]
+    _normalize_write_scope["_normalize_write_scope"]
     _now["_now"]
     _opaque_ref["_opaque_ref"]
     _parse_ac_to_reqs["_parse_ac_to_reqs"]
@@ -442,6 +446,7 @@ graph TD
     render_config_yaml["render_config_yaml"]
     render_mermaid["render_mermaid"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    resolve_scope["resolve_scope"]
     run_garden["run_garden"]
     run_gate["run_gate"]
     run_lint["run_lint"]
@@ -651,6 +656,16 @@ graph TD
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
     _terminal --> _unit
+    _dedupe_scope --> LessonRepository_add
+    _load_write_scope --> find_pactkit_yaml
+    _load_write_scope --> _normalize_write_scope
+    _load_write_scope --> load_config
+    _load_touches --> parse_story
+    resolve_scope --> _load_touches
+    resolve_scope --> _normalize_write_scope
+    resolve_scope --> _load_write_scope
+    resolve_scope --> _dedupe_scope
+    resolve_scope --> _dedupe_scope
     _generic_finalize_request_digest --> _validate_fingerprint_map
     _generic_finalize_request_digest --> _is_json_value
     _is_json_value --> _is_json_value
@@ -719,14 +734,17 @@ graph TD
     WorkflowEngine_acquire --> WorkflowEngine__lock
     WorkflowEngine_acquire --> WorkflowEngine__read
     WorkflowEngine_acquire --> WorkflowEngine__template
+    WorkflowEngine_acquire --> resolve_scope
     WorkflowEngine_acquire --> WorkflowEngine__write
     WorkflowEngine_acquire --> WorkflowEngine__unit
     WorkflowEngine_acquire --> WorkflowEngine__idempotent_unit_result
     WorkflowEngine_acquire --> WorkflowEngine__write
-    WorkflowEngine_acquire --> render
-    WorkflowEngine_acquire --> render
+    WorkflowEngine_acquire --> _dedupe_scope
+    WorkflowEngine_acquire --> _dedupe_scope
     WorkflowEngine_acquire --> render
     WorkflowEngine_acquire --> WorkflowEngine__unit
+    WorkflowEngine_acquire --> render
+    WorkflowEngine_acquire --> render
     WorkflowEngine_lease_current --> _validate_identity
     WorkflowEngine_lease_current --> WorkflowEngine__read
     WorkflowEngine_lease_current --> WorkflowEngine__template
@@ -900,8 +918,11 @@ graph TD
     WorkflowFinalizer__validate_completion --> project_command_validator
     WorkflowFinalizer__complete_act_story_tasks --> StoryRepository_load
     WorkflowFinalizer__complete_act_story_tasks --> atomic_write
+    WorkflowFinalizer__complete_act_story_tasks --> atomic_write
     WorkflowFinalizer__complete_act_story_tasks --> WorkflowFinalizer__validate_act_story_projection
     WorkflowFinalizer__complete_act_story_tasks --> render
+    WorkflowFinalizer__complete_act_story_tasks --> context_output_path
+    WorkflowFinalizer__complete_act_story_tasks --> generate_context
     WorkflowFinalizer__complete_act_story_tasks --> StoryRepository_complete_task
     WorkflowFinalizer__validate_act_story_projection --> StoryRepository_load
     WorkflowFinalizer__validate_act_story_projection --> BoardRenderer_check

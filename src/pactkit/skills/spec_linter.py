@@ -51,6 +51,28 @@ except ImportError:
     DEP_SURFACE_FIELDS = ("Depends on", "Provides", "Touches", "Conflict risk")
     ITEM_ID_PATTERN = r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-\d+"
 
+
+def _touches_entries(raw: str) -> list[str]:
+    """Split a Touches cell into normalized path entries.
+
+    Reuses ``spec_graph._parse_touches`` (STORY-slim-20260824dd23a0ed3b4c R5)
+    via a LAZY import to avoid a load-time cycle (spec_graph imports
+    ``section_text``/``strip_code_blocks`` from this module). Falls back to an
+    inline copy when pactkit is not importable (standalone script).
+    """
+    try:
+        from pactkit.spec_graph import _parse_touches
+    except ImportError:
+        _parse_touches = None
+    if _parse_touches is not None:
+        return _parse_touches(raw)
+    out: list[str] = []
+    for part in raw.split(","):
+        p = part.strip().strip("`").strip()
+        if p and p.lower() != "none" and p not in out:
+            out.append(p)
+    return out
+
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
@@ -400,6 +422,21 @@ def _check_dependency_surface(text: str, result: LintResult, spec_path: str | No
             LintIssue("W011", f"Dependency Surface missing field(s): {', '.join(missing)}")
         )
         return  # Without Depends on there is nothing to resolve
+
+    # STORY-slim-20260824dd23a0ed3b4c R5 — reject pathological Touches entries.
+    # Runs before the Depends-on early-return so a spec with no dependencies
+    # still gets its Touches surface validated.
+    touches_raw = fields.get("Touches", "")
+    if touches_raw and touches_raw.lower() != "none":
+        for entry in _touches_entries(touches_raw):
+            if entry == "**" or entry.startswith("/") or ".." in entry:
+                result.errors.append(
+                    LintIssue(
+                        "E011",
+                        f"Dependency Surface 'Touches' entry {entry!r} is pathological "
+                        f"(repo-wide '**', absolute, or parent-traversal) — not a valid write scope",
+                    )
+                )
 
     depends_val = fields.get("Depends on", "")
     if not depends_val or depends_val.lower() == "none":

@@ -233,6 +233,143 @@ def _terminal(workflow_id: str) -> WorkUnitTemplate:
     )
 
 
+# ---------------------------------------------------------------------------
+# Unified WorkUnit scope derivation (STORY-slim-20260824dd23a0ed3b4c)
+#
+# WorkUnit read/write scope is NOT a hardcoded directory whitelist. It is the
+# union of the unit's frozen template floor + applicable project-declared
+# write_scope roots + the Story's Touches (Tier-1 Spec law). Union — never
+# intersection — so mutable config never clips Spec-declared surface. Runtime
+# path-escape is still blocked by _safe_repo_path; pathological Touches are
+# rejected at Plan time by spec_linter (R5).
+# ---------------------------------------------------------------------------
+
+# category -> pactkit.yaml write_scope key
+_WRITE_SCOPE_CONFIG_KEYS = {
+    "source": "source_roots",
+    "test": "test_roots",
+    "docs": "docs_roots",
+}
+_WRITE_SCOPE_ROOT_KEYS = tuple(_WRITE_SCOPE_CONFIG_KEYS)
+
+# Per (workflow, step) config-root category selection for WRITES (Open-Closed:
+# extend to add steps). absence ⇒ the step writes nothing extra (run-only /
+# governance). Keyed by (workflow_id, step_id) so step_ids never collide across
+# workflows.
+_STEP_WRITE_CATEGORIES: dict[tuple[str, str], tuple[str, ...]] = {
+    ("project-act", "red"): ("test",),                 # TDD: tests first, no source
+    ("project-act", "implementation"): ("source", "test"),
+    ("project-hotfix", "fix"): ("source", "test"),     # hotfix implementation
+    ("project-act", "sync_coverage"): ("docs",),
+    ("project-act", "finalize_act"): ("docs",),
+}
+# (workflow, step) pairs whose writes also include story.touches.
+_STEP_TOUCHES_WRITES = frozenset({
+    ("project-act", "implementation"),
+    ("project-act", "red"),
+    ("project-act", "sync_coverage"),
+})
+
+
+def _dedupe_scope(items):
+    """Order-stable dedupe of an iterable into a tuple."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            out.append(item)
+    return tuple(out)
+
+
+def _normalize_write_scope(ws) -> dict[str, list[str]]:
+    """Normalize a write_scope mapping into {source, test, docs} root lists.
+
+    Tolerates malformed input (non-list / non-string entries are filtered),
+    matching validate_config's warn-never-raise contract. Accepts the
+    pactkit.yaml shape (source_roots/test_roots/docs_roots).
+    """
+    out = {cat: [] for cat in _WRITE_SCOPE_ROOT_KEYS}
+    if not isinstance(ws, dict):
+        return out
+    for cat, config_key in _WRITE_SCOPE_CONFIG_KEYS.items():
+        roots = ws.get(config_key)
+        if isinstance(roots, list):
+            out[cat] = [r for r in roots if isinstance(r, str) and r]
+    return out
+
+
+def _load_write_scope(root: Path) -> dict[str, list[str]]:
+    """Load the write_scope section from pactkit.yaml relative to *root*."""
+    from pactkit.config import find_pactkit_yaml, load_config
+
+    found = find_pactkit_yaml(root)
+    raw = load_config(found) if found is not None else {}
+    ws = raw.get("write_scope") if isinstance(raw, dict) else None
+    return _normalize_write_scope(ws)
+
+
+def _load_touches(root: Path, story_id: str | None) -> list[str]:
+    """Return the Spec's Touches paths for *story_id* (empty if unbound/no spec)."""
+    if not story_id:
+        return []
+    try:
+        from pactkit.spec_graph import parse_story
+
+        node = parse_story(root / "docs/specs" / f"{story_id}.md")
+    except (OSError, ImportError, ValueError):
+        return []
+    return list(node.touches) if node is not None else []
+
+
+def resolve_scope(
+    workflow_id: str,
+    step_id: str,
+    story_id: str | None,
+    root: Path,
+    *,
+    write_scope=None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return (extra_reads, extra_writes) to union onto the unit template floor.
+
+    Pure SSoT — called by WorkflowEngine.acquire for every workflow. Templates
+    stay frozen; this layers project write_scope roots + Story touches on top.
+
+    Args:
+        workflow_id: workflow (project-act / project-hotfix / ...). Plan is
+            excluded by the caller (it produces Touches, does not consume).
+        step_id: the WorkUnit step (drives per-step category selection).
+        story_id: bound Story ID (None ⇒ no touches).
+        root: project root (for loading pactkit.yaml + the Spec).
+        write_scope: inject the raw write_scope mapping (config shape) to
+            bypass disk in tests; None ⇒ load from pactkit.yaml.
+
+    Returns:
+        (extra_reads, extra_writes) — deduped, order-stable. Reads always
+        include all categories + touches; writes follow per-step selection.
+    """
+    ws = (
+        _normalize_write_scope(write_scope)
+        if write_scope is not None
+        else _load_write_scope(root)
+    )
+    touches = _load_touches(root, story_id)
+
+    write_cats = _STEP_WRITE_CATEGORIES.get((workflow_id, step_id), ())
+    extra_writes: list[str] = []
+    for cat in write_cats:
+        extra_writes.extend(ws[cat])
+    if (workflow_id, step_id) in _STEP_TOUCHES_WRITES:
+        extra_writes.extend(touches)
+
+    extra_reads: list[str] = []
+    for cat in _WRITE_SCOPE_ROOT_KEYS:
+        extra_reads.extend(ws[cat])
+    extra_reads.extend(touches)
+
+    return _dedupe_scope(extra_reads), _dedupe_scope(extra_writes)
+
+
 OTHER_WORKFLOW_UNITS = {
     "project-init": (
         _unit("preflight", "Inspect an uninitialized project", claims=("ready must equal true",)),
@@ -1584,6 +1721,13 @@ class WorkflowEngine:
             def render(values: tuple[str, ...]) -> tuple[str, ...]:
                 return tuple(value.replace("{story_id}", story_id) for value in values)
 
+            # STORY-slim-20260824dd23a0ed3b4c — union project write_scope roots +
+            # Story Touches onto the frozen template floor (resolve_scope SSoT).
+            extra_reads, extra_writes = resolve_scope(
+                state["workflow_id"], template.step_id,
+                state.get("story_id"), self.root,
+            )
+
             record = {
                 "run_id": run_id,
                 "unit_id": unit_id,
@@ -1592,8 +1736,8 @@ class WorkflowEngine:
                 "version": 1,
                 "objective": template.objective,
                 "input_refs": tuple(filter(None, (state.get("story_id"), state["goal_digest"]))),
-                "allowed_reads": render(template.allowed_reads),
-                "allowed_writes": render(template.allowed_writes),
+                "allowed_reads": _dedupe_scope((*render(template.allowed_reads), *extra_reads)),
+                "allowed_writes": _dedupe_scope((*render(template.allowed_writes), *extra_writes)),
                 "forbidden_operations": template.forbidden_operations,
                 "acceptance_commands": render(template.acceptance_commands),
                 "manual_authorization": template.manual_authorization,
@@ -1694,9 +1838,17 @@ class WorkflowEngine:
         return active
 
     def _completed_run_for_story(self, story_id: str, workflow_id: str) -> dict[str, Any] | None:
-        """Return a validated completed predecessor for one Story, if present."""
+        """Return a completed predecessor for one Story, if present.
+
+        STORY-slim-2026082466c8670d9655 R2: an EXISTENCE lookup must not
+        re-validate sibling journals' projection fingerprints — that strict
+        validation belongs on EXECUTION reads (_read), where tamper-detection
+        matters. A stale sibling journal (e.g. a plan run whose projections a
+        later workflow legitimately overwrote) must not poison a predecessor
+        lookup and block project-check/project-done start.
+        """
         for path in self.directory.glob("run-*.json") if self.directory.is_dir() else ():
-            state = self._read_scanned_state(path)
+            state = self._read_scanned_state(path, validate_completed=False)
             if (
                 state.get("story_id") == story_id
                 and state.get("workflow_id") == workflow_id
@@ -2863,6 +3015,17 @@ class WorkflowFinalizer:
             atomic_write(
                 self.root / "docs/product/sprint_board.md",
                 BoardRenderer(repository).render(),
+            )
+            # STORY-slim-2026082466c8670d9655 R1: regenerate context.md to the
+            # post-completion canonical AFTER complete_task flipped the story to
+            # done, so a later workflow's finalize does not leave context.md
+            # reflecting pre-completion counts (which would make earlier plan
+            # runs' context projection re-validation fail).
+            from pactkit.context_gen import context_output_path, generate_context
+
+            atomic_write(
+                context_output_path(self.root),
+                generate_context(self.root, command="pactkit finalize-workflow"),
             )
             self._validate_act_story_projection(story_id, board_tasks)
         except WorkUnitError:

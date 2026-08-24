@@ -93,3 +93,19 @@
 - [x] 为 project-act 加入逐步 checkpoint 与完成覆盖门禁
 - [x] 接入 doctor/garden/status 诊断并验证 legacy 兼容
 - [x] 验证四种 format 与外部 adapter 的真实 project-act 部署 parity
+
+### [STORY-slim-20260824dd23a0ed3b4c] Unified WorkUnit Write/Read Scope Derivation for Non-Standard Directory Layouts
+> Spec: docs/specs/STORY-slim-20260824dd23a0ed3b4c.md
+
+- [x] resolve_scope SSoT + acquire/lease_current wiring (union model, template-as-floor)
+- [x] write_scope config section (source/test/docs_roots) + validator + CONFIG_SCHEMA
+- [x] spec_linter E011 rejects pathological Touches (**, absolute, ..)
+- [x] TDD tests (18) + engine regression; 4550 suite green
+
+### [STORY-slim-2026082466c8670d9655] Completed Runs Survive Legitimate Cross-Workflow Projection Evolution
+> Spec: docs/specs/STORY-slim-2026082466c8670d9655.md
+
+- [x] R2 _completed_run_for_story lenient scan (validate_completed=False) — unblocks Check/Done start
+- [x] R1 finalize-workflow regenerates context.md to post-completion canonical
+- [x] R3 execution reads stay strict (tamper still detected)
+- [x] full-chain Plan→Act→Check→Done regression test; 4555 suite green

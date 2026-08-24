@@ -318,6 +318,35 @@ def _validate_e2e(_key: str, value) -> list[str]:
     return msgs
 
 
+_WRITE_SCOPE_ROOT_KEYS = ("source_roots", "test_roots", "docs_roots")
+
+
+def _validate_write_scope(_key: str, value) -> list[str]:
+    """Validate the optional write_scope section (STORY-slim-20260824dd23a0ed3b4c R3).
+
+    Each of source_roots / test_roots / docs_roots MUST be a list of strings.
+    Non-list or non-string entries produce warnings (validate_config warns,
+    never raises); resolve_scope tolerates malformed entries at runtime.
+    """
+    msgs: list[str] = []
+    if not isinstance(value, dict):
+        msgs.append("Config key 'write_scope' should be a mapping")
+        return msgs
+    for root_key in _WRITE_SCOPE_ROOT_KEYS:
+        roots = value.get(root_key)
+        if roots is None:
+            continue
+        if not isinstance(roots, list):
+            msgs.append(
+                f"write_scope.{root_key} should be a list, got {type(roots).__name__}"
+            )
+            continue
+        for entry in roots:
+            if not isinstance(entry, str):
+                msgs.append(f"write_scope.{root_key} contains non-string value: {entry!r}")
+    return msgs
+
+
 # ---------------------------------------------------------------------------
 # CONFIG_SCHEMA — the single source of truth (STORY-slim-135 R1)
 #
@@ -487,6 +516,14 @@ CONFIG_SCHEMA: dict[str, dict] = {
         "kind": "mapping",
         "comment": "# Rule Scopes — map rule IDs to glob patterns for context-aware scoping",
         "validator": _validate_rule_scopes,
+        "optional": True,
+    },
+    "write_scope": {
+        "default": None,
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Write Scope — declare source/test/docs roots for non-standard directory layouts",
+        "validator": _validate_write_scope,
         "optional": True,
     },
 }

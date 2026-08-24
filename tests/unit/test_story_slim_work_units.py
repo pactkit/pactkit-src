@@ -3078,3 +3078,172 @@ def test_bind_story_fails_closed_for_corrupt_competing_checkpoint(tmp_path, payl
         engine.bind_story(run["run_id"], "STORY-slim-999")
 
     assert engine.read(run["run_id"])["story_id"] is None
+
+
+def test_acquire_zero_regression_without_write_scope_or_touches(tmp_path):
+    """R7 (STORY-slim-20260824dd23a0ed3b4c): with no write_scope config and no
+    Story Touches, WorkflowEngine.acquire produces a scope identical to the
+    frozen template floor — resolve_scope adds nothing (zero regression).
+    """
+    from pactkit.workflow_engine import ACT_WORK_UNITS, WorkflowEngine
+
+    _initialize_work_unit_project(tmp_path)
+    sid = "STORY-slim-998"
+    spec = tmp_path / "docs/specs" / f"{sid}.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    spec.write_text(
+        f"# {sid}: regression\n\n"
+        "| Field | Value |\n|-------|-------|\n"
+        f"| ID | {sid} |\n| Status | Draft |\n| Priority | P1 |\n| Release | 2.22.0 |\n\n"
+        "## Dependency Surface\n\n"
+        "| Field | Value |\n|-------|-------|\n"
+        "| Depends on | None |\n| Provides | None |\n| Touches | None |\n| Conflict risk | LOW |\n",
+        encoding="utf-8",
+    )
+    engine = WorkflowEngine(tmp_path)
+    run = engine.start("project-act", goal="regression", story_id=sid)
+    unit = engine.acquire(run.run_id, owner="claude", idempotency_key="reg-zero-1")
+
+    preflight = next(u for u in ACT_WORK_UNITS if u.step_id == "act_preflight")
+    expected_reads = tuple(r.replace("{story_id}", sid) for r in preflight.allowed_reads)
+    assert unit.allowed_reads == expected_reads
+    assert unit.allowed_writes == preflight.allowed_writes
+
+
+# ---------------------------------------------------------------------------
+# STORY-slim-2026082466c8670d9655 — completed runs survive cross-workflow
+# projection evolution (predecessor-lookup leniency + context regen).
+# ---------------------------------------------------------------------------
+
+_ACT_SURVIVAL_CLAIMS = {
+    "act_preflight": {"spec_lint": "pass", "trace": ["src/act_story.py"]},
+    "red": {"story_tests": {"exit_code": 1}},
+    "implementation": {"changed_files": ["src/act_story.py"]},
+    "story_tests": {"story_tests": {"exit_code": 0}},
+    "regression_lint": {"regression": "pass", "lint": "pass"},
+    "sync_coverage": {
+        "coverage": {"R1": ["test_act_story"]},
+        "acceptance_coverage": {"AC1": ["test_act_story"]},
+        "board_tasks": ["one", "two"],
+    },
+}
+_ACT_SURVIVAL_FILES = {"red": ["tests/test_act_story.py"], "implementation": ["src/act_story.py"]}
+
+
+def _finalize_act_for_story(root: Path, engine, story_id: str) -> str:
+    """Advance + finalize an Act run for *story_id* (plan already finalized)."""
+    from pactkit.workflow_engine import EvidenceReceipt, WorkflowFinalizer
+
+    (root / "tests").mkdir(parents=True, exist_ok=True)
+    (root / "tests/test_act_story.py").write_text("def test_story():\n    assert True\n", encoding="utf-8")
+    (root / "src").mkdir(parents=True, exist_ok=True)
+    (root / "src/act_story.py").write_text("VALUE = True\n", encoding="utf-8")
+    run = engine.start("project-act", goal="act", story_id=story_id)
+    while engine.status(run.run_id)["step_id"] != "finalize_act":
+        step = engine.status(run.run_id)["step_id"]
+        unit = engine.acquire(run.run_id, owner="codex", idempotency_key=f"{step}-acquire")
+        result = engine.submit(
+            unit.unit_id, EvidenceReceipt.for_files(
+                unit, owner="codex", root=root,
+                files=_ACT_SURVIVAL_FILES.get(step, []),
+                claims=_ACT_SURVIVAL_CLAIMS[step],
+            ), owner="codex", idempotency_key=f"{step}-submit",
+        )
+        assert result.attempt_status == "succeeded", result
+    final = engine.acquire(run.run_id, owner="codex", idempotency_key="final-acquire")
+    receipt = EvidenceReceipt.for_files(
+        final, owner="codex", root=root, files=[], claims={"completed": True},
+    )
+    WorkflowFinalizer(root, engine).finalize(
+        run.run_id, receipt, owner="codex", idempotency_key=f"act-{story_id}",
+    )
+    return run.run_id
+
+
+def test_check_start_survives_stale_plan_journal_after_act(tmp_path):
+    """R2/R4: after Plan + Act finalize, project-check start must NOT crash
+    with invalid_workflow_state (predecessor project-act found leniently)."""
+    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine
+
+    sid = "STORY-slim-996"
+    _write_plan_inputs(tmp_path, sid)
+    engine = WorkflowEngine(tmp_path)
+    run = engine.start("project-plan", goal="plan", story_id=sid)
+    _advance_plan_to_finalize(engine, run.run_id, tmp_path, sid)
+    PlanFinalizer(tmp_path, engine).finalize(
+        run.run_id, story_id=sid, title="Survival", tasks=["one", "two"],
+        idempotency_key=f"plan-{sid}",
+    )
+    _finalize_act_for_story(tmp_path, engine, sid)  # overwrites story/board/context
+
+    check = engine.start("project-check", goal="check", story_id=sid)
+    assert check.status == "running"
+
+
+def test_done_start_reports_honest_predecessor_error_not_crash(tmp_path):
+    """R4: project-done start (no completed check) must raise the honest
+    project-check_completion_required, NOT invalid_workflow_state."""
+    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine, WorkUnitError
+
+    sid = "STORY-slim-996"
+    _write_plan_inputs(tmp_path, sid)
+    engine = WorkflowEngine(tmp_path)
+    run = engine.start("project-plan", goal="plan", story_id=sid)
+    _advance_plan_to_finalize(engine, run.run_id, tmp_path, sid)
+    PlanFinalizer(tmp_path, engine).finalize(
+        run.run_id, story_id=sid, title="Survival", tasks=["one", "two"],
+        idempotency_key=f"plan-{sid}",
+    )
+    _finalize_act_for_story(tmp_path, engine, sid)
+
+    with pytest.raises(WorkUnitError, match="project-check_completion_required"):
+        engine.start("project-done", goal="done", story_id=sid)
+
+
+def test_finalize_workflow_regen_context_to_post_completion_canonical(tmp_path):
+    """R1: after Act finalize marks the story done, context.md must equal
+    generate_context(root) recomputed post-completion."""
+    import re
+    from pactkit.context_gen import context_output_path, generate_context
+    from pactkit.governance import StoryRepository
+    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine
+
+    sid = "STORY-slim-996"
+    _write_plan_inputs(tmp_path, sid)
+    engine = WorkflowEngine(tmp_path)
+    run = engine.start("project-plan", goal="plan", story_id=sid)
+    _advance_plan_to_finalize(engine, run.run_id, tmp_path, sid)
+    PlanFinalizer(tmp_path, engine).finalize(
+        run.run_id, story_id=sid, title="Survival", tasks=["one", "two"],
+        idempotency_key=f"plan-{sid}",
+    )
+    _finalize_act_for_story(tmp_path, engine, sid)
+
+    assert StoryRepository(tmp_path).load(sid)["status"] == "done"
+
+    def _norm(text: str) -> str:
+        return re.sub(r"^> Last updated: .+$", "> Last updated: <dyn>", text, count=1, flags=re.MULTILINE)
+
+    expected = generate_context(tmp_path, command="pactkit finalize-workflow")
+    actual = context_output_path(tmp_path).read_text(encoding="utf-8")
+    assert _norm(actual) == _norm(expected)
+
+
+def test_execution_read_still_detects_tampered_board(tmp_path):
+    """R3: _read (execution read) MUST still raise on a tampered projection
+    no completed journal explains (tamper-detection intact for execution reads)."""
+    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine, WorkUnitError
+
+    sid = "STORY-slim-996"
+    _write_plan_inputs(tmp_path, sid)
+    engine = WorkflowEngine(tmp_path)
+    run = engine.start("project-plan", goal="plan", story_id=sid)
+    _advance_plan_to_finalize(engine, run.run_id, tmp_path, sid)
+    PlanFinalizer(tmp_path, engine).finalize(
+        run.run_id, story_id=sid, title="Survival", tasks=["one", "two"],
+        idempotency_key=f"plan-{sid}",
+    )
+    _finalize_act_for_story(tmp_path, engine, sid)
+    (tmp_path / "docs/product/sprint_board.md").write_text("TAMPERED\n", encoding="utf-8")
+    with pytest.raises(WorkUnitError, match="invalid_workflow_state"):
+        engine._read(run.run_id)
