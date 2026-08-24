@@ -1,0 +1,34 @@
+schema_version: 1
+id: STORY-slim-20260823d854b0cf1875
+title: Portable Methods 与宿主能力分层工作流架构
+spec_path: docs/specs/STORY-slim-20260823d854b0cf1875.md
+status: archived
+tasks:
+- id: task-ee577f2690
+  title: 定义三层产品边界与单一事实源
+  completed: true
+- id: task-2cc2ba8fa2
+  title: 实现 Work Unit 与租约状态机
+  completed: true
+- id: task-3dcaba4fc8
+  title: 实现 ExecutionAttempt 与 EvidenceReceipt 复验
+  completed: true
+- id: task-9009e72710
+  title: 建立 Host Capability Contract 与诚实降级
+  completed: true
+- id: task-e4b460f7c5
+  title: 提取 Portable Methods 单一内容源
+  completed: true
+- id: task-d108f08814
+  title: 迁移 project-plan 与原子 finalize
+  completed: true
+- id: task-fd588b6ece
+  title: 移除 Stop hook 正确性依赖
+  completed: true
+- id: task-c2dc920170
+  title: 完成兼容迁移、doctor 与真实宿主验证
+  completed: true
+created_at: '2026-08-23T06:17:58+00:00'
+updated_at: '2026-08-24T05:49:44+00:00'
+completed_at: '2026-08-23T07:04:06+00:00'
+archived_at: '2026-08-24T05:49:44+00:00'

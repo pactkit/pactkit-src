@@ -143,5 +143,5 @@ class TestSprintWavePrompt:
     def test_single_story_mode_preserved(self):
         """Existing single-story markers must survive the edit."""
         p = workflows.SPRINT_PROMPT
-        assert "pactkit next-id" in p
+        assert "pactkit generate-id" in p
         assert "TeamCreate" in p

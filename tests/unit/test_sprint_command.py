@@ -248,7 +248,7 @@ class TestSprintPerformanceOptimization:
         assert 'update' in lower and 'skip' in lower, \
             'SPRINT_PROMPT missing pactkit update skip for Done'
 
-    # AC5: Double visualize and next-id eliminated (R5)
+    # AC5: Double visualize and ID allocation eliminated (R5)
     def test_sprint_skips_done_visualize(self):
         """AC5: SPRINT_PROMPT must instruct Done to skip visualize"""
         from pactkit.prompts import SPRINT_PROMPT

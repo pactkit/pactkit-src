@@ -844,10 +844,11 @@ def get_skill_manifest() -> list[dict]:
     skills, script_source. Adapters consume this instead of maintaining
     their own skill lists.
     """
+    from pactkit.portable_methods import get_portable_methods
     from pactkit.skills import load_script
 
     resolved = []
-    for entry in SKILL_MANIFEST:
+    for entry in (*SKILL_MANIFEST, *get_portable_methods()):
         item = dict(entry)
         if item["script_name"]:
             item["script_source"] = load_script(item["script_name"])

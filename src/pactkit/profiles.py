@@ -129,8 +129,8 @@ class FormatProfile:
     """Deploy-output CLI availability policy.
 
     REQUIRED: generated workflow relies on the PactKit CLI (classic, opencode).
-    PREFERRED: preserve PactKit CLI commands with explicit fallback (codex).
-    UNAVAILABLE: workflow must not require the PactKit CLI (copilot).
+    PREFERRED: preserve PactKit CLI commands with explicit fallback.
+    UNAVAILABLE: workflow must not require the PactKit CLI.
     Default REQUIRED for backward compat with third-party profiles that omit it.
     """
 
@@ -233,7 +233,9 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var=".github/skills",
-        cli_policy=CLIPolicy.UNAVAILABLE,
+        # Copilot has no embedded PactKit runtime, but the WorkUnit facade
+        # deliberately preserves terminal Core commands for manual resume.
+        cli_policy=CLIPolicy.PREFERRED,
     ),
 }
 

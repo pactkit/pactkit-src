@@ -249,7 +249,7 @@ PactKit ships 36 deterministic CLI subcommands — operations that were previous
 | `pactkit spec-graph` | Story dependency DAG: topological execution waves + file-conflict matrix (`--json` for orchestrators, `--write-graph` for Mermaid) |
 | `pactkit spec-status` | Update spec Status field (Draft/In Progress/Done) |
 | `pactkit guard` | Check project init markers |
-| `pactkit next-id` | Generate next Story/Bug ID |
+| `pactkit generate-id [--type story\|hotfix\|bug]` | Generate a decentralized time-prefixed item ID |
 | `pactkit context` | Generate `context.md` from project state |
 | `pactkit clean` | Remove stack-specific temp artifacts |
 | `pactkit lint` | Stack-aware lint with auto-fix and blocking modes |

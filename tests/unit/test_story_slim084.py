@@ -20,6 +20,13 @@ def _make_profile(*, name, global_config_dir, has_pactkit_cli=True):
     return p
 
 
+def _unavailable_profile():
+    profile = _make_profile(
+        name="synthetic", global_config_dir=".synthetic", has_pactkit_cli=False,
+    )
+    return profile
+
+
 class TestValidateDeployedContent:
     """AC1-AC4: validate_deployed_content() detects foreign references."""
 
@@ -37,10 +44,10 @@ class TestValidateDeployedContent:
         violations = DeployerBase.validate_deployed_content(content, profile)
         assert violations == []
 
-    def test_detects_cli_ref_for_cli_less_profile(self):
-        """AC3a: copilot (no CLI) + pactkit visualize → violation."""
+    def test_detects_cli_ref_for_explicitly_cli_less_profile(self):
+        """AC3a: a CLI-less adapter + pactkit visualize → violation."""
         content = "Run `pactkit visualize --mode class` to update graph"
-        profile = get_profile("copilot")
+        profile = _unavailable_profile()
         violations = DeployerBase.validate_deployed_content(content, profile)
         assert any("`pactkit visualize" in v for v in violations)
 
@@ -54,7 +61,7 @@ class TestValidateDeployedContent:
     def test_skips_install_instructions(self):
         """AC4: pactkit init --format is installation guidance, not a CLI ref."""
         content = "run `pactkit init --format copilot` from the terminal"
-        profile = get_profile("copilot")
+        profile = _unavailable_profile()
         violations = DeployerBase.validate_deployed_content(content, profile)
         assert violations == []
 
@@ -65,7 +72,7 @@ class TestValidateDeployedContent:
             "Also check ~/.config/opencode/commands/bar\n"
             "Run `pactkit clean` to tidy up\n"
         )
-        profile = get_profile("copilot")
+        profile = _unavailable_profile()
         violations = DeployerBase.validate_deployed_content(content, profile)
         assert len(violations) >= 3
 
@@ -105,8 +112,8 @@ class TestHasPactkitCli:
         assert get_profile("codex").has_pactkit_cli is True
         assert get_profile("codex").cli_policy is CLIPolicy.PREFERRED
 
-    def test_copilot_no_cli(self):
-        assert get_profile("copilot").has_pactkit_cli is False
+    def test_copilot_preserves_terminal_cli_for_manual_resume(self):
+        assert get_profile("copilot").has_pactkit_cli is True
 
     def test_all_profiles_have_field(self):
         """Every profile in FORMAT_PROFILES must define has_pactkit_cli."""

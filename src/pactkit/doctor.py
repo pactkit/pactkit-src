@@ -9,9 +9,74 @@ from pathlib import Path
 
 from pactkit.id_generator import ITEM_ID_RE
 from pactkit.schemas import ITEM_ID_PATTERN
+from pactkit.workflow_engine import WorkflowEngine, WorkUnitError, _validate_workflow_state
+
+_EXECUTION_MODE_RANK = {
+    "portable": 0, "guided": 1, "resumable": 2, "managed": 3,
+}
 
 
-def check_workflow_continuation(project_root: Path) -> dict:
+def _project_host_guarantees(
+    project_root: Path, warnings: list[str], *, home: Path | None = None,
+) -> dict[str, str]:
+    """Read installed host guarantees and never report more than either claim.
+
+    Deployment manifests are diagnostic inputs, not Core workflow authority.
+    Still, doctor must not turn a portable host into a guided one simply
+    because its legacy default is stronger than the installed contract.
+    """
+    import json
+
+    roots = {
+        "classic": project_root / ".claude",
+        "opencode": project_root / ".opencode",
+        "codex": project_root / ".codex",
+        "copilot": project_root / ".github",
+    }
+    global_codex = (home or Path.home()) / ".codex"
+    if not (roots["codex"] / ".pactkit-deployed.json").is_file():
+        roots["codex"] = global_codex
+    guarantees: dict[str, str] = {}
+    for expected_format, root in roots.items():
+        path = root / ".pactkit-deployed.json"
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError
+            host = payload.get("host_capabilities")
+            workflow = payload.get("workflow_continuation")
+            if (
+                payload.get("format") != expected_format
+                or not isinstance(host, dict)
+                or not isinstance(workflow, dict)
+            ):
+                raise ValueError
+            host_mode = host.get("execution_mode")
+            workflow_mode = workflow.get("guarantee_level")
+            if host_mode not in _EXECUTION_MODE_RANK or workflow_mode not in _EXECUTION_MODE_RANK:
+                raise ValueError
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            try:
+                display_path = str(path.relative_to(project_root))
+            except ValueError:
+                display_path = str(path)
+            warnings.append(f"corrupt host capability manifest: {display_path}")
+            # The host is installed but its capability evidence is unusable.
+            # Retain it at the lowest supported level so a corrupt manifest
+            # cannot make doctor report the stronger no-manifest default.
+            guarantees[expected_format] = "portable"
+            continue
+        guarantees[expected_format] = min(
+            (host_mode, workflow_mode), key=_EXECUTION_MODE_RANK.__getitem__,
+        )
+    return guarantees
+
+
+def check_workflow_continuation(
+    project_root: Path, *, home: Path | None = None,
+) -> dict:
     """Report active runs, host guarantee level, and unsafe host state."""
     import json
     from datetime import datetime, timezone
@@ -19,6 +84,7 @@ def check_workflow_continuation(project_root: Path) -> dict:
     runs_dir = project_root / ".pactkit" / "continuations" / "runs"
     hosts_dir = project_root / ".pactkit" / "continuations" / "hosts"
     active: list[dict] = []
+    work_unit_runs: list[dict] = []
     warnings: list[str] = []
     run_paths = sorted(runs_dir.glob("run-*.json")) if runs_dir.is_dir() else []
     for path in run_paths:
@@ -27,13 +93,19 @@ def check_workflow_continuation(project_root: Path) -> dict:
         except (OSError, json.JSONDecodeError):
             warnings.append(f"corrupt workflow state: {path.name}")
             continue
+        if not isinstance(state, dict):
+            warnings.append(f"corrupt workflow state: {path.name}")
+            continue
         if state.get("status") == "in_progress":
             active.append({
                 "run_id": state.get("run_id"), "workflow_id": state.get("workflow_id"),
                 "step_id": state.get("step_id"),
             })
         host = state.get("host_continuation")
-        if isinstance(host, dict):
+        # Host-continuation metadata predates WorkUnits and is advisory only.
+        # A completed Core workflow is authoritative; historical Stop-hook
+        # retries must not make doctor report an active hook failure.
+        if isinstance(host, dict) and state.get("status") != "completed":
             _append_host_warnings(host, path.name, warnings)
     now = datetime.now(timezone.utc)
     host_paths = sorted(hosts_dir.glob("run-*.json")) if hosts_dir.is_dir() else []
@@ -43,10 +115,42 @@ def check_workflow_continuation(project_root: Path) -> dict:
         except (OSError, json.JSONDecodeError):
             warnings.append(f"corrupt host lease: {path.name}")
             continue
+        if not isinstance(host, dict):
+            warnings.append(f"corrupt host lease: {path.name}")
+            continue
         _append_host_warnings(host, path.name, warnings, now=now)
+    unit_dir = project_root / ".pactkit" / "workflow-runs"
+    for path in sorted(unit_dir.glob("run-*.json")) if unit_dir.is_dir() else []:
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+            # WorkUnit files are recovery inputs.  Doctor must not report a
+            # syntactically valid but semantically damaged run as healthy.
+            _validate_workflow_state(state)
+            if state["run_id"] != path.stem:
+                raise WorkUnitError("invalid_workflow_state")
+            WorkflowEngine(project_root)._validate_completed_finalize_journal(state)
+        except (OSError, json.JSONDecodeError, WorkUnitError):
+            warnings.append(f"corrupt WorkUnit state: {path.name}")
+            continue
+        work_unit_runs.append({
+            "run_id": state.get("run_id"), "workflow_id": state.get("workflow_id"),
+            "status": state.get("status"), "current_index": state.get("current_index"),
+        })
+    host_guarantees = _project_host_guarantees(project_root, warnings, home=home)
+    # The summary describes the strongest installed continuation path, while
+    # host_guarantees preserves every weaker host explicitly.  Taking the
+    # weakest host here made a project-local Copilot facade mask a verified
+    # global Codex App Server deployment and incorrectly report Codex as
+    # guided.  Operators can still inspect each host without losing fidelity.
+    guarantee_level = (
+        max(host_guarantees.values(), key=_EXECUTION_MODE_RANK.__getitem__)
+        if host_guarantees else "guided"
+    )
     return {
         "finish_guard_supported": True, "auto_resume_available": False,
-        "guarantee_level": "process", "active": active, "warnings": warnings,
+        "guarantee_level": guarantee_level, "host_guarantees": host_guarantees,
+        "stop_hook_required": False,
+        "active": active, "work_unit_runs": work_unit_runs, "warnings": warnings,
     }
 
 
@@ -331,23 +435,29 @@ def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
     manifest = root / ".pactkit-deployed.json"
     default = {
         "installed": False, "trusted": False, "observed": False,
-        "validated": False, "guarantee_level": "process", "warnings": [],
+        "validated": False, "guarantee_level": "guided", "warnings": [],
     }
     if not manifest.is_file():
         return default
     try:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError
         capability = payload.get("workflow_continuation", {})
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError, ValueError):
         return {**default, "warnings": ["Codex hook manifest unreadable — re-run `pactkit update`"]}
     if not isinstance(capability, dict):
         return {**default, "warnings": ["Codex hook capability is corrupt — re-run `pactkit update`"]}
+    installed = capability.get("hook_installed") is True
+    # Historic hook observations are not a capability.  Once the owned entry
+    # is gone, every hook lifecycle signal must fail closed rather than making
+    # doctor (or an operator) believe an uninstalled hook remains active.
     result = {
-        "installed": capability.get("hook_installed") is True,
-        "trusted": capability.get("hook_trusted") is True,
-        "observed": capability.get("hook_observed") is True,
-        "validated": capability.get("continuation_validated") is True,
-        "guarantee_level": capability.get("guarantee_level", "process"),
+        "installed": installed,
+        "trusted": installed and capability.get("hook_trusted") is True,
+        "observed": installed and capability.get("hook_observed") is True,
+        "validated": installed and capability.get("continuation_validated") is True,
+        "guarantee_level": capability.get("guarantee_level", "guided"),
         "warnings": [],
     }
     if result["installed"] and not result["trusted"]:
@@ -393,6 +503,12 @@ def check_deploy_parity(project_root: Path) -> dict:
             data = json.loads(manifest.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
             warnings.append(f"{manifest}: unreadable ({exc}) — re-run `pactkit update`")
+            continue
+        if not isinstance(data, dict):
+            warnings.append(
+                f"{manifest}: unreadable (top-level JSON must be an object) — "
+                "re-run `pactkit update`"
+            )
             continue
 
         fmt = data.get("format", "")

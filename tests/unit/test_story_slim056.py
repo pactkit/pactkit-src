@@ -90,20 +90,19 @@ class TestGuardCommand:
 
 
 @pytest.mark.e2e
-class TestNextIdCommand:
-    """E2E tests for pactkit next-id."""
+class TestGenerateIdCommand:
 
     def test_next_id_returns_id(self, tmp_path):
-        """next-id in an initialized project returns a valid ID."""
+        """generate-id in an initialized project returns a valid ID."""
         _init_project(tmp_path)
-        stdout, stderr, rc = run_pactkit("next-id", cwd=str(tmp_path))
-        assert rc == 0, f"next-id failed: {stderr}"
+        stdout, stderr, rc = run_pactkit("generate-id", cwd=str(tmp_path))
+        assert rc == 0, f"generate-id failed: {stderr}"
         assert "STORY-" in stdout or "story" in stdout.lower() or stdout.strip()
 
     def test_next_id_no_specs_returns_initial(self, tmp_path):
-        """next-id with no existing specs returns a collision-resistant ID."""
+        """generate-id with no existing specs returns a collision-resistant ID."""
         _init_project(tmp_path)
-        stdout, _, rc = run_pactkit("next-id", cwd=str(tmp_path))
+        stdout, _, rc = run_pactkit("generate-id", cwd=str(tmp_path))
         assert rc == 0
         from pactkit.id_generator import ITEM_ID_RE
         assert ITEM_ID_RE.fullmatch(stdout.strip())
@@ -381,7 +380,7 @@ class TestErrorPaths:
 
     ALL_SUBCOMMANDS = [
         "init", "update", "upgrade", "spec-lint", "schema", "guard",
-        "next-id", "clean", "regression", "context", "sec-scope",
+        "generate-id", "clean", "regression", "context", "sec-scope",
         "lint-context", "lint-lessons", "lint-testcase", "visualize",
         "doctor", "backfill-release", "issue-sync", "test-map", "lint",
         "lesson-append", "invariants-refresh", "coverage-gate",

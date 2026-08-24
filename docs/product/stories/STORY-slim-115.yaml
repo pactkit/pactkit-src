@@ -1,0 +1,23 @@
+schema_version: 1
+id: STORY-slim-115
+title: Worktree/Parallel Session Artifact Drift Prevention
+spec_path: docs/specs/STORY-slim-115.md
+status: backlog
+tasks:
+- id: task-a88b1e1f57
+  title: 实现派生 Board 视图
+  completed: false
+- id: task-b2a81ba290
+  title: 增加 Board 生成与状态命令
+  completed: false
+- id: task-ea5ebbb9b9
+  title: 迁移 PDCA Board 操作
+  completed: false
+- id: task-ccc351b9a3
+  title: 验证并行 Session 安全
+  completed: false
+- id: task-7e552a7ef0
+  title: 完成兼容迁移与回归
+  completed: false
+created_at: '2026-08-23T13:43:01+00:00'
+updated_at: '2026-08-23T13:43:01+00:00'

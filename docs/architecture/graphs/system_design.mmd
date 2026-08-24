@@ -61,8 +61,10 @@ graph TD
         ResumeState[".pactkit/continuations/<br/>{workflow-run}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146/147)"]
         ResumeVerifier["Continuation Engine<br/>workflow-specific evidence +<br/>git/artifact validation<br/>(STORY-slim-147)"]
         FinishGuard["Workflow Finish Guard<br/>pre-final decision + managed writes<br/>(STORY-slim-2026082381e832771d4e)"]
-        HostRunner["Host Continuation Protocol<br/>capability handshake + bounded resume<br/>(STORY-slim-2026082381e832771d4e)"]
-        CodexStopHook["Codex Stop Hook<br/>session-bound finish enforcement<br/>(STORY-slim-20260823de7e85d6042a)"]
+        WorkUnits["Work Unit Scheduler<br/>bounded goal + allowed writes + acceptance<br/>(STORY-slim-20260823d854b0cf1875)"]
+        Attempts["Execution Attempts + Receipts<br/>host terminal ≠ workflow terminal"]
+        HostCaps["Host Capability Contract<br/>portable / guided / resumable / managed"]
+        AtomicFinalize["Journaled Plan Finalize<br/>Story fact + Board + Context + run"]
         LessonRecords["docs/architecture/governance/lessons/*.md<br/>append-only lesson facts<br/>(STORY-slim-148)"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
         StoryRecords["docs/product/stories/*.yaml<br/>per-Story execution state<br/>(STORY-slim-148)"]
@@ -127,11 +129,19 @@ graph TD
     ResumeVerifier -->|"verified next safe step"| Commands
     ResumeVerifier --> FinishGuard
     Commands -->|"pre-final check"| FinishGuard
-    FinishGuard -->|"continue / await user / done"| HostRunner
-    HostRunner -.->|"supported host session re-entry"| Commands
-    CodexPkg -->|"deploys lifecycle handler"| CodexStopHook
-    CodexStopHook -->|"resolve active run"| HostRunner
-    HostRunner -->|"block unfinished Stop"| CodexStopHook
+    ResumeVerifier --> WorkUnits
+    WorkflowRegistry --> WorkUnits
+    HostCaps --> WorkUnits
+    WorkUnits -->|"one bounded unit"| Commands
+    Commands --> Attempts
+    Attempts -->|"candidate evidence"| ResumeVerifier
+    ResumeVerifier -->|"validated final unit"| AtomicFinalize
+    AtomicFinalize --> StoryRecords
+    AtomicFinalize --> BoardView
+    AtomicFinalize --> Context
+    CodexPkg -.->|"App Server thread/turn adapter"| HostCaps
+    OpenCodePkg -.->|"native facade"| HostCaps
+    CopilotPkg -.->|"managed bridge or manual resume"| HostCaps
     ResumeVerifier -.->|"human-confirmed blocker"| Context
     Context -.->|"human-readable summary"| ResumeState
 

@@ -40,6 +40,30 @@ def test_host_resolution_uses_unique_active_fallback_and_rejects_ambiguity(tmp_p
         engine.resolve_host_run(session_id="unknown")
 
 
+@pytest.mark.parametrize("payload", ["[]", "null"])
+def test_host_resolution_rejects_non_object_workflow_checkpoint(tmp_path, payload):
+    from pactkit.continuation import ContinuationEngine, ContinuationError
+
+    engine = ContinuationEngine(tmp_path)
+    engine.directory.mkdir(parents=True)
+    (engine.directory / f"run-{'0' * 32}.json").write_text(payload, encoding="utf-8")
+
+    with pytest.raises(ContinuationError, match="corrupt workflow checkpoint"):
+        engine.resolve_host_run(session_id="unknown")
+
+
+def test_host_resolution_rejects_non_object_session_binding(tmp_path):
+    from pactkit.continuation import ContinuationEngine, ContinuationError
+
+    engine = ContinuationEngine(tmp_path)
+    binding = engine._host_binding_path(engine._host_reference("session-1", "session ID"))
+    binding.parent.mkdir(parents=True)
+    binding.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ContinuationError, match="corrupt host session binding"):
+        engine.resolve_host_run(session_id="session-1")
+
+
 def test_host_resolution_prefers_generic_run_identifier_for_project_act(tmp_path):
     from pactkit.continuation import ContinuationEngine
 
@@ -170,3 +194,49 @@ def test_doctor_reports_codex_hook_lifecycle_states(tmp_path, monkeypatch):
     assert result["validated"] is False
     assert result["guarantee_level"] == "process"
     assert any("/hooks" in warning for warning in result["warnings"])
+
+
+def test_doctor_without_codex_manifest_reports_guided_not_process(tmp_path):
+    from pactkit.doctor import check_codex_hook_capability
+
+    result = check_codex_hook_capability(tmp_path / "missing-codex-root")
+
+    assert result["guarantee_level"] == "guided"
+    assert result["installed"] is False
+
+
+def test_doctor_ignores_stale_hook_observation_when_hook_is_uninstalled(tmp_path):
+    from pactkit.doctor import check_codex_hook_capability
+
+    manifest = tmp_path / ".pactkit-deployed.json"
+    manifest.write_text(json.dumps({
+        "workflow_continuation": {
+            "hook_installed": False,
+            "hook_trusted": True,
+            "hook_observed": True,
+            "continuation_validated": True,
+            "guarantee_level": "guided",
+        },
+    }), encoding="utf-8")
+
+    result = check_codex_hook_capability(tmp_path)
+
+    assert result["installed"] is False
+    assert result["trusted"] is False
+    assert result["observed"] is False
+    assert result["validated"] is False
+
+
+@pytest.mark.parametrize("payload", ["[]", "null", '"manifest"'])
+def test_doctor_rejects_non_object_codex_manifest(tmp_path, payload):
+    from pactkit.doctor import check_codex_hook_capability
+
+    (tmp_path / ".pactkit-deployed.json").write_text(payload, encoding="utf-8")
+
+    result = check_codex_hook_capability(tmp_path)
+
+    assert result["installed"] is False
+    assert result["guarantee_level"] == "guided"
+    assert result["warnings"] == [
+        "Codex hook manifest unreadable — re-run `pactkit update`",
+    ]

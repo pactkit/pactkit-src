@@ -272,6 +272,7 @@ class TestDeploymentCompleteness:
         Note: skills/ also contains _rules/ (on-demand rules dir, STORY-slim-112) — excluded here.
         """
         from pactkit.config import VALID_SKILLS
+        from pactkit.portable_methods import get_portable_methods
         from pactkit.prompts.rules import RULES_ONDEMAND_DIR
         skills_dir = deploy_target / "skills"
         # Exclude the on-demand rules dir (_rules/) — it's not a skill
@@ -279,7 +280,9 @@ class TestDeploymentCompleteness:
             d.name for d in skills_dir.iterdir()
             if d.is_dir() and d.name != RULES_ONDEMAND_DIR
         }
-        assert deployed_dirs == set(VALID_SKILLS)
+        assert deployed_dirs == set(VALID_SKILLS) | {
+            item["name"] for item in get_portable_methods()
+        }
         for skill_name in VALID_SKILLS:
             assert (skills_dir / skill_name / "SKILL.md").exists(), \
                 f"{skill_name}/SKILL.md missing"

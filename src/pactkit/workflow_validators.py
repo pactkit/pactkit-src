@@ -37,6 +37,13 @@ class NoopValidator:
     def fingerprints(self, state: dict[str, Any]) -> dict[str, str]:
         return {}
 
+    def revalidate_artifacts(
+        self, state: dict[str, Any], artifacts: tuple[str, ...],
+    ) -> None:
+        """Fail closed unless a workflow defines artifact recovery semantics."""
+        del state, artifacts
+        raise WorkflowEvidenceError("artifact revalidation is not supported")
+
     def _require_graph_evidence(self, evidence: dict[str, Any]) -> None:
         from pactkit.config import find_pactkit_yaml, load_config
 
@@ -228,6 +235,33 @@ class PlanEvidenceValidator(NoopValidator):
         else:
             fingerprints["board"] = _hash(self._board())
         return fingerprints
+
+    def revalidate_artifacts(
+        self, state: dict[str, Any], artifacts: tuple[str, ...],
+    ) -> None:
+        """Revalidate current Plan evidence and every changed artifact."""
+        if not artifacts:
+            raise WorkflowEvidenceError("artifact revalidation requires drift")
+        allowed = {"spec", "hld", "story_fact", "board"}
+        unknown = set(artifacts) - allowed
+        if unknown:
+            raise WorkflowEvidenceError(
+                "unsupported artifact drift: " + ", ".join(sorted(unknown))
+            )
+        self.validate(
+            state, str(state.get("step_id", "")),
+            state.get("evidence", {}), str(state.get("status", "")),
+        )
+        if "hld" in artifacts:
+            hld = self.root / "docs/architecture/graphs/system_design.mmd"
+            if (
+                not hld.is_file()
+                or re.search(
+                    r"^\s*(?:graph|flowchart)\b",
+                    hld.read_text(encoding="utf-8"), re.MULTILINE,
+                ) is None
+            ):
+                raise WorkflowEvidenceError("HLD is missing or invalid")
 
 
 def plan_validator(root: Path) -> PlanEvidenceValidator:

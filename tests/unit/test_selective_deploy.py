@@ -258,8 +258,8 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
-        assert "25/25 Skills" in output
-        assert "13 embedded" in output
+        assert "31/31 Skills" in output
+        assert "19 embedded" in output
         assert "12 commands" in output
         assert "8/8 Rules" in output
 
@@ -273,7 +273,7 @@ class TestDeploymentSummary:
         output = capsys.readouterr().out
         assert "2/9 Agents" in output
         # 13 embedded skills + 3 commands = 16 total skills deployed out of 25
-        assert "16/25 Skills" in output
+        assert "22/31 Skills" in output
 
 
 # ===========================================================================

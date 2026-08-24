@@ -107,6 +107,8 @@ class ContinuationEngine:
                 state = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as exc:
                 raise ContinuationError(f"corrupt workflow checkpoint: {path.name}") from exc
+            if not isinstance(state, dict):
+                raise ContinuationError(f"corrupt workflow checkpoint: {path.name}")
             if state.get("run_id") == identifier or state.get("story_id") == identifier:
                 if exact:
                     return path, state
@@ -174,6 +176,8 @@ class ContinuationEngine:
         if binding_path.exists():
             try:
                 binding = json.loads(binding_path.read_text(encoding="utf-8"))
+                if not isinstance(binding, dict):
+                    raise TypeError
                 state = self.read(str(binding["run_id"]))
             except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
                 raise ContinuationError("corrupt host session binding") from exc
@@ -191,6 +195,8 @@ class ContinuationEngine:
                     state = json.loads(path.read_text(encoding="utf-8"))
                 except (OSError, json.JSONDecodeError) as exc:
                     raise ContinuationError(f"corrupt workflow checkpoint: {path.name}") from exc
+                if not isinstance(state, dict):
+                    raise ContinuationError(f"corrupt workflow checkpoint: {path.name}")
                 if state.get("status") == "in_progress":
                     active.append(state)
         if not active:
@@ -245,7 +251,16 @@ class ContinuationEngine:
             for candidate in self.directory.glob("run-*.json"):
                 if candidate == path:
                     continue
-                other = json.loads(candidate.read_text(encoding="utf-8"))
+                try:
+                    other = json.loads(candidate.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise ContinuationError(
+                        f"corrupt workflow checkpoint: {candidate.name}"
+                    ) from exc
+                if not isinstance(other, dict):
+                    raise ContinuationError(
+                        f"corrupt workflow checkpoint: {candidate.name}"
+                    )
                 if other.get("story_id") == story_id and other.get("status") != "completed":
                     raise ContinuationError(f"Story already bound to active run: {story_id}")
             state["story_id"] = story_id
@@ -327,6 +342,50 @@ class ContinuationEngine:
             "reasons": [],
         }
 
+    def revalidate_artifacts(self, identifier: str) -> dict[str, Any]:
+        """Audit and accept changed artifacts after deterministic validation.
+
+        This is the only transition allowed to refresh a stale run's artifact
+        fingerprints. Normal checkpoints retain their compare-before-write
+        behavior and therefore cannot erase drift accidentally.
+        """
+        _path, initial = self._find(identifier)
+        with self._run_lock(initial["run_id"]):
+            path, state = self._find(initial["run_id"])
+            if state.get("status") != "in_progress":
+                raise ContinuationError("artifact revalidation requires an active run")
+            validator = self.definition(state["workflow_id"]).validator_factory(self.root)
+            actual = validator.fingerprints(state)
+            expected = state.get("fingerprints", {})
+            if not isinstance(expected, dict):
+                raise ContinuationError("invalid workflow checkpoint state")
+            drift = tuple(sorted(
+                name for name, digest in expected.items()
+                if actual.get(name) != digest
+            ))
+            if not drift:
+                raise ContinuationError("artifact revalidation requires drift")
+            try:
+                validator.revalidate_artifacts(state, drift)
+            except WorkflowEvidenceError as exc:
+                raise ContinuationError(str(exc)) from exc
+            now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            audit = {
+                "step_id": state["step_id"],
+                "artifacts": list(drift),
+                "previous_fingerprints": {name: expected[name] for name in drift},
+                "validated_fingerprints": {name: actual[name] for name in drift},
+                "validated_at": now,
+            }
+            history = state.get("revalidations", [])
+            if not isinstance(history, list):
+                raise ContinuationError("invalid workflow checkpoint state")
+            state["revalidations"] = [*history, audit]
+            state["fingerprints"] = actual
+            state["updated_at"] = now
+            atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+        return self.resume(initial["run_id"])
+
     def finish_guard(
         self, identifier: str, *, auto_resume_available: bool = False,
     ) -> dict[str, Any]:
@@ -336,6 +395,15 @@ class ContinuationEngine:
         # checkpoint at the same time.  Never let historical completion mask
         # the active workflow.
         if not identifier.startswith("run-") and _STORY_ID.fullmatch(identifier):
+            resolution = ContinuationStore(self.root)._generic_act_resolution(identifier)
+            if resolution["kind"] == "completed":
+                return resolution["decision"]
+            if resolution["kind"] == "ambiguous":
+                return ContinuationStore(self.root)._ambiguous_generic_act_result(
+                    identifier, resolution,
+                    auto_resume_available=auto_resume_available,
+                    finish_guard=True,
+                )
             legacy = ContinuationStore(self.root).read(identifier)
             generic = None
             try:
@@ -582,6 +650,96 @@ class ContinuationStore:
         directory = self.root / "docs" / "product" / "stories"
         return directory / f"{story_id}.yaml" if directory.is_dir() else None
 
+    def _generic_act_resolution(self, story_id: str) -> dict[str, Any]:
+        """Resolve v2 Act authority without collapsing ambiguity into absence.
+
+        The legacy checkpoint remains immutable audit evidence. It must not,
+        however, make a Story resumable after the v2 Act engine has completed
+        that same Story. This accepts only completed ``project-act`` runs
+        whose own finish guard validates all completion evidence; active,
+        malformed, or conflicting v2 files leave the legacy checkpoint
+        authoritative and therefore fail closed.
+        """
+        engine = ContinuationEngine(self.root)
+        candidates: list[tuple[str, dict[str, Any]]] = []
+        ambiguous_paths: list[str] = []
+        active_paths: list[str] = []
+        for path in sorted(engine.directory.glob("run-*.json")):
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                ambiguous_paths.append(path.name)
+                continue
+            if not isinstance(raw, dict):
+                ambiguous_paths.append(path.name)
+                continue
+            if raw.get("story_id") != story_id or raw.get("workflow_id") != "project-act":
+                continue
+            try:
+                state = engine.read(path.stem)
+            except ContinuationError:
+                # This file explicitly claims the same Story, so malformed
+                # state is an ambiguous competing authority and must block
+                # legacy retirement.
+                ambiguous_paths.append(path.name)
+                continue
+            if state.get("status") in {"in_progress", "blocked"}:
+                active_paths.append(path.name)
+                continue
+            if state.get("status") != "completed":
+                ambiguous_paths.append(path.name)
+                continue
+            decision = engine.finish_guard(str(state["run_id"]))
+            if decision.get("decision") != "done" or decision.get("exit_code") != 0:
+                ambiguous_paths.append(path.name)
+                continue
+            candidates.append((str(state.get("updated_at", "")), decision))
+        latest = (
+            max(candidates, key=lambda item: (item[0], item[1]["run_id"]))[1]
+            if candidates else None
+        )
+        if ambiguous_paths:
+            return {
+                "kind": "ambiguous", "decision": latest,
+                "paths": sorted(ambiguous_paths),
+            }
+        if active_paths:
+            return {
+                "kind": "active", "decision": latest,
+                "paths": sorted(active_paths),
+            }
+        if not candidates:
+            return {"kind": "absent", "decision": None, "paths": []}
+        # Multiple completed runs are historical facts, not a competing active
+        # authority. Prefer the latest deterministic completion projection.
+        return {"kind": "completed", "decision": latest, "paths": []}
+
+    def _ambiguous_generic_act_result(
+        self, story_id: str, resolution: dict[str, Any], *,
+        auto_resume_available: bool = False, finish_guard: bool = False,
+    ) -> dict[str, Any]:
+        """Return a stable terminal projection for ambiguous v2 recovery state."""
+        verified = resolution.get("decision")
+        paths = resolution.get("paths", [])
+        reasons = ["ambiguous v2 workflow state: " + ", ".join(paths)]
+        result = {
+            "decision": "fail_closed", "story_id": story_id,
+            "status": "completed" if verified is not None else "invalid",
+            "run_id": verified.get("run_id") if verified is not None else None,
+            "reasons": reasons, "reason_code": "ambiguous_v2_state",
+        }
+        if not finish_guard:
+            return result
+        return {
+            **result,
+            "workflow_id": "project-act", "step_id": (
+                verified.get("step_id") if verified is not None else None
+            ),
+            "next_step": None, "auto_resume_available": bool(auto_resume_available),
+            "resume_token": verified.get("run_id") if verified is not None else None,
+            "manual_resume_command": None, "exit_code": 2,
+        }
+
     def _fingerprints(self, story_id: str) -> dict[str, str]:
         spec, board = self._paths(story_id)
         fingerprints = {
@@ -636,6 +794,17 @@ class ContinuationStore:
 
     def status(self, story_id: str) -> dict[str, Any]:
         """Read-only state summary, including explicit legacy-handoff detection."""
+        self._validate_story_id(story_id)
+        resolution = self._generic_act_resolution(story_id)
+        if resolution["kind"] == "ambiguous":
+            return self._ambiguous_generic_act_result(story_id, resolution)
+        completed = resolution["decision"]
+        if resolution["kind"] == "completed":
+            return {
+                "decision": "completed", "story_id": story_id,
+                "run_id": completed["run_id"], "status": "completed",
+                "reasons": [], "superseded_legacy_checkpoint": True,
+            }
         state = self.read(story_id)
         if state is not None:
             return state
@@ -919,6 +1088,17 @@ class ContinuationStore:
                 raise ContinuationError("empty completion traceability evidence")
 
     def resume(self, story_id: str) -> dict[str, Any]:
+        self._validate_story_id(story_id)
+        resolution = self._generic_act_resolution(story_id)
+        if resolution["kind"] == "ambiguous":
+            return self._ambiguous_generic_act_result(story_id, resolution)
+        completed = resolution["decision"]
+        if resolution["kind"] == "completed":
+            return {
+                "decision": "completed", "story_id": story_id,
+                "run_id": completed["run_id"], "reasons": [],
+                "superseded_legacy_checkpoint": True,
+            }
         state = self.read(story_id)
         if state is None:
             return self.status(story_id)

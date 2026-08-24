@@ -7,6 +7,7 @@ Validates that:
 import re
 
 from pactkit.prompts import COMMANDS_CONTENT
+from pactkit.prompts.commands import get_deployable_commands
 from pactkit.prompts.workflows import (
     DESIGN_PROMPT,
     HOTFIX_PROMPT,
@@ -27,7 +28,7 @@ def _extract_prompt_refs() -> set[str]:
     """Extract all `pactkit <subcommand>` references from all prompt strings."""
     refs = set()
     # COMMANDS_CONTENT values
-    for content in COMMANDS_CONTENT.values():
+    for content in (*COMMANDS_CONTENT.values(), *get_deployable_commands().values()):
         refs.update(m.group(1) for m in _PACTKIT_REF.finditer(content))
     # Workflow prompts
     for prompt in (SPRINT_PROMPT, HOTFIX_PROMPT, DESIGN_PROMPT):

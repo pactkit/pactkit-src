@@ -1,9 +1,8 @@
-"""Tests for pactkit next-id, including STORY-slim-148 decentralized IDs."""
-from pactkit.id_generator import ITEM_ID_RE, next_story_id
+"""Tests for decentralized time-prefixed item IDs."""
+from pactkit.id_generator import ITEM_ID_RE, generate_item_id
 
 
-class TestNextStoryId:
-    """Scenario 2 from spec: pactkit next-id replaces manual ID generation."""
+class TestGenerateItemId:
 
     def test_next_id_with_existing_stories(self, tmp_path):
         """Existing sequential specs do not constrain a decentralized ID."""
@@ -13,7 +12,7 @@ class TestNextStoryId:
         (specs / "STORY-slim-013.md").write_text("# S13")
         (specs / "STORY-slim-007.md").write_text("# S7")
 
-        result = next_story_id(specs_dir=specs, developer="slim")
+        result = generate_item_id(specs_dir=specs, developer="slim")
         assert ITEM_ID_RE.fullmatch(result)
         assert result.startswith("STORY-slim-")
         assert result != "STORY-slim-014"
@@ -23,7 +22,7 @@ class TestNextStoryId:
         specs = tmp_path / "docs" / "specs"
         specs.mkdir(parents=True)
 
-        result = next_story_id(specs_dir=specs, developer="slim")
+        result = generate_item_id(specs_dir=specs, developer="slim")
         assert ITEM_ID_RE.fullmatch(result)
         assert result.startswith("STORY-slim-")
 
@@ -32,7 +31,7 @@ class TestNextStoryId:
         specs = tmp_path / "docs" / "specs"
         specs.mkdir(parents=True)
 
-        result = next_story_id(specs_dir=specs, developer="")
+        result = generate_item_id(specs_dir=specs, developer="")
         assert ITEM_ID_RE.fullmatch(result)
         assert result.startswith("STORY-")
 
@@ -43,7 +42,7 @@ class TestNextStoryId:
         (specs / "STORY-005.md").write_text("# S5")
         (specs / "STORY-003.md").write_text("# S3")
 
-        result = next_story_id(specs_dir=specs, developer="")
+        result = generate_item_id(specs_dir=specs, developer="")
         assert ITEM_ID_RE.fullmatch(result)
         assert result != "STORY-006"
 
@@ -55,7 +54,7 @@ class TestNextStoryId:
         (specs / "HOTFIX-slim-010.md").write_text("# H")
         (specs / "BUG-slim-020.md").write_text("# B")
 
-        result = next_story_id(specs_dir=specs, developer="slim")
+        result = generate_item_id(specs_dir=specs, developer="slim")
         assert ITEM_ID_RE.fullmatch(result)
         assert result.startswith("STORY-slim-")
 
@@ -66,7 +65,7 @@ class TestNextStoryId:
         (specs / "STORY-slim-005.md").write_text("# S")
         (specs / "STORY-bob-020.md").write_text("# S")
 
-        result = next_story_id(specs_dir=specs, developer="slim")
+        result = generate_item_id(specs_dir=specs, developer="slim")
         assert ITEM_ID_RE.fullmatch(result)
         assert result.startswith("STORY-slim-")
 
@@ -75,7 +74,7 @@ class TestNextStoryId:
         specs = tmp_path / "docs" / "specs"
         # Don't create the directory
 
-        result = next_story_id(specs_dir=specs, developer="slim")
+        result = generate_item_id(specs_dir=specs, developer="slim")
         assert ITEM_ID_RE.fullmatch(result)
 
     def test_next_id_is_unique_from_same_snapshot(self, tmp_path):
@@ -83,10 +82,15 @@ class TestNextStoryId:
         specs = tmp_path / "docs" / "specs"
         specs.mkdir(parents=True)
 
-        values = {next_story_id(specs_dir=specs, developer="slim") for _ in range(1000)}
+        values = {generate_item_id(specs_dir=specs, developer="slim") for _ in range(1000)}
         assert len(values) == 1000
         assert all(ITEM_ID_RE.fullmatch(value) for value in values)
 
     def test_historical_sequential_ids_remain_readable(self):
         assert ITEM_ID_RE.fullmatch("STORY-slim-014")
         assert ITEM_ID_RE.fullmatch("STORY-001")
+
+    def test_generates_requested_item_type(self, tmp_path):
+        assert generate_item_id(tmp_path, "slim", "HOTFIX").startswith(
+            "HOTFIX-slim-",
+        )

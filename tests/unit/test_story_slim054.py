@@ -136,3 +136,12 @@ class TestR3AtomicWriteTmpCleanup:
 
         assert target.read_text(encoding="utf-8") == "hello world"
         assert not target.with_suffix(".tmp").exists()
+
+    def test_atomic_write_diagnostic_uses_stderr(self, tmp_path, capsys):
+        from pactkit.utils import atomic_write
+
+        atomic_write(tmp_path / "machine.json", "{}\n")
+
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "Wrote machine.json" in captured.err

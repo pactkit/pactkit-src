@@ -333,7 +333,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 0. `$ARGUMENTS` non-empty → single-story mode; empty → Wave Mode.
 0a. If `TeamCreate`/`TaskCreate`/`SendMessage`/`TeamDelete` are unavailable,
 keep this run and execute Plan → Act → Check → Close sequentially; omit no stage.
-1. Parse requirement from `$ARGUMENTS`. Run `pactkit next-id` to determine next STORY-ID.
+1. Parse requirement from `$ARGUMENTS`. Run `pactkit generate-id` to allocate a STORY-ID.
 2. `TeamCreate("sprint-{STORY_ID}")`.
 3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Close (blockedBy: Check-QA).
 4. If `git worktree list` succeeds, use `isolation="worktree"`.
@@ -344,7 +344,7 @@ keep this run and execute Plan → Act → Check → Close sequentially; omit no
 ### Stage A: Build
 
 **A1** (`system-architect`, model: opus, isolation="worktree"): Execute `commands/project-plan.md`.
-- **Sprint override**: Skip Phase 0.7 Clarify Gate. Use STORY-ID {STORY_ID} (already determined — skip `pactkit next-id`).
+- **Sprint override**: Skip Phase 0.7 Clarify Gate. Use STORY-ID {STORY_ID} (already allocated — skip `pactkit generate-id`).
 - Verify Spec. STOP on failure.
 
 **A2** (`senior-developer`, model: sonnet, isolation="worktree"): Execute `commands/project-act.md`. Merge worktree. STOP on failure.
@@ -583,7 +583,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Locate**: Use `Grep` or `Glob` to quickly locate the target file and code line.
 3.  **Assess**: Confirm this is a minor fix (suitable for Hotfix), not a change requiring full PDCA.
     - If the assessment reveals a complex change, **proactively suggest the user switch to** `/project-plan`.
-4.  **Assign HOTFIX-ID**: Run `pactkit next-id` to get the next STORY number, then use HOTFIX-{developer}-{NNN} pattern (e.g., HOTFIX-slim-001). The numeric part should match the next-id output.
+4.  **Assign HOTFIX-ID**: Run `pactkit generate-id --type hotfix` to allocate a decentralized time-prefixed HOTFIX ID.
 5.  **Create Spec**: Create a lightweight Spec at `docs/specs/HOTFIX-{NNN}.md` with:
     - Title, Background (one sentence), Target file/line, and what was fixed.
 6.  **Add Board Entry**: Add the hotfix to the Board:
@@ -773,7 +773,7 @@ Assign each Story to a horizon:
 ## 🎬 Phase 3: Story Decomposition
 > **Goal**: Convert PRD Feature Breakdown into individual Specs.
 
-1.  **Determine STORY IDs**: Run `pactkit next-id` to get the next available STORY-NNN number.
+1.  **Determine STORY IDs**: Run `pactkit generate-id` for each decentralized time-prefixed Story ID.
 2.  **Sort**: Order stories by horizon (Now → Next → Later), then by Priority Score (descending).
 3.  **For each Story**:
     - Run `{SCAFFOLD_CMD} create_spec "STORY-{NNN}" "{title}"`.

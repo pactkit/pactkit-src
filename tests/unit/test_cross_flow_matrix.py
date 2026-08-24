@@ -18,7 +18,7 @@ FLOW_MATRIX: dict[str, list[str]] = {
     "pactkit lint": [
         "project-done.md",
     ],
-    "pactkit next-id": [
+    "pactkit generate-id": [
         "project-plan.md",
     ],
     "pactkit spec-lint": [

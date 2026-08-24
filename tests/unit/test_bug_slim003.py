@@ -11,16 +11,16 @@ def _prompts():
 
 
 # ---------------------------------------------------------------------------
-# R1: pactkit next-id called in sprint/hotfix/design
+# R1: decentralized ID allocation called in sprint/hotfix/design
 # ---------------------------------------------------------------------------
 
 class TestR1NextIdConsistency:
-    """Sprint, Hotfix, and Design prompts must call pactkit next-id."""
+    """Sprint, Hotfix, and Design prompts must call pactkit generate-id."""
 
     def test_sprint_calls_pactkit_next_id(self):
-        """SPRINT_PROMPT must reference pactkit next-id."""
+        """SPRINT_PROMPT must reference pactkit generate-id."""
         p = _prompts()
-        assert "pactkit next-id" in p.SPRINT_PROMPT
+        assert "pactkit generate-id" in p.SPRINT_PROMPT
 
     def test_sprint_no_manual_scan(self):
         """SPRINT_PROMPT must not instruct manual docs/specs/ scanning."""
@@ -28,9 +28,9 @@ class TestR1NextIdConsistency:
         assert "Determine next STORY-ID via Glob" not in p.SPRINT_PROMPT
 
     def test_hotfix_calls_pactkit_next_id(self):
-        """HOTFIX_PROMPT must reference pactkit next-id."""
+        """HOTFIX_PROMPT must reference pactkit generate-id."""
         p = _prompts()
-        assert "pactkit next-id" in p.HOTFIX_PROMPT
+        assert "pactkit generate-id --type hotfix" in p.HOTFIX_PROMPT
 
     def test_hotfix_no_manual_scan(self):
         """HOTFIX_PROMPT must not instruct manual docs/specs/ scanning for IDs."""
@@ -38,9 +38,9 @@ class TestR1NextIdConsistency:
         assert "determine the next available number" not in p.HOTFIX_PROMPT
 
     def test_design_calls_pactkit_next_id(self):
-        """DESIGN_PROMPT must reference pactkit next-id."""
+        """DESIGN_PROMPT must reference pactkit generate-id."""
         p = _prompts()
-        assert "pactkit next-id" in p.DESIGN_PROMPT
+        assert "pactkit generate-id" in p.DESIGN_PROMPT
 
     def test_design_no_manual_scan(self):
         """DESIGN_PROMPT must not instruct manual docs/specs/ scanning."""

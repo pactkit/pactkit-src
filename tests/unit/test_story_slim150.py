@@ -200,17 +200,18 @@ def test_agent_loop_rejects_premature_final(tmp_path):
 
 
 def test_plan_and_act_share_pre_final_protocol():
-    from pactkit.prompts.commands import COMMANDS_CONTENT
+    from pactkit.prompts.commands import COMMANDS_CONTENT, get_deployable_commands
 
     for name in ("project-plan.md", "project-act.md"):
         prompt = COMMANDS_CONTENT[name]
         assert "Pre-Final Protocol" in prompt
         assert "pactkit workflow finish-guard" in prompt
         assert "progress is not final" in prompt.lower()
-    plan = COMMANDS_CONTENT["project-plan.md"]
-    assert 'create_spec "{ID}" "{title}" --run-id <run-id>' in plan
-    assert "pactkit board add" in plan and "--run-id <run-id>" in plan
-    assert "--blocker-kind" in plan
+    plan = get_deployable_commands()["project-plan.md"]
+    assert "pactkit work-unit acquire" in plan
+    assert "pactkit work-unit submit" in plan
+    assert "finalize-plan" in plan
+    assert "Stop hook" in plan and "Never" in plan
 
 
 def test_cli_finish_guard_has_machine_exit_semantics(tmp_path):
@@ -298,8 +299,8 @@ def test_doctor_exposes_process_guarantee_and_stale_lease(tmp_path):
         "run_id": run_id, "lease_expires_at": "2020-01-01T00:00:00+00:00",
         "termination_reason": "no_progress",
     }), encoding="utf-8")
-    result = check_workflow_continuation(tmp_path)
-    assert result["guarantee_level"] == "process"
+    result = check_workflow_continuation(tmp_path, home=tmp_path / "empty-home")
+    assert result["guarantee_level"] == "guided"
     assert result["auto_resume_available"] is False
     assert result["active"][0]["run_id"] == run_id
     assert any("stale host lease" in warning for warning in result["warnings"])
@@ -321,6 +322,26 @@ def test_doctor_reads_host_metadata_from_authoritative_run(tmp_path):
 
     assert any("stale host lease" in warning for warning in result["warnings"])
     assert any("attempt_limit" in warning for warning in result["warnings"])
+
+
+def test_doctor_ignores_legacy_host_metadata_after_core_completion(tmp_path):
+    from pactkit.doctor import check_workflow_continuation
+
+    engine, run_id = _start(tmp_path)
+    path = engine.path_for(run_id)
+    state = engine.read(run_id)
+    state.update({
+        "status": "completed",
+        "host_continuation": {
+            "run_id": run_id,
+            "termination_reason": "no_progress",
+        },
+    })
+    path.write_text(json.dumps(state), encoding="utf-8")
+
+    result = check_workflow_continuation(tmp_path)
+
+    assert not any("no_progress" in warning for warning in result["warnings"])
 
 
 def test_story_repository_managed_mode_fails_before_write(tmp_path):
@@ -349,16 +370,22 @@ def test_all_format_rendering_preserves_pre_final_semantics():
             assert "Progress is not final" in rendered
 
 
-def test_manifest_reports_process_guarantee_without_false_auto_resume(tmp_path):
+def test_manifest_reports_capability_derived_guarantee_without_false_auto_resume(tmp_path):
     from pactkit.deploy_manifest import write_deploy_manifest
 
-    for format_name in ("classic", "opencode", "codex", "copilot"):
+    expected_modes = {
+        "classic": "portable", "opencode": "portable",
+        "codex": "guided", "copilot": "guided",
+    }
+    for format_name, mode in expected_modes.items():
         root = tmp_path / format_name
         payload = json.loads(write_deploy_manifest(root, format_name).read_text())
         capability = payload["workflow_continuation"]
         assert capability["finish_guard_supported"] is True
         assert capability["auto_resume_available"] is False
-        assert capability["guarantee_level"] == "process"
+        assert capability["guarantee_level"] == mode
+        assert capability["execution_mode"] == mode
+        assert capability["stop_hook_required"] is False
 
 
 def test_runner_lease_allows_only_one_owner(tmp_path):

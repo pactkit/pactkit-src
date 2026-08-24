@@ -175,3 +175,24 @@ class TestDeployParity:
         result = check_deploy_parity(project)
         assert result["drift"] is False
         assert result["warnings"]
+
+    def test_non_object_manifest_tolerated(self, tmp_path, monkeypatch):
+        """SEC-2/SEC-7: valid JSON with the wrong top-level type is corrupt."""
+        from pactkit.doctor import check_deploy_parity
+
+        fake_home = tmp_path / "home"
+        codex_dir = fake_home / ".codex"
+        codex_dir.mkdir(parents=True)
+        manifest = codex_dir / ".pactkit-deployed.json"
+        manifest.write_text("[]", encoding="utf-8")
+        monkeypatch.setattr(Path, "home", lambda: fake_home)
+
+        project = tmp_path / "project"
+        project.mkdir()
+        result = check_deploy_parity(project)
+
+        assert result["drift"] is False
+        assert result["warnings"] == [
+            f"{manifest}: unreadable (top-level JSON must be an object) — "
+            "re-run `pactkit update`",
+        ]

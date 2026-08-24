@@ -1,6 +1,7 @@
 """STORY-slim-147: generic workflow continuation and Plan recovery."""
 
 from pathlib import Path
+import json
 
 import pytest
 
@@ -12,6 +13,14 @@ def _plan_project(root: Path) -> None:
         "# Sprint Board\n\n## 📋 Backlog\n\n## 🔄 In Progress\n\n## ✅ Done\n",
         encoding="utf-8",
     )
+
+
+def _revalidation_spec(story_id: str) -> str:
+    source = (
+        Path(__file__).parents[2]
+        / "docs/specs/STORY-slim-20260823d854b0cf1875.md"
+    ).read_text(encoding="utf-8")
+    return source.replace("STORY-slim-20260823d854b0cf1875", story_id)
 
 
 def test_reliability_registry_covers_all_deployed_entries():
@@ -103,6 +112,111 @@ def test_plan_resume_detects_sharded_story_fact_drift(tmp_path):
     resumed = engine.resume(run_id)
     assert resumed["decision"] == "blocked"
     assert "story fact" in resumed["reasons"][0]
+
+
+def test_plan_artifact_drift_can_be_revalidated_with_audited_transition(tmp_path):
+    from pactkit.continuation import ContinuationEngine
+
+    _plan_project(tmp_path)
+    story_id = "STORY-slim-997"
+    spec = tmp_path / f"docs/specs/{story_id}.md"
+    spec.write_text(_revalidation_spec(story_id), encoding="utf-8")
+    source_specs = Path(__file__).parents[2] / "docs/specs"
+    for dependency in (
+        "STORY-slim-147", "STORY-slim-2026082381e832771d4e",
+        "STORY-slim-20260823de7e85d6042a",
+    ):
+        (spec.parent / f"{dependency}.md").write_text(
+            (source_specs / f"{dependency}.md").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    hld = tmp_path / "docs/architecture/graphs/system_design.mmd"
+    hld.parent.mkdir(parents=True)
+    hld.write_text("flowchart TD\n  A --> B\n", encoding="utf-8")
+    engine = ContinuationEngine(tmp_path)
+    state = engine.start(
+        "project-plan", evidence={"guard": "pass", "input_fingerprint": "abc"},
+    )
+    path = engine.path_for(state["run_id"])
+    state.update(story_id=story_id, step_id="spec_linted")
+    state["evidence"] = {"lint": "pass"}
+    state["fingerprints"] = engine.definition("project-plan").validator_factory(
+        tmp_path
+    ).fingerprints(state)
+    path.write_text(__import__("json").dumps(state), encoding="utf-8")
+    old_hld = state["fingerprints"]["hld"]
+    hld.write_text("flowchart TD\n  A --> B\n  B --> C\n", encoding="utf-8")
+
+    assert engine.resume(state["run_id"])["decision"] == "blocked"
+    recovered = engine.revalidate_artifacts(state["run_id"])
+
+    assert recovered["decision"] == "resume_at"
+    assert recovered["next_step"] == "board_synced"
+    persisted = engine.read(state["run_id"])
+    assert persisted["fingerprints"]["hld"] != old_hld
+    assert persisted["revalidations"][-1]["artifacts"] == ["hld"]
+    assert persisted["revalidations"][-1]["step_id"] == "spec_linted"
+
+
+def test_workflow_json_writer_keeps_stdout_machine_parseable(
+    tmp_path, capsys, monkeypatch,
+):
+    from pactkit.cli import main
+
+    _plan_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "pactkit", "workflow", "start", "project-plan",
+            "--evidence", '{"guard":"pass","input_fingerprint":"abc"}',
+        ],
+    )
+
+    main()
+
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["workflow_id"] == "project-plan"
+    assert "Wrote" not in captured.out
+    assert "Wrote" in captured.err
+
+
+def test_plan_artifact_revalidation_rejects_invalid_hld_without_writing(tmp_path):
+    from pactkit.continuation import ContinuationEngine, ContinuationError
+
+    _plan_project(tmp_path)
+    story_id = "STORY-slim-996"
+    spec = tmp_path / f"docs/specs/{story_id}.md"
+    spec.write_text(_revalidation_spec(story_id), encoding="utf-8")
+    source_specs = Path(__file__).parents[2] / "docs/specs"
+    for dependency in (
+        "STORY-slim-147", "STORY-slim-2026082381e832771d4e",
+        "STORY-slim-20260823de7e85d6042a",
+    ):
+        (spec.parent / f"{dependency}.md").write_text(
+            (source_specs / f"{dependency}.md").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    hld = tmp_path / "docs/architecture/graphs/system_design.mmd"
+    hld.parent.mkdir(parents=True)
+    hld.write_text("flowchart TD\n  A --> B\n", encoding="utf-8")
+    engine = ContinuationEngine(tmp_path)
+    state = engine.start(
+        "project-plan", evidence={"guard": "pass", "input_fingerprint": "abc"},
+    )
+    path = engine.path_for(state["run_id"])
+    state.update(story_id=story_id, step_id="spec_linted", evidence={"lint": "pass"})
+    state["fingerprints"] = engine.definition("project-plan").validator_factory(
+        tmp_path
+    ).fingerprints(state)
+    path.write_text(__import__("json").dumps(state), encoding="utf-8")
+    hld.write_text("not a mermaid graph\n", encoding="utf-8")
+    before = path.read_bytes()
+
+    with pytest.raises(ContinuationError, match="HLD"):
+        engine.revalidate_artifacts(state["run_id"])
+
+    assert path.read_bytes() == before
 
 
 def test_legacy_act_store_remains_compatible(tmp_path):

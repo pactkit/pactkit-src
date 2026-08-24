@@ -484,7 +484,9 @@ def _deploy_classic(config=None, target=None):
     enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
 
     classic_profile = get_profile("classic")
-    n_skills = _deploy_skills(skills_dir, enabled_skills, profile=classic_profile)
+    n_skills = _deploy_skills(
+        skills_dir, enabled_skills, profile=classic_profile, include_portable_methods=True
+    )
     _cleanup_legacy(skills_dir)
     rule_scopes = config.get("rule_scopes", {})
     n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes, profile=classic_profile)
@@ -512,7 +514,9 @@ def _deploy_classic(config=None, target=None):
 
     # Summary — STORY-slim-063: commands are now deployed as skills
     total_agents = len(VALID_AGENTS)
-    total_skills = len(VALID_SKILLS)
+    from pactkit.portable_methods import get_portable_methods
+
+    total_skills = len(VALID_SKILLS) + len(get_portable_methods())
     total_rules = len(VALID_RULES)
 
     print(
@@ -555,7 +559,12 @@ def _deploy_plugin(target=None):
 
     # Deploy components (BUG-002: rewrite paths for plugin mode)
     prefix = PLUGIN_SKILLS_PREFIX
-    n_skills = _deploy_skills(skills_dir, all_skills, _legacy_prefix=prefix)
+    n_skills = _deploy_skills(
+        skills_dir,
+        all_skills,
+        _legacy_prefix=prefix,
+        include_portable_methods=True,
+    )
     _deploy_claude_md_inline(plugin_root, skills_prefix=prefix)
     n_agents = _deploy_agents(agents_dir, all_agents, _legacy_prefix=prefix)
     n_commands = _deploy_commands(commands_dir, all_commands, _legacy_prefix=prefix)
@@ -583,7 +592,13 @@ def _deploy_marketplace(target=None):
 
 
 
-def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None):
+def _deploy_skills(
+    skills_dir,
+    enabled_skills,
+    profile=None,
+    _legacy_prefix=None,
+    include_portable_methods=False,
+):
     """Deploy skill directories filtered by config.
 
     Iterates the single-source SKILL_MANIFEST (STORY-slim-139 R1) — no local
@@ -608,7 +623,10 @@ def _deploy_skills(skills_dir, enabled_skills, profile=None, _legacy_prefix=None
     deployed = 0
 
     for sd in get_skill_manifest():
-        if sd["name"] not in enabled_set:
+        is_method = sd["name"].startswith("pactkit-method-")
+        if is_method and not include_portable_methods:
+            continue
+        if not is_method and sd["name"] not in enabled_set:
             continue
         skill_dir = skills_dir / sd["name"]
         skill_dir.mkdir(parents=True, exist_ok=True)
@@ -1085,7 +1103,9 @@ def _deploy_commands(
 
     # Deploy enabled commands
     deployed = 0
-    for filename, content in prompts.COMMANDS_CONTENT.items():
+    from pactkit.prompts.commands import get_deployable_commands
+
+    for filename, content in get_deployable_commands().items():
         cmd_name = filename.removesuffix(".md")
         if cmd_name not in enabled_set:
             continue

@@ -962,8 +962,8 @@ def _generate_suggested_tasks(root, hotspots, developer):
         else:
             # Generate new spec
             try:
-                from pactkit.id_generator import next_story_id
-                raw_id = next_story_id(specs_dir=specs_dir, developer=developer)
+                from pactkit.id_generator import generate_item_id
+                raw_id = generate_item_id(specs_dir=specs_dir, developer=developer)
                 # Replace STORY prefix with BUG or HOTFIX
                 num = raw_id.split('-')[-1]
                 spec_id = f'{task_type}-{developer}-{num}'

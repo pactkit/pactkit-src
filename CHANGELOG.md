@@ -4,6 +4,22 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.21.0] - 2026-08-24
+
+### Added
+- **Core-owned lifecycle WorkUnits for every project command** — all 12 `project-*` entry points now run through a versioned Core scheduler with bounded leases, deterministic EvidenceReceipts, durable ExecutionAttempts, command-specific validators, and journaled completion. Plan, Act, Check, Done, Sprint, Init, Hotfix, Design, Clarify, Debug, Release, and PR share one completion authority instead of relying on model prose.
+- **Official Codex App Server execution bridge** — `pactkit-codex-work-unit` starts and resumes persisted App Server threads, requests schema-constrained results, retries malformed or out-of-scope receipts without losing workflow state, and supports cross-process `thread/resume`.
+- **Resumable Codex capability contract** — deployment manifests and `pactkit doctor` now report the verified `resumable` guarantee independently of weaker project-local hosts, while retaining per-host capability details.
+
+### Changed
+- **Act completion is Core-governed** — RED must fail, GREEN must pass, regression/lint/coverage must be accepted, and canonical Story tasks plus the Board projection are completed by an idempotent `validated → governance → completed` finalizer with crash recovery and tamper detection.
+- **Explicit side-effect authorization** — commit, push, pull request, tag, publish, release, and Sprint orchestration pause as `await_user` before a model turn unless the exact operation was authorized.
+- **Distributed IDs** — removed the sequential `next-id` command; `pactkit generate-id` creates time-prefixed, collision-resistant Story, Hotfix, and Bug IDs without a shared counter.
+
+### Fixed
+- **Premature Codex termination** — an agent response can no longer mark a workflow complete; only Core's finish guard and journaled finalizer can return `done`. Artifact drift, lease expiry, malformed model output, and process restarts fail closed into a recoverable retry.
+- **Cross-host deployment parity** — all managed command facades consume the same lifecycle contract, OpenCode no longer receives Claude-only skill paths, and Sprint has a serialized Plan → Act → Check → Done fallback where native orchestration is unavailable.
+
 ## [2.20.0] - 2026-08-22
 
 ### Added

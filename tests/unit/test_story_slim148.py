@@ -36,9 +36,9 @@ def test_lesson_repository_creates_distinct_records_and_context_reads_them(tmp_p
 
 
 def test_next_ids_from_same_snapshot_are_unique_and_backward_compatible(tmp_path):
-    from pactkit.id_generator import ITEM_ID_RE, next_story_id
+    from pactkit.id_generator import ITEM_ID_RE, generate_item_id
 
-    ids = {next_story_id(tmp_path, "slim") for _ in range(1000)}
+    ids = {generate_item_id(tmp_path, "slim") for _ in range(1000)}
     assert len(ids) == 1000
     assert all(ITEM_ID_RE.fullmatch(item_id) for item_id in ids)
     assert ITEM_ID_RE.fullmatch("STORY-slim-148")

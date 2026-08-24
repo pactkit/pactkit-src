@@ -1,3 +1,4 @@
+from pactkit.config import VALID_COMMANDS
 from pactkit.prompts.workflows import (
     DEBUG_PROMPT,
     DESIGN_PROMPT,
@@ -11,7 +12,7 @@ Run and obey `pactkit workflow contract {command} --json`. Before final run `pac
 
 """
 
-COMMANDS_CONTENT = {
+LEGACY_COMMANDS_CONTENT = {
     "project-plan.md": """---
 description: "Analyze requirements, create Spec and Story"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
@@ -124,7 +125,7 @@ blocked/completed checkpoints use `--status blocked` / `--status completed`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
-1.  Run `pactkit next-id` to get the next Story ID (reads developer prefix from pactkit.yaml, scans `docs/specs/`).
+1.  Run `pactkit generate-id` to allocate a decentralized time-prefixed Story ID; it preserves the `developer` prefix from pactkit.yaml.
 2.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
 3.  **Bind + checkpoint**: Run `pactkit workflow bind <run-id> {ID}`, then checkpoint `story_identified` with exact Story identity evidence.
 
@@ -854,6 +855,74 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 """,
 }
 
+PROJECT_PLAN_WORK_UNIT_FACADE = '''---
+description: "Analyze requirements, create Spec and Story through bounded WorkUnits"
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+---
+
+# Command: Plan — WorkUnit Compatibility Facade
+- **Usage**: /project-plan "$ARGUMENTS"
+- **Agent**: System Architect
+
+This entry preserves the existing user command while Core owns all workflow
+state, validators, governance writes, greenfield routing, and completion decisions.
+If Core classifies the request as greenfield, present its /project-design redirect;
+the host must not duplicate or override that routing decision.
+
+1. Start or resume with pactkit work-unit start project-plan --goal "$ARGUMENTS".
+2. On Codex App Server, run `pactkit-codex-work-unit run <run-id> --owner codex`.
+   The managed runner reuses one persisted thread, obtains a structured candidate Receipt from
+   each turn, and asks Core for every next WorkUnit. On other hosts or when App Server is
+   unavailable, acquire exactly one WorkUnit with `pactkit work-unit acquire`.
+3. When the leased unit is `story_identity`, bind the allocated ID with `pactkit work-unit
+   bind-story <run-id> <story-id> --owner <owner> --idempotency-key <key>` before receipt submission.
+4. Invoke only the canonical Portable Method named by that unit and obey its read/write scope.
+5. The Codex runner and `pactkit work-unit submit` both submit only an untrusted EvidenceReceipt.
+   Core rereads files, runs validators, and computes fingerprints before selecting the next unit.
+6. A host final records only an ExecutionAttempt; it never completes the WorkflowRun.
+7. On Codex App Server, the managed runner is the sole finalizer: the `finalize_plan`
+   turn returns Story identity, title, and ordered tasks but MUST NOT invoke
+   `pactkit work-unit finalize-plan` or write governance projections. The adapter
+   performs that journaled transaction exactly once with a Unit-version key.
+   Portable/manual hosts only invoke `pactkit work-unit finalize-plan` themselves.
+
+Never select or skip the next unit, duplicate completion logic, write Board or context
+outside finalize-plan, or rely on a Stop hook. Hosts without verified thread resume
+present the returned next WorkUnit for manual resume.
+'''
+
+PROJECT_WORK_UNIT_FACADE = '''---
+description: "Execute {command} through Core-owned bounded WorkUnits"
+allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
+---
+
+# Command: {command} — Managed WorkUnit Facade
+- **Usage**: /{command} "$ARGUMENTS"
+
+Core is the only workflow scheduler and completion authority for this command.
+
+1. Start with `pactkit work-unit start {command} --goal "$ARGUMENTS"{story_argument}`.
+2. Run `pactkit-codex-work-unit run <run-id> --owner codex`. The runner persists
+   and resumes one App Server thread, dispatches only the current Core WorkUnit,
+   and submits structured EvidenceReceipts for deterministic validation.
+3. If the runner returns `retry`, invoke the same run command again; Core versions
+   the failed or expired lease and resumes at the same WorkUnit.
+4. If it returns `await_user`, show the listed manual operations and wait for explicit
+   authorization. Resume with one `--authorize <operation>` per approved operation.
+5. `done` is valid only after Core's journaled finalizer accepts the terminal WorkUnit.
+
+Never select, skip, or mark a WorkUnit complete from prose. Never call the finalizer
+from inside a model turn. Do not perform commit, push, tag, publish, release, pull-request,
+or orchestration operations unless the runner received matching explicit authorization.
+Portable/manual hosts may acquire and submit one WorkUnit at a time and must use
+`pactkit work-unit finalize-workflow` for non-Plan terminal units.
+Canonical portable methods remain discoverable under `{{SKILLS_ROOT}}/`; their
+legacy checkpoint files are compatibility evidence only and never schedule managed runs.
+{compatibility_note}
+'''
+
+COMMANDS_CONTENT = dict(LEGACY_COMMANDS_CONTENT)
+
 # Register additional prompts into COMMANDS_CONTENT
 COMMANDS_CONTENT["project-sprint.md"] = SPRINT_PROMPT
 COMMANDS_CONTENT["project-hotfix.md"] = HOTFIX_PROMPT
@@ -883,6 +952,43 @@ COMMANDS_CONTENT = {
     filename: _inject_managed_workflow(filename.removesuffix(".md"), prompt)
     for filename, prompt in COMMANDS_CONTENT.items()
 }
+
+
+def get_deployable_commands() -> dict[str, str]:
+    """Return host-facing commands while preserving the legacy read API.
+
+    COMMANDS_CONTENT remains a compatibility surface for integrations that
+    inspect historical playbooks. Deployment uses this function so
+    project-plan is the thin WorkUnit facade and Core is workflow authority.
+    """
+    commands = dict(COMMANDS_CONTENT)
+    commands["project-plan.md"] = _inject_managed_workflow(
+        "project-plan", PROJECT_PLAN_WORK_UNIT_FACADE
+    )
+    story_commands = {"project-act", "project-check", "project-done", "project-hotfix"}
+    for command in sorted(set(VALID_COMMANDS) - {"project-plan"}):
+        facade = PROJECT_WORK_UNIT_FACADE.format(
+            command=command,
+            story_argument=" --story-id <story-id>" if command in story_commands else "",
+            compatibility_note={
+                "project-init": (
+                    "## Git Repository Guard\n\n"
+                    "Before creating project files, inspect the git repository boundary and "
+                    "never initialize or commit outside the requested target."
+                ),
+                "project-act": (
+                    "Legacy portable hosts may inspect `pactkit continuation resume` and "
+                    "archive a new cycle with `--fresh`; these checkpoint records are "
+                    "migration evidence only and never schedule a managed WorkUnit run."
+                ),
+                "project-sprint": (
+                    "When parallel execution is unavailable, execute Plan → Act → Check → Close "
+                    "sequentially through the Core-issued phase WorkUnits."
+                ),
+            }.get(command, ""),
+        )
+        commands[f"{command}.md"] = _inject_managed_workflow(command, facade)
+    return commands
 
 # Exported prompt constants are canonical rendered command bodies too.
 SPRINT_PROMPT = COMMANDS_CONTENT["project-sprint.md"]

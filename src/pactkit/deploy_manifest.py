@@ -12,15 +12,18 @@ from pathlib import Path
 
 from pactkit import __version__
 from pactkit.config import VALID_AGENTS, VALID_COMMANDS, VALID_SKILLS
+from pactkit.portable_methods import get_portable_methods
 from pactkit.profiles import get_profile, is_environment_format
 from pactkit.prompts.guides import GUIDES_DIR
 from pactkit.prompts.rules import RULES_FILES, RULES_ONDEMAND_DIR
+from pactkit.workflow_engine import CORE_PROTOCOL_VERSION
 
 MANIFEST_NAME = ".pactkit-deployed.json"
 
 # Skills/commands currently deployable to every format (commands deploy as
 # skills since STORY-slim-063, but are tracked separately for parity checks).
 ALL_PACTKIT_SKILLS = sorted(s for s in VALID_SKILLS if s.startswith("pactkit-"))
+ALL_PORTABLE_METHODS = sorted(method["name"] for method in get_portable_methods())
 
 
 def expected_components(format_name: str, config: dict | None = None) -> dict:
@@ -41,6 +44,7 @@ def expected_components(format_name: str, config: dict | None = None) -> dict:
 
     return {
         "skills": sorted(set(skills)),
+        "portable_methods": ALL_PORTABLE_METHODS,
         "commands": sorted(set(commands)),
         "agents": sorted(set(agents)),
     }
@@ -66,7 +70,11 @@ def pactkit_owned_files(deploy_root: Path, components: dict) -> dict[str, str]:
     owned: dict[str, str] = {}
 
     # Skills — commands deploy as skills since STORY-slim-063.
-    for name in sorted(set(components["skills"]) | set(components["commands"])):
+    for name in sorted(
+        set(components["skills"])
+        | set(components["portable_methods"])
+        | set(components["commands"])
+    ):
         skill_dir = root / "skills" / name
         if skill_dir.is_dir():
             for f in sorted(skill_dir.rglob("*")):
@@ -100,14 +108,48 @@ def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | No
     deploy_root = Path(deploy_root)
     deploy_root.mkdir(parents=True, exist_ok=True)
     components = expected_components(format_name, config)
+    capability_profiles = {
+        "classic": ("portable", "core_profile"),
+        "opencode": ("portable", "adapter_native_command_facade"),
+        "codex": ("guided", "official_app_server_api_unvalidated_e2e"),
+        "copilot": ("guided", "adapter_capability_probe_no_thread_resume"),
+    }
+    execution_mode, verification_source = capability_profiles.get(
+        format_name, ("portable", "core_profile")
+    )
+    host_capabilities = {
+        "protocol_version": CORE_PROTOCOL_VERSION,
+        "verification_source": verification_source,
+        "instructions_discovery": True,
+        "skills_discovery": True,
+        "structured_results": False,
+        "tool_execution": execution_mode == "guided",
+        "approval": False,
+        "lifecycle_events": False,
+        "thread_resume": False,
+        "turn_steer": False,
+        "background_execution": False,
+        "cancellation": False,
+        "e2e_validated": False,
+        "execution_mode": execution_mode,
+        "manual_resume": execution_mode == "guided",
+    }
     payload = {
         "pactkit_version": __version__,
         "format": format_name,
         "workflow_continuation": {
             "finish_guard_supported": True,
             "auto_resume_available": False,
-            "guarantee_level": "process",
+            # This is the externally reported guarantee.  It must be derived
+            # from the same host capability declaration, otherwise a
+            # portable-only host is incorrectly advertised as tool-guided.
+            "guarantee_level": execution_mode,
+            "execution_mode": execution_mode,
+            "protocol_version": CORE_PROTOCOL_VERSION,
+            "stop_hook_required": False,
+            "e2e_validated": host_capabilities["e2e_validated"],
         },
+        "host_capabilities": host_capabilities,
         **components,
         # STORY-slim-141 R1: content hashes for doctor's content-level parity.
         "files": pactkit_owned_files(deploy_root, components),

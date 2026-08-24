@@ -9,6 +9,7 @@ Classic/Codex parity (R5), version gate + editable divergence (R6).
 from __future__ import annotations
 
 import importlib.metadata
+from dataclasses import replace
 
 import pytest
 
@@ -38,15 +39,15 @@ class TestCLIPolicy:
         """R1: codex no longer claims CLI-less; it preserves the CLI (preferred)."""
         assert get_profile("codex").cli_policy is CLIPolicy.PREFERRED
 
-    def test_copilot_is_unavailable(self):
-        assert get_profile("copilot").cli_policy is CLIPolicy.UNAVAILABLE
+    def test_copilot_preserves_terminal_core_cli_for_manual_resume(self):
+        assert get_profile("copilot").cli_policy is CLIPolicy.PREFERRED
 
     def test_has_pactkit_cli_derived_from_policy(self):
         """Legacy boolean is now a derived property: required/preferred->True."""
         assert get_profile("classic").has_pactkit_cli is True
         assert get_profile("codex").has_pactkit_cli is True  # R1 change: codex preserves CLI
         assert get_profile("opencode").has_pactkit_cli is True
-        assert get_profile("copilot").has_pactkit_cli is False
+        assert get_profile("copilot").has_pactkit_cli is True
 
     def test_every_profile_has_cli_policy(self):
         for name, profile in FORMAT_PROFILES.items():
@@ -62,6 +63,11 @@ _OPERATION_TOKENS = [
     "REGRESSION", "LINT", "CONTEXT_CONTINUATION", "CLEANUP",
     "LAZY_VISUALIZE", "INSTALL_UPDATE", "GUARD", "DOCTOR",
 ]
+
+
+def _unavailable_profile():
+    """A synthetic host for fallback behavior; Copilot preserves Core CLI."""
+    return replace(get_profile("copilot"), cli_policy=CLIPolicy.UNAVAILABLE)
 
 
 class TestOperationTokens:
@@ -85,7 +91,7 @@ class TestOperationTokens:
         assert "Run run" not in out
 
     def test_unavailable_profile_uses_complete_fallback(self):
-        out = _render_prompt("Run {PACTKIT_OP_REGRESSION}", get_profile("copilot"))
+        out = _render_prompt("Run {PACTKIT_OP_REGRESSION}", _unavailable_profile())
         assert "pactkit regression" not in out
         assert "Run run" not in out
 
@@ -100,14 +106,14 @@ class TestOperationTokens:
         """R2 equivalent (Core replace): hardcoded `pactkit regression` code span
         in a CLI-unavailable profile resolves to a complete fallback — no stranded
         args, no double imperative, balanced backticks."""
-        out = _render_prompt("Run `pactkit regression` to classify changes.", get_profile("copilot"))
+        out = _render_prompt("Run `pactkit regression` to classify changes.", _unavailable_profile())
         assert "`pactkit regression`" not in out
         assert "Run run" not in out
         assert out.count("`") % 2 == 0
 
     def test_unavailable_profile_preserves_context_continuation_control_plane(self):
         """Later workflow specs require exact continuation arguments for terminal use."""
-        out = _render_prompt("Run `pactkit context --continuation --phase X`", get_profile("copilot"))
+        out = _render_prompt("Run `pactkit context --continuation --phase X`", _unavailable_profile())
         assert "`pactkit context --continuation --phase X`" in out
         assert "Run run" not in out
 
@@ -151,9 +157,9 @@ class TestPromptIntegrityLexical:
         content = f"Run `{command}`"
         assert DeployerBase.validate_deployed_content(content, get_profile("copilot")) == []
 
-    def test_copilot_still_rejects_non_control_plane_context_cli(self):
+    def test_unavailable_profile_rejects_non_control_plane_context_cli(self):
         content = "Run `pactkit context`"
-        violations = DeployerBase.validate_deployed_content(content, get_profile("copilot"))
+        violations = DeployerBase.validate_deployed_content(content, _unavailable_profile())
         assert violations
 
 

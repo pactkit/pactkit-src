@@ -237,8 +237,12 @@ def main():
         help="Project root directory (defaults to CWD)",
     )
 
-    # pactkit next-id (STORY-slim-014 R1)
-    subparsers.add_parser("next-id", help="Generate next Story ID")
+    id_parser = subparsers.add_parser(
+        "generate-id", help="Generate a decentralized time-prefixed item ID",
+    )
+    id_parser.add_argument(
+        "--type", choices=["story", "hotfix", "bug"], default="story",
+    )
 
     # pactkit clean (STORY-slim-014 R1)
     clean_parser = subparsers.add_parser("clean", help="Remove temp artifacts")
@@ -346,6 +350,12 @@ def main():
                 "--auto-resume-available", action="store_true", default=False,
                 help="Host has both completion-hook and session re-entry support",
             )
+    workflow_revalidate = workflow_actions.add_parser(
+        "revalidate-artifacts",
+        help="Deterministically revalidate drifted artifacts and audit new fingerprints",
+    )
+    workflow_revalidate.add_argument("identifier", help="Run ID or bound Story ID")
+    workflow_revalidate.add_argument("--json", action="store_true", default=False)
     workflow_registry = workflow_actions.add_parser("registry", help="Audit reliability registry")
     workflow_registry.add_argument("--json", action="store_true", default=False)
     workflow_contract = workflow_actions.add_parser(
@@ -353,6 +363,78 @@ def main():
     )
     workflow_contract.add_argument("workflow_id", help="Registered project command")
     workflow_contract.add_argument("--json", action="store_true", default=False)
+
+    work_unit_parser = subparsers.add_parser(
+        "work-unit", help="Execute host-neutral leased workflow units"
+    )
+    work_unit_actions = work_unit_parser.add_subparsers(
+        dest="work_unit_action", required=True
+    )
+    from pactkit.workflow_engine import WORKFLOW_UNITS
+
+    unit_start = work_unit_actions.add_parser("start", help="Start a WorkUnit workflow")
+    unit_start.add_argument("workflow_id", choices=sorted(WORKFLOW_UNITS))
+    unit_start.add_argument("--goal", required=True)
+    unit_start.add_argument("--story-id")
+    unit_acquire = work_unit_actions.add_parser("acquire", help="Lease the current WorkUnit")
+    unit_acquire.add_argument("run_id")
+    unit_acquire.add_argument("--owner", required=True)
+    unit_acquire.add_argument("--idempotency-key", required=True)
+    unit_renew = work_unit_actions.add_parser("renew", help="Renew a WorkUnit lease")
+    unit_renew.add_argument("unit_id")
+    unit_renew.add_argument("--owner", required=True)
+    unit_reject = work_unit_actions.add_parser("reject", help="Reject and retry a WorkUnit")
+    unit_reject.add_argument("unit_id")
+    unit_reject.add_argument("--owner", required=True)
+    unit_reject.add_argument("--reason-code", required=True)
+    unit_retry = work_unit_actions.add_parser("retry", help="Lease a rejected/expired WorkUnit again")
+    unit_retry.add_argument("unit_id")
+    unit_retry.add_argument("--owner", required=True)
+    unit_retry.add_argument("--idempotency-key", required=True)
+    unit_expire = work_unit_actions.add_parser("expire", help="Expire an elapsed WorkUnit lease")
+    unit_expire.add_argument("unit_id")
+    unit_expire.add_argument("--owner", required=True)
+    unit_submit = work_unit_actions.add_parser("submit", help="Submit a candidate EvidenceReceipt")
+    unit_submit.add_argument("unit_id")
+    unit_submit.add_argument("--owner", required=True)
+    unit_submit.add_argument("--idempotency-key", required=True)
+    unit_submit.add_argument("--receipt", required=True, help="Receipt JSON or @path")
+    unit_attempt = work_unit_actions.add_parser("attempt-terminal", help="Record a host turn terminal")
+    unit_attempt.add_argument("run_id")
+    unit_attempt.add_argument("--unit-id", required=True)
+    unit_attempt.add_argument("--unit-version", type=int, required=True)
+    unit_attempt.add_argument("--owner", required=True)
+    unit_attempt.add_argument("--host", required=True)
+    unit_attempt.add_argument("--status", required=True)
+    unit_attempt.add_argument("--session")
+    unit_attempt.add_argument("--thread")
+    unit_attempt.add_argument("--turn")
+    unit_status = work_unit_actions.add_parser("status", help="Read authoritative WorkUnit state")
+    unit_status.add_argument("run_id")
+    unit_resume = work_unit_actions.add_parser(
+        "resume", help="Read the unique active WorkUnit run bound to a Story"
+    )
+    unit_resume.add_argument("story_id")
+    unit_bind = work_unit_actions.add_parser(
+        "bind-story", help="Bind the Story allocated by the leased identity WorkUnit"
+    )
+    unit_bind.add_argument("run_id")
+    unit_bind.add_argument("story_id")
+    unit_bind.add_argument("--owner", required=True)
+    unit_bind.add_argument("--idempotency-key", required=True)
+    unit_finalize = work_unit_actions.add_parser("finalize-plan", help="Journaled Plan finalization")
+    unit_finalize.add_argument("run_id")
+    unit_finalize.add_argument("story_id")
+    unit_finalize.add_argument("--title", required=True)
+    unit_finalize.add_argument("--tasks", required=True, help="Pipe-separated tasks")
+    unit_finalize.add_argument("--idempotency-key", required=True)
+    unit_finalize_workflow = work_unit_actions.add_parser(
+        "finalize-workflow", help="Journaled non-Plan workflow finalization"
+    )
+    unit_finalize_workflow.add_argument("run_id")
+    unit_finalize_workflow.add_argument("--owner", required=True)
+    unit_finalize_workflow.add_argument("--receipt", required=True, help="Receipt JSON or @path")
+    unit_finalize_workflow.add_argument("--idempotency-key", required=True)
 
     # pactkit sec-scope (STORY-slim-014 R6)
     sec_scope_parser = subparsers.add_parser("sec-scope", help="Auto-detect security scope")
@@ -650,15 +732,18 @@ def main():
                 print(f"  ✗ {m}")
             raise SystemExit(1)
 
-    elif args.command == "next-id":
+    elif args.command == "generate-id":
         from pathlib import Path
 
         from pactkit.config import load_config
-        from pactkit.id_generator import next_story_id
+        from pactkit.id_generator import generate_item_id
 
         cfg = load_config()
         specs_dir = Path.cwd() / "docs" / "specs"
-        print(next_story_id(specs_dir=specs_dir, developer=cfg.get("developer", "")))
+        print(generate_item_id(
+            specs_dir=specs_dir, developer=cfg.get("developer", ""),
+            item_type=args.type.upper(),
+        ))
 
     elif args.command == "clean":
         from pathlib import Path
@@ -905,6 +990,8 @@ def main():
                         args.identifier,
                         auto_resume_available=args.auto_resume_available,
                     )
+                elif args.workflow_action == "revalidate-artifacts":
+                    result = engine.revalidate_artifacts(args.identifier)
                 else:
                     result = engine.resume(args.identifier)
                 print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -915,6 +1002,87 @@ def main():
                     raise SystemExit(1)
         except (ContinuationError, OSError, json.JSONDecodeError, ValueError) as exc:
             print(f"Workflow error: {exc}")
+            raise SystemExit(1)
+
+    elif args.command == "work-unit":
+        import json
+        from dataclasses import asdict
+        from pathlib import Path
+
+        from pactkit.workflow_engine import (
+            EvidenceReceipt,
+            PlanFinalizer,
+            WorkflowEngine,
+            WorkflowFinalizer,
+            WorkUnitError,
+        )
+
+        def _unit_json(raw: str) -> dict:
+            if raw.startswith("@"):
+                raw = Path(raw[1:]).read_text(encoding="utf-8")
+            value = json.loads(raw)
+            if not isinstance(value, dict):
+                raise WorkUnitError("receipt_must_be_object")
+            return value
+
+        try:
+            engine = WorkflowEngine(Path.cwd())
+            if args.work_unit_action == "start":
+                result = asdict(engine.start(
+                    args.workflow_id, goal=args.goal, story_id=args.story_id,
+                ))
+            elif args.work_unit_action == "acquire":
+                result = asdict(engine.acquire(
+                    args.run_id, owner=args.owner,
+                    idempotency_key=args.idempotency_key,
+                ))
+            elif args.work_unit_action == "renew":
+                result = asdict(engine.renew(args.unit_id, owner=args.owner))
+            elif args.work_unit_action == "reject":
+                result = asdict(engine.reject(
+                    args.unit_id, owner=args.owner, reason_code=args.reason_code,
+                ))
+            elif args.work_unit_action == "retry":
+                result = asdict(engine.retry(
+                    args.unit_id, owner=args.owner,
+                    idempotency_key=args.idempotency_key,
+                ))
+            elif args.work_unit_action == "expire":
+                result = engine.expire(args.unit_id, owner=args.owner)
+            elif args.work_unit_action == "submit":
+                result = asdict(engine.submit(
+                    args.unit_id, EvidenceReceipt(**_unit_json(args.receipt)),
+                    owner=args.owner, idempotency_key=args.idempotency_key,
+                ))
+            elif args.work_unit_action == "attempt-terminal":
+                result = engine.record_turn_terminal(
+                    args.run_id, unit_id=args.unit_id, unit_version=args.unit_version,
+                    owner=args.owner, host=args.host, status=args.status,
+                    session=args.session, thread=args.thread, turn=args.turn,
+                )
+            elif args.work_unit_action == "finalize-plan":
+                result = PlanFinalizer(Path.cwd(), engine).finalize(
+                    args.run_id, story_id=args.story_id, title=args.title,
+                    tasks=[item.strip() for item in args.tasks.split("|") if item.strip()],
+                    idempotency_key=args.idempotency_key,
+                )
+            elif args.work_unit_action == "finalize-workflow":
+                result = WorkflowFinalizer(Path.cwd(), engine).finalize(
+                    args.run_id, EvidenceReceipt(**_unit_json(args.receipt)),
+                    owner=args.owner, idempotency_key=args.idempotency_key,
+                )
+            elif args.work_unit_action == "resume":
+                result = engine.resume(args.story_id)
+            elif args.work_unit_action == "bind-story":
+                result = asdict(engine.bind_story(
+                    args.run_id, story_id=args.story_id, owner=args.owner,
+                    idempotency_key=args.idempotency_key,
+                ))
+            else:
+                result = engine.status(args.run_id)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        except (WorkUnitError, OSError, json.JSONDecodeError, TypeError) as exc:
+            print(f"WorkUnit error: {exc}")
             raise SystemExit(1)
 
     elif args.command == "spec-graph":

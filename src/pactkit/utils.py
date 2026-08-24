@@ -1,4 +1,5 @@
 import os
+import sys
 
 
 def atomic_write(path, content):
@@ -11,4 +12,4 @@ def atomic_write(path, content):
         if tmp.exists():
             tmp.unlink(missing_ok=True)
         raise
-    print(f'   -> Wrote {path.name}')
+    print(f'   -> Wrote {path.name}', file=sys.stderr)

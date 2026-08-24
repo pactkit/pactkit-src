@@ -60,7 +60,7 @@ class TestAC1BoardSchema:
 
 
 # =========================================================================
-# AC2: HOTFIX next-id --prefix removed
+# AC2: HOTFIX ID allocation uses the supported type option
 # =========================================================================
 class TestAC2HotfixNextId:
     def test_no_prefix_flag_in_hotfix(self):
@@ -69,7 +69,7 @@ class TestAC2HotfixNextId:
 
     def test_hotfix_still_references_next_id(self):
         hotfix = _get_hotfix_prompt()
-        assert "pactkit next-id" in hotfix or "HOTFIX-" in hotfix
+        assert "pactkit generate-id --type hotfix" in hotfix
 
 
 # =========================================================================

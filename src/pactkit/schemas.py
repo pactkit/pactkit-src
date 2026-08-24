@@ -38,9 +38,12 @@ DEP_SURFACE_FIELDS = ("Depends on", "Provides", "Touches", "Conflict risk")
 DEP_SURFACE_RISK_LEVELS = ("LOW", "MEDIUM", "HIGH")
 
 # Story/bug/hotfix ID pattern: historical sequential IDs plus decentralized IDs.
+# Decentralized timestamp form (\d{8}[0-9a-f]{12}) MUST come before the generic
+# \d+ branch in the alternation — otherwise findall() short-matches the
+# timestamp's 8-digit prefix and never reaches the hex suffix.
 ITEM_ID_PATTERN = (
     r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-"
-    r"(?:\d+(?:-[0-9a-f]{4,32})?|\d{8}[0-9a-f]{12})"
+    r"(?:\d{8}[0-9a-f]{12}|\d+(?:-[0-9a-f]{4,32})?)"
 )
 
 # E004: requirement subsection pattern
