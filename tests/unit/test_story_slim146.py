@@ -82,8 +82,8 @@ class TestSkillRecoveryContracts:
         for name in ("classic", "opencode", "codex", "copilot"):
             profile = get_profile(name)
             content = _render_prompt(template, profile)
-            assert "checkpoint" in content.lower(), name
-            assert "resume" in content.lower() or "verification" in content.lower(), name
+            assert "current session" in content.lower(), name
+            assert "checkpoint" in content.lower() or "verification" in content.lower(), name
             assert DeployerBase.validate_deployed_content(content, profile) == [], name
 
 

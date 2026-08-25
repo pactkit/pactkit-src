@@ -36,6 +36,12 @@ from pactkit.config import (
     load_config,
     validate_config,
 )
+from pactkit.generators.command_ownership import (
+    cleanup_disabled_command_skills,
+    cleanup_unmodified_legacy_skills,
+    record_deployed_command,
+    write_command_manifest,
+)
 from pactkit.generators.deploy_base import (
     _DEPLOYER_REGISTRY,
     DeployerBase,
@@ -140,20 +146,15 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
         "GUARD": "the init-marker and lint/test checks manually",
         "DOCTOR": "the project file and structure checks manually",
         "CONTINUATION": (
-            "the continuation checkpoint verification manually; inspect the Story checkpoint, "
-            "Spec, Board, and worktree before continuing, and record a complete safe boundary"
+            "optional local handover notes; inspect the Story checkpoint, Spec, Board, "
+            "and worktree only when useful, then continue from the current session"
         ),
     }
     _cli_preserving = profile.has_pactkit_cli
-    # Workflow control-plane operations must remain executable in every
-    # adapter.  A profile may lack an embedded PactKit CLI integration while
-    # still directing the user/agent to run these commands from a terminal.
-    # Replacing them with prose destroys checkpoint identity and evidence.
-    _terminal_control_plane = {"CONTINUATION", "CONTEXT_CONTINUATION"}
     for _op in _op_canonical:
         var_map["PACTKIT_OP_" + _op] = (
             _op_canonical[_op]
-            if _cli_preserving or _op in _terminal_control_plane
+            if _cli_preserving
             else _op_fallback[_op]
         )
 
@@ -178,6 +179,8 @@ def _render_prompt(template: str, profile: FormatProfile) -> str:
             "guard": _op_fallback["GUARD"],
             "doctor": _op_fallback["DOCTOR"],
             "update": _op_fallback["INSTALL_UPDATE"],
+            "context": _op_fallback["CONTEXT_CONTINUATION"],
+            "continuation": _op_fallback["CONTINUATION"],
         }
         _span_re = re.compile(r"`pactkit (" + "|".join(_sub_fallback) + r")(?=\s|`)[^`]*`")
 
@@ -292,8 +295,8 @@ class ClassicDeployer(DeployerBase):
 
     profile = get_profile("classic")
 
-    def deploy(self, config=None, target=None):
-        _deploy_classic(config, target)
+    def deploy(self, config=None, target=None, project_root=None):
+        _deploy_classic(config, target, project_root=project_root)
 
 
 class PluginDeployer(DeployerBase):
@@ -351,7 +354,7 @@ def _ensure_entry_point_deployers():
 def deploy(
     config=None, target=None, format="classic", agent="claude",
     no_git=False, no_external=False, non_interactive=False, mode=None,
-    allow_skew: bool = False,
+    allow_skew: bool = False, project_root: Path | str | None = None,
 ):
     """Deploy PactKit configuration.
 
@@ -400,7 +403,12 @@ def deploy(
             deployer_instance = deployer_cls()
             # Classic respects -t target; adapters always deploy to their own default
             fmt_target = target if fmt_name == "classic" else None
-            deployer_instance.deploy(config=config, target=fmt_target)
+            if isinstance(deployer_instance, ClassicDeployer):
+                deployer_instance.deploy(
+                    config=config, target=fmt_target, project_root=project_root,
+                )
+            else:
+                deployer_instance.deploy(config=config, target=fmt_target)
         if skipped:
             print(f"Skipping adapter formats ({', '.join(skipped)}): -t target only applies to classic")
         if compat_skipped:
@@ -417,9 +425,21 @@ def deploy(
 
     # STORY-slim-057: Registry-based dispatch for environment formats
     if format in _DEPLOYER_REGISTRY:
+        # Public Python callers must not bypass the CLI compatibility preflight.
+        if format != "classic":
+            from pactkit.doctor import check_adapter_compat
+
+            errors = check_adapter_compat(format, allow_skew=allow_skew)
+            if errors:
+                raise ValueError("; ".join(errors))
         deployer_cls = _DEPLOYER_REGISTRY[format]
         deployer_instance = deployer_cls()
-        deployer_instance.deploy(config=config, target=target)
+        if isinstance(deployer_instance, ClassicDeployer):
+            deployer_instance.deploy(
+                config=config, target=target, project_root=project_root,
+            )
+        else:
+            deployer_instance.deploy(config=config, target=target)
         return
 
     # Fallback: format is in VALID_FORMATS but no deployer registered
@@ -430,8 +450,9 @@ def deploy(
     )
 
 
-def _deploy_classic(config=None, target=None):
+def _deploy_classic(config=None, target=None, *, project_root=None):
     """Classic deployment — write files to ~/.claude/ (original behavior)."""
+    project_root = Path(project_root or Path.cwd()).resolve()
     # Resolve target directory
     if target is not None:
         claude_root = Path(target)
@@ -445,15 +466,15 @@ def _deploy_classic(config=None, target=None):
     if config is None:
         from pactkit.config import find_pactkit_yaml
 
-        project_yaml = find_pactkit_yaml()
+        project_yaml = find_pactkit_yaml(project_root)
         if project_yaml is None:
-            project_yaml = Path.cwd() / ".claude" / "pactkit.yaml"
+            project_yaml = project_root / ".claude" / "pactkit.yaml"
         # Auto-merge new components before loading (STORY-009)
         auto_added = auto_merge_config_file(project_yaml)
         for item in auto_added:
             print(f"  -> Auto-added: {item}")
         # STORY-slim-077: Re-detect stacks for monorepo support
-        if project_yaml.exists() and _update_stack_if_stale(project_yaml, Path.cwd()):
+        if project_yaml.exists() and _update_stack_if_stale(project_yaml, project_root):
             print("  -> Stack re-detected from project markers")
         config = load_config(project_yaml)
 
@@ -484,9 +505,8 @@ def _deploy_classic(config=None, target=None):
     enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
 
     classic_profile = get_profile("classic")
-    n_skills = _deploy_skills(
-        skills_dir, enabled_skills, profile=classic_profile, include_portable_methods=True
-    )
+    _cleanup_legacy_portable_methods(skills_dir, classic_profile)
+    n_skills = _deploy_skills(skills_dir, enabled_skills, profile=classic_profile)
     _cleanup_legacy(skills_dir)
     rule_scopes = config.get("rule_scopes", {})
     n_rules = _deploy_rules(claude_root, enabled_rules, rule_scopes=rule_scopes, profile=classic_profile)
@@ -501,22 +521,21 @@ def _deploy_classic(config=None, target=None):
     # Deploy CI pipeline if configured (STORY-025)
     ci_config = config.get("ci", {})
     ci_provider = ci_config.get("provider", "none") if isinstance(ci_config, dict) else "none"
-    project_root = Path.cwd()
     _deploy_ci(ci_provider, project_root, config)
 
     # Generate pactkit.yaml at project-level if it doesn't exist (BUG-013)
-    _generate_config_if_missing()
+    _generate_config_if_missing(project_root=project_root)
 
     # Generate project-level CLAUDE.md (always regenerate) and CLAUDE.local.md (if missing) (STORY-040)
     # Skip when target is specified (preview mode) to avoid modifying real project
     if target is None:
-        _generate_project_claude_md(config)
+        _generate_project_claude_md(config, project_root=project_root)
 
     # Summary — STORY-slim-063: commands are now deployed as skills
     total_agents = len(VALID_AGENTS)
-    from pactkit.portable_methods import get_portable_methods
+    from pactkit.prompts.skills import SKILL_MANIFEST
 
-    total_skills = len(VALID_SKILLS) + len(get_portable_methods())
+    total_skills = len(SKILL_MANIFEST) + len(VALID_COMMANDS)
     total_rules = len(VALID_RULES)
 
     print(
@@ -559,12 +578,8 @@ def _deploy_plugin(target=None):
 
     # Deploy components (BUG-002: rewrite paths for plugin mode)
     prefix = PLUGIN_SKILLS_PREFIX
-    n_skills = _deploy_skills(
-        skills_dir,
-        all_skills,
-        _legacy_prefix=prefix,
-        include_portable_methods=True,
-    )
+    _cleanup_legacy_portable_methods(skills_dir, get_profile("classic"), prefix)
+    n_skills = _deploy_skills(skills_dir, all_skills, _legacy_prefix=prefix)
     _deploy_claude_md_inline(plugin_root, skills_prefix=prefix)
     n_agents = _deploy_agents(agents_dir, all_agents, _legacy_prefix=prefix)
     n_commands = _deploy_commands(commands_dir, all_commands, _legacy_prefix=prefix)
@@ -622,10 +637,8 @@ def _deploy_skills(
     enabled_set = set(enabled_skills)
     deployed = 0
 
-    for sd in get_skill_manifest():
+    for sd in get_skill_manifest(include_portable_methods=include_portable_methods):
         is_method = sd["name"].startswith("pactkit-method-")
-        if is_method and not include_portable_methods:
-            continue
         if not is_method and sd["name"] not in enabled_set:
             continue
         skill_dir = skills_dir / sd["name"]
@@ -644,6 +657,26 @@ def _deploy_skills(
     return deployed
 
 
+def _cleanup_legacy_portable_methods(skills_dir, profile, _legacy_prefix=None):
+    """Safely retire portable-method skills from a default deployment.
+
+    The methods remain an explicit Core API, but they must not remain in an
+    agent's default skill discovery after an upgrade.
+    """
+    from pactkit.portable_methods import get_portable_methods
+
+    prefix = profile.skills_path_var if _legacy_prefix is None else _legacy_prefix
+    # Plugin/marketplace historically rendered through the legacy prefix path
+    # (with no FormatProfile).  Reconstruct exactly that form before deciding
+    # a stale directory is safe to remove.
+    render_profile = profile if _legacy_prefix is None else None
+    expected = {
+        item["name"]: _render_skill_md(item, render_profile, prefix)
+        for item in get_portable_methods()
+    }
+    return cleanup_unmodified_legacy_skills(skills_dir, expected)
+
+
 def _cleanup_legacy(skills_dir):
     """Clean up legacy pactkit_tools.py."""
     legacy = skills_dir / "pactkit_tools.py"
@@ -652,16 +685,17 @@ def _cleanup_legacy(skills_dir):
 
 
 def _cleanup_legacy_commands(commands_dir):
-    """Remove legacy project-*.md files from commands/ (STORY-slim-063).
+    """Preserve legacy flat commands without a verifiable ownership record.
 
-    After migration, commands are deployed as skills. Old flat .md files
-    in commands/ would be shadowed but should be cleaned up.
-    Non-PactKit files (e.g., ultra-think.md) are preserved.
+    File names alone do not prove PactKit created a file.  A deployment must
+    never delete a user command simply because it is named ``project-*.md``.
+    The legacy format predates the manifest, so its filename alone cannot
+    safely distinguish a prior PactKit deployment from a user command.
+    Managed skill directories are cleaned through the manifest maintained by
+    :func:`_deploy_commands`; unproven legacy files stay available for manual
+    review.
     """
-    if not commands_dir.exists():
-        return
-    for f in commands_dir.glob("project-*.md"):
-        f.unlink()
+    del commands_dir
 
 
 def _migrate_from_scafpy(claude_root):
@@ -1079,27 +1113,12 @@ def _deploy_commands(
     _effective_prefix = _legacy_prefix if _legacy_prefix is not None else profile
 
     enabled_set = set(enabled_commands)
-
-    # Build map: command name -> filename
-    # e.g. 'project-plan' -> 'project-plan.md'
-    enabled_filenames = {f"{cmd}.md" for cmd in enabled_commands}
-
-    # STORY-slim-063: For classic format, commands deploy as skills (subdirectory/SKILL.md).
-    # For other formats (plugin/marketplace), keep flat .md files.
     _deploy_as_skill = profile.name == "classic" and _legacy_prefix is None
-
-    # Clean managed command files/dirs not in enabled set
-    if commands_dir.exists():
-        if _deploy_as_skill:
-            # Clean skill subdirectories for commands no longer enabled
-            for d in commands_dir.iterdir():
-                if d.is_dir() and d.name.startswith("project-") and d.name not in enabled_set:
-                    import shutil
-                    shutil.rmtree(d)
-        else:
-            for f in commands_dir.glob("*.md"):
-                if f.name.startswith("project-") and f.name not in enabled_filenames:
-                    f.unlink()
+    manifest = {}
+    if _deploy_as_skill:
+        manifest = cleanup_disabled_command_skills(
+            commands_dir, enabled_set, VALID_COMMANDS,
+        )
 
     # Deploy enabled commands
     deployed = 0
@@ -1130,10 +1149,15 @@ def _deploy_commands(
 
         if _deploy_as_skill:
             # STORY-slim-063: Write as skills_dir/{name}/SKILL.md
-            atomic_write(commands_dir / cmd_name / "SKILL.md", rendered)
+            target = commands_dir / cmd_name / "SKILL.md"
+            atomic_write(target, rendered)
+            record_deployed_command(manifest, cmd_name, target)
         else:
             atomic_write(commands_dir / filename, rendered)
         deployed += 1
+
+    if _deploy_as_skill:
+        write_command_manifest(commands_dir, manifest)
 
     return deployed
 
@@ -1326,30 +1350,20 @@ def _deploy_ci(provider, project_root, config):
         print("  -> CI: .gitlab-ci.yml")
 
 
-def _generate_config_if_missing(format: str | None = None):
-    """Generate pactkit.yaml if it doesn't exist (STORY-072: env-aware path, STORY-slim-008 R7: format-aware).
-
-    Args:
-        format: Optional format string ('classic', 'opencode').
-                When provided, writes to the format-specific directory.
-                When None, auto-detects from existing directories.
-
-    Writes to the appropriate directory based on environment:
-    - format='opencode' → .opencode/pactkit.yaml
-    - format='classic'  → .claude/pactkit.yaml
-    - auto (format=None): .opencode/ exists → .opencode/, else .claude/
-    """
+def _generate_config_if_missing(format: str | None = None, *, project_root=None):
+    """Generate a missing pactkit.yaml in the format-aware project directory."""
     from pactkit.config import find_pactkit_yaml, resolve_pactkit_yaml_dir
 
+    project_root = Path(project_root or Path.cwd()).resolve()
     # If already exists anywhere, skip
-    if find_pactkit_yaml() is not None:
+    if find_pactkit_yaml(project_root) is not None:
         return
 
     # STORY-slim-076: Auto-detect stacks for new projects
     from pactkit.cleaners import detect_stacks
-    stacks = detect_stacks(Path.cwd())
+    stacks = detect_stacks(project_root)
 
-    yaml_path = resolve_pactkit_yaml_dir(format=format)
+    yaml_path = resolve_pactkit_yaml_dir(cwd=project_root, format=format)
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
     atomic_write(yaml_path, generate_default_yaml(stack=stacks))
 
@@ -1622,16 +1636,9 @@ def _upsert_claude_md_managed_block(claude_md_path, managed_content, project_nam
         atomic_write(claude_md_path, preserved + "\n\n" + managed_block + at_imports)
 
 
-def _generate_project_claude_md(config):
-    """Generate project-level .claude/CLAUDE.md and CLAUDE.local.md (STORY-slim-127).
-
-    STORY-040: Dual-file layered architecture:
-    - CLAUDE.md: PactKit manages a block via markers; user content is preserved
-    - CLAUDE.local.md: User-owned, created once and never modified
-
-    STORY-slim-127: Uses managed-block pattern (merge over replace).
-    """
-    project_root = Path.cwd()
+def _generate_project_claude_md(config, *, project_root=None):
+    """Merge managed CLAUDE.md content while preserving user-owned content."""
+    project_root = Path(project_root or Path.cwd()).resolve()
 
     # R6: Skip if cwd equals home
     if project_root.resolve() == Path.home().resolve():

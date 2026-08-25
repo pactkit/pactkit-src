@@ -116,12 +116,13 @@ class TestAC4ActExplicitCriteria:
         assert ('import' in lower or 'fan-in' in lower or
                 '3+' in act or 'dependents' in lower or 'imported by' in lower)
 
-    def test_preserves_pre_existing_test_protocol(self):
-        """The pre-existing test failure STOP protocol must be preserved."""
+    def test_pre_existing_test_failure_is_a_diagnosis_not_a_session_blocker(self):
+        """Unrelated failures are reported honestly without forcing a handoff."""
         p = _prompts()
         act = p.COMMANDS_CONTENT['project-act.md']
-        assert 'NEVER modify' in act
-        assert 'STOP' in act
+        assert 'Do not casually modify' in act
+        assert 'QA gap' in act
+        assert 'STOP and report to the user' not in act
 
 
 # ==============================================================================

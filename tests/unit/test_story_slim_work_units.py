@@ -2112,7 +2112,10 @@ def test_portable_methods_are_single_source_and_stateless():
 
     methods = get_portable_methods()
     names = {item["name"] for item in methods}
-    deployed = {item["name"]: item for item in get_skill_manifest()}
+    deployed = {
+        item["name"]: item
+        for item in get_skill_manifest(include_portable_methods=True)
+    }
     assert names == {
         "pactkit-method-clarify", "pactkit-method-architecture-trace",
         "pactkit-method-spec-writing", "pactkit-method-tdd",
@@ -2125,6 +2128,8 @@ def test_portable_methods_are_single_source_and_stateless():
 
 
 def test_work_unit_cli_start_acquire_status(tmp_path):
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "pactkit.yaml").write_text("stack: python\n")
     env = os.environ.copy()
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
     started = subprocess.run(
@@ -2200,18 +2205,19 @@ def test_work_unit_cli_binds_story_and_resumes_the_same_run(tmp_path):
     assert unit["step_id"] == "story_identity"
 
 
-def test_plan_prompt_is_a_work_unit_facade():
+def test_default_prompts_are_native_current_session_playbooks():
     from pactkit.prompts.commands import COMMANDS_CONTENT, get_deployable_commands
 
-    prompt = get_deployable_commands()["project-plan.md"]
-    assert "pactkit work-unit" in prompt
-    assert "one WorkUnit" in prompt
-    assert "pactkit-codex-work-unit run" in prompt
-    assert "pactkit-codex-work-unit execute" not in prompt
-    assert "finalize-plan" in prompt
-    assert "Phase 0.7" not in prompt
-    assert "Do NOT try to plan the entire Spec" not in prompt
-    assert "Phase 0.7" in COMMANDS_CONTENT["project-plan.md"]
+    deployed = get_deployable_commands()
+    assert deployed == COMMANDS_CONTENT
+    forbidden = (
+        "pactkit-codex-work-unit", "--owner codex", "WorkUnit",
+        "EvidenceReceipt", "Managed WorkUnit Facade",
+    )
+    for name, prompt in deployed.items():
+        assert not any(term in prompt for term in forbidden), name
+    assert "Phase 0.7" in deployed["project-plan.md"]
+    assert "current session" in deployed["project-act.md"]
 
 
 def test_manifest_uses_versioned_truthful_host_contract(tmp_path):
@@ -2233,8 +2239,8 @@ def test_manifest_workflow_guarantee_matches_the_declared_host_capability(tmp_pa
     expected = {
         "classic": "portable",
         "opencode": "portable",
-        "codex": "guided",
-        "copilot": "guided",
+        "codex": "portable",
+        "copilot": "portable",
     }
     for host, mode in expected.items():
         payload = json.loads(write_deploy_manifest(tmp_path / host, host).read_text())
@@ -2578,7 +2584,7 @@ def test_doctor_reports_work_unit_guarantee(tmp_path):
 
     WorkflowEngine(tmp_path).start("project-plan", goal="plan")
     result = check_workflow_continuation(tmp_path, home=tmp_path / "empty-home")
-    assert result["guarantee_level"] == "guided"
+    assert result["guarantee_level"] == "portable"
     assert result["stop_hook_required"] is False
     assert result["work_unit_runs"]
 
@@ -2924,15 +2930,15 @@ def test_act_completion_requires_board_tasks():
     assert not WorkflowFinalizer._validate_pdca_completion("project-act", evidence)
 
 
-def test_check_and_done_require_completed_story_predecessors(tmp_path):
-    from pactkit.workflow_engine import WorkflowEngine, WorkUnitError
+def test_experimental_check_and_done_require_completed_predecessor_runs(tmp_path):
+    from pactkit.workflow_engine import WorkflowEngine
 
     story_id = "STORY-slim-999"
     engine = WorkflowEngine(tmp_path)
-    with pytest.raises(WorkUnitError, match="project-act_completion_required"):
+    with pytest.raises(Exception, match="project-act_completion_required"):
         engine.start("project-check", goal="check", story_id=story_id)
-    with pytest.raises(WorkUnitError, match="project-check_completion_required"):
-        engine.start("project-done", goal="done", story_id=story_id)
+    with pytest.raises(Exception, match="project-check_completion_required"):
+        engine.start("project-done", goal="done", story_id="STORY-slim-998")
 
 
 def test_sprint_phase_requires_completed_child_runs_for_every_story(
@@ -3180,10 +3186,9 @@ def test_check_start_survives_stale_plan_journal_after_act(tmp_path):
     assert check.status == "running"
 
 
-def test_done_start_reports_honest_predecessor_error_not_crash(tmp_path):
-    """R4: project-done start (no completed check) must raise the honest
-    project-check_completion_required, NOT invalid_workflow_state."""
-    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine, WorkUnitError
+def test_done_start_requires_a_completed_check_run(tmp_path):
+    """The explicit experimental engine retains its Check evidence gate."""
+    from pactkit.workflow_engine import PlanFinalizer, WorkflowEngine
 
     sid = "STORY-slim-996"
     _write_plan_inputs(tmp_path, sid)
@@ -3196,7 +3201,7 @@ def test_done_start_reports_honest_predecessor_error_not_crash(tmp_path):
     )
     _finalize_act_for_story(tmp_path, engine, sid)
 
-    with pytest.raises(WorkUnitError, match="project-check_completion_required"):
+    with pytest.raises(Exception, match="project-check_completion_required"):
         engine.start("project-done", goal="done", story_id=sid)
 
 

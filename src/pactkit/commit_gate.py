@@ -354,6 +354,9 @@ def ensure_gate_channel(root: Path, format_name: str) -> str:
     root = Path(root)
     if format_name in _PRETOOLUSE_FORMATS:
         install_hook(root)
+        from pactkit.preflight_guard import install_preflight_hook
+
+        install_preflight_hook(root)
     elif (root / ".git").is_dir():
         install_git_hook(root)
     channel = gate_channel(root)

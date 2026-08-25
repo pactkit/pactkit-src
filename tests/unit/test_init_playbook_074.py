@@ -192,12 +192,13 @@ class TestOtherPromptsNoHardcodedPaths(unittest.TestCase):
         self.assertNotIn('check `.claude/`, `.opencode/`, `.codex/`', core)
         self.assertIn("{PROJECT_CONFIG_DIR}", core)
 
-    def test_done_smoke_check_uses_global_config_dir(self):
+    def test_done_smoke_check_uses_temporary_target_before_any_host_update(self):
         from pactkit.prompts.commands import COMMANDS_CONTENT
 
         done = COMMANDS_CONTENT["project-done.md"]
         self.assertNotIn("~/.claude/commands", done)
-        self.assertIn("{GLOBAL_CONFIG_DIR}/commands", done)
+        self.assertIn("temporary target directory", done)
+        self.assertIn("explicit authorization", done)
 
 
 if __name__ == "__main__":

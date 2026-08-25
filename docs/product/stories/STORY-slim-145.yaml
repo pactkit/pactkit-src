@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-145
 title: Codex 部署命令语义完整性与 Adapter 兼容门禁
 spec_path: docs/specs/STORY-slim-145.md
-status: in_progress
+status: done
 tasks:
 - id: task-bfa1a08571
   title: 建立 CLI policy 与结构化操作渲染契约
@@ -17,7 +17,7 @@ tasks:
   title: 阻止不兼容 Core/adapter 组合静默部署
   completed: true
 - id: task-a989641be8
-  title: 完成隔离迁移、双仓回归与同版本发布验证
-  completed: false
+  title: 完成隔离迁移、双仓回归与 2.23.0 同版本构建验证
+  completed: true
 created_at: '2026-08-22T05:25:07+00:00'
 updated_at: '2026-08-22T05:25:07+00:00'

@@ -107,12 +107,6 @@ class HostContinuationRunner:
                 "termination_reason": reason, "updated_at": now.isoformat(),
             }
             state["host_continuation"] = record
-            if reason != "resume_scheduled":
-                state["status"] = "blocked"
-                state["blocker"] = (
-                    f"External host intervention required after {reason}"
-                )
-                state["blocker_kind"] = "external_state"
             atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
         if reason != "resume_scheduled":
             return {**decision, "decision": "await_user", "attempt": attempt,
@@ -156,15 +150,6 @@ class HostContinuationRunner:
         }
         atomic_write(host_path, json.dumps(record, indent=2, ensure_ascii=False) + "\n")
         if reason != "resume_scheduled":
-            ContinuationStore(self.engine.root).checkpoint(
-                story_id,
-                step_id=state["step_id"],
-                evidence=state.get("evidence", {}),
-                status="blocked",
-                phase=state.get("phase", ""),
-                blocker=f"External host intervention required after {reason}",
-                blocker_kind="external_state",
-            )
             return {**decision, "decision": "await_user", "attempt": attempt,
                     "reason_code": reason, "exit_code": 0}
         return {**decision, "decision": "resume_session", "attempt": attempt,
@@ -182,7 +167,7 @@ class HostContinuationRunner:
     def record_resume_failure(
         self, identifier: str, *, reason_code: str, session_locator: str,
     ) -> dict[str, Any]:
-        """Persist a host resume failure as an externally recoverable block."""
+        """Persist a host resume diagnostic without blocking the workflow."""
         if reason_code not in RESUME_FAILURE_REASONS:
             raise ValueError(f"unsupported resume failure: {reason_code}")
         initial = self.engine.read(identifier)
@@ -199,16 +184,14 @@ class HostContinuationRunner:
                 "lease_expires_at": None,
                 "termination_reason": reason_code, "updated_at": now.isoformat(),
             }
-            state["status"] = "blocked"
-            state["blocker_kind"] = "external_state"
-            state["blocker"] = f"External host intervention required after {reason_code}"
             state["updated_at"] = now.isoformat()
             atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
         return {
             "decision": "await_user", "workflow_id": state["workflow_id"],
             "run_id": run_id, "story_id": state.get("story_id"),
-            "step_id": state["step_id"], "next_step": None, "status": "blocked",
-            "reasons": [state["blocker"]], "reason_code": reason_code,
+            "step_id": state["step_id"], "next_step": state["step_id"],
+            "status": state["status"],
+            "reasons": [f"Host resume diagnostic: {reason_code}"], "reason_code": reason_code,
             "auto_resume_available": self.capabilities.auto_resume_available,
             "resume_token": run_id,
             "manual_resume_command": f"pactkit workflow resume {run_id}",

@@ -39,15 +39,16 @@ class TestCLIPolicy:
         """R1: codex no longer claims CLI-less; it preserves the CLI (preferred)."""
         assert get_profile("codex").cli_policy is CLIPolicy.PREFERRED
 
-    def test_copilot_preserves_terminal_core_cli_for_manual_resume(self):
-        assert get_profile("copilot").cli_policy is CLIPolicy.PREFERRED
+    def test_copilot_is_cli_unavailable(self):
+        """AC9: native current-session execution does not imply a CLI dependency."""
+        assert get_profile("copilot").cli_policy is CLIPolicy.UNAVAILABLE
 
     def test_has_pactkit_cli_derived_from_policy(self):
         """Legacy boolean is now a derived property: required/preferred->True."""
         assert get_profile("classic").has_pactkit_cli is True
         assert get_profile("codex").has_pactkit_cli is True  # R1 change: codex preserves CLI
         assert get_profile("opencode").has_pactkit_cli is True
-        assert get_profile("copilot").has_pactkit_cli is True
+        assert get_profile("copilot").has_pactkit_cli is False
 
     def test_every_profile_has_cli_policy(self):
         for name, profile in FORMAT_PROFILES.items():
@@ -66,7 +67,7 @@ _OPERATION_TOKENS = [
 
 
 def _unavailable_profile():
-    """A synthetic host for fallback behavior; Copilot preserves Core CLI."""
+    """A synthetic CLI-less host for fallback behavior."""
     return replace(get_profile("copilot"), cli_policy=CLIPolicy.UNAVAILABLE)
 
 
@@ -90,6 +91,11 @@ class TestOperationTokens:
         assert "`pactkit regression`" in out
         assert "Run run" not in out
 
+    def test_copilot_unavailable_uses_complete_core_fallback(self):
+        out = _render_prompt("Run {PACTKIT_OP_REGRESSION}", get_profile("copilot"))
+        assert "pactkit regression" not in out
+        assert "Run run" not in out
+
     def test_unavailable_profile_uses_complete_fallback(self):
         out = _render_prompt("Run {PACTKIT_OP_REGRESSION}", _unavailable_profile())
         assert "pactkit regression" not in out
@@ -111,10 +117,11 @@ class TestOperationTokens:
         assert "Run run" not in out
         assert out.count("`") % 2 == 0
 
-    def test_unavailable_profile_preserves_context_continuation_control_plane(self):
-        """Later workflow specs require exact continuation arguments for terminal use."""
+    def test_unavailable_profile_replaces_context_continuation_with_optional_handover(self):
+        """CLI-less hosts keep handover optional and never require a terminal command."""
         out = _render_prompt("Run `pactkit context --continuation --phase X`", _unavailable_profile())
-        assert "`pactkit context --continuation --phase X`" in out
+        assert "pactkit context" not in out
+        assert "session handoff" in out
         assert "Run run" not in out
 
 
@@ -153,9 +160,9 @@ class TestPromptIntegrityLexical:
             "pactkit context --continuation --phase green",
         ),
     )
-    def test_copilot_allows_executable_terminal_control_plane(self, command):
+    def test_cli_less_copilot_rejects_terminal_control_plane_cli(self, command):
         content = f"Run `{command}`"
-        assert DeployerBase.validate_deployed_content(content, get_profile("copilot")) == []
+        assert DeployerBase.validate_deployed_content(content, get_profile("copilot"))
 
     def test_unavailable_profile_rejects_non_control_plane_context_cli(self):
         content = "Run `pactkit context`"
@@ -175,6 +182,20 @@ class TestPromptIntegritySemantic:
         v = DeployerBase.validate_deployed_content(content, get_profile("codex"))
         assert v, "missing required Act operation not detected"
 
+    def test_keyword_glossary_cannot_satisfy_act_semantics(self):
+        content = (
+            "# Command: Act\n/project-act glossary: Spec lint, TDD, RED/GREEN, "
+            "regression, lint, continuation, coverage, graph, board."
+        )
+        v = DeployerBase.validate_deployed_content(content, get_profile("codex"))
+        assert any("Missing required Act operation" in item for item in v)
+
+    def test_canonical_act_contains_all_semantic_operation_markers(self):
+        from pactkit.prompts.commands import COMMANDS_CONTENT
+
+        rendered = _render_prompt(COMMANDS_CONTENT["project-act.md"], get_profile("codex"))
+        assert DeployerBase.validate_deployed_content(rendered, get_profile("codex")) == []
+
 
 # ---------------------------------------------------------------------------
 # R5: Classic / Codex behavioral equivalence
@@ -185,15 +206,24 @@ class TestClassicCodexParity:
     """R5 / AC3: normalized required operation sets are equivalent."""
 
     def test_required_operation_sets_equivalent(self):
-        template = (
-            "Run {PACTKIT_OP_REGRESSION} ; Run {PACTKIT_OP_LINT} ; "
-            "Run {PACTKIT_OP_CONTEXT_CONTINUATION} ; {PACTKIT_OP_LAZY_VISUALIZE}"
-        )
+        from pactkit.generators.deploy_base import _REQUIRED_ACT_MARKERS
+        from pactkit.prompts.commands import COMMANDS_CONTENT
+
+        template = COMMANDS_CONTENT["project-act.md"]
         classic = _render_prompt(template, get_profile("classic"))
         codex = _render_prompt(template, get_profile("codex"))
-        for op in ["regression", "lint", "context", "visualize"]:
-            assert op in classic.lower(), f"missing {op} in classic"
-            assert op in codex.lower(), f"missing {op} in codex"
+
+        def normalized_operations(content):
+            return set(
+                __import__("re").findall(
+                    r"<!--\s*PACTKIT_ACT_OP:([a-z_]+)\s*-->", content,
+                )
+            )
+
+        classic_ops = normalized_operations(classic)
+        codex_ops = normalized_operations(codex)
+        assert classic_ops == set(_REQUIRED_ACT_MARKERS)
+        assert codex_ops == classic_ops
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +287,27 @@ class TestDeployTimeCompatGate:
         monkeypatch.setattr(importlib.metadata, "version", lambda pkg: "2.20.0")
         errors = _check_adapter_compat("codex")
         assert not errors
+
+    def test_public_deploy_dispatch_blocks_before_adapter_write(self, monkeypatch, tmp_path):
+        from pactkit.generators import deployer as dep_mod
+        from pactkit.generators.deployer import deploy
+
+        deployed: list[bool] = []
+
+        class _Spy:
+            def deploy(self, config=None, target=None):
+                deployed.append(True)
+
+        monkeypatch.setattr(dep_mod, "_ensure_entry_point_deployers", lambda: None)
+        monkeypatch.setattr(dep_mod, "_DEPLOYER_REGISTRY", {"codex": _Spy})
+        monkeypatch.setattr(
+            "pactkit.doctor.check_adapter_compat",
+            lambda fmt, allow_skew=False: ["incompatible"],
+        )
+
+        with pytest.raises(ValueError, match="incompatible"):
+            deploy(config={}, target=tmp_path, format="codex")
+        assert deployed == []
 
 
 # ---------------------------------------------------------------------------
@@ -346,13 +397,14 @@ class TestFormatAllPerAdapterGate:
 
 
 # ---------------------------------------------------------------------------
-# F5: copilot CONTEXT_CONTINUATION fallback retains continuation params
+# F5: Copilot CONTEXT_CONTINUATION fallback is an optional local handover
 # ---------------------------------------------------------------------------
 
 
 class TestCopilotContinuationFallback:
-    """F5: copilot retains executable continuation state parameters."""
+    """F5: Copilot uses a local handover instead of a CLI gate."""
 
     def test_fallback_mentions_continuation_params(self):
         out = _render_prompt("Run {PACTKIT_OP_CONTEXT_CONTINUATION}", get_profile("copilot"))
-        assert "`pactkit context --continuation`" in out
+        assert "pactkit context" not in out
+        assert "session handoff" in out

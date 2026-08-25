@@ -836,19 +836,23 @@ def validate_skill_recovery_contracts() -> list[str]:
     return errors
 
 
-def get_skill_manifest() -> list[dict]:
-    """Return the skill manifest with script sources resolved.
+def get_skill_manifest(*, include_portable_methods: bool = False) -> list[dict]:
+    """Return default host skills, with script sources resolved.
 
     Public adapter contract (STORY-slim-139 R1): each entry has
     name / skill_md / script_name (None for prompt-only) and, for scripted
     skills, script_source. Adapters consume this instead of maintaining
     their own skill lists.
     """
-    from pactkit.portable_methods import get_portable_methods
     from pactkit.skills import load_script
 
     resolved = []
-    for entry in (*SKILL_MANIFEST, *get_portable_methods()):
+    entries = SKILL_MANIFEST
+    if include_portable_methods:
+        from pactkit.portable_methods import get_portable_methods
+
+        entries = (*entries, *get_portable_methods())
+    for entry in entries:
         item = dict(entry)
         if item["script_name"]:
             item["script_source"] = load_script(item["script_name"])

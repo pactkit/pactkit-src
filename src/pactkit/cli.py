@@ -60,6 +60,10 @@ def main():
         prog="pactkit",
         description="PactKit — Spec-driven agentic DevOps toolkit",
     )
+    parser.add_argument(
+        "-C", "--project-root", default=None,
+        help="Initialized PactKit project root (otherwise discovered from CWD)",
+    )
     subparsers = parser.add_subparsers(dest="command")
 
     # pactkit init
@@ -220,6 +224,16 @@ def main():
         help="Directory containing spec files (default: docs/specs)",
     )
 
+    preflight_parser = subparsers.add_parser(
+        "spec-preflight", help="Load Spec implementation inputs and write a verified receipt"
+    )
+    preflight_parser.add_argument("spec", help="Path to the Story Spec")
+    preflight_parser.add_argument(
+        "--activate", action="store_true",
+        help="Bind this host session to the Story for optional mutation enforcement",
+    )
+    preflight_parser.add_argument("--session-id", default=None, help=argparse.SUPPRESS)
+
     # pactkit schema
     schema_parser = subparsers.add_parser("schema", help="Show document structure rules")
     schema_parser.add_argument(
@@ -233,8 +247,8 @@ def main():
     # pactkit guard (STORY-slim-014 R1, HOTFIX-slim-087)
     guard_parser = subparsers.add_parser("guard", help="Check project init markers")
     guard_parser.add_argument(
-        "-C", "--project-root", type=str, default=None,
-        help="Project root directory (defaults to CWD)",
+        "-C", "--project-root", dest="command_project_root", default=None,
+        help="Initialized PactKit project root",
     )
 
     id_parser = subparsers.add_parser(
@@ -579,6 +593,12 @@ def main():
         help="Install .git/hooks/pre-commit wrapper for human commits",
     )
 
+    preflight_guard_parser = subparsers.add_parser(
+        "preflight-guard", help="Claude Code Spec preflight mutation guard"
+    )
+    preflight_guard_parser.add_argument("--hook", action="store_true")
+    preflight_guard_parser.add_argument("--install", action="store_true")
+
     # pactkit deps (STORY-slim-137: external dependency check/install)
     deps_parser = subparsers.add_parser("deps", help="Check or install external dependencies (node/codegraph/gh)")
     deps_sub = deps_parser.add_subparsers(dest="deps_action")
@@ -619,18 +639,31 @@ def main():
 
     args = parser.parse_args()
 
-    # Auto-deploy on version mismatch: after pip upgrade, the next pactkit command
-    # transparently syncs deployed files without requiring explicit `pactkit init`.
-    if args.command and args.command not in ("init", "update", "upgrade", "version"):
+    project_root = None
+    rootless_commands = {"init", "version", "schema"}
+    rootless_invocation = (
+        args.command == "workflow"
+        and getattr(args, "workflow_action", None) in {"registry", "contract"}
+    )
+    if args.command and args.command not in rootless_commands:
         from pathlib import Path
 
-        marker = Path.home() / ".claude" / ".pactkit-version"
-        needs_deploy = not marker.exists() or marker.read_text().strip() != __version__
-        if needs_deploy:
-            from pactkit.generators.deployer import deploy
+        from pactkit.project_root import ProjectRootNotFound, resolve_project_root
 
-            print(f"PactKit {__version__} detected — auto-syncing deployed files...")
-            deploy(format="all")
+        try:
+            explicit_root = getattr(args, "command_project_root", None) or args.project_root
+            project_root = resolve_project_root(Path.cwd(), explicit=explicit_root)
+        except ProjectRootNotFound as exc:
+            if rootless_invocation or args.command in {
+                "update", "upgrade", "lesson-append", "redetect-stack",
+            }:
+                project_root = Path.cwd().resolve()
+            else:
+                parser.error(str(exc))
+    elif args.command == "init":
+        from pathlib import Path
+
+        project_root = Path.cwd().resolve()
 
     if args.command in ("init", "update", "upgrade"):
         # STORY-slim-102: --if-needed checks global deploy marker, not project yaml
@@ -671,12 +704,13 @@ def main():
 
             from pactkit.config import sync_config_copies
 
-            for synced in sync_config_copies(Path.cwd()):
+            for synced in sync_config_copies(project_root):
                 print(f"  -> Synced config copy: {synced}")
 
         deploy(
             target=args.target,
             format=args.format,
+            project_root=project_root,
             agent=getattr(args, "agent", "claude"),
             no_git=getattr(args, "no_git", False),
             no_external=getattr(args, "no_external", False),
@@ -693,19 +727,46 @@ def main():
             from pactkit.commit_gate import ensure_gate_channel
             from pactkit.deps import check_deps, render_check_report
 
-            print(f"  -> commit gate: {ensure_gate_channel(Path.cwd(), args.format)}")
+            print(f"  -> commit gate: {ensure_gate_channel(project_root, args.format)}")
             report = render_check_report(check_deps())
             if "❌" in report:
                 print(f"\n{report}")
+
+    elif args.command == "spec-preflight":
+        import os
+
+        from pactkit.spec_preflight import PreflightError, run_spec_preflight
+
+        session_id = args.session_id or os.environ.get("CLAUDE_SESSION_ID", "")
+        activate_in_process = args.activate and bool(session_id)
+        try:
+            result = run_spec_preflight(
+                project_root, args.spec, session_id=session_id, activate=activate_in_process,
+            )
+        except PreflightError as exc:
+            parser.error(str(exc))
+        print(result.rendered, end="")
+        print(f"Receipt: {result.receipt_path}")
+        if args.activate and not session_id:
+            print(
+                "Activation requested: the Claude Code PreToolUse hook binds the host session; "
+                "receipt generation succeeded."
+            )
 
     elif args.command == "spec-lint":
         from pactkit.skills.spec_linter import main as spec_lint_main
 
         argv = []
         if args.all:
-            argv += ["--all", "--specs-dir", args.specs_dir]
+            specs_dir = Path(args.specs_dir)
+            if not specs_dir.is_absolute():
+                specs_dir = project_root / specs_dir
+            argv += ["--all", "--specs-dir", str(specs_dir)]
         elif args.spec:
-            argv += [args.spec]
+            spec = Path(args.spec)
+            if not spec.is_absolute():
+                spec = project_root / spec
+            argv += [str(spec)]
         else:
             spec_lint_parser.print_help()
             raise SystemExit(1)
@@ -719,7 +780,6 @@ def main():
 
         from pactkit.guards import check_init_markers, check_version_mismatch
 
-        project_root = Path(args.project_root) if args.project_root else Path.cwd()
         ok, missing = check_init_markers(project_root)
         if ok:
             print("Guard: PASS — all init markers present")
@@ -739,7 +799,7 @@ def main():
         from pactkit.id_generator import generate_item_id
 
         cfg = load_config()
-        specs_dir = Path.cwd() / "docs" / "specs"
+        specs_dir = project_root / "docs" / "specs"
         print(generate_item_id(
             specs_dir=specs_dir, developer=cfg.get("developer", ""),
             item_type=args.type.upper(),
@@ -750,7 +810,7 @@ def main():
 
         from pactkit.cleaners import clean_artifacts
 
-        removed = clean_artifacts(Path.cwd(), stack=args.stack, dry_run=args.dry_run)
+        removed = clean_artifacts(project_root, stack=args.stack, dry_run=args.dry_run)
         if removed:
             prefix = "Would remove" if args.dry_run else "Removed"
             for p in removed:
@@ -778,7 +838,7 @@ def main():
         try:
             from pactkit.skills.visualize import regression_workflow_impact
 
-            wf_lines = regression_workflow_impact(".", files)
+            wf_lines = regression_workflow_impact(str(project_root), files)
             for line in wf_lines:
                 print(line)
         except Exception:
@@ -799,7 +859,7 @@ def main():
                 continuation_args["blockers"] = args.blockers
 
         content = generate_context(
-            Path.cwd(),
+            project_root,
             command="pactkit context",
             continuation_args=continuation_args,
         )
@@ -808,7 +868,7 @@ def main():
         else:
             from pactkit.utils import atomic_write
 
-            ctx_path = context_output_path(Path.cwd())
+            ctx_path = context_output_path(project_root)
             atomic_write(ctx_path, content)
             print(f"Generated {ctx_path}")
 
@@ -819,12 +879,12 @@ def main():
         from pactkit.governance import BoardRenderer, GovernanceError, StoryRepository
         from pactkit.utils import atomic_write
 
-        repository = StoryRepository(Path.cwd())
+        repository = StoryRepository(project_root)
         renderer = BoardRenderer(repository)
         try:
             if args.board_action == "add":
                 repository = StoryRepository(
-                    Path.cwd(), run_id=args.run_id, workflow_id=args.workflow_id,
+                    project_root, run_id=args.run_id, workflow_id=args.workflow_id,
                     standalone=args.standalone or not args.run_id,
                 )
                 result = repository.add(
@@ -840,7 +900,7 @@ def main():
             else:
                 output = Path(args.output)
                 if not output.is_absolute():
-                    output = Path.cwd() / output
+                    output = project_root / output
                 if args.check:
                     if not renderer.check(output):
                         print(f"Board projection drift: {output}")
@@ -861,7 +921,7 @@ def main():
         from pactkit.governance import GovernanceError, GovernanceMigrator
 
         try:
-            result = GovernanceMigrator(Path.cwd()).migrate(dry_run=not args.apply)
+            result = GovernanceMigrator(project_root).migrate(dry_run=not args.apply)
             print(json.dumps(result, indent=2, ensure_ascii=False))
         except GovernanceError as exc:
             print(f"Governance migration error: {exc}")
@@ -873,7 +933,7 @@ def main():
 
         from pactkit.continuation import ContinuationError, ContinuationStore
 
-        store = ContinuationStore(Path.cwd())
+        store = ContinuationStore(project_root)
         try:
             if args.continuation_action == "checkpoint":
                 raw_evidence = args.evidence
@@ -966,7 +1026,7 @@ def main():
                 }
                 print(json.dumps(payload, indent=2, ensure_ascii=False))
             else:
-                engine = ContinuationEngine(Path.cwd())
+                engine = ContinuationEngine(project_root)
                 if args.workflow_action == "start":
                     result = engine.start(args.workflow_id, evidence=_workflow_evidence(args.evidence))
                     import os
@@ -1026,7 +1086,7 @@ def main():
             return value
 
         try:
-            engine = WorkflowEngine(Path.cwd())
+            engine = WorkflowEngine(project_root)
             if args.work_unit_action == "start":
                 result = asdict(engine.start(
                     args.workflow_id, goal=args.goal, story_id=args.story_id,
@@ -1061,13 +1121,13 @@ def main():
                     session=args.session, thread=args.thread, turn=args.turn,
                 )
             elif args.work_unit_action == "finalize-plan":
-                result = PlanFinalizer(Path.cwd(), engine).finalize(
+                result = PlanFinalizer(project_root, engine).finalize(
                     args.run_id, story_id=args.story_id, title=args.title,
                     tasks=[item.strip() for item in args.tasks.split("|") if item.strip()],
                     idempotency_key=args.idempotency_key,
                 )
             elif args.work_unit_action == "finalize-workflow":
-                result = WorkflowFinalizer(Path.cwd(), engine).finalize(
+                result = WorkflowFinalizer(project_root, engine).finalize(
                     args.run_id, EvidenceReceipt(**_unit_json(args.receipt)),
                     owner=args.owner, idempotency_key=args.idempotency_key,
                 )
@@ -1103,7 +1163,7 @@ def main():
         if not args.files:
             print("Usage: pactkit sec-scope <file1> [file2 ...]")
             raise SystemExit(1)
-        results = detect_security_scope(args.files, project_root=Path.cwd())
+        results = detect_security_scope(args.files, project_root=project_root)
         print(format_markdown_table(results))
 
     elif args.command == "lint-context":
@@ -1150,7 +1210,6 @@ def main():
 
         from pactkit.lazy_visualize import codegraph_sync, run_visualize_graphs, run_visualize_single, should_visualize
 
-        project_root = Path.cwd()
         if args.lazy:
             should_run, reason = should_visualize(project_root, stack=args.stack)
             if not should_run:
@@ -1178,7 +1237,6 @@ def main():
 
         from pactkit.lazy_visualize import codegraph_sync
 
-        project_root = Path.cwd()
         synced, msg = codegraph_sync(project_root)
         if synced:
             print(f"🔄 {msg}")
@@ -1190,7 +1248,7 @@ def main():
 
         from pactkit.garden import run_garden
 
-        root = Path.cwd()
+        root = project_root
         scope = Path(args.scope) if args.scope else None
         output, exit_code = run_garden(root, scope=scope, json_output=args.json)
         print(output)
@@ -1209,7 +1267,7 @@ def main():
         # Default: --all mode (convenience entry per R7)
         all_mode = args.all_mode or (not args.input)
         output = run_report(
-            input_file=args.input, output_file=args.output, all_mode=all_mode,
+            target=project_root, input_file=args.input, output_file=args.output, all_mode=all_mode,
         )
         if output:
             print(output)
@@ -1218,7 +1276,7 @@ def main():
         from pactkit.audit import audit as run_audit
 
         output = run_audit(
-            json_only=args.json, layer=args.layer, append=args.append,
+            target=project_root, json_only=args.json, layer=args.layer, append=args.append,
             verbose=args.verbose, if_needed=args.if_needed,
             story_id=args.story_id,
         )
@@ -1237,7 +1295,7 @@ def main():
             check_workflow_continuation,
         )
 
-        root = Path.cwd()
+        root = project_root
         has_issues = False
 
         # R1: Orphaned/missing specs
@@ -1307,23 +1365,26 @@ def main():
 
         parity = check_deploy_parity(root)
         for detail in parity["details"]:
-            print(f"  {detail}")
-            has_issues = True
+            # Deployment manifests are environment diagnostics, not project
+            # correctness gates.  A stale optional host must not make a
+            # read-only doctor invocation (or normal PDCA work) unusable.
+            print(f"  ⚠️  {detail}")
         for warning in parity["warnings"]:
             print(f"  ⚠️  {warning}")
 
-        from pactkit.doctor import check_codex_hook_capability
+        from pactkit.doctor import check_codex_execution_capability
 
-        hook = check_codex_hook_capability()
+        codex_execution = check_codex_execution_capability()
         print(
-            "  Codex Stop hook: "
-            f"installed={str(hook['installed']).lower()} "
-            f"trusted={str(hook['trusted']).lower()} "
-            f"observed={str(hook['observed']).lower()} "
-            f"validated={str(hook['validated']).lower()} "
-            f"guarantee={hook['guarantee_level']}"
+            "  Codex execution capability: "
+            f"mode={codex_execution['execution_mode']} "
+            f"session={codex_execution['session_execution']} "
+            f"background={str(codex_execution['background_execution']).lower()} "
+            f"thread_resume={str(codex_execution['thread_resume']).lower()} "
+            f"finish_guard={str(codex_execution['finish_guard_supported']).lower()} "
+            f"guarantee={codex_execution['guarantee_level']}"
         )
-        for warning in hook["warnings"]:
+        for warning in codex_execution["warnings"]:
             print(f"  ⚠️  {warning}")
 
         # STORY-slim-142 R3: adapter package version skew (report-only)
@@ -1332,20 +1393,18 @@ def main():
         for warning in check_adapter_skew():
             print(f"  ⚠️  {warning}")
 
-        # STORY-slim-145 R6/AC6: core source vs distribution metadata divergence
-        # (editable/partial install). Report and mark needs-attention — doctor
-        # must not claim the installation is aligned when source != distribution.
+        # Core source vs distribution metadata divergence is an installation
+        # diagnostic.  It must not make a project doctor invocation fail: an
+        # editable checkout or an older host install cannot block normal work.
         from pactkit.doctor import check_core_metadata_divergence
 
         for warning in check_core_metadata_divergence():
             print(f"  ⚠️  {warning}")
-            has_issues = True
 
         from pactkit.continuation import ContinuationStore
 
         for warning in ContinuationStore(root).diagnostics():
             print(f"  ⚠️  {warning}")
-            has_issues = True
 
         workflow_health = check_workflow_continuation(root)
         print(
@@ -1356,7 +1415,6 @@ def main():
         )
         for warning in workflow_health["warnings"]:
             print(f"  ⚠️  {warning}")
-            has_issues = True
 
         if not has_issues:
             print("Health: OK")
@@ -1369,7 +1427,7 @@ def main():
 
         from pactkit.backfill import scan_and_replace_tbd
 
-        result = scan_and_replace_tbd(Path.cwd(), args.version)
+        result = scan_and_replace_tbd(project_root, args.version)
         for item in result["backfilled"]:
             print(f"  Backfilled: {item['id']} → {args.version}")
         for item in result["skipped"]:
@@ -1382,7 +1440,7 @@ def main():
 
         from pactkit.issue_sync import issue_sync
 
-        result = issue_sync(args.item_id, Path.cwd())
+        result = issue_sync(args.item_id, project_root)
         print(result["message"])
         if result["action"] == "error":
             raise SystemExit(1)
@@ -1395,7 +1453,7 @@ def main():
         if not args.files:
             print("Usage: pactkit test-map <file1> [file2 ...]")
             raise SystemExit(1)
-        result = map_to_tests(args.files, Path.cwd())
+        result = map_to_tests(args.files, project_root)
         for test_path in result["mapped"]:
             print(test_path)
 
@@ -1404,7 +1462,7 @@ def main():
 
         from pactkit.lint_runner import run_lint
 
-        result = run_lint(Path.cwd(), fix=args.fix)
+        result = run_lint(project_root, fix=args.fix)
         if result["stdout"]:
             print(result["stdout"])
         if result["exit_code"] == 0:
@@ -1420,7 +1478,7 @@ def main():
         from pactkit.governance import LessonRepository
         from pactkit.lessons import _is_duplicate, _is_specific
 
-        repository = LessonRepository(Path.cwd())
+        repository = LessonRepository(project_root)
         if not _is_specific(args.text):
             result = {"action": "skipped", "reason": "not specific enough — no file/function reference"}
         elif _is_duplicate(args.text, [record["text"] for record in repository.recent(20)]):
@@ -1436,7 +1494,7 @@ def main():
 
         from pactkit.invariants import refresh_test_count
 
-        result = refresh_test_count(Path.cwd(), args.test_count)
+        result = refresh_test_count(project_root, args.test_count)
         import json
         print(json.dumps(result))
 
@@ -1445,7 +1503,7 @@ def main():
 
         from pactkit.coverage_gate import check_coverage
 
-        result = check_coverage(args.files, Path.cwd())
+        result = check_coverage(args.files, project_root)
         import json
         print(json.dumps(result, indent=2))
 
@@ -1464,7 +1522,7 @@ def main():
 
         from pactkit.done_verify import verify_story
 
-        results, exit_code = verify_story(args.story_id, Path.cwd())
+        results, exit_code = verify_story(args.story_id, project_root)
         for r in results:
             print(r.render())
         print(f"\ndone-verify: {'FAIL' if exit_code else 'PASS'} ({args.story_id})")
@@ -1478,7 +1536,7 @@ def main():
         from pactkit.deps import check_deps, install_deps, render_check_report
 
         if args.deps_action == "install":
-            lines, exit_code = install_deps(Path.cwd(), assume_yes=args.yes)
+            lines, exit_code = install_deps(project_root, assume_yes=args.yes)
             for ln in lines:
                 print(ln)
             raise SystemExit(exit_code)
@@ -1497,16 +1555,32 @@ def main():
         from pactkit.commit_gate import hook_entry, install_git_hook, run_gate
 
         if args.install_git_hook:
-            print(install_git_hook(Path.cwd()))
+            print(install_git_hook(project_root))
             raise SystemExit(0)
         if args.hook:
-            message, exit_code = hook_entry(sys.stdin.read(), Path.cwd())
+            message, exit_code = hook_entry(sys.stdin.read(), project_root)
             if message:
                 print(message, file=sys.stderr)
             raise SystemExit(exit_code)
-        result = run_gate(Path.cwd())
+        result = run_gate(project_root)
         print(result.render())
         raise SystemExit(result.exit_code)
+
+    elif args.command == "preflight-guard":
+        import sys
+
+        from pactkit.preflight_guard import hook_entry, install_preflight_hook
+
+        if args.install:
+            print(install_preflight_hook(project_root))
+            raise SystemExit(0)
+        if args.hook:
+            message, exit_code = hook_entry(sys.stdin.read(), project_root)
+            if message:
+                print(message, file=sys.stderr)
+            raise SystemExit(exit_code)
+        preflight_guard_parser.print_help()
+        raise SystemExit(1)
 
     elif args.command == "interface-summary":
         from pathlib import Path
@@ -1525,7 +1599,7 @@ def main():
         from pactkit.config import update_yaml_stack
         from pactkit.profiles import PACTKIT_YAML_CANDIDATES
 
-        cwd = Path.cwd()
+        cwd = project_root
         yaml_paths = [cwd / c for c in PACTKIT_YAML_CANDIDATES if (cwd / c).exists()]
         if not yaml_paths:
             print("❌ No pactkit.yaml found. Run `pactkit init` first.")
@@ -1569,7 +1643,7 @@ def main():
                 selected[0], selected[1], direction="down" if args.down else "up"
             )
             db_path = Path(args.db) if args.db else None
-            result = project_router(Path.cwd(), db_path=db_path).query(
+            result = project_router(project_root, db_path=db_path).query(
                 request, configured_provider=graph_provider, allow_fallback=args.allow_fallback,
             )
         except (GraphProviderError, ValueError) as exc:

@@ -3,6 +3,7 @@
 import subprocess
 
 from pactkit import __version__
+from pactkit.prompts.commands import COMMANDS_CONTENT
 from pactkit.prompts.rules import RULES_MODULES
 
 
@@ -120,22 +121,30 @@ class TestR4ProceedOnMismatch:
 
 
 class TestR5CoreProtocolPrompt:
-    """R5: Core Protocol prompt MUST include pactkit update --if-needed."""
+    """Session startup reports drift but never auto-deploys."""
 
-    def test_core_protocol_contains_if_needed(self):
-        """Session Context section references --if-needed."""
+    def test_core_protocol_requires_explicit_update_authorization(self):
+        """A new session must not trigger a deployment by itself."""
         core = RULES_MODULES["core"]
-        assert "pactkit update --if-needed" in core
+        assert "version drift" in core
+        assert "explicit authorization" in core
+        assert "pactkit update --if-needed" not in core
 
-    def test_session_context_section_updated(self):
-        """Session Context has version sync instruction."""
+    def test_session_context_reads_context_without_forcing_update(self):
+        """Context loading remains available independently of deployment."""
         core = RULES_MODULES["core"]
         assert "Session Context" in core
-        # Version sync comes before reading context.md
         session_start = core.find("## Session Context")
         context_md = core.find("context.md", session_start)
-        if_needed = core.find("--if-needed", session_start)
-        assert if_needed < context_md, "Version sync should come before reading context.md"
+        assert context_md > session_start
+
+    def test_plan_config_refresh_requires_explicit_update_authorization(self):
+        """A routine Plan invocation must not redeploy the host on stale config."""
+        plan = COMMANDS_CONTENT["project-plan.md"]
+        phase = plan[plan.index("Phase 0.5"):plan.index("Phase 1: Archaeology")]
+        assert "pactkit update" in phase
+        assert "explicit authorization" in phase.lower()
+        assert "otherwise continue planning" in phase.lower()
 
 
 class TestR6BlastRadius:
@@ -146,7 +155,4 @@ class TestR6BlastRadius:
         Note: 'pactkit' is the merged composite of all core modules (contains core content).
         """
         for name, content in RULES_MODULES.items():
-            if name in ("core", "pactkit"):
-                # core contains --if-needed; pactkit is the merged composite that includes core
-                continue
             assert "--if-needed" not in content, f"Unexpected --if-needed in {name}"

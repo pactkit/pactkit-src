@@ -11,19 +11,20 @@ from pathlib import Path
 import pytest
 
 # --- Helpers (same pattern as test_cli_e2e.py) ---
-PACTKIT_BIN = sys.executable.replace('python', 'pactkit').replace('python3', 'pactkit')
-USE_MODULE = not Path(PACTKIT_BIN).exists()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_pactkit(*args, cwd=None, env=None):
-    """Run pactkit CLI as subprocess and return (stdout, stderr, exit_code)."""
-    if USE_MODULE:
-        cmd = [sys.executable, "-m", "pactkit.cli"] + list(args)
-    else:
-        cmd = ["pactkit"] + list(args)
+    """Run the current working tree's CLI, never a PATH-installed release."""
+    child_env = (env or os.environ.copy()).copy()
+    source_root = str(PROJECT_ROOT / "src")
+    child_env["PYTHONPATH"] = source_root + (
+        os.pathsep + child_env["PYTHONPATH"] if child_env.get("PYTHONPATH") else ""
+    )
+    cmd = [sys.executable, "-m", "pactkit.cli"] + list(args)
     result = subprocess.run(
         cmd, capture_output=True, text=True,
-        cwd=cwd, env=env or os.environ.copy(),
+        cwd=cwd, env=child_env,
     )
     return result.stdout, result.stderr, result.returncode
 
@@ -326,6 +327,18 @@ class TestDoctorCommand:
         _init_project(tmp_path)
         stdout, stderr, rc = run_pactkit("doctor", cwd=str(tmp_path))
         assert rc == 0, f"doctor failed: {stderr}"
+
+    def test_doctor_warns_but_succeeds_for_legacy_continuation_state(self, tmp_path):
+        """Historical workflow damage must not block normal project diagnostics."""
+        _init_project(tmp_path)
+        continuation = tmp_path / ".pactkit" / "continuations" / "STORY-slim-999.json"
+        continuation.parent.mkdir(parents=True)
+        continuation.write_text("not valid json", encoding="utf-8")
+
+        stdout, stderr, rc = run_pactkit("doctor", cwd=str(tmp_path))
+
+        assert rc == 0, f"doctor failed: {stderr}"
+        assert "Continuation corrupt: STORY-slim-999.json" in stdout
 
 
 @pytest.mark.e2e

@@ -61,10 +61,10 @@ def _run_deploy(tmp_path):
     return claude_root
 
 
-class TestScenario1_StaleCommandsCleaned:
-    """Scenario 1: 旧命令文件被清理"""
+class TestScenario1_CommandFilesPreservedWithoutOwnership:
+    """Scenario 1: 没有归属记录时不删除同名命令。"""
 
-    def test_stale_project_command_removed(self, tmp_path):
+    def test_project_named_command_is_preserved(self, tmp_path):
         claude = tmp_path / ".claude"
         cmds = claude / "commands"
         cmds.mkdir(parents=True)
@@ -72,7 +72,7 @@ class TestScenario1_StaleCommandsCleaned:
 
         _run_deploy(tmp_path)
 
-        assert not (cmds / "project-old-removed.md").exists()
+        assert (cmds / "project-old-removed.md").exists()
 
     def test_current_commands_all_exist(self, tmp_path):
         # STORY-slim-063: commands are now deployed as skills/{name}/SKILL.md

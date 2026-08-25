@@ -27,7 +27,7 @@ Scope: **classic format only** (Claude Code). OpenCode (no commands) and Codex (
 
 ### R3: Legacy cleanup (MUST)
 
-`_cleanup_legacy()` MUST remove old `~/.claude/commands/project-*.md` files on `pactkit update` to prevent stale command files shadowed by the new skills.
+`_cleanup_legacy()` MUST remove old managed command artifacts on `pactkit update` to prevent stale PactKit commands shadowing the new skills. A filename alone MUST NOT be treated as proof of ownership: cleanup MUST require a PactKit manifest plus an unchanged content digest. Unproven or user-modified `project-*.md` files are preserved and may be removed manually after review.
 
 ### R4: pactkit.yaml backward compatibility (MUST)
 
@@ -59,7 +59,7 @@ This change MUST only affect the `classic` format. OpenCode and Codex deployers 
 
 - **Given** old `~/.claude/commands/project-*.md` files exist from a previous version
 - **When** `pactkit update` runs
-- **Then** all `project-*.md` files in `commands/` are removed (non-PactKit files like `ultra-think.md` are preserved)
+- **Then** every stale command artifact with a valid PactKit ownership manifest and unchanged digest is removed; unproven or modified `project-*.md` files and non-PactKit files like `ultra-think.md` are preserved
 
 ### AC4: pactkit.yaml commands section still works (R4)
 

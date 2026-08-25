@@ -63,19 +63,25 @@ _FORBIDDEN_CLI_PATTERNS: list[str] = [
     "`pactkit update",
     "`pactkit continuation",
 ]
-_TERMINAL_CONTROL_PLANE = re.compile(
-    r"`pactkit (?:continuation(?:\s|`)|context --continuation(?:\s|`))"
-)
-
-
 # --- Prompt integrity validators (STORY-slim-145 R4) ---
 _DOUBLE_IMPERATIVE = re.compile(r"\bRun\s+run\b", re.IGNORECASE)
 _STRANDED_OPTION = re.compile(r"\b(?:manually|directly|now|here)\s+--[\w-]+")
 _UNRESOLVED_VAR = re.compile(r"\{PACTKIT_OP_\w+\}")
 _PROJECT_ACT_MARKER = re.compile(r"project-act", re.IGNORECASE)
 _PROJECT_ACT_PLAYBOOK = re.compile(r"#\s*Command:\s*Act\b", re.IGNORECASE)
-_REQUIRED_ACT_OPS = (
-    "regression", "coverage", "TDD", "Spec lint", "lint", "continuation", "checkpoint", "resume",
+# HTML comments survive all supported Markdown deployments but do not pollute
+# the host UI.  They identify required workflow capabilities by operation,
+# rather than treating a glossary containing the right English words as a
+# usable Act playbook.
+_REQUIRED_ACT_MARKERS = (
+    "spec_lint",
+    "tdd_red_green",
+    "regression_classification",
+    "lint",
+    "continuation_update",
+    "graph_sync",
+    "board_update",
+    "requirement_coverage",
 )
 
 
@@ -104,10 +110,10 @@ def _check_semantic_integrity(content: str) -> list[str]:
     v: list[str] = []
     if not (_PROJECT_ACT_MARKER.search(content) and _PROJECT_ACT_PLAYBOOK.search(content)):
         return v
-    lowered = content.lower()
-    for op in _REQUIRED_ACT_OPS:
-        if op.lower() not in lowered:
-            v.append(f"Missing required Act operation: {op}")
+    markers = set(re.findall(r"<!--\s*PACTKIT_ACT_OP:([a-z_]+)\s*-->", content))
+    for operation in _REQUIRED_ACT_MARKERS:
+        if operation not in markers:
+            v.append(f"Missing required Act operation: {operation}")
     return v
 
 
@@ -148,12 +154,6 @@ class DeployerBase:
                 # Skip lines already annotated as terminal-only guidance:
                 # adapters convert unreachable CLI refs to "run from terminal" notes.
                 if "from the terminal" in line or "(run from terminal)" in line or "(terminal only)" in line:
-                    continue
-                # STORY-slim-147: recovery identity, checkpoint evidence, and
-                # state handoff are executable control-plane contracts. They
-                # remain valid terminal commands even for an adapter without
-                # embedded CLI execution support.
-                if _TERMINAL_CONTROL_PLANE.search(line):
                     continue
                 for cli_pat in _FORBIDDEN_CLI_PATTERNS:
                     # Use word-boundary check: the pattern must not be followed by a

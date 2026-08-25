@@ -137,17 +137,16 @@ def check_workflow_continuation(
             "status": state.get("status"), "current_index": state.get("current_index"),
         })
     host_guarantees = _project_host_guarantees(project_root, warnings, home=home)
-    # The summary describes the strongest installed continuation path, while
-    # host_guarantees preserves every weaker host explicitly.  Taking the
-    # weakest host here made a project-local Copilot facade mask a verified
-    # global Codex App Server deployment and incorrectly report Codex as
-    # guided.  Operators can still inspect each host without losing fidelity.
+    # The summary describes the strongest installed capability, while
+    # host_guarantees preserves every host explicitly.  With no deployment
+    # evidence, default to the portable current-session model; doctor must
+    # never invent a guided continuation service.
     guarantee_level = (
         max(host_guarantees.values(), key=_EXECUTION_MODE_RANK.__getitem__)
-        if host_guarantees else "guided"
+        if host_guarantees else "portable"
     )
     return {
-        "finish_guard_supported": True, "auto_resume_available": False,
+        "finish_guard_supported": False, "auto_resume_available": False,
         "guarantee_level": guarantee_level, "host_guarantees": host_guarantees,
         "stop_hook_required": False,
         "active": active, "work_unit_runs": work_unit_runs, "warnings": warnings,
@@ -427,15 +426,26 @@ DEPLOY_PROBE_PATHS = (
 )
 
 
-def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
-    """Read the deployed Codex hook lifecycle report without importing an adapter."""
+def check_codex_execution_capability(codex_root: Path | None = None) -> dict:
+    """Read the deployed Codex current-session execution capability.
+
+    Codex's public PactKit adapter no longer installs a runner or a Stop hook.
+    This deliberately reports only capabilities that the installed manifest
+    proves, so doctor cannot imply a background workflow or a session resume
+    service exists.
+    """
     import json
 
     root = codex_root or Path.home() / ".codex"
     manifest = root / ".pactkit-deployed.json"
     default = {
-        "installed": False, "trusted": False, "observed": False,
-        "validated": False, "guarantee_level": "guided", "warnings": [],
+        "execution_mode": "portable",
+        "session_execution": "native_current_session",
+        "background_execution": False,
+        "thread_resume": False,
+        "finish_guard_supported": False,
+        "guarantee_level": "portable",
+        "warnings": [],
     }
     if not manifest.is_file():
         return default
@@ -445,31 +455,56 @@ def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
             raise ValueError
         capability = payload.get("workflow_continuation", {})
     except (OSError, json.JSONDecodeError, ValueError):
-        return {**default, "warnings": ["Codex hook manifest unreadable — re-run `pactkit update`"]}
+        return {**default, "warnings": ["Codex execution manifest unreadable — re-run `pactkit update`"]}
     if not isinstance(capability, dict):
-        return {**default, "warnings": ["Codex hook capability is corrupt — re-run `pactkit update`"]}
-    installed = capability.get("hook_installed") is True
-    # Historic hook observations are not a capability.  Once the owned entry
-    # is gone, every hook lifecycle signal must fail closed rather than making
-    # doctor (or an operator) believe an uninstalled hook remains active.
-    result = {
-        "installed": installed,
-        "trusted": installed and capability.get("hook_trusted") is True,
-        "observed": installed and capability.get("hook_observed") is True,
-        "validated": installed and capability.get("continuation_validated") is True,
-        "guarantee_level": capability.get("guarantee_level", "guided"),
-        "warnings": [],
+        return {**default, "warnings": ["Codex execution capability is corrupt — re-run `pactkit update`"]}
+
+    # The public Codex adapter no longer owns a runner, lifecycle hook, or
+    # session-reentry service.  Old manifests must not resurrect those removed
+    # capabilities in doctor output.  Keep the diagnostic non-blocking and
+    # report the current public contract unconditionally.
+    legacy_values = {
+        "execution_mode": capability.get("execution_mode"),
+        "session_execution": capability.get("session_execution"),
+        "finish_guard_supported": capability.get("finish_guard_supported"),
+        "guarantee_level": capability.get("guarantee_level"),
     }
-    if result["installed"] and not result["trusted"]:
-        review = capability.get("trust_review_command") or "/hooks"
-        result["warnings"].append(
-            f"Codex Stop hook installed but not trusted — review it with `{review}`"
+    expected = {
+        "execution_mode": "portable",
+        "session_execution": "native_current_session",
+        "finish_guard_supported": False,
+        "guarantee_level": "portable",
+    }
+    warnings = []
+    if any(value is not None and value != expected[name] for name, value in legacy_values.items()):
+        warnings.append(
+            "Codex execution manifest describes retired runner capabilities; "
+            "using native current-session execution"
         )
-    elif result["trusted"] and not result["validated"]:
-        result["warnings"].append(
-            "Codex Stop hook trusted but host continuation has not been validated"
-        )
-    return result
+    return {
+        **expected,
+        "background_execution": False,
+        "thread_resume": False,
+        "warnings": warnings,
+    }
+
+
+def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
+    """Deprecated compatibility view for callers from pre-runner releases.
+
+    New code must use :func:`check_codex_execution_capability`.  The old hook
+    fields are deliberately always false because PactKit no longer owns a
+    Codex hook lifecycle.
+    """
+    execution = check_codex_execution_capability(codex_root)
+    return {
+        "installed": False,
+        "trusted": False,
+        "observed": False,
+        "validated": False,
+        "guarantee_level": execution["guarantee_level"],
+        "warnings": execution["warnings"],
+    }
 
 
 def check_deploy_parity(project_root: Path) -> dict:
@@ -516,14 +551,57 @@ def check_deploy_parity(project_root: Path) -> dict:
             continue
         seen_formats.add(fmt)
 
-        expected = expected_components(fmt)
+        scope = data.get("component_scope", "default")
+        if scope not in ("default", "selective"):
+            warnings.append(
+                f"{manifest}: unknown component_scope — assuming default deployment"
+            )
+            scope = "default"
+        expected = expected_components(fmt) if scope == "default" else {
+            kind: data.get(kind) for kind in ("skills", "commands", "agents")
+        }
         for kind in ("skills", "commands", "agents"):
-            deployed = set(data.get(kind, []))
+            deployed_items = data.get(kind, [])
+            if not isinstance(deployed_items, list) or not isinstance(expected[kind], list):
+                warnings.append(
+                    f"{manifest}: component list '{kind}' corrupt — re-run `pactkit update`"
+                )
+                continue
+            deployed = set(deployed_items)
             missing = sorted(set(expected[kind]) - deployed)
             for item in missing:
                 details.append(
                     f"Deployed drift: {fmt} missing {kind[:-1]} '{item}' — upgrade adapter / re-run `pactkit update`"
                 )
+
+        # Selective manifests declare an intentional component subset. The
+        # declaration is not proof that its artifacts were written: derive
+        # each selected component's canonical file and require both on-disk
+        # presence and a content-hash entry below.
+        declared_paths: set[str] = set()
+        if scope == "selective":
+            skills = data.get("skills", [])
+            commands = data.get("commands", [])
+            agents = data.get("agents", [])
+            # The list validation above is deliberately non-fatal. Do not
+            # subsequently iterate a corrupt scalar/string as a component
+            # declaration and manufacture false content drift.
+            skills = skills if isinstance(skills, list) else []
+            commands = commands if isinstance(commands, list) else []
+            agents = agents if isinstance(agents, list) else []
+            for name in skills:
+                if isinstance(name, str):
+                    declared_paths.add(f"skills/{name}/SKILL.md")
+            for name in commands:
+                if not isinstance(name, str):
+                    continue
+                if fmt == "copilot":
+                    declared_paths.add(f"prompts/{name}.prompt.md")
+                else:
+                    declared_paths.add(f"skills/{name}/SKILL.md")
+            for name in agents:
+                if isinstance(name, str):
+                    declared_paths.add(f"agents/{name}.md")
 
         # STORY-slim-141 R2: content-level verification via per-file hashes.
         from pactkit.deploy_manifest import sha256_file
@@ -538,6 +616,15 @@ def check_deploy_parity(project_root: Path) -> dict:
             # SEC-7: corrupt files field degrades to warning, never crashes.
             warnings.append(f"{probe}: manifest 'files' field corrupt (not a mapping) — re-run `pactkit update`")
         else:
+            for rel in sorted(declared_paths):
+                if not (probe / rel).is_file():
+                    details.append(
+                        f"Content drift: {fmt} '{rel}' missing on disk — re-run `pactkit update`"
+                    )
+                elif rel not in files:
+                    details.append(
+                        f"Content drift: {fmt} '{rel}' missing from manifest — re-run `pactkit update`"
+                    )
             for rel, expected_hash in files.items():
                 path = probe / rel
                 if not path.is_file():

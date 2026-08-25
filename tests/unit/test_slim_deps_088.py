@@ -80,6 +80,7 @@ class TestDependencyStructure:
     def test_codex_extra_has_adapter(self):
         opt = self._optional_deps_block()
         assert "pactkit-codex" in opt
+        assert "pactkit-codex>=2.23.0,<2.24.0" in opt
 
     def test_visualize_extra_has_tree_sitter(self):
         opt = self._optional_deps_block()

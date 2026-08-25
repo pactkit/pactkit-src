@@ -174,13 +174,12 @@ def test_host_runner_detects_no_progress_and_respects_manual_boundary(tmp_path):
     second = runner.after_model_turn(run_id, session_locator="session-1")
     assert second["decision"] == "await_user"
     assert second["reason_code"] == "no_progress"
-    blocked = engine.read(run_id)
-    assert blocked["status"] == "blocked"
-    assert "no_progress" in blocked["blocker"]
-    assert blocked["blocker_kind"] == "external_state"
-    assert blocked["host_continuation"]["lease_expires_at"] is None
-    assert blocked["host_continuation"]["session_locator"].startswith("sha256:")
-    assert "session-1" not in json.dumps(blocked["host_continuation"])
+    state = engine.read(run_id)
+    assert state["status"] == "in_progress"
+    assert state["host_continuation"]["termination_reason"] == "no_progress"
+    assert state["host_continuation"]["lease_expires_at"] is None
+    assert state["host_continuation"]["session_locator"].startswith("sha256:")
+    assert "session-1" not in json.dumps(state["host_continuation"])
 
     manual = runner.before_operation(run_id, "publish")
     assert manual["decision"] == "await_user"
@@ -199,23 +198,23 @@ def test_agent_loop_rejects_premature_final(tmp_path):
     assert "red" == result["next_step"]
 
 
-def test_plan_and_act_share_pre_final_protocol():
+def test_plan_and_act_are_native_current_session_playbooks():
     from pactkit.prompts.commands import COMMANDS_CONTENT, get_deployable_commands
 
     for name in ("project-plan.md", "project-act.md"):
         prompt = COMMANDS_CONTENT[name]
-        assert "Pre-Final Protocol" in prompt
-        assert "pactkit workflow finish-guard" in prompt
-        assert "progress is not final" in prompt.lower()
+        assert "pactkit workflow finish-guard" not in prompt
+        assert "pactkit-codex-work-unit" not in prompt
     plan = get_deployable_commands()["project-plan.md"]
-    assert "pactkit work-unit acquire" in plan
-    assert "pactkit work-unit submit" in plan
-    assert "finalize-plan" in plan
-    assert "Stop hook" in plan and "Never" in plan
+    assert plan == COMMANDS_CONTENT["project-plan.md"]
+    assert "Phase 0.7" in plan
+    assert "workflow/checkpoint records are optional historical context" in plan.lower()
 
 
 def test_cli_finish_guard_has_machine_exit_semantics(tmp_path):
     engine, run_id = _start(tmp_path)
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "pactkit.yaml").write_text("stack: python\n")
     del engine
     env = os.environ.copy()
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
@@ -300,7 +299,7 @@ def test_doctor_exposes_process_guarantee_and_stale_lease(tmp_path):
         "termination_reason": "no_progress",
     }), encoding="utf-8")
     result = check_workflow_continuation(tmp_path, home=tmp_path / "empty-home")
-    assert result["guarantee_level"] == "guided"
+    assert result["guarantee_level"] == "portable"
     assert result["auto_resume_available"] is False
     assert result["active"][0]["run_id"] == run_id
     assert any("stale host lease" in warning for warning in result["warnings"])
@@ -356,7 +355,7 @@ def test_story_repository_managed_mode_fails_before_write(tmp_path):
     assert not repository.path_for("STORY-slim-997").exists()
 
 
-def test_all_format_rendering_preserves_pre_final_semantics():
+def test_all_format_rendering_preserves_native_session_semantics():
     from pactkit.generators.deployer import _render_prompt
     from pactkit.profiles import get_profile
     from pactkit.prompts.commands import COMMANDS_CONTENT
@@ -364,10 +363,9 @@ def test_all_format_rendering_preserves_pre_final_semantics():
     for format_name in ("classic", "opencode", "codex", "copilot"):
         for command in ("project-plan.md", "project-act.md"):
             rendered = _render_prompt(COMMANDS_CONTENT[command], get_profile(format_name))
-            assert "Pre-Final Protocol" in rendered
-            assert "continue_current_turn" in rendered
-            assert "await_user" in rendered
-            assert "Progress is not final" in rendered
+            assert "pactkit workflow finish-guard" not in rendered
+            assert "pactkit-codex-work-unit" not in rendered
+            assert "--owner codex" not in rendered
 
 
 def test_manifest_reports_capability_derived_guarantee_without_false_auto_resume(tmp_path):
@@ -375,17 +373,39 @@ def test_manifest_reports_capability_derived_guarantee_without_false_auto_resume
 
     expected_modes = {
         "classic": "portable", "opencode": "portable",
-        "codex": "guided", "copilot": "guided",
+        "codex": "portable", "copilot": "portable",
     }
     for format_name, mode in expected_modes.items():
         root = tmp_path / format_name
         payload = json.loads(write_deploy_manifest(root, format_name).read_text())
         capability = payload["workflow_continuation"]
-        assert capability["finish_guard_supported"] is True
+        assert capability["finish_guard_supported"] is False
         assert capability["auto_resume_available"] is False
         assert capability["guarantee_level"] == mode
         assert capability["execution_mode"] == mode
         assert capability["stop_hook_required"] is False
+        assert payload["host_capabilities"]["tool_execution"] is False
+        assert payload["host_capabilities"]["manual_resume"] is False
+
+
+def test_doctor_accepts_codex_current_session_execution_detail(tmp_path):
+    from pactkit.doctor import _project_host_guarantees
+
+    manifest = {
+        "format": "codex",
+        "host_capabilities": {"execution_mode": "portable"},
+        "workflow_continuation": {
+            "guarantee_level": "portable",
+            "session_execution": "native_current_session",
+        },
+    }
+    codex_root = tmp_path / ".codex"
+    codex_root.mkdir()
+    (codex_root / ".pactkit-deployed.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    warnings: list[str] = []
+    assert _project_host_guarantees(tmp_path, warnings, home=tmp_path / "no-home") == {"codex": "portable"}
+    assert warnings == []
 
 
 def test_runner_lease_allows_only_one_owner(tmp_path):
@@ -423,11 +443,11 @@ def test_runner_attempt_limit_is_reachable_when_progress_changes(tmp_path):
 
     assert limited["decision"] == "await_user"
     assert limited["reason_code"] == "attempt_limit"
-    assert engine.read(run_id)["status"] == "blocked"
+    assert engine.read(run_id)["status"] == "in_progress"
 
 
 @pytest.mark.parametrize("reason_code", ["permission_denied", "artifact_drift"])
-def test_runner_persists_resume_failures_as_blocked(tmp_path, reason_code):
+def test_runner_persists_resume_failures_as_diagnostics(tmp_path, reason_code):
     from pactkit.host_continuation import HostCapabilities, HostContinuationRunner
 
     engine, run_id = _start(tmp_path)
@@ -442,8 +462,8 @@ def test_runner_persists_resume_failures_as_blocked(tmp_path, reason_code):
     assert decision["decision"] == "await_user"
     assert decision["reason_code"] == reason_code
     state = engine.read(run_id)
-    assert state["status"] == "blocked"
-    assert state["blocker_kind"] == "external_state"
+    assert state["status"] == "in_progress"
+    assert state["host_continuation"]["termination_reason"] == reason_code
 
 
 def test_runner_converts_finish_guard_drift_into_recoverable_block(tmp_path):
@@ -463,7 +483,7 @@ def test_runner_converts_finish_guard_drift_into_recoverable_block(tmp_path):
 
     assert decision["decision"] == "await_user"
     assert decision["reason_code"] == "artifact_drift"
-    assert engine.read(run_id)["status"] == "blocked"
+    assert engine.read(run_id)["status"] == "in_progress"
 
 
 def test_finish_guard_prefers_active_legacy_act_over_completed_plan(tmp_path):
@@ -621,15 +641,15 @@ def test_all_project_commands_are_persistent_registered_workflows():
         assert workflow.steps[0] == "started" or command in {"project-plan", "project-act"}
 
 
-def test_all_project_templates_have_managed_lifecycle_protocol():
+def test_all_project_templates_are_free_of_managed_lifecycle_protocol():
     from pactkit.config import VALID_COMMANDS
     from pactkit.prompts.commands import COMMANDS_CONTENT
 
     for command in VALID_COMMANDS:
         prompt = COMMANDS_CONTENT[f"{command}.md"]
-        assert f"pactkit workflow contract {command} --json" in prompt
-        assert "finish-guard" in prompt
-        assert "Progress is not final" in prompt
+        assert "pactkit workflow contract" not in prompt
+        assert "finish-guard" not in prompt
+        assert "pactkit-codex-work-unit" not in prompt
 
 
 def test_done_premature_final_is_rejected_until_completed(tmp_path):

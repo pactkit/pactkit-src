@@ -13,25 +13,24 @@ from pathlib import Path
 import pytest
 import yaml
 
-# Get the pactkit executable path
-PACTKIT_BIN = sys.executable.replace('python', 'pactkit').replace('python3', 'pactkit')
-# Fallback: use python -m pactkit.cli
-USE_MODULE = not Path(PACTKIT_BIN).exists()
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def run_pactkit(*args, cwd=None, env=None):
-    """Run pactkit CLI as subprocess and return (stdout, stderr, exit_code)."""
-    if USE_MODULE:
-        cmd = [sys.executable, "-m", "pactkit.cli"] + list(args)
-    else:
-        cmd = ["pactkit"] + list(args)
+    """Run the current working tree's CLI, never a PATH-installed release."""
+    child_env = (env or os.environ.copy()).copy()
+    source_root = str(PROJECT_ROOT / "src")
+    child_env["PYTHONPATH"] = source_root + (
+        os.pathsep + child_env["PYTHONPATH"] if child_env.get("PYTHONPATH") else ""
+    )
+    cmd = [sys.executable, "-m", "pactkit.cli"] + list(args)
 
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         cwd=cwd,
-        env=env or os.environ.copy(),
+        env=child_env,
     )
     return result.stdout, result.stderr, result.returncode
 
@@ -268,11 +267,10 @@ class TestDeploymentCompleteness:
         assert deployed == set(VALID_COMMANDS)
 
     def test_all_skills_deployed_with_skill_md(self, deploy_target):
-        """AC3: Exactly 21 skill dirs deployed (10 embedded + 11 commands), each contains SKILL.md.
+        """AC3: Default skills and commands are deployed, without portable methods.
         Note: skills/ also contains _rules/ (on-demand rules dir, STORY-slim-112) — excluded here.
         """
         from pactkit.config import VALID_SKILLS
-        from pactkit.portable_methods import get_portable_methods
         from pactkit.prompts.rules import RULES_ONDEMAND_DIR
         skills_dir = deploy_target / "skills"
         # Exclude the on-demand rules dir (_rules/) — it's not a skill
@@ -280,9 +278,8 @@ class TestDeploymentCompleteness:
             d.name for d in skills_dir.iterdir()
             if d.is_dir() and d.name != RULES_ONDEMAND_DIR
         }
-        assert deployed_dirs == set(VALID_SKILLS) | {
-            item["name"] for item in get_portable_methods()
-        }
+        from pactkit.config import VALID_COMMANDS
+        assert deployed_dirs == set(VALID_SKILLS) | set(VALID_COMMANDS)
         for skill_name in VALID_SKILLS:
             assert (skills_dir / skill_name / "SKILL.md").exists(), \
                 f"{skill_name}/SKILL.md missing"

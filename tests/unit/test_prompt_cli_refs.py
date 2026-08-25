@@ -19,6 +19,9 @@ CLI_NO_PROMPT_REF_ALLOWED = {
     "version", "upgrade", "schema", "backfill-release", "garden",
     "redetect-stack", "report", "query", "commit-gate",
     "lint-context", "lint-lessons",
+    # Advanced, explicit integrations.  Default project playbooks must remain
+    # current-host/current-session and therefore never schedule these APIs.
+    "work-unit", "workflow",
 }
 
 _PACTKIT_REF = re.compile(r"pactkit\s+([\w-]+)")

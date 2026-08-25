@@ -78,6 +78,12 @@ class TestClaudeMdContextReference:
         context_pos = template.find("pactkit context")
         assert context_pos > last_rule_pos
 
+    def test_context_is_optional_and_never_blocks_current_session(self):
+        p = _prompts()
+        template = p.CLAUDE_MD_TEMPLATE.lower()
+        assert "optional history" in template
+        assert "current-session work" in template
+
     def test_deployer_classic_produces_header(self):
         """_deploy_claude_md should produce CLAUDE.md with version header."""
         import tempfile

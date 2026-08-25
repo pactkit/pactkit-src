@@ -3,9 +3,9 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-145 |
-| Status | Draft |
+| Status | Done |
 | Priority | P0 |
-| Release | 2.20.0 |
+| Release | 2.23.0 |
 
 ## Background
 
@@ -23,7 +23,10 @@ Run `pactkit context --continuation ...`
 
 现有 deploy-output guard 只检查外部路径和 CLI 字符串是否残留，不检查转换后的 Markdown 是否语法完整、关键工作流步骤是否保留，也不阻止旧 adapter 配新 Core 继续部署。这使损坏内容可以通过测试并进入 `~/.codex/skills/`。
 
-本 Story 修复部署语义与版本兼容边界，不实现 Act 的跨 turn 持久化状态机。后者需要独立 Story。
+本 Story 修复部署语义与版本兼容边界。公开的 Codex adapter 采用
+**当前宿主、当前 session 直接执行**：不会派发 runner、要求 run ID、创建
+后台可恢复 workflow，或让历史 workflow/continuation 状态阻断正常 PDCA
+操作。跨 turn 的记录只能作为可选交接上下文，不能成为执行门禁。
 
 ## Target Call Chain
 
@@ -37,7 +40,7 @@ pactkit init/update --format codex
      -> deploy_codex_command_skills()
      -> deploy_codex_skills()
      -> _render_prompt()
-     -> _replace_cli_with_scripts()       # 当前有损转换点
+     -> shared Core operation rendering   # replaces the retired lossy converter
      -> DeployerBase.validate_deployed_content()
      -> atomic_write(SKILL.md/rules)
 
@@ -53,7 +56,7 @@ Codex runtime
 |-------|-------|
 | Depends on | STORY-slim-084, STORY-slim-139, STORY-slim-142 |
 | Provides | Structured operation rendering, prompt-integrity validation, and adapter compatibility gate |
-| Touches | Core deployment/profile/version dispatch plus external `../pactkit-codex` and `../pactkit-copilot` rendering and tests |
+| Touches | Core deployment/profile/version dispatch and coordinated Codex/Copilot adapter rendering and tests |
 | Conflict risk | High — both repositories share `FormatProfile`, `_render_prompt()`, `DeployerBase`, and adapter entry-point contracts |
 
 ## Requirements
@@ -150,6 +153,20 @@ No test or migration command may write to a real user home when a temporary targ
 - Classic and OpenCode output MUST not regress.
 - The Core repository MUST NOT vendor the `pactkit-codex` implementation; the adapter remains an external package using the shared contract.
 
+### R9: Codex public adapter uses native current-session execution (MUST)
+
+The public `pactkit-codex` distribution MUST NOT ship an experimental runner,
+App Server bridge, Stop-hook executable, WorkUnit facade, `--owner codex`
+interface, or EvidenceReceipt submission protocol. All `$project-*` skills
+MUST run in the active Codex conversation. Sprint MUST execute its PDCA stages
+sequentially in that same conversation and MUST NOT require a separate session.
+
+Legacy managed Stop-hook entries may be removed conservatively, but malformed
+or non-object user `hooks.json` content MUST be preserved and MUST NOT leave a
+deployment half-finished. A stale, blocked, completed, or missing workflow
+record is optional diagnostic context only and MUST NOT block current-session
+Plan, Act, Check, or Done work.
+
 ## Acceptance Criteria
 
 ### AC1: Codex Act 不再生成损坏文本 (R2, R3, R4)
@@ -206,6 +223,18 @@ No test or migration command may write to a real user home when a temporary targ
 - **When** `CopilotDeployer` renders it into a temporary directory
 - **Then** Copilot no longer maintains a local CLI fallback `content.replace()` table, rendered commands resolve via the Core R2 operation tokens, command arguments remain attached to an executable operation, and no `--continuation`-style option is left stranded in prose
 
+### AC10: Codex native current-session fallback is usable (R9)
+
+- **Given** a temporary Codex target, including invalid JSON and valid but
+  non-object `hooks.json` fixtures
+- **When** `CodexDeployer.deploy()` runs with either all commands or a selected
+  command subset
+- **Then** deployment completes with version and manifest files, preserves the
+  unparseable user hook file, deploys no runner/App Server/WorkUnit artifacts,
+  and generated entry documents use `$project-*` only for installed skills
+- **And** the generated Sprint is sequential in the current Codex session and
+  contains no team API, run ID, owner, or EvidenceReceipt requirement
+
 ## Technical Design
 
 ### Lateral Scan Results
@@ -219,6 +248,14 @@ No test or migration command may write to a real user home when a temporary targ
 Prefer a small enum-like policy over additional format-name branches. `_render_prompt()` remains the single environment rendering boundary. It exposes structured operation variables (`{PACTKIT_OP_*}` in its existing `var_map`, deployer.py:71) as the canonical contract, AND — as the equivalent structured operation map permitted by R2 ("or equivalent") — performs safe complete code-span replacement of canonical `pactkit` CLI commands with fallback operations for CLI-unavailable profiles (`has_pactkit_cli=False`). Source templates may use either `{PACTKIT_OP_*}` tokens or hardcoded CLI code spans; both resolve correctly (token path via var_map, hardcoded path via Core replace). Adapter packages MUST NOT maintain local prefix-replacement tables (R3) — fallback rendering is Core-owned, never adapter-local.
 
 Runtime PATH probing SHOULD occur only as an explicit preflight instruction or CLI command, not while importing profiles. Normal Codex installation includes PactKit as an adapter dependency, so the generated default SHOULD preserve the canonical CLI path.
+
+### Current-session model
+
+Codex's public adapter is deliberately a discovery/deployment adapter, not an
+orchestrator. It writes native skills which run in the active conversation.
+The manifest reports `portable` / `native_current_session`, with background
+execution, thread resume, and finish guard all false. Doctor presents those
+actual execution fields rather than obsolete hook trust lifecycle fields.
 
 ### Prompt integrity
 
@@ -273,7 +310,7 @@ Compatibility checking belongs in Core immediately before adapter invocation bec
 
 - Terra/GPT model prompt tuning or provider routing changes.
 - Codex Runtime `unsupported custom tool call` defects.
-- A durable Act state machine, per-phase state file, or automatic cross-turn resume; create a follow-up Story after deployment parity is restored.
+- A durable Act state machine, per-phase state file, or automatic cross-turn resume.
 - Changing the `$project-act` user-facing invocation syntax.
 - Folding external adapter repositories into PactKit Core.
 - Running migration against the real user home during automated tests.

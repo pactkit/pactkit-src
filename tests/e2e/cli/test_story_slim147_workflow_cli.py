@@ -17,6 +17,7 @@ def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_plan_workflow_cli_resumes_before_story_binding(tmp_path):
+    _initialize_project(tmp_path)
     result = _run(
         "workflow", "start", "project-plan", "--evidence",
         json.dumps({"guard": "pass", "input_fingerprint": "abc"}), cwd=tmp_path,
@@ -63,3 +64,8 @@ def test_workflow_contract_reports_executable_done_lifecycle(tmp_path):
     assert "workflow checkpoint" in payload["checkpoint"]
     assert "workflow finish-guard" in payload["finish_guard"]
     assert payload["manual_operations"] == ["commit", "archive"]
+
+
+def _initialize_project(root: Path) -> None:
+    (root / ".claude").mkdir(parents=True, exist_ok=True)
+    (root / ".claude" / "pactkit.yaml").write_text("stack: python\n")

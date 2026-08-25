@@ -233,9 +233,10 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         supports_model_routing=False,
         supports_mcp=True,
         skills_path_var=".github/skills",
-        # Copilot has no embedded PactKit runtime, but the WorkUnit facade
-        # deliberately preserves terminal Core commands for manual resume.
-        cli_policy=CLIPolicy.PREFERRED,
+        # Copilot prompt files have no embedded PactKit runtime. Core renders
+        # complete operation fallbacks rather than making this host depend on
+        # a terminal CLI or a retired WorkUnit/manual-resume facade.
+        cli_policy=CLIPolicy.UNAVAILABLE,
     ),
 }
 

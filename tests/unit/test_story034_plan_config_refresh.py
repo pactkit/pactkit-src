@@ -2,7 +2,7 @@
 STORY-034: Auto-refresh pactkit.yaml in Plan Init Guard.
 
 Tests verify that Plan Phase 0.5 includes a config completeness check
-step that detects stale configs and runs `pactkit update` to backfill.
+that reports stale configs but never deploys without user authorization.
 """
 
 from pactkit.prompts import COMMANDS_CONTENT
@@ -34,8 +34,8 @@ class TestAC4PromptTemplateUpdated:
         text = self._phase05_text().lower()
         assert "config" in text and ("completeness" in text or "missing" in text)
 
-    def test_phase05_references_pactkit_update(self):
-        """Phase 0.5 must reference `pactkit update` as the refresh mechanism."""
+    def test_phase05_references_pactkit_update_with_authorization(self):
+        """A config refresh is available only after explicit authorization."""
         assert "pactkit update" in self._phase05_text()
 
     def test_pactkit_update_in_phase05_not_phase1(self):
@@ -56,12 +56,13 @@ class TestAC4PromptTemplateUpdated:
         text = self._phase05_text().lower()
         assert "missing" in text or "stale" in text
 
-    def test_phase05_describes_refresh_action(self):
-        """Phase 0.5 must describe running pactkit update when stale."""
+    def test_phase05_describes_authorized_refresh_action(self):
+        """Plan reports stale state; it must not auto-deploy while planning."""
         text = self._phase05_text()
         assert "pactkit update" in text
         lower = text.lower()
-        assert "run" in lower or "execute" in lower
+        assert "explicit authorization" in lower
+        assert "otherwise continue" in lower
 
     # --- Idempotency / skip when complete ---
 

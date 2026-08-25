@@ -1,16 +1,9 @@
-from pactkit.config import VALID_COMMANDS
 from pactkit.prompts.workflows import (
     DEBUG_PROMPT,
     DESIGN_PROMPT,
     HOTFIX_PROMPT,
     SPRINT_PROMPT,
 )
-
-MANAGED_WORKFLOW_PROTOCOL = """
-## Pre-Final Protocol (MUST)
-Run and obey `pactkit workflow contract {command} --json`. Before final run `pactkit workflow finish-guard <run-id> --json`: `continue_current_turn` means continue; only `done`/`await_user` ends. Progress is not final.
-
-"""
 
 LEGACY_COMMANDS_CONTENT = {
     "project-plan.md": """---
@@ -22,10 +15,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 - **Usage**: `/project-plan "$ARGUMENTS"`
 - **Agent**: System Architect
 
-Blocked checkpoints require `--blocker-kind`.
-Lifecycle bootstrap: `pactkit workflow start project-plan --evidence @<evidence.json>`;
-resume with `pactkit workflow resume <run-id>`. Bind via `pactkit workflow bind`;
-blocked/completed checkpoints use `--status blocked` / `--status completed`.
+Previous workflow/checkpoint records are optional historical context only. They
+must not block planning, require a new session, or determine this command's
+completion.
 
 ## 🧠 Phase 0: The Thinking Process
 > **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan the entire Spec in your head before producing output. Start each phase, show your findings, then move to the next.
@@ -45,7 +37,7 @@ blocked/completed checkpoints use `--status blocked` / `--status completed`.
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/stories/`, `docs/architecture/graphs/`).
 2.  If exit code 1: project is not initialized — print the missing markers and **STOP**. Suggest running `/project-init`.
-3.  If all exist: check config completeness (ci, issue_tracker sections). If stale, run `pactkit update` and report what was added.
+3.  If all exist: check config completeness (ci, issue_tracker sections). If stale, report the missing or outdated sections and ask for explicit authorization before running `pactkit update`; otherwise continue planning with the existing configuration.
 4.  If PASS: proceed to Phase 1.
 
 ## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
@@ -127,10 +119,10 @@ blocked/completed checkpoints use `--status blocked` / `--status completed`.
 ## 🎬 Phase 3.1: Story ID Generation
 1.  Run `pactkit generate-id` to allocate a decentralized time-prefixed Story ID; it preserves the `developer` prefix from pactkit.yaml.
 2.  **Output checkpoint**: Print "Story ID determined: {ID}. Writing Spec now."
-3.  **Bind + checkpoint**: Run `pactkit workflow bind <run-id> {ID}`, then checkpoint `story_identified` with exact Story identity evidence.
+3.  **Record the identity locally**: State the generated Story ID before creating its Spec. Any optional local checkpoint is historical evidence only and never controls a future session.
 
 ## 🎬 Phase 3.2a: Scaffold + Metadata Table & Requirements
-1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_spec "{ID}" "{title}" --run-id <run-id>`; managed ownership is mandatory for Plan.
+1.  **Scaffold**: Run `{SCAFFOLD_CMD} create_spec "{ID}" "{title}"` in the current session.
 2.  **Read**: Read `docs/specs/{ID}.md` to see the scaffolded template.
 3.  **Edit placeholders** (use Edit tool, NOT Write):
     - Edit `Release | TBD` → `Release | {version}` (from `pyproject.toml`/`package.json`, NOT `{PACTKIT_YAML}`)
@@ -174,12 +166,12 @@ blocked/completed checkpoints use `--status blocked` / `--status completed`.
 4.  **Output checkpoint**: Print "Spec lint passed (0 errors AND 0 warnings)."
 5.  **Checkpoint**: Record `spec_linted`; the engine reruns canonical lint and rejects warnings.
 
-## 🎬 Phase 3.3: Board, Memory & Handover
-1.  **Board**: Plan uses managed `pactkit board add "{STORY_ID}" "{title}" "{task1}|{task2}|..." --run-id <run-id>`; standalone compatibility is `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|..."`.
+## 🎬 Phase 3.3: Board, Memory & Current-Session Continuation
+1.  **Board**: Run `{BOARD_CMD} add_story "{STORY_ID}" "{title}" "{task1}|..."` in the current session.
 2.  **Memory MCP (Conditional)**: IF Memory MCP is available, use create_entities to store design context (decisions, target files, rationale) under entity `{STORY_ID}`. Record story dependencies if applicable.
 3.  **Session Context Update**: Run `pactkit context` to refresh ignored `.pactkit/context.md` with canonical sections `{CONTEXT_SECTIONS}`. Never stage or commit it.
-4.  **Handover**: "Trace complete. Spec created. Ready for Act."
-5.  **Completion checkpoint**: Record `board_synced --status completed` with exact title and ordered task list. If validation fails, write a blocked checkpoint and hand off the run ID.
+4.  **Continue**: "Trace complete. Spec created. Continue with Act in this session when requested; a new session is optional."
+5.  **Completion evidence**: Report the exact title and ordered task list created. If validation fails, fix the local artifacts where safe or report the concrete gap; never create a workflow block that prevents a later session from continuing.
 """,
     # [FIX] Added Board Update Step to Phase 4
     "project-act.md": """---
@@ -204,6 +196,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Memory MCP (Conditional)**: IF Memory MCP is available, use search_nodes to load prior context for {STORY_ID} — retrieve architectural decisions and design rationale from the Plan phase.
 
 ## 🛡️ Phase 0.5: Spec Lint Gate (MUST)
+<!-- PACTKIT_ACT_OP:spec_lint -->
 > **PURPOSE**: Non-AI structural validation — ensures "Spec is Law" has physical enforcement before any code is written.
 1.  **Run Linter**: Execute the Spec Linter on the current Story's spec:
     ```bash
@@ -225,8 +218,16 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Move to In Progress**: If `{STORY_ID}` is found on the board, run `{BOARD_CMD} move_story "{STORY_ID}" "in_progress"`.
 4.  **Continue**: Regardless of findings, proceed to Phase 1.
 
+## 🧾 Phase 0.7: Spec Input Preflight (MUST)
+> **PURPOSE**: Deterministically place referenced implementation inputs and constraints in the current context before any source edit.
+1. Run `pactkit spec-preflight docs/specs/{STORY_ID}.md --activate` in the current session.
+2. Review the emitted file excerpts, CSS custom properties, interfaces, and MUST/NEVER/禁止/必须/对齐 constraints before writing code.
+3. If a required input is missing, ambiguous, outside the project root, or exceeds its extraction budget, stop and fix the Spec declaration.
+4. Continue directly to Phase 1 in this session. A new session is never required; activation only binds the current host session for optional preflight enforcement.
+5. The Claude Code hook is deployed automatically; `pactkit preflight-guard --install` is the explicit repair command if local hook configuration was removed.
+
 ## 🎬 Phase 1: Precision Targeting
-0.  **Resumable Act Preflight (MUST)**: Run `pactkit continuation resume {STORY_ID}` before writing. It only loads its verified plan; never writes or replays. Continue `resume_at`; resolve `blocked`. Completed is terminal. A fresh cycle uses `pactkit continuation checkpoint {STORY_ID} --fresh --step preflight --evidence '{"spec_lint":"pass"}'`, archiving evidence. New Stories omit `--fresh`; it is the only writer.
+0.  **Previous-session context (optional)**: You MAY inspect `pactkit continuation resume {STORY_ID}` for notes from an earlier session. Its status is never an execution gate: a blocked, completed, stale, or missing record does not prevent this session from implementing and verifying the current Story. Record a new checkpoint only as optional local handover evidence.
 1.  **Provider-Routed Scan**: Run `pactkit query --explore <module> --json --explain`. Record the complete provider decision in preflight evidence. Do not invoke Codegraph, visualize, SQLite or `rg` directly; `--allow-fallback` must be explicit and auditable.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Run `pactkit query --chain <symbol> --json --explain`; confirm the call site and existing callers before editing.
@@ -254,27 +255,30 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
+<!-- PACTKIT_ACT_OP:tdd_red_green -->
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
 2.  **Action**: Create a reproduction test case in `tests/unit/`.
     - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
-3.  **Checkpoint**: After confirming RED, run `pactkit continuation checkpoint {STORY_ID} --step red --evidence '{"story_tests":{"exit_code":1}}' --phase "Phase 2: RED"`.
+3.  **Optional handover note**: After confirming RED, you may record a local continuation checkpoint. It must never be required to continue the TDD loop.
 
 ## 🎬 Phase 3: Implementation
 1.  **Write Code**: Implement logic in the appropriate source directory.
     - **Context7 (Conditional)**: IF implementing with an unfamiliar library API, use Context7 MCP to fetch up-to-date documentation before writing code.
 2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2. Loop until GREEN.
     - Do NOT include pre-existing tests in this loop.
-    - **Iteration Cap**: Maximum **5 iterations**. If exceeded, **STOP** and report.
+    - Reassess the approach after several unsuccessful iterations, but keep investigating and repairing in the current session while progress is possible.
     - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
       - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
-      - If third-party: attempt to resolve the dependency (e.g., `pip install`), then STOP and report if unresolvable.
-    - After GREEN, run `pactkit continuation checkpoint {STORY_ID} --step green --evidence '{"story_tests":{"exit_code":0}}' --phase "Phase 3: GREEN"`.
+      - If third-party: inspect the dependency and attempt a safe resolution (for example, `pip install` only when it is the project's approved dependency-install command). If it remains unavailable, clearly report the environmental limitation and continue any work that can be verified locally.
+    - After GREEN, optionally record a local handover checkpoint.
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
+    <!-- PACTKIT_ACT_OP:regression_classification -->
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
     - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. Query importers through `pactkit query --callers <file> --json --explain`; if any changed file has 3+ importers, run full suite. Fallback is allowed only through router policy.
-    - **CRITICAL — Pre-existing test failure protocol**: If a pre-existing test fails, NEVER modify it — doing so silently corrupts the regression baseline. **STOP** and report to the user. This is a one-shot check, not an iterative loop.
+    - **Pre-existing test failure protocol**: Do not casually modify an unrelated failing test. Diagnose whether the Story caused it; fix it when the causal path is understood, otherwise report it as a QA gap while continuing all safe, relevant Story work.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
-    - After regression and lint pass, run `pactkit continuation checkpoint {STORY_ID} --step regression_lint --evidence '{"regression":"pass","lint":"pass"}' --phase "Phase 3: regression/lint"`.
+    <!-- PACTKIT_ACT_OP:lint -->
+    - After regression and lint pass, optionally record a local handover checkpoint.
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
     - URLs (`http://`, `https://`) that should be config
     - Magic numbers (non-obvious integers like `30000`, `8080`) that should be named constants
@@ -283,6 +287,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 4: Sync & Document
 1.  Run `pactkit clean` and `pactkit visualize --lazy` (runs file, `--mode class`, `--mode call` if source changed; codegraph sync is handled automatically).
+    <!-- PACTKIT_ACT_OP:graph_sync -->
 1b. **Journey Sync (Conditional)**:
     - **Skip if**: `docs/e2e/journey.md` does not exist in the project.
     - **Skip if**: Current Story's Spec has no `## Journey Segment` section.
@@ -293,8 +298,11 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       4. If outdated: Edit the affected step(s) in journey.md — update assertions, add new structure assertions, or adjust step description. MUST use Edit (incremental), MUST NOT use Write (full replace).
       5. If still accurate: skip with log "Journey steps verified — no update needed"
 2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
-3.  **Update Continuation State**: Run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` to record the agent's stopping point for session handoff.
+    <!-- PACTKIT_ACT_OP:board_update -->
+3.  **Update local context (optional)**: You may run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` for a later handoff.
+    <!-- PACTKIT_ACT_OP:continuation_update -->
 4.  **Coverage Table Output (STORY-slim-105)**: Output a coverage table listing each R{N} from the Spec:
+    <!-- PACTKIT_ACT_OP:requirement_coverage -->
 
     | Spec 条目 | 类型 | 状态 | 位置 |
     |-----------|------|------|------|
@@ -304,7 +312,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For implemented items: show file:line location
     - For skipped SHOULD items: show DEFERRED with reason (must match comment in code)
     - User verifies this table — do not claim "done" without it
-5.  **Completion Checkpoint (MUST)**: Only after the complete coverage table, Story tests, regression, lint, and all Board tasks are verified, run `pactkit continuation checkpoint {STORY_ID} --step sync_coverage --status completed --evidence @<verified-evidence.json> --phase "Phase 4: complete"`. Never mark completed from prose alone. If blocked, write `--status blocked --blocker "reason"` instead.
+5.  **Honest completion report**: Only claim completed items after the coverage table, Story tests, regression, lint, and Board tasks have been verified. A continuation checkpoint is optional local evidence and must not block a later session.
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
@@ -637,8 +645,9 @@ If Act already verified lint with no later source/test change, log `"Lint: SKIP 
 ## 🎬 Phase 4: Git Commit
 0.  **Enterprise Check**: If `enterprise.no_git: true` in `pactkit.yaml`, skip ALL git operations in this phase. Print: "ℹ️ Git operations disabled (enterprise.no_git)". Skip to the Session Context Update phase.
 0.5.  **Deployment Verification (self-dev only)**: Only when developing PactKit itself (`pyproject.toml` name == "pactkit"):
-    - Run `pactkit update` to redeploy all prompts, agents, commands, skills, and rules.
-    - Smoke-check: for each AC that references prompt/deployed file content, `grep` 1-2 key assertions on deployed files (e.g., `{GLOBAL_CONFIG_DIR}/commands/*.md`).
+    - First perform the deployment smoke-check in a temporary target directory; do not write a real host configuration as part of Done.
+    - If validating the installed host is needed, describe the exact update and ask for explicit authorization before running `pactkit update`.
+    - Smoke-check: for each AC that references prompt/deployed file content, inspect 1-2 key assertions in the temporary generated files.
     - Report: `Deploy verification: PASS ({N} assertions checked)` or `FAIL (details)`.
     - If FAIL, fix the deployment issue before committing.
     - **If NOT self-dev**: Skip this step silently.
@@ -772,9 +781,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🎬 Phase 6: Session Context Bootstrap
 1.  **Generate Context**: Run `pactkit context` to generate ignored local `.pactkit/context.md`; never stage it.
 
-## 🎬 Phase 7: Handover
+## 🎬 Phase 7: Next Step
 1.  **Output**: "✅ PactKit Initialized. Reality Graph captured. Knowledge Base ready."
-2.  **Advice**: "⚠️ IMPORTANT: Run `/project-plan 'Reverse engineer'` to align the HLD."
+2.  **Advice**: "⚠️ IMPORTANT: Continue with `/project-plan 'Reverse engineer'` in this session when requested; a new session is optional."
 """,
     "project-release.md": """---
 description: "Version release: snapshot, archive, Git tag, and GitHub Release"
@@ -855,72 +864,6 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 """,
 }
 
-PROJECT_PLAN_WORK_UNIT_FACADE = '''---
-description: "Analyze requirements, create Spec and Story through bounded WorkUnits"
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
----
-
-# Command: Plan — WorkUnit Compatibility Facade
-- **Usage**: /project-plan "$ARGUMENTS"
-- **Agent**: System Architect
-
-This entry preserves the existing user command while Core owns all workflow
-state, validators, governance writes, greenfield routing, and completion decisions.
-If Core classifies the request as greenfield, present its /project-design redirect;
-the host must not duplicate or override that routing decision.
-
-1. Start or resume with pactkit work-unit start project-plan --goal "$ARGUMENTS".
-2. On Codex App Server, run `pactkit-codex-work-unit run <run-id> --owner codex`.
-   The managed runner reuses one persisted thread, obtains a structured candidate Receipt from
-   each turn, and asks Core for every next WorkUnit. On other hosts or when App Server is
-   unavailable, acquire exactly one WorkUnit with `pactkit work-unit acquire`.
-3. When the leased unit is `story_identity`, bind the allocated ID with `pactkit work-unit
-   bind-story <run-id> <story-id> --owner <owner> --idempotency-key <key>` before receipt submission.
-4. Invoke only the canonical Portable Method named by that unit and obey its read/write scope.
-5. The Codex runner and `pactkit work-unit submit` both submit only an untrusted EvidenceReceipt.
-   Core rereads files, runs validators, and computes fingerprints before selecting the next unit.
-6. A host final records only an ExecutionAttempt; it never completes the WorkflowRun.
-7. On Codex App Server, the managed runner is the sole finalizer: the `finalize_plan`
-   turn returns Story identity, title, and ordered tasks but MUST NOT invoke
-   `pactkit work-unit finalize-plan` or write governance projections. The adapter
-   performs that journaled transaction exactly once with a Unit-version key.
-   Portable/manual hosts only invoke `pactkit work-unit finalize-plan` themselves.
-
-Never select or skip the next unit, duplicate completion logic, write Board or context
-outside finalize-plan, or rely on a Stop hook. Hosts without verified thread resume
-present the returned next WorkUnit for manual resume.
-'''
-
-PROJECT_WORK_UNIT_FACADE = '''---
-description: "Execute {command} through Core-owned bounded WorkUnits"
-allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
----
-
-# Command: {command} — Managed WorkUnit Facade
-- **Usage**: /{command} "$ARGUMENTS"
-
-Core is the only workflow scheduler and completion authority for this command.
-
-1. Start with `pactkit work-unit start {command} --goal "$ARGUMENTS"{story_argument}`.
-2. Run `pactkit-codex-work-unit run <run-id> --owner codex`. The runner persists
-   and resumes one App Server thread, dispatches only the current Core WorkUnit,
-   and submits structured EvidenceReceipts for deterministic validation.
-3. If the runner returns `retry`, invoke the same run command again; Core versions
-   the failed or expired lease and resumes at the same WorkUnit.
-4. If it returns `await_user`, show the listed manual operations and wait for explicit
-   authorization. Resume with one `--authorize <operation>` per approved operation.
-5. `done` is valid only after Core's journaled finalizer accepts the terminal WorkUnit.
-
-Never select, skip, or mark a WorkUnit complete from prose. Never call the finalizer
-from inside a model turn. Do not perform commit, push, tag, publish, release, pull-request,
-or orchestration operations unless the runner received matching explicit authorization.
-Portable/manual hosts may acquire and submit one WorkUnit at a time and must use
-`pactkit work-unit finalize-workflow` for non-Plan terminal units.
-Canonical portable methods remain discoverable under `{{SKILLS_ROOT}}/`; their
-legacy checkpoint files are compatibility evidence only and never schedule managed runs.
-{compatibility_note}
-'''
-
 COMMANDS_CONTENT = dict(LEGACY_COMMANDS_CONTENT)
 
 # Register additional prompts into COMMANDS_CONTENT
@@ -928,67 +871,13 @@ COMMANDS_CONTENT["project-sprint.md"] = SPRINT_PROMPT
 COMMANDS_CONTENT["project-hotfix.md"] = HOTFIX_PROMPT
 COMMANDS_CONTENT["project-design.md"] = DESIGN_PROMPT
 COMMANDS_CONTENT["project-debug.md"] = DEBUG_PROMPT
-
-
-def _inject_managed_workflow(command: str, prompt: str) -> str:
-    """Attach one lossless lifecycle contract to every project command."""
-    if "## Pre-Final Protocol (MUST)" in prompt:
-        return prompt
-    marker = "\n# Command:"
-    position = prompt.find(marker)
-    if position < 0:
-        return MANAGED_WORKFLOW_PROTOCOL.format(command=command) + prompt
-    heading_end = prompt.find("\n\n", position + 1)
-    if heading_end < 0:
-        heading_end = len(prompt)
-    return (
-        prompt[:heading_end + 2]
-        + MANAGED_WORKFLOW_PROTOCOL.format(command=command)
-        + prompt[heading_end + 2:]
-    )
-
-
-COMMANDS_CONTENT = {
-    filename: _inject_managed_workflow(filename.removesuffix(".md"), prompt)
-    for filename, prompt in COMMANDS_CONTENT.items()
-}
-
-
 def get_deployable_commands() -> dict[str, str]:
-    """Return host-facing commands while preserving the legacy read API.
+    """Return native current-host/current-session command playbooks.
 
-    COMMANDS_CONTENT remains a compatibility surface for integrations that
-    inspect historical playbooks. Deployment uses this function so
-    project-plan is the thin WorkUnit facade and Core is workflow authority.
+    Workflow/runner APIs are explicit integrations and never alter these
+    current-host/current-session command playbooks.
     """
-    commands = dict(COMMANDS_CONTENT)
-    commands["project-plan.md"] = _inject_managed_workflow(
-        "project-plan", PROJECT_PLAN_WORK_UNIT_FACADE
-    )
-    story_commands = {"project-act", "project-check", "project-done", "project-hotfix"}
-    for command in sorted(set(VALID_COMMANDS) - {"project-plan"}):
-        facade = PROJECT_WORK_UNIT_FACADE.format(
-            command=command,
-            story_argument=" --story-id <story-id>" if command in story_commands else "",
-            compatibility_note={
-                "project-init": (
-                    "## Git Repository Guard\n\n"
-                    "Before creating project files, inspect the git repository boundary and "
-                    "never initialize or commit outside the requested target."
-                ),
-                "project-act": (
-                    "Legacy portable hosts may inspect `pactkit continuation resume` and "
-                    "archive a new cycle with `--fresh`; these checkpoint records are "
-                    "migration evidence only and never schedule a managed WorkUnit run."
-                ),
-                "project-sprint": (
-                    "When parallel execution is unavailable, execute Plan → Act → Check → Close "
-                    "sequentially through the Core-issued phase WorkUnits."
-                ),
-            }.get(command, ""),
-        )
-        commands[f"{command}.md"] = _inject_managed_workflow(command, facade)
-    return commands
+    return dict(COMMANDS_CONTENT)
 
 # Exported prompt constants are canonical rendered command bodies too.
 SPRINT_PROMPT = COMMANDS_CONTENT["project-sprint.md"]

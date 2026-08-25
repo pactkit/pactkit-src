@@ -796,7 +796,7 @@ Assign each Story to a horizon:
 ## 🎬 Phase 4.5: Session Context Update
 1.  **Update Context**: Run `pactkit context` to refresh ignored local `.pactkit/context.md` from Story records.
 
-## 🎬 Phase 5: Handover
+## 🎬 Phase 5: Next Step
 1.  **Summary Table**: Output a table of all created artifacts:
 
 | Artifact | Path | Count |
@@ -808,7 +808,7 @@ Assign each Story to a horizon:
 | Architecture | `docs/architecture/graphs/system_design.mmd` | 1 |
 
 2.  **Story Overview**: List stories grouped by horizon (Now/Next/Later) with priority scores.
-3.  **Handover**: "PRD created. {N} stories ready for `/project-sprint`."
+3.  **Continue**: "PRD created. {N} stories are ready for `/project-sprint` in this session when requested; a new session is optional."
 
 ## ⚠️ What This Command Does NOT Do
 - Does NOT write implementation code — only PRD, Specs, and architecture design

@@ -32,28 +32,28 @@ class TestBailoutProtocol:
         )
 
     def test_resolve_dependency_first(self):
-        """R2: Should attempt to resolve dependency before stopping."""
+        """R2: Should attempt a safe dependency resolution first."""
         prompt = self._act_prompt()
-        assert "pip install" in prompt or "dependency" in prompt.lower()
+        assert "dependency" in prompt.lower()
 
-    def test_loop_iteration_cap(self):
-        """R3: TDD loop should have a max iteration count."""
+    def test_loop_reassesses_without_forcing_session_handoff(self):
+        """Repeated failures trigger reassessment, not a hard session block."""
         prompt = self._act_prompt()
-        # Must mention iteration limit / max iterations / cap
-        assert re.search(r"(iteration|loop).{0,30}(cap|limit|max)", prompt, re.IGNORECASE)
+        assert "Reassess the approach" in prompt
+        assert "current session" in prompt
 
-    def test_stop_on_cap_exceeded(self):
-        """R3: Must STOP when cap is exceeded."""
+    def test_reassessment_does_not_force_stop_on_repeated_failures(self):
+        """Iteration telemetry must not block the current session."""
         prompt = self._act_prompt()
-        # Must have a stop instruction related to iteration cap
-        assert re.search(r"(exceed|reach).{0,40}STOP", prompt, re.IGNORECASE)
+        assert "Maximum **5 iterations**" not in prompt
+        assert "If exceeded, **STOP**" not in prompt
 
     def test_normal_assertion_error_not_blocked(self):
         """S4: AssertionError (normal TDD red) must NOT trigger bailout."""
         prompt = self._act_prompt()
         assert "AssertionError" in prompt or "AssertionError" in prompt or "normal" in prompt.lower()
 
-    def test_service_down_stop(self):
-        """S3: ConnectionRefusedError should trigger STOP."""
+    def test_service_down_is_reported_without_fabricated_completion(self):
+        """Unavailable services remain visible, but do not force a handoff."""
         prompt = self._act_prompt()
         assert "ConnectionRefusedError" in prompt or "external service" in prompt.lower()

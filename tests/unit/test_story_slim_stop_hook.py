@@ -130,7 +130,7 @@ def test_completed_generic_act_is_not_overridden_by_legacy_drift(tmp_path):
     assert engine.read(state["run_id"])["status"] == "completed"
 
 
-def test_legacy_act_host_runner_blocks_once_then_hands_off_on_no_progress(tmp_path):
+def test_legacy_act_host_runner_hands_off_without_blocking_on_no_progress(tmp_path):
     from pactkit.continuation import ContinuationEngine, ContinuationStore
     from pactkit.host_continuation import HostCapabilities, HostContinuationRunner
 
@@ -162,11 +162,11 @@ def test_legacy_act_host_runner_blocks_once_then_hands_off_on_no_progress(tmp_pa
     assert first["decision"] == "resume_session"
     assert second["decision"] == "await_user"
     assert second["reason_code"] == "no_progress"
-    assert ContinuationStore(tmp_path).read(story)["status"] == "blocked"
+    assert ContinuationStore(tmp_path).read(story)["status"] == "in_progress"
 
 
-def test_doctor_reports_codex_hook_lifecycle_states(tmp_path, monkeypatch):
-    from pactkit.doctor import check_codex_hook_capability
+def test_doctor_reports_codex_current_session_execution(tmp_path, monkeypatch):
+    from pactkit.doctor import check_codex_execution_capability
 
     fake_home = tmp_path / "home"
     codex_root = fake_home / ".codex"
@@ -175,38 +175,38 @@ def test_doctor_reports_codex_hook_lifecycle_states(tmp_path, monkeypatch):
     (codex_root / ".pactkit-deployed.json").write_text(json.dumps({
         "format": "codex",
         "workflow_continuation": {
-            "hook_installed": True,
-            "hook_trusted": False,
-            "hook_observed": False,
-            "continuation_validated": False,
-            "completion_hook": False,
-            "auto_resume_available": False,
-            "guarantee_level": "process",
-            "trust_review_command": "/hooks",
+            "execution_mode": "portable",
+            "session_execution": "native_current_session",
+            "finish_guard_supported": False,
+            "guarantee_level": "portable",
         },
     }), encoding="utf-8")
 
-    result = check_codex_hook_capability()
+    result = check_codex_execution_capability()
 
-    assert result["installed"] is True
-    assert result["trusted"] is False
-    assert result["observed"] is False
-    assert result["validated"] is False
-    assert result["guarantee_level"] == "process"
-    assert any("/hooks" in warning for warning in result["warnings"])
-
-
-def test_doctor_without_codex_manifest_reports_guided_not_process(tmp_path):
-    from pactkit.doctor import check_codex_hook_capability
-
-    result = check_codex_hook_capability(tmp_path / "missing-codex-root")
-
-    assert result["guarantee_level"] == "guided"
-    assert result["installed"] is False
+    assert result == {
+        "execution_mode": "portable",
+        "session_execution": "native_current_session",
+        "background_execution": False,
+        "thread_resume": False,
+        "finish_guard_supported": False,
+        "guarantee_level": "portable",
+        "warnings": [],
+    }
 
 
-def test_doctor_ignores_stale_hook_observation_when_hook_is_uninstalled(tmp_path):
-    from pactkit.doctor import check_codex_hook_capability
+def test_doctor_without_codex_manifest_reports_portable_current_session(tmp_path):
+    from pactkit.doctor import check_codex_execution_capability
+
+    result = check_codex_execution_capability(tmp_path / "missing-codex-root")
+
+    assert result["guarantee_level"] == "portable"
+    assert result["session_execution"] == "native_current_session"
+    assert result["background_execution"] is False
+
+
+def test_doctor_ignores_stale_hook_data_from_legacy_manifest(tmp_path):
+    from pactkit.doctor import check_codex_execution_capability
 
     manifest = tmp_path / ".pactkit-deployed.json"
     manifest.write_text(json.dumps({
@@ -219,24 +219,47 @@ def test_doctor_ignores_stale_hook_observation_when_hook_is_uninstalled(tmp_path
         },
     }), encoding="utf-8")
 
-    result = check_codex_hook_capability(tmp_path)
+    result = check_codex_execution_capability(tmp_path)
 
-    assert result["installed"] is False
-    assert result["trusted"] is False
-    assert result["observed"] is False
-    assert result["validated"] is False
+    assert result["execution_mode"] == "portable"
+    assert result["session_execution"] == "native_current_session"
+    assert result["background_execution"] is False
+    assert result["thread_resume"] is False
+
+
+def test_doctor_normalizes_retired_runner_capabilities_from_old_manifest(tmp_path):
+    from pactkit.doctor import check_codex_execution_capability
+
+    (tmp_path / ".pactkit-deployed.json").write_text(json.dumps({
+        "workflow_continuation": {
+            "execution_mode": "resumable",
+            "session_execution": "background_runner",
+            "finish_guard_supported": True,
+            "guarantee_level": "resumable",
+        },
+    }), encoding="utf-8")
+
+    result = check_codex_execution_capability(tmp_path)
+
+    assert result["execution_mode"] == "portable"
+    assert result["session_execution"] == "native_current_session"
+    assert result["finish_guard_supported"] is False
+    assert result["guarantee_level"] == "portable"
+    assert result["warnings"] == [
+        "Codex execution manifest describes retired runner capabilities; "
+        "using native current-session execution",
+    ]
 
 
 @pytest.mark.parametrize("payload", ["[]", "null", '"manifest"'])
 def test_doctor_rejects_non_object_codex_manifest(tmp_path, payload):
-    from pactkit.doctor import check_codex_hook_capability
+    from pactkit.doctor import check_codex_execution_capability
 
     (tmp_path / ".pactkit-deployed.json").write_text(payload, encoding="utf-8")
 
-    result = check_codex_hook_capability(tmp_path)
+    result = check_codex_execution_capability(tmp_path)
 
-    assert result["installed"] is False
-    assert result["guarantee_level"] == "guided"
+    assert result["guarantee_level"] == "portable"
     assert result["warnings"] == [
-        "Codex hook manifest unreadable — re-run `pactkit update`",
+        "Codex execution manifest unreadable — re-run `pactkit update`",
     ]

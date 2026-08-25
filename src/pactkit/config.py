@@ -347,6 +347,15 @@ def _validate_write_scope(_key: str, value) -> list[str]:
     return msgs
 
 
+def _validate_preflight(_key: str, value) -> list[str]:
+    if not isinstance(value, dict):
+        return ["Config key 'preflight' should be a mapping"]
+    mode = value.get("mode", "warn")
+    if mode not in {"off", "warn", "enforce"}:
+        return ["preflight.mode should be one of: off, warn, enforce"]
+    return []
+
+
 # ---------------------------------------------------------------------------
 # CONFIG_SCHEMA — the single source of truth (STORY-slim-135 R1)
 #
@@ -526,6 +535,14 @@ CONFIG_SCHEMA: dict[str, dict] = {
         "validator": _validate_write_scope,
         "optional": True,
     },
+    "preflight": {
+        "default": {"mode": "warn"},
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Spec Preflight — off | warn | enforce (warn keeps normal editing available)",
+        "validator": _validate_preflight,
+        "optional": True,
+    },
 }
 
 # Keys that require deep merge (derived from schema — was a hand-maintained set)
@@ -612,10 +629,14 @@ def find_pactkit_yaml(cwd: Path | None = None) -> Path | None:
     """
     if cwd is None:
         cwd = Path.cwd()
-    for candidate in PACTKIT_YAML_CANDIDATES:
-        p = cwd / candidate
-        if p.exists():
-            return p
+    start = Path(cwd).expanduser().resolve()
+    if start.is_file():
+        start = start.parent
+    for directory in (start, *start.parents):
+        for candidate in PACTKIT_YAML_CANDIDATES:
+            p = directory / candidate
+            if p.is_file():
+                return p
     return None
 
 

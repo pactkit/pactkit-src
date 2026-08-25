@@ -5,6 +5,8 @@ STORY-002: Selective Deployment — Deployer filters by pactkit.yaml config.
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from pactkit.config import get_default_config
 from pactkit.generators.deployer import deploy
 from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
@@ -75,6 +77,61 @@ class TestFullConfigDeploysAll:
         agents_dir = claude / "agents"
         for name in AGENTS_EXPERT:
             assert (agents_dir / f"{name}.md").is_file()
+
+    def test_upgrade_removes_only_unmodified_legacy_portable_methods(self, tmp_path):
+        """Old default methods are retired without deleting user customizations."""
+        from pactkit.generators.deployer import _render_skill_md
+        from pactkit.portable_methods import get_portable_methods
+        from pactkit.profiles import get_profile
+
+        claude = tmp_path / ".claude"
+        skills = claude / "skills"
+        skills.mkdir(parents=True)
+        profile = get_profile("classic")
+        methods = get_portable_methods()
+        old = methods[0]
+        old_path = skills / old["name"] / "SKILL.md"
+        old_path.parent.mkdir()
+        old_path.write_text(
+            _render_skill_md(old, profile, profile.skills_path_var), encoding="utf-8",
+        )
+        user_path = skills / methods[1]["name"] / "SKILL.md"
+        user_path.parent.mkdir()
+        user_path.write_text("user-owned override\n", encoding="utf-8")
+
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch("pactkit.generators.deployer.Path.cwd", return_value=tmp_path),
+        ):
+            deploy(config=get_default_config())
+
+        assert not old_path.parent.exists()
+        assert user_path.read_text(encoding="utf-8") == "user-owned override\n"
+
+    def test_plugin_upgrade_removes_unmodified_legacy_portable_method(self, tmp_path):
+        """Plugin migration compares against the plugin's historical rendering."""
+        from pactkit.generators.deployer import (
+            PLUGIN_SKILLS_PREFIX,
+            _cleanup_legacy_portable_methods,
+            _render_skill_md,
+        )
+        from pactkit.portable_methods import get_portable_methods
+        from pactkit.profiles import get_profile
+
+        skills = tmp_path / "skills"
+        method = get_portable_methods()[0]
+        legacy = skills / method["name"] / "SKILL.md"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text(
+            _render_skill_md(method, None, PLUGIN_SKILLS_PREFIX), encoding="utf-8",
+        )
+
+        removed = _cleanup_legacy_portable_methods(
+            skills, get_profile("classic"), PLUGIN_SKILLS_PREFIX,
+        )
+
+        assert removed == {method["name"]}
+        assert not legacy.parent.exists()
 
 
 # ===========================================================================
@@ -253,13 +310,13 @@ class TestConfigAutoGeneration:
 
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
-        # STORY-slim-133: 25 total (13 embedded + 12 commands)
+        # 13 embedded skills + 12 commands.
         # Post STORY-slim-128: 8 rules (1 merged global + 7 on-demand)
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
-        assert "31/31 Skills" in output
-        assert "19 embedded" in output
+        assert "25/25 Skills" in output
+        assert "13 embedded" in output
         assert "12 commands" in output
         assert "8/8 Rules" in output
 
@@ -272,8 +329,8 @@ class TestDeploymentSummary:
         _run_deploy(tmp_path, config=cfg)
         output = capsys.readouterr().out
         assert "2/9 Agents" in output
-        # 13 embedded skills + 3 commands = 16 total skills deployed out of 25
-        assert "22/31 Skills" in output
+        # 13 embedded skills + 3 commands = 16 total skills deployed out of 25.
+        assert "16/25 Skills" in output
 
 
 # ===========================================================================
@@ -328,3 +385,19 @@ class TestSelectiveSkills:
 
         for name in ["pactkit-visualize", "pactkit-board", "pactkit-scaffold"]:
             assert not (skills_dir / name / "SKILL.md").exists()
+
+
+@pytest.mark.parametrize("payload", ["[]", "null", '"manifest"', "1"])
+def test_non_object_command_ownership_manifest_does_not_half_deploy(tmp_path, payload):
+    """Valid but non-object JSON is untrusted input, never a deploy blocker."""
+    skills_dir = tmp_path / ".claude" / "skills"
+    skills_dir.mkdir(parents=True)
+    manifest = skills_dir / ".pactkit-command-manifest.json"
+    manifest.write_text(payload, encoding="utf-8")
+
+    claude = _run_deploy(tmp_path, config=get_default_config())
+
+    assert (claude / ".pactkit-version").is_file()
+    assert (claude / ".pactkit-deployed.json").is_file()
+    replacement = manifest.read_text(encoding="utf-8")
+    assert '"version": 1' in replacement

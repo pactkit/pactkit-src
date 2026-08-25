@@ -81,17 +81,17 @@ class TestAC2ValidSkillsContainsAll:
             assert skill in VALID_SKILLS, f"{skill} not in VALID_SKILLS"
 
 
-class TestAC3LegacyCommandFilesRemoved:
-    """AC3: Legacy command files removed."""
+class TestAC3LegacyCommandFilesPreserved:
+    """Legacy names alone must never authorize deletion."""
 
-    def test_cleanup_removes_project_md_files(self, tmp_path):
-        """Legacy project-*.md files in commands/ should be removed."""
+    def test_cleanup_preserves_project_md_files_without_ownership(self, tmp_path):
+        """A user command named project-*.md is retained."""
         from pactkit.generators.deployer import _cleanup_legacy_commands
 
         commands_dir = tmp_path / "commands"
         commands_dir.mkdir()
 
-        # Create legacy command files
+        # These may be user-authored; filename matching is not ownership.
         (commands_dir / "project-plan.md").write_text("old")
         (commands_dir / "project-act.md").write_text("old")
         # Non-PactKit file should be preserved
@@ -99,8 +99,8 @@ class TestAC3LegacyCommandFilesRemoved:
 
         _cleanup_legacy_commands(commands_dir)
 
-        assert not (commands_dir / "project-plan.md").exists()
-        assert not (commands_dir / "project-act.md").exists()
+        assert (commands_dir / "project-plan.md").exists()
+        assert (commands_dir / "project-act.md").exists()
         assert (commands_dir / "ultra-think.md").exists()
 
 
@@ -124,6 +124,53 @@ class TestAC4YamlCommandsSectionWorks:
         assert (skills_dir / "project-plan" / "SKILL.md").exists()
         assert (skills_dir / "project-act" / "SKILL.md").exists()
         assert not (skills_dir / "project-done" / "SKILL.md").exists()
+
+    def test_selective_redeploy_removes_only_manifest_owned_command(self, tmp_path):
+        """A disabled command is removed only after PactKit deployed it."""
+        from pactkit.generators.deployer import _deploy_commands
+        from pactkit.profiles import get_profile
+
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        profile = get_profile("classic")
+        _deploy_commands(skills_dir, ["project-plan", "project-act"], profile=profile, config={})
+        _deploy_commands(skills_dir, ["project-plan"], profile=profile, config={})
+
+        assert (skills_dir / "project-plan" / "SKILL.md").is_file()
+        assert not (skills_dir / "project-act").exists()
+
+    def test_selective_redeploy_preserves_modified_managed_command(self, tmp_path):
+        """A user-edited command loses managed ownership instead of being deleted."""
+        from pactkit.generators.deployer import _deploy_commands
+        from pactkit.profiles import get_profile
+
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        profile = get_profile("classic")
+        _deploy_commands(skills_dir, ["project-plan", "project-act"], profile=profile, config={})
+        edited = skills_dir / "project-act" / "SKILL.md"
+        edited.write_text("user-authored command\n", encoding="utf-8")
+        _deploy_commands(skills_dir, ["project-plan"], profile=profile, config={})
+
+        assert edited.read_text(encoding="utf-8") == "user-authored command\n"
+
+    def test_selective_redeploy_preserves_extra_files_in_managed_command(self, tmp_path):
+        """An unchanged SKILL.md does not own user files beside it."""
+        from pactkit.generators.deployer import _deploy_commands
+        from pactkit.profiles import get_profile
+
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        profile = get_profile("classic")
+        _deploy_commands(skills_dir, ["project-plan", "project-act"], profile=profile, config={})
+        extra = skills_dir / "project-act" / "scripts" / "local_helper.py"
+        extra.parent.mkdir()
+        extra.write_text("# user-owned\n", encoding="utf-8")
+
+        _deploy_commands(skills_dir, ["project-plan"], profile=profile, config={})
+
+        assert extra.read_text(encoding="utf-8") == "# user-owned\n"
+        assert not (skills_dir / "project-act" / "SKILL.md").exists()
 
 
 class TestAC5CrossFormatIsolation:

@@ -93,6 +93,23 @@ class TestManifestFiles:
         assert isinstance(path, Path)
         assert "files" in json.loads(path.read_text())
 
+    def test_copilot_command_hash_uses_prompt_layout(self, tmp_path):
+        """Copilot commands are prompt files, not skills (adapter layout R1)."""
+        from pactkit.deploy_manifest import write_deploy_manifest
+
+        prompt = tmp_path / "prompts" / "project-act.prompt.md"
+        prompt.parent.mkdir(parents=True)
+        prompt.write_text("# Act\n", encoding="utf-8")
+
+        write_deploy_manifest(
+            tmp_path, "copilot",
+            {"skills": [], "commands": ["project-act"], "agents": []},
+        )
+        data = json.loads((tmp_path / ".pactkit-deployed.json").read_text())
+
+        assert "prompts/project-act.prompt.md" in data["files"]
+        assert "skills/project-act/SKILL.md" not in data["files"]
+
 
 # ---------------------------------------------------------------------------
 # R2/R3/R4/R5: doctor content-level parity
@@ -129,6 +146,95 @@ class TestContentParity:
         result = check_deploy_parity(project)
         assert result["drift"] is True
         assert any("rules/pactkit.md" in d for d in result["details"])
+
+    def test_copilot_prompt_drift_detected(self, tmp_path, monkeypatch):
+        """Doctor hashes the real .github/prompts command artifact."""
+        from pactkit.doctor import check_deploy_parity
+
+        fake_home = tmp_path / "home"
+        project = tmp_path / "project"
+        github = project / ".github"
+        github.mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", lambda: fake_home)
+        prompt = github / "prompts" / "project-act.prompt.md"
+        prompt.parent.mkdir()
+        prompt.write_text("# Act\n", encoding="utf-8")
+        _write_manifest_with_files(
+            github, "copilot",
+            {"skills": [], "commands": ["project-act"], "agents": []},
+        )
+
+        prompt.write_text("# changed\n", encoding="utf-8")
+        result = check_deploy_parity(project)
+
+        assert result["drift"] is True
+        assert any("prompts/project-act.prompt.md" in item for item in result["details"])
+
+    def test_selective_deploy_is_not_reported_as_missing_default_components(self, tmp_path, monkeypatch):
+        """A user-declared subset is a parity baseline, not deployment drift."""
+        from pactkit.doctor import check_deploy_parity
+
+        fake_home = tmp_path / "home"
+        project = tmp_path / "project"
+        github = project / ".github"
+        github.mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", lambda: fake_home)
+        prompt = github / "prompts" / "project-plan.prompt.md"
+        prompt.parent.mkdir()
+        prompt.write_text("# Plan\n", encoding="utf-8")
+        _write_manifest_with_files(
+            github, "copilot",
+            {"skills": [], "commands": ["project-plan"], "agents": []},
+        )
+
+        result = check_deploy_parity(project)
+
+        assert result["drift"] is False, result
+
+    def test_selective_manifest_missing_declared_artifact_is_drift(self, tmp_path, monkeypatch):
+        """A declared subset is intent, not proof that files were deployed."""
+        from pactkit.doctor import check_deploy_parity
+
+        fake_home = tmp_path / "home"
+        project = tmp_path / "project"
+        github = project / ".github"
+        github.mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", lambda: fake_home)
+        (github / ".pactkit-deployed.json").write_text(json.dumps({
+            "format": "copilot",
+            "component_scope": "selective",
+            "skills": [],
+            "commands": ["project-act"],
+            "agents": [],
+            "files": {},
+        }), encoding="utf-8")
+
+        result = check_deploy_parity(project)
+
+        assert result["drift"] is True
+        assert any("prompts/project-act.prompt.md" in item for item in result["details"])
+
+    def test_corrupt_selective_component_list_warns_without_inventing_drift(self, tmp_path, monkeypatch):
+        """SEC-7: malformed declarations are diagnostics, not component names."""
+        from pactkit.doctor import check_deploy_parity
+
+        project = tmp_path / "project"
+        github = project / ".github"
+        github.mkdir(parents=True)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
+        (github / ".pactkit-deployed.json").write_text(json.dumps({
+            "format": "copilot",
+            "component_scope": "selective",
+            "skills": "not-a-list",
+            "commands": [],
+            "agents": [],
+            "files": {},
+        }), encoding="utf-8")
+
+        result = check_deploy_parity(project)
+
+        assert result["drift"] is False
+        assert any("component list 'skills' corrupt" in item for item in result["warnings"])
 
     def test_no_false_positive_on_excluded_append(self, tmp_path, monkeypatch):
         from pactkit.doctor import check_deploy_parity

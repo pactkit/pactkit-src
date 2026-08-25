@@ -112,8 +112,9 @@ class TestHasPactkitCli:
         assert get_profile("codex").has_pactkit_cli is True
         assert get_profile("codex").cli_policy is CLIPolicy.PREFERRED
 
-    def test_copilot_preserves_terminal_cli_for_manual_resume(self):
-        assert get_profile("copilot").has_pactkit_cli is True
+    def test_copilot_uses_cli_less_current_session_fallbacks(self):
+        assert get_profile("copilot").has_pactkit_cli is False
+        assert get_profile("copilot").cli_policy is CLIPolicy.UNAVAILABLE
 
     def test_all_profiles_have_field(self):
         """Every profile in FORMAT_PROFILES must define has_pactkit_cli."""

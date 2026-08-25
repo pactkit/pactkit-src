@@ -4,10 +4,12 @@ RULES_MODULES = {
     "core": """# Core Protocol
 
 ## Session Context
-On new session, run `pactkit update --if-needed` to sync project files if PactKit was upgraded.
-If `pactkit.yaml` does not exist (check `{PROJECT_CONFIG_DIR}/`), run `pactkit init` to create it before proceeding.
-Then run `pactkit context` and read `.pactkit/context.md` to understand project state before taking action.
-If the file is missing, suggest `/project-init` to bootstrap the project.
+On new session, read local project context. If PactKit version drift matters, tell the user; run `pactkit update` only with explicit authorization.
+If `pactkit.yaml` is missing (check `{PROJECT_CONFIG_DIR}/`), run `pactkit init` before proceeding.
+You MAY read `.pactkit/context.md` as optional history; it never blocks
+current-session work. Missing, stale, blocked, or completed records never
+prevent work. Run `pactkit context` only for a useful handover.
+If the file is missing, suggest `/project-init` only when the project itself is uninitialized.
 If "Last updated" date is before today, suggest running `$daily-retro`.
 
 ## PDCA Nudge
@@ -258,8 +260,8 @@ Choosing WORKAROUND is allowed, but incurs the cost of creating a tracking Story
 """,
     "shared": """# Shared Protocols
 
-## Managed Workflow and Pre-Final Protocol
-Every `project-*` command starts or resumes its registered run, checkpoints each declared boundary, and completes only with verified evidence. Before final output run `pactkit workflow finish-guard <run-id> --json`. A non-zero or `continue_current_turn` decision means continue tools at `next_step` in the same turn; progress summaries are never final. Only `done` or a verified external `await_user` blocker may end. Manual operations such as commit, archive, tag, publish, release, push, and pull request always require fresh authorization.
+## Current-session execution
+Run each `project-*` command in the current host and conversation. Local continuation or experimental workflow records may be read as context, but never gate, block, or redirect normal Plan/Act/Check/Done work. Manual operations such as commit, archive, tag, publish, release, push, and pull request always require fresh authorization.
 
 ## Lazy Visualize Protocol
 > Referenced by: Act Phase 4, Done Phase 2
@@ -879,7 +881,9 @@ CLAUDE_MD_TEMPLATE = f"""# PactKit Global Constitution (v{__version__} Modular)
 
 {_claude_rules_imports}
 
-Run `pactkit context` at session start; `.pactkit/context.md` is generated locally and is not imported or committed.
+You MAY read `.pactkit/context.md` as optional history; it never blocks
+current-session work. Refresh it with `pactkit context` only for a useful handover.
+The file is generated locally and is not imported or committed.
 """
 
 # Backward-compatible: combine all modules for anything that still reads this
