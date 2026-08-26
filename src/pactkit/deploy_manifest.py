@@ -27,8 +27,8 @@ from pactkit.prompts.rules import (
     normalize_rule_id,
 )
 from pactkit.prompts.skills import SKILL_MANIFEST
+from pactkit.protocols import CORE_PROTOCOL_VERSION
 from pactkit.utils import atomic_write
-from pactkit.workflow_engine import CORE_PROTOCOL_VERSION
 
 MANIFEST_NAME = ".pactkit-deployed.json"
 

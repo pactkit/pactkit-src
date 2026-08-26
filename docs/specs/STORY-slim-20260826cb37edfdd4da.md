@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-20260826cb37edfdd4da |
-| Status | Draft |
+| Status | Done |
 | Priority | P1 |
 | Release | 2.23.0 |
 
@@ -62,11 +62,16 @@ byte-identical). Zero behavior change for every CLI subcommand.
 ### R3: Usage instrumentation (MUST)
 
 Each explicit legacy entry point (`pactkit workflow`, `pactkit
-work-unit`, `pactkit continuation`) MUST increment a local usage
-counter (.pactkit/legacy-engine-usage.json: count + first/last seen
-dates) on invocation. The counter MUST NOT record command arguments or
+work-unit`, `pactkit continuation`) MUST increment a machine-local
+usage counter (~/.pactkit/legacy-engine-usage.json: count + first/last
+seen dates) on invocation. Machine-local, not project-local: per-machine
+usage is the deletion signal, and STORY-slim-146 pins the project
+.pactkit tree write-free for read-only continuation commands
+(amendment 2026-08-26). The counter MUST NOT record command arguments or
 any content beyond the command name. doctor MUST surface the counter
-("legacy engine invocations: N since DATE"). validate_managed_operation
+("legacy engine invocations: N since DATE"). Test invocations MUST NOT
+count: a PACTKIT_DISABLE_USAGE_COUNTING kill-switch is honored by the
+recorder and set by the e2e test harness (amendment 2026-08-26). validate_managed_operation
 calls from active gates MUST NOT be counted — only user-initiated
 explicit invocations.
 
@@ -102,8 +107,9 @@ existing suite; coverage MUST NOT drop.
 ### AC3: usage counter increments (R3)
 
 - **Given** no counter file
+- **Given** HOME redirected to a temp directory
 - **When** `pactkit workflow list` runs
-- **Then** .pactkit/legacy-engine-usage.json exists with count 1 and a last-seen date of today
+- **Then** ~/.pactkit/legacy-engine-usage.json exists with count 1 and a last-seen date of today
 
 ### AC4: active gates are not counted (R3)
 

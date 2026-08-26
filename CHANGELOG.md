@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Deprecated
+- Legacy workflow engine (`pactkit workflow` / `work-unit` / explicit `continuation`
+  subcommands) moved to the frozen `pactkit.legacy` package — deletion candidate.
+  Removal is gated on one release cycle of zero explicit invocations; run
+  `pactkit doctor` to see your machine's invocation count. Public import paths
+  (`pactkit.workflow_engine`, `pactkit.host_continuation`) keep working via
+  compatibility shims. Default PDCA execution paths are unaffected.
+
 All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).

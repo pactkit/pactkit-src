@@ -143,3 +143,14 @@ def mock_deployer_paths(tmp_path):
         return PathMocks()
 
     return _create
+
+
+@pytest.fixture(autouse=True)
+def _no_legacy_usage_counting(monkeypatch):
+    """Test suites never record real legacy-engine usage.
+
+    The machine-local usage counter feeds the deletion decision
+    (STORY-slim-20260826cb37edfdd4da); subprocess-based CLI tests
+    inherit this env var. Tests exercising counting explicitly unset it.
+    """
+    monkeypatch.setenv("PACTKIT_DISABLE_USAGE_COUNTING", "1")

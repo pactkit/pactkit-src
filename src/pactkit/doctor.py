@@ -176,6 +176,28 @@ def _project_host_guarantees(
     return guarantees
 
 
+def check_legacy_engine_usage() -> dict:
+    """Usage surfacing for the frozen legacy engine (deletion decision).
+
+    Machine-local counter, read-only; absent counter returns zeroed
+    usage (STORY-slim-20260826cb37edfdd4da R3/R4).
+    """
+    from pactkit.legacy.usage import read_legacy_usage
+
+    usage = read_legacy_usage()
+    return {
+        "total": sum(int(entry.get("count", 0)) for entry in usage.values()),
+        "per_command": {
+            command: int(entry.get("count", 0))
+            for command, entry in sorted(usage.items())
+        },
+        "last_seen": max(
+            (entry.get("last_seen", "") for entry in usage.values()),
+            default="",
+        ),
+    }
+
+
 def check_workflow_continuation(
     project_root: Path, *, home: Path | None = None,
 ) -> dict:

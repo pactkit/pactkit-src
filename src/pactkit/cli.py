@@ -928,6 +928,10 @@ def main():
             raise SystemExit(1)
 
     elif args.command == "continuation":
+        from pactkit.legacy.usage import record_legacy_usage
+
+        record_legacy_usage("continuation")
+
         import json
         from pathlib import Path
 
@@ -961,6 +965,10 @@ def main():
             raise SystemExit(1)
 
     elif args.command == "workflow":
+        from pactkit.legacy.usage import record_legacy_usage
+
+        record_legacy_usage("workflow")
+
         import json
         from pathlib import Path
 
@@ -1065,6 +1073,10 @@ def main():
             raise SystemExit(1)
 
     elif args.command == "work-unit":
+        from pactkit.legacy.usage import record_legacy_usage
+
+        record_legacy_usage("work-unit")
+
         import json
         from dataclasses import asdict
         from pathlib import Path
@@ -1290,6 +1302,7 @@ def main():
             check_config_drift,
             check_graph_provider,
             check_hld_module_count,
+            check_legacy_engine_usage,
             check_orphaned_specs,
             check_rule_ownership,
             check_stale_graphs,
@@ -1298,6 +1311,19 @@ def main():
 
         root = project_root
         has_issues = False
+
+        # Frozen legacy engine usage — informs the deletion decision
+        # (STORY-slim-20260826cb37edfdd4da R3).
+        legacy_usage = check_legacy_engine_usage()
+        if legacy_usage["total"]:
+            detail = ", ".join(
+                f"{cmd}: {count}"
+                for cmd, count in legacy_usage["per_command"].items()
+            )
+            print(
+                f"  Legacy engine: {legacy_usage['total']} explicit invocation(s) "
+                f"since {legacy_usage['last_seen']} ({detail}) — deletion candidate"
+            )
 
         # R1: Orphaned/missing specs
         spec_result = check_orphaned_specs(root)
