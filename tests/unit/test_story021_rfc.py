@@ -21,10 +21,14 @@ class TestRFCInActPrompt:
         prompt = self._act_prompt()
         assert re.search(r"infeasible|contradictory", prompt, re.IGNORECASE)
 
-    def test_stop_on_rfc(self):
-        """R2: Must STOP implementation when RFC is triggered."""
+    def test_rfc_blocks_only_contradictory_implementation(self):
+        """R2: RFC leaves investigation open while blocking unsafe code."""
         prompt = self._act_prompt()
-        assert re.search(r"RFC.{0,200}STOP", prompt, re.IGNORECASE | re.DOTALL)
+        assert re.search(
+            r"RFC.{0,500}do not implement the contradictory requirement",
+            prompt, re.IGNORECASE | re.DOTALL,
+        )
+        assert "Continue safe investigation" in prompt
 
     def test_report_to_user(self):
         """R2: Must report which requirement is problematic."""

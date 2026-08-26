@@ -62,8 +62,8 @@ class TestR2OperatingGuidelinesExemption:
 # ---------------------------------------------------------------------------
 # R3: Init Guard Downgrade to Suggestion-and-Stop
 # ---------------------------------------------------------------------------
-class TestR3InitGuardWarnAndStop:
-    """Plan Phase 0.5 Init Guard must warn+STOP, not auto-execute /project-init."""
+class TestR3InitGuardWarnAndScope:
+    """Plan init guard scopes the gate without freezing safe repair."""
 
     def test_plan_does_not_auto_execute_init(self):
         plan = COMMANDS_CONTENT["project-plan.md"]
@@ -71,12 +71,11 @@ class TestR3InitGuardWarnAndStop:
             "Init Guard must NOT auto-execute /project-init"
         )
 
-    def test_plan_init_guard_stops(self):
+    def test_plan_init_guard_blocks_only_spec_creation(self):
         plan = COMMANDS_CONTENT["project-plan.md"]
-        # Should contain STOP instruction
-        assert "STOP" in plan and "not initialized" in plan.lower(), (
-            "Init Guard must STOP when markers are missing"
-        )
+        assert "not initialized" in plan.lower()
+        assert "do not create the Spec yet" in plan
+        assert "safe inspection and initialization repair remain available" in plan
 
     def test_plan_init_guard_suggests_manual_init(self):
         plan = COMMANDS_CONTENT["project-plan.md"]

@@ -49,10 +49,11 @@ class TestRegressionGateCascade:
         assert 'Decision Tree' in done
 
     def test_step_3_gate_still_exists(self):
-        """Step 3 Gate must still exist."""
+        """Step 3 Gate blocks delivery while leaving repair available."""
         done = self._done()
         assert 'Step 3' in done
-        assert 'STOP' in done
+        assert 'do not commit or archive' in done
+        assert 'Safe diagnosis and repair remain available' in done
 
 
 # ===========================================================================

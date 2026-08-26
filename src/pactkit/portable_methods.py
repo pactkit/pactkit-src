@@ -28,8 +28,8 @@ PORTABLE_METHODS = (
     ),
     PortableMethod(
         "pactkit-method-spec-writing", 1, "Write one structurally valid Spec section.",
-        "Write only the files allowed by the supplied WorkUnit. Preserve requirements, use "
-        "Given/When/Then acceptance criteria, and return file references for Core validation.",
+        "Write only the files authorized by the current request. Preserve requirements, use "
+        "Given/When/Then acceptance criteria, and report the resulting file references.",
     ),
     PortableMethod(
         "pactkit-method-tdd", 1, "Apply a local red-green-refactor loop.",
@@ -38,13 +38,14 @@ PORTABLE_METHODS = (
     ),
     PortableMethod(
         "pactkit-method-verification", 1, "Verify deterministic acceptance evidence.",
-        "Run the WorkUnit acceptance commands, report exact exit codes and artifact references, "
+        "Run the acceptance commands applicable to the current task, report exact exit codes "
+        "and artifact references, "
         "and treat all natural-language success claims as untrusted.",
     ),
     PortableMethod(
         "pactkit-method-release-preparation", 1, "Prepare a release without publishing it.",
         "Collect version, changelog, regression and authorization evidence. Never tag, push, or "
-        "publish unless the WorkUnit explicitly requires fresh human authorization.",
+        "publish without fresh authorization in the current conversation.",
     ),
 )
 

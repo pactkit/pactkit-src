@@ -1,0 +1,26 @@
+schema_version: 1
+id: STORY-slim-202608268fc379dbe6ef
+title: PactKit PDCA 规则语义深化与风险驱动执行模型
+spec_path: docs/specs/STORY-slim-202608268fc379dbe6ef.md
+status: done
+tasks:
+- id: task-e619b385fd
+  title: 细化 RuleClause 与 PhaseContract schema
+  completed: true
+- id: task-82801ec34a
+  title: 实现 Sprint 动态 phase capsule
+  completed: true
+- id: task-54633b13d9
+  title: 建立 Change Risk Profile 与风险路由
+  completed: true
+- id: task-b9186f1a22
+  title: 原生重写 engineering guides 并补三类实践
+  completed: true
+- id: task-863727582f
+  title: 实现 scope integrity 与 test adequacy evidence
+  completed: true
+- id: task-f23281b236
+  title: 完善兼容迁移、doctor 与四 Adapter parity
+  completed: true
+created_at: '2026-08-26T02:59:11+00:00'
+updated_at: '2026-08-26T03:24:17+00:00'

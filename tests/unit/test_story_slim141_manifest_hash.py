@@ -32,7 +32,7 @@ def _deploy_fake_tree(root: Path) -> dict:
     agent.write_text("---\nname: qa-engineer\n---\n", encoding="utf-8")
 
     (root / "rules").mkdir(parents=True, exist_ok=True)
-    rule = (root / "rules" / "pactkit.md")
+    rule = (root / "rules" / "pactkit-runtime.md")
     rule.write_text("# pactkit rule\n", encoding="utf-8")
 
     # Merge-semantics / meta files — MUST be excluded from hashing (R1/R4).
@@ -42,7 +42,7 @@ def _deploy_fake_tree(root: Path) -> dict:
     return {
         "skills/pactkit-board/SKILL.md": _sha256(board),
         "agents/qa-engineer.md": _sha256(agent),
-        "rules/pactkit.md": _sha256(rule),
+        "rules/pactkit-runtime.md": _sha256(rule),
     }
 
 
@@ -141,11 +141,11 @@ class TestContentParity:
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
         # Tamper a pactkit-owned file after manifest was written.
-        (codex_dir / "rules" / "pactkit.md").write_text("# tampered\n", encoding="utf-8")
+        (codex_dir / "rules" / "pactkit-runtime.md").write_text("# tampered\n", encoding="utf-8")
 
         result = check_deploy_parity(project)
         assert result["drift"] is True
-        assert any("rules/pactkit.md" in d for d in result["details"])
+        assert any("rules/pactkit-runtime.md" in d for d in result["details"])
 
     def test_copilot_prompt_drift_detected(self, tmp_path, monkeypatch):
         """Doctor hashes the real .github/prompts command artifact."""
@@ -289,11 +289,11 @@ class TestContentParity:
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
-        (codex_dir / "rules" / "pactkit.md").chmod(0)
+        (codex_dir / "rules" / "pactkit-runtime.md").chmod(0)
         try:
             result = check_deploy_parity(project)
         finally:
-            (codex_dir / "rules" / "pactkit.md").chmod(0o644)
+            (codex_dir / "rules" / "pactkit-runtime.md").chmod(0o644)
 
         assert result["drift"] is False
         assert any("unreadable" in w for w in result["warnings"])
@@ -324,12 +324,12 @@ class TestContentParity:
         _deploy_fake_tree(codex_dir)
         _write_manifest_with_files(codex_dir, "codex", {"skills": PACTKIT_SKILLS, "commands": codex_cmds})
 
-        (codex_dir / "rules" / "pactkit.md").write_text("# tampered\n", encoding="utf-8")
+        (codex_dir / "rules" / "pactkit-runtime.md").write_text("# tampered\n", encoding="utf-8")
         (codex_dir / "agents" / "qa-engineer.md").write_text("# tampered\n", encoding="utf-8")
 
         result = check_deploy_parity(project)
         assert result["drift"] is True
-        assert any("rules/pactkit.md" in d for d in result["details"])
+        assert any("rules/pactkit-runtime.md" in d for d in result["details"])
         assert any("agents/qa-engineer.md" in d for d in result["details"])
 
     def test_manifest_keys_are_posix(self, tmp_path):

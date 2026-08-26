@@ -12,12 +12,19 @@ graph TD
     subgraph "Adapter Packages (External)"
         OpenCodePkg["pactkit-opencode<br/>OpenCodeDeployer<br/>(separate repo)"]
         CodexPkg["pactkit-codex<br/>CodexDeployer<br/>(separate repo)"]
-        CopilotPkg["pactkit-copilot<br/>CopilotDeployer<br/>(separate repo)"]
+        CopilotPkg["pactkit-copilot<br/>Compatibility adapter<br/>(separate repo)"]
         TraePkg["pactkit-trae<br/>TraeDeployer<br/>(future, separate repo)"]
     end
 
     subgraph "Prompt Layer (Constitution)"
-        Rules["rules.py<br/>7 modules"]
+        Rules["Rule Registry<br/>owner + level + scope + load policy<br/>(STORY-slim-20260825b1c83a046b4b)"]
+        RuntimeKernel["Runtime Kernel<br/>minimal always-load contract"]
+        PhaseContracts["Phase Contract Registry<br/>inputs / outputs / invariants / evidence"]
+        PhaseCapsules["Dynamic Phase Capsules<br/>one active phase in current session<br/>(STORY-slim-202608268fc379dbe6ef)"]
+        RiskProfile["Change Risk Profile<br/>risk level + reason + evidence<br/>(STORY-slim-202608268fc379dbe6ef)"]
+        SharedCapabilities["Shared Capabilities<br/>execution / preflight / external tools"]
+        ConcernGuides["Concern Guides<br/>native decision schema<br/>risk-triggered, 0-3 per task"]
+        MaintainerOverlay["PactKit Maintainer Overlay<br/>project-local only"]
         Commands["commands.py<br/>11 command playbooks"]
         Agents["agents.py<br/>9 agent roles"]
         Workflows["workflows.py<br/>PDCA + references"]
@@ -55,21 +62,19 @@ graph TD
         SpecStatus["spec_status.py<br/>Spec status update"]
     end
 
-    subgraph "Cross-Session Memory"
+    subgraph "Durable Project State"
         Context[".pactkit/context.md<br/>local generated session view<br/>(STORY-slim-148)"]
-        WorkflowRegistry["Workflow Registry<br/>25 deployed entry contracts<br/>steps / evidence / replay policy<br/>(STORY-slim-147)"]
-        ResumeState[".pactkit/continuations/<br/>{workflow-run}.json<br/>atomic resumable checkpoint<br/>(STORY-slim-146/147)"]
-        ResumeVerifier["Continuation Engine<br/>workflow-specific evidence +<br/>git/artifact validation<br/>(STORY-slim-147)"]
-        FinishGuard["Workflow Finish Guard<br/>pre-final decision + managed writes<br/>(STORY-slim-2026082381e832771d4e)"]
-        WorkUnits["Work Unit Scheduler<br/>bounded goal + allowed writes + acceptance<br/>(STORY-slim-20260823d854b0cf1875)"]
-        Attempts["Execution Attempts + Receipts<br/>host terminal ≠ workflow terminal"]
-        HostCaps["Host Capability Contract<br/>portable / guided / resumable / managed"]
-        AtomicFinalize["Journaled Plan Finalize<br/>Story fact + Board + Context + run"]
         LessonRecords["docs/architecture/governance/lessons/*.md<br/>append-only lesson facts<br/>(STORY-slim-148)"]
         Specs["docs/specs/*.md<br/>Durable requirements"]
         StoryRecords["docs/product/stories/*.yaml<br/>per-Story execution state<br/>(STORY-slim-148)"]
         BoardView["sprint_board.md<br/>generated read-only projection<br/>(STORY-slim-148)"]
         MemoryMCP["Memory MCP<br/>Knowledge graph"]
+    end
+
+    subgraph "Legacy / Explicit Compatibility APIs (Non-default)"
+        LegacyWorkflow["workflow / work-unit CLI<br/>historical recovery compatibility"]
+        LegacyContinuation["continuation records + verifier<br/>read only when explicitly invoked"]
+        LegacyFinalize["legacy guarded finalize<br/>not a PDCA completion gate"]
     end
 
     subgraph "MCP Integrations (Conditional)"
@@ -91,7 +96,7 @@ graph TD
     OpenCodePkg -.->|"depends on"| DeployBase
     CodexPkg -.->|"depends on"| DeployBase
     CodexPkg -.->|"consumes operation contract"| PromptIntegrity
-    CopilotPkg -.->|"depends on"| DeployBase
+    CopilotPkg -.->|"compatibility projection"| DeployBase
     TraePkg -.->|"depends on"| DeployBase
     CLI -->|"pactkit subcommands"| Garden
     CLI -->|"pactkit subcommands"| Observe
@@ -106,6 +111,19 @@ graph TD
     GraphRouter -->|"preferred provider"| Codegraph["Codegraph index + CLI"]
     GraphRouter -.->|"reasoned fallback"| Visualize
     Deployer --> Rules
+    Rules --> RuntimeKernel
+    Rules --> PhaseContracts
+    Rules --> PhaseCapsules
+    Rules --> RiskProfile
+    Rules --> SharedCapabilities
+    Rules --> ConcernGuides
+    Rules --> MaintainerOverlay
+    PhaseContracts --> PhaseCapsules
+    PhaseCapsules -->|"current phase only"| Commands
+    SharedCapabilities --> Commands
+    RiskProfile -->|"select 0-3 guides"| ConcernGuides
+    ConcernGuides -.->|"risk evidence"| Commands
+    MaintainerOverlay -.->|"PactKit repository only"| Commands
     Deployer --> Commands
     Deployer --> Agents
     Deployer --> Skills
@@ -121,31 +139,13 @@ graph TD
     LessonRecords -->|"recent decisions"| Context
     Commands -->|"Plan/Act/Done<br/>conditional"| MemoryMCP
 
-    Commands -->|"workflow definition"| WorkflowRegistry
-    Skills -->|"recovery classification"| WorkflowRegistry
-    WorkflowRegistry --> ResumeVerifier
-    Commands -->|"checkpoint / resume"| ResumeState
-    ResumeState --> ResumeVerifier
-    ResumeVerifier -->|"verified next safe step"| Commands
-    ResumeVerifier --> FinishGuard
-    Commands -->|"pre-final check"| FinishGuard
-    ResumeVerifier --> WorkUnits
-    WorkflowRegistry --> WorkUnits
-    HostCaps --> WorkUnits
-    WorkUnits -->|"one bounded unit"| Commands
-    Commands --> Attempts
-    Attempts -->|"candidate evidence"| ResumeVerifier
-    ResumeVerifier -->|"validated final unit"| AtomicFinalize
-    AtomicFinalize --> StoryRecords
-    AtomicFinalize --> BoardView
-    AtomicFinalize --> Context
-    CodexPkg -.->|"App Server thread/turn adapter"| HostCaps
-    OpenCodePkg -.->|"native facade"| HostCaps
-    CopilotPkg -.->|"managed bridge or manual resume"| HostCaps
-    ResumeVerifier -.->|"human-confirmed blocker"| Context
-    Context -.->|"human-readable summary"| ResumeState
+    CLI -.->|"explicit legacy invocation only"| LegacyWorkflow
+    LegacyWorkflow -.-> LegacyContinuation
+    LegacyContinuation -.-> LegacyFinalize
+    LegacyFinalize -.->|"compatibility write path"| StoryRecords
 
-    Rules -->|"CLAUDE.md @import"| Context
+    RuntimeKernel -->|"global host instruction"| Context
+    PhaseCapsules -->|"host-native on-demand load"| Context
     Observe -->|"conditional"| ChromeMCP
     Observe -->|"conditional"| PlaywrightMCP
     Commands -->|"Act Phase 0.3<br/>Check Phase 3.7<br/>conditional"| PactGuard

@@ -21,25 +21,20 @@ class TestMcpRuleModule:
 
     def test_mcp_key_in_rules_files(self):
         p = _prompts()
-        assert 'mcp' in p.RULES_FILES
-        # Post-merge refactor: mcp is now 02-mcp-integration.md
-        assert p.RULES_FILES['mcp'] == '02-mcp-integration.md'
+        assert 'external-tools' in p.RULES_FILES
+        assert p.RULES_FILES['external-tools'] == 'execution/external-tools.md'
 
-    def test_managed_prefix_includes_02(self):
-        """Post-merge: 02- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
-        RULES_MANAGED_PREFIXES now only covers the global pactkit.md.
-        """
+    def test_legacy_mcp_identifier_normalizes_to_external_tools(self):
         p = _prompts()
-        # 02- is an on-demand prefix, not a global prefix
-        assert '02-' in p.RULES_ONDEMAND_PREFIXES
+        from pactkit.prompts.rules import normalize_rule_id
 
-    def test_claude_md_references_mcp(self):
-        """Post-merge: 02-mcp-integration is on-demand (not in CLAUDE_MD_TEMPLATE).
-        On-demand rules are deployed to skills/_rules/ and loaded via @import in commands.
-        """
+        assert normalize_rule_id('mcp') == 'external-tools'
+        assert normalize_rule_id('02-mcp-integration') == 'external-tools'
+
+    def test_external_tools_is_command_scoped_not_global(self):
         p = _prompts()
-        # On-demand rules are in skills/_rules/, not referenced in global CLAUDE_MD_TEMPLATE
-        assert '02-mcp-integration.md' in p.RULES_ONDEMAND_FILES.values()
+        assert 'execution/external-tools.md' in p.RULES_ONDEMAND_FILES.values()
+        assert 'execution/external-tools.md' not in p.CLAUDE_MD_TEMPLATE
 
     def test_rule_mentions_context7(self):
         p = _prompts()
@@ -112,11 +107,10 @@ class TestBackwardCompatibility:
 
     def test_existing_rules_files_intact(self):
         p = _prompts()
-        # Post-merge: global file is pactkit.md; on-demand files renumbered 01-06
         expected = {
-            'pactkit': 'pactkit.md',
-            'workflow': '01-workflow-conventions.md',
-            'mcp': '02-mcp-integration.md',
+            'runtime': 'pactkit-runtime.md',
+            'git-workflow': 'execution/git-workflow.md',
+            'external-tools': 'execution/external-tools.md',
         }
         for key, val in expected.items():
             assert p.RULES_FILES[key] == val

@@ -16,6 +16,108 @@ _EXECUTION_MODE_RANK = {
 }
 
 
+def resolve_rule_context(
+    command: str,
+    *,
+    active_phase: str | None = None,
+    selected_guides: tuple[str, ...] = (),
+    host_format: str | None = None,
+) -> dict:
+    """Return a deterministic, read-only explanation of active rule semantics."""
+    from pactkit.prompts.guides import GUIDE_DEFINITIONS
+    from pactkit.prompts.rules import (
+        COMMAND_CONDITIONAL_RULES_MAP,
+        COMMAND_RULES_MAP,
+        RULE_CLAUSES,
+        RULE_DEFINITIONS,
+        SPRINT_PHASE_SEQUENCE,
+    )
+
+    requested = tuple(COMMAND_RULES_MAP.get(command, ()))
+    conditional_ids = tuple(COMMAND_CONDITIONAL_RULES_MAP.get(command, ()))
+    loaded: list[dict] = []
+    skipped: list[dict] = []
+    warnings: list[str] = []
+    for rule_id, definition in RULE_DEFINITIONS.items():
+        record = {
+            "id": rule_id,
+            "level": definition.level,
+            "trigger": definition.trigger,
+            "evidence": list(definition.evidence),
+        }
+        if rule_id in requested:
+            record["reason"] = "declared by active command"
+            loaded.append(record)
+        elif rule_id in conditional_ids:
+            record["reason"] = "available only when its command trigger matches"
+            record["load_policy"] = "conditional"
+            skipped.append(record)
+        else:
+            record["reason"] = "not declared by active command"
+            skipped.append(record)
+        if (
+            "active instruction artifact" in " ".join(definition.evidence)
+            or definition.trigger == "when referenced by the active PactKit skill"
+        ):
+            warnings.append(f"generic rule metadata: {rule_id}")
+        if definition.level == "hard" and definition.failure != "block_exact_action":
+            warnings.append(f"illegal hard blocker: {rule_id}")
+
+    phase = active_phase
+    if phase is None and command != "project-sprint":
+        phase = next(
+            (rule.removeprefix("phase-") for rule in requested if rule.startswith("phase-")),
+            None,
+        )
+    leaked = sorted(set(requested) & set(SPRINT_PHASE_SEQUENCE))
+    if command == "project-sprint" and leaked:
+        warnings.append("Sprint statically loads phase capsules: " + ", ".join(leaked))
+
+    guides = []
+    for filename in selected_guides:
+        definition = GUIDE_DEFINITIONS.get(filename)
+        if definition is None:
+            warnings.append(f"unknown guide: {filename}")
+            continue
+        guides.append({
+            "id": filename,
+            "reason": definition.trigger,
+            "evidence": list(definition.evidence),
+        })
+    if len(guides) > 3:
+        warnings.append("more than three engineering guides selected")
+    if host_format == "codex":
+        for rule_id in requested:
+            definition = RULE_DEFINITIONS.get(rule_id)
+            if definition and "@~/.codex/" in definition.content:
+                warnings.append(f"Codex Markdown @file dependency: {rule_id}")
+
+    precedence = (
+        "platform safety > latest user instruction > project Spec > phase "
+        "contract > risk guide defaults"
+    )
+    return {
+        "command": command,
+        "active_phase": phase,
+        "loaded": loaded,
+        "skipped": skipped,
+        "conditional_candidates": list(conditional_ids),
+        "clauses": {
+            clause_id: {
+                "level": clause.level,
+                "failure": clause.failure,
+                "trigger": clause.trigger,
+                "skip_when": list(clause.skip_when),
+                "evidence": list(clause.evidence),
+            }
+            for clause_id, clause in RULE_CLAUSES.items()
+        },
+        "guides": guides,
+        "precedence": precedence,
+        "warnings": warnings,
+    }
+
+
 def _project_host_guarantees(
     project_root: Path, warnings: list[str], *, home: Path | None = None,
 ) -> dict[str, str]:
@@ -424,6 +526,135 @@ DEPLOY_PROBE_PATHS = (
     "{root}/.codex",
     "{root}/.opencode",
 )
+
+_RULE_CONFLICT_SIGNALS = {
+    "unscoped STOP": re.compile(r"\bSTOP\b"),
+    "forced session split": re.compile(
+        r"(?:must|requires?|required(?:\s+to)?|必须).{0,24}"
+        r"(?:new|separate|新).{0,12}session",
+        re.IGNORECASE,
+    ),
+    "retired workflow protocol": re.compile(
+        r"WorkUnit|EvidenceReceipt|codex runner|--owner codex", re.IGNORECASE,
+    ),
+}
+_OPTIONAL_SESSION_SIGNAL = re.compile(
+    r"(?:do\s+not|not|never|无需|不必|不需要).{0,80}"
+    r"(?:require|required|must|必须)?.{0,16}(?:new|separate|新).{0,12}session"
+    r"|(?:new|separate|新).{0,12}session.{0,16}(?:optional|可选)",
+    re.IGNORECASE,
+)
+
+
+def check_rule_ownership(project_root: Path, *, home: Path | None = None) -> dict:
+    """Classify deployed and local rules without modifying any file.
+
+    Manifest hashes are the sole evidence of PactKit ownership. Untracked rule
+    files under a project are project-owned; untracked files under host config
+    roots are user-owned. Potential conflicts are advisory lexical signals, not
+    policy failures, and never affect the doctor's exit status.
+    """
+    import json
+
+    project_root = Path(project_root).resolve()
+    home = Path(home or Path.home()).resolve()
+    candidates = [
+        ("classic", home / ".claude", "user"),
+        ("codex", home / ".codex", "user"),
+        ("opencode", home / ".config" / "opencode", "user"),
+        ("classic", project_root / ".claude", "project"),
+        ("codex", project_root / ".codex", "project"),
+        ("opencode", project_root / ".opencode", "project"),
+        ("copilot", project_root / ".github", "project"),
+    ]
+    result = {
+        "pactkit_owned": [], "project_owned": [], "user_owned": [],
+        "conflicts": [], "potential_conflicts": [], "warnings": [],
+    }
+    seen: set[Path] = set()
+    for expected_format, root, local_owner in candidates:
+        try:
+            resolved = root.resolve()
+        except OSError:
+            resolved = root
+        if resolved in seen or not root.is_dir():
+            continue
+        seen.add(resolved)
+
+        managed: set[str] = set()
+        manifest = root / ".pactkit-deployed.json"
+        if manifest.is_file():
+            try:
+                payload = json.loads(manifest.read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError("top-level JSON must be an object")
+                if payload.get("format") not in (None, expected_format):
+                    raise ValueError("format does not match deployment root")
+                files = payload.get("files", {})
+                rules = payload.get("rules", [])
+                if not isinstance(files, dict) or not isinstance(rules, list):
+                    raise ValueError("ownership fields are invalid")
+                managed.update(
+                    path for path in files
+                    if isinstance(path, str) and (
+                        path.startswith("rules/")
+                        or path.startswith("skills/_rules/")
+                        or (
+                            path.startswith("skills/project-")
+                            and "/references/rules/" in path
+                        )
+                        or (
+                            path.startswith("skills/project-act/references/guides/")
+                        )
+                    )
+                )
+                managed.update(
+                    item["path"] for item in rules
+                    if isinstance(item, dict) and isinstance(item.get("path"), str)
+                )
+            except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+                result["warnings"].append(f"{manifest}: unreadable ownership ({exc})")
+
+        rule_files = []
+        for directory in (root / "rules", root / "skills" / "_rules"):
+            if directory.is_dir():
+                rule_files.extend(directory.rglob("*.md"))
+        skills_root = root / "skills"
+        if skills_root.is_dir():
+            rule_files.extend(skills_root.glob("project-*/references/rules/*.md"))
+            rule_files.extend(
+                skills_root.glob("project-act/references/guides/*.md")
+            )
+        for path in sorted(set(rule_files)):
+            relative = path.relative_to(root).as_posix()
+            record = {
+                "format": expected_format, "root": str(root),
+                "path": relative, "owner": "pactkit" if relative in managed else local_owner,
+            }
+            result[f"{record['owner']}_owned"].append(record)
+            candidate = path.with_suffix(path.suffix + ".pactkit-new")
+            if candidate.is_file():
+                result["conflicts"].append({
+                    **record, "candidate": candidate.relative_to(root).as_posix(),
+                })
+            if record["owner"] != "pactkit":
+                try:
+                    content = path.read_text(encoding="utf-8")
+                except OSError as exc:
+                    result["warnings"].append(f"{path}: unreadable ({exc})")
+                    continue
+                for line_number, line in enumerate(content.splitlines(), 1):
+                    for signal, pattern in _RULE_CONFLICT_SIGNALS.items():
+                        if (
+                            signal == "forced session split"
+                            and _OPTIONAL_SESSION_SIGNAL.search(line)
+                        ):
+                            continue
+                        if pattern.search(line):
+                            result["potential_conflicts"].append({
+                                **record, "line": line_number, "signal": signal,
+                            })
+    return result
 
 
 def check_codex_execution_capability(codex_root: Path | None = None) -> dict:

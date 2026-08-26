@@ -40,11 +40,11 @@ class TestDeployRulesStillWorks:
 
         rules_dir = claude_root / "rules"
         ondemand_dir = claude_root / "skills" / "_rules"
-        rules_written = sorted(f.name for f in rules_dir.glob("*.md"))
-        ondemand_written = sorted(f.name for f in ondemand_dir.glob("*.md"))
+        rules_written = sorted(f.relative_to(rules_dir).as_posix() for f in rules_dir.rglob("*.md"))
+        ondemand_written = sorted(f.relative_to(ondemand_dir).as_posix() for f in ondemand_dir.rglob("*.md"))
         assert count == 2
-        assert "pactkit.md" in rules_written
-        assert "01-workflow-conventions.md" in ondemand_written
+        assert rules_written == ["pactkit-runtime.md"]
+        assert ondemand_written == ["execution/git-workflow.md"]
 
     def test_skips_unknown_rule_ids(self, tmp_path):
         """Unknown rule IDs are silently skipped."""

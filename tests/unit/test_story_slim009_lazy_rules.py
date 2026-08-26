@@ -40,25 +40,20 @@ class TestRulesFilesSplit:
         assert len(RULES_ONDEMAND_FILES) >= 4
 
     def test_core_contains_required_rules(self):
-        """Security-critical rules must be in core (always-load) — merged into pactkit.md."""
+        """Only the small Runtime Kernel is always loaded."""
         from pactkit.prompts.rules import RULES_CORE_FILES, RULES_MODULES
 
-        # New structure: single pactkit.md contains all core content
-        assert "pactkit" in RULES_CORE_FILES
-        # Verify that the merged content contains the core and hierarchy content
-        pactkit_content = RULES_MODULES["pactkit"]
-        assert "Core Protocol" in pactkit_content or "Session Context" in pactkit_content
-        assert "Hierarchy of Truth" in pactkit_content or "Tier 1" in pactkit_content
+        assert RULES_CORE_FILES == {"runtime": "pactkit-runtime.md"}
+        runtime = RULES_MODULES["runtime"]
+        assert "Current Session" in runtime
+        assert "Rule Semantics" in runtime
+        assert "Strict TDD" not in runtime
 
-    def test_credential_safety_in_core(self):
-        """Credential safety rule must be always-loaded (SEC-1).
-        It lives in RULES_INSTRUCTIONS_CORE (not RULES_CORE_FILES since it's user-managed).
-        """
-        from pactkit.prompts.rules import RULES_INSTRUCTIONS_CORE
+    def test_credential_safety_is_inside_the_single_runtime(self):
+        from pactkit.prompts.rules import RULES_INSTRUCTIONS_CORE, RULES_MODULES
 
-        assert any("09-credential-safety" in p or "credential" in p for p in RULES_INSTRUCTIONS_CORE), (
-            "09-credential-safety.md must be in RULES_INSTRUCTIONS_CORE"
-        )
+        assert RULES_INSTRUCTIONS_CORE == ["rules/pactkit-runtime.md"]
+        assert "Never expose passwords" in RULES_MODULES["runtime"]
 
     def test_architecture_not_in_core(self):
         """Full architecture details must be on-demand (not in the merged global file)."""
@@ -93,7 +88,7 @@ class TestRulesFilesSplit:
 @_skip_no_opencode
 class TestInstructionsCoreOnly:
     def test_opencode_json_has_credential_only_instructions(self, tmp_path):
-        """STORY-slim-011: _update_global_opencode_json writes only credential safety, not core rules."""
+        """OpenCode globally loads Runtime and credential safety only."""
         from pactkit_opencode.deployer import OpenCodeDeployer
 
         json_path = tmp_path / "opencode.json"
@@ -105,8 +100,8 @@ class TestInstructionsCoreOnly:
         # Must NOT contain glob
         assert "rules/*.md" not in instructions, "instructions must not contain glob 'rules/*.md'"
 
-        # STORY-slim-011: Only credential safety in instructions (core rules moved to per-command)
-        assert "rules/09-credential-safety.md" in instructions
+        assert "rules/pactkit-runtime.md" in instructions
+        assert "rules/09-credential-safety.md" not in instructions
         assert "rules/01-core-protocol.md" not in instructions
         assert "rules/02-hierarchy-of-truth.md" not in instructions
 
@@ -141,8 +136,8 @@ class TestInstructionsCoreOnly:
         assert "CONTRIBUTING.md" in instructions
         # Old glob removed
         assert "rules/*.md" not in instructions
-        # STORY-slim-011: Only credential safety added (core rules now per-command)
-        assert "rules/09-credential-safety.md" in instructions
+        assert "rules/pactkit-runtime.md" in instructions
+        assert "rules/09-credential-safety.md" not in instructions
 
     def test_no_duplicate_instructions(self, tmp_path):
         """Running update twice must not add duplicates."""
@@ -162,27 +157,26 @@ class TestInstructionsCoreOnly:
 
 
 @_skip_no_opencode
-class TestAgentsMdOnDemandRefs:
+class TestAgentsMdRuntimeBoundary:
     def _get_agents_md(self, tmp_path):
         from pactkit_opencode.deployer import OpenCodeDeployer
 
         OpenCodeDeployer._deploy_agents_md_inline(tmp_path)
         return (tmp_path / "AGENTS.md").read_text()
 
-    def test_agents_md_contains_ondemand_refs(self, tmp_path):
+    def test_agents_md_does_not_globally_reference_ondemand_rules(self, tmp_path):
         content = self._get_agents_md(tmp_path)
         from pactkit.prompts.rules import RULES_ONDEMAND_FILES
 
         for filename in RULES_ONDEMAND_FILES.values():
-            assert f"@rules/{filename}" in content, f"AGENTS.md missing @reference for {filename}"
+            assert f"@rules/{filename}" not in content
 
-    def test_agents_md_contains_lazy_load_instruction(self, tmp_path):
-        """Must instruct AI to use Read tool, not preemptively load."""
+    def test_agents_md_explains_command_scoped_loading(self, tmp_path):
         content = self._get_agents_md(tmp_path)
-        assert "Read tool" in content or "need-to-know" in content, "AGENTS.md must instruct AI to use lazy loading"
+        assert "command files inline only their phase contract" in content
 
     def test_agents_md_core_rules_not_referenced(self, tmp_path):
-        """Core rules are in instructions, not in @refs (no duplication)."""
+        """Runtime is in instructions, not duplicated in AGENTS.md refs."""
         content = self._get_agents_md(tmp_path)
         from pactkit.prompts.rules import RULES_CORE_FILES
 
@@ -199,19 +193,16 @@ class TestAgentsMdOnDemandRefs:
 
 class TestAllRulesDeployed:
     def test_deploy_rules_writes_all_files(self, tmp_path):
-        """_deploy_rules writes all PactKit-managed rules to correct directories.
-        STORY-slim-112: Global rules → rules/, On-demand rules → skills/_rules/
-        _deploy_rules expects rule_ids as filename-stems (e.g. '01-core-protocol').
-        User-managed files (09-credential-safety, 10-retrieval-routing) have no
-        RULES_MODULES entry and are not deployed by PactKit.
-        """
+        """Registry rules deploy to their Runtime or command-private paths."""
         from pactkit.generators.deployer import _deploy_rules
         from pactkit.prompts.rules import (
-            RULES_FILES, RULES_MODULES, RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
+            RULES_CORE_FILES,
+            RULES_FILES,
+            RULES_ONDEMAND_DIR,
+            RULES_ONDEMAND_FILES,
         )
 
-        # Pass rule IDs as filename stems (how deploy callers use them)
-        rule_ids = [v.removesuffix(".md") for k, v in RULES_FILES.items() if k in RULES_MODULES]
+        rule_ids = list(RULES_FILES)
         _deploy_rules(tmp_path, rule_ids)
 
         rules_dir = tmp_path / "rules"
@@ -280,6 +271,4 @@ class TestTokenOverhead:
         agents_size = (tmp_path / "AGENTS.md").stat().st_size
         total = core_size + agents_size
 
-        # Threshold updated: post-merge, pactkit.md contains all 6 core modules (~14KB merged).
-        # Previous 10KB limit was based on separate smaller files; merged file is intentionally larger.
-        assert total < 25_000, f"Core instructions + AGENTS.md = {total} bytes, must be < 25KB"
+        assert total < 10_000, f"Runtime instructions + AGENTS.md = {total} bytes, must be < 10KB"

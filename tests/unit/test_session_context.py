@@ -60,29 +60,27 @@ class TestDoneContextGeneration:
 # ==============================================================================
 # Scenario 2: CLAUDE.md references context.md
 # ==============================================================================
-class TestClaudeMdContextReference:
-    """CLAUDE_MD_TEMPLATE bootstraps ignored local Context."""
+class TestClaudeMdRuntimeBoundary:
+    """The global Runtime Kernel does not turn history into a session gate."""
 
-    def test_template_has_context_reference(self):
+    def test_template_has_runtime_only_reference(self):
         p = _prompts()
-        assert "pactkit context" in p.CLAUDE_MD_TEMPLATE
-        assert ".pactkit/context.md" in p.CLAUDE_MD_TEMPLATE
+        assert "@~/.claude/rules/pactkit-runtime.md" in p.CLAUDE_MD_TEMPLATE
+        assert "pactkit context" not in p.CLAUDE_MD_TEMPLATE
+        assert ".pactkit/context.md" not in p.CLAUDE_MD_TEMPLATE
         assert "@./docs/product/context.md" not in p.CLAUDE_MD_TEMPLATE
 
-    def test_context_reference_after_rules(self):
-        """The @context.md line must come after rule imports."""
+    def test_runtime_template_has_no_phase_or_history_imports(self):
         p = _prompts()
         template = p.CLAUDE_MD_TEMPLATE
-        # Find last rule import
-        last_rule_pos = template.rfind("@~/.claude/rules/")
-        context_pos = template.find("pactkit context")
-        assert context_pos > last_rule_pos
+        assert template.count("@~/.claude/rules/") == 1
+        assert "skills/_rules" not in template
 
-    def test_context_is_optional_and_never_blocks_current_session(self):
+    def test_runtime_explicitly_preserves_current_session_execution(self):
         p = _prompts()
-        template = p.CLAUDE_MD_TEMPLATE.lower()
-        assert "optional history" in template
-        assert "current-session work" in template
+        runtime = p.RULES_MODULES["runtime"].lower()
+        assert "current session" in runtime
+        assert "never exclusive locks" in runtime
 
     def test_deployer_classic_produces_header(self):
         """_deploy_claude_md should produce CLAUDE.md with version header."""
@@ -96,7 +94,7 @@ class TestClaudeMdContextReference:
             tmp_path = Path(tmp)
             _deploy_claude_md(tmp_path, list(RULES_FILES.keys()))
             content = (tmp_path / "CLAUDE.md").read_text()
-            assert "# PactKit Global Constitution" in content
+            assert "# PactKit Runtime Contract" in content
 
 
 # ==============================================================================
@@ -174,10 +172,11 @@ class TestContextMissingGraceful:
     """Missing local Context is rebuilt rather than imported."""
 
     def test_uses_relative_path(self):
-        """Must use @./docs/... not @~/... or absolute path."""
+        """Global Runtime must not import a project history path."""
         p = _prompts()
         template = p.CLAUDE_MD_TEMPLATE
-        assert "pactkit context" in template
+        assert "@~/.claude/rules/pactkit-runtime.md" in template
+        assert "pactkit context" not in template
         assert "@./docs/product/context.md" not in template
         assert "@~/.claude/context.md" not in template
 
@@ -215,13 +214,13 @@ class TestInitContextGeneration:
 
 
 # ==============================================================================
-# Plugin mode: TIP about /project-init
+# Plugin mode: minimal Runtime entrypoint
 # ==============================================================================
 class TestPluginModeContext:
-    """Plugin inline CLAUDE.md should include TIP about project-init."""
+    """Plugin inline CLAUDE.md must not route ordinary work into PDCA."""
 
-    def test_plugin_inline_has_init_tip(self):
-        """Plugin CLAUDE.md should hint at /project-init for context."""
+    def test_plugin_inline_keeps_only_runtime_contract(self):
+        """Plugin global content should not advertise an initialization phase."""
         import tempfile
         from pathlib import Path
 
@@ -231,5 +230,6 @@ class TestPluginModeContext:
             tmp_path = Path(tmp)
             _deploy_claude_md_inline(tmp_path)
             content = (tmp_path / "CLAUDE.md").read_text()
-            assert "/project-init" in content
-            assert "context" in content.lower()
+            assert "# PactKit Runtime Contract" in content
+            assert "/project-init" not in content
+            assert "PDCA Routing Table" not in content

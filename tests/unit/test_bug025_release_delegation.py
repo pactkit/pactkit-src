@@ -61,11 +61,11 @@ class TestProjectReleaseNoDuplication:
         assert 'Phase 0' in cmd or 'Pre-flight' in cmd or 'pre-flight' in cmd.lower(), \
             "project-release.md must retain the pre-flight check phase"
 
-    def test_command_stops_on_no_version_bump(self):
-        """Command MUST stop if no version bump detected."""
+    def test_command_scopes_no_version_bump_gate_to_release_actions(self):
+        """Missing version evidence blocks release side effects, not diagnosis."""
         cmd = self._release_cmd()
-        assert 'STOP' in cmd or 'stop' in cmd.lower(), \
-            "project-release.md must STOP when no version bump is detected"
+        assert 'Do not tag, publish, or create a release' in cmd
+        assert 'safe release diagnosis remains available' in cmd
 
     def test_no_github_release_inline(self):
         """gh release create should NOT be inline in the command (delegated to skill)."""

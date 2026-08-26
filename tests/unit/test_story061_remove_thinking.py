@@ -102,9 +102,14 @@ class TestPhase0Preserved:
         """Each workflow with Phase 0 must still have content after the header."""
         from pactkit.prompts import workflows
         workflow_names = [
-            'TRACE_PROMPT', 'DRAW_PROMPT_TEMPLATE', 'SPRINT_PROMPT',
+            'TRACE_PROMPT', 'DRAW_PROMPT_TEMPLATE',
             'REVIEW_PROMPT', 'HOTFIX_PROMPT', 'DESIGN_PROMPT',
         ]
         for name in workflow_names:
             content = getattr(workflows, name)
             assert 'Phase 0' in content, f"Phase 0 missing in {name}"
+
+    def test_sprint_preserves_current_session_entry(self):
+        from pactkit.prompts.workflows import SPRINT_PROMPT
+        assert "Resolve work" in SPRINT_PROMPT
+        assert "current session" in SPRINT_PROMPT.lower()

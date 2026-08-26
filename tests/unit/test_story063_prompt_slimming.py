@@ -61,9 +61,10 @@ class TestAC1SharedProtocols:
     def test_shared_has_rules_file_mapping(self):
         """Shared module must have a corresponding file in RULES_FILES."""
         _, _, rules = _prompts()
-        assert "shared" in rules.RULES_FILES, (
-            "RULES_FILES must contain a 'shared' key"
+        assert "shared-execution" in rules.RULES_FILES, (
+            "RULES_FILES must contain the active 'shared-execution' key"
         )
+        assert rules.RULES_FILES["shared-execution"] == "execution/shared-execution.md"
 
 
 # ---------------------------------------------------------------------------
@@ -72,14 +73,13 @@ class TestAC1SharedProtocols:
 class TestAC2SprintProtocolOnly:
     def test_sprint_under_3000_chars(self):
         _, wf, _ = _prompts()
-        # STORY-slim-144: cap raised 3000 -> 4700 for Wave Mode section (parallel orchestration protocol)
-        assert len(wf.SPRINT_PROMPT) < 4700, (
-            f"SPRINT_PROMPT is {len(wf.SPRINT_PROMPT)} chars, must be < 4700"
+        assert len(wf.SPRINT_PROMPT) < 3000, (
+            f"SPRINT_PROMPT is {len(wf.SPRINT_PROMPT)} chars, must be < 3000"
         )
 
     @pytest.mark.parametrize("keyword", [
-        "TeamCreate", "TaskCreate", "SendMessage", "TeamDelete",
-        "$ARGUMENTS", "Orchestrator",
+        "$ARGUMENTS", "Orchestrator", "current session",
+        "exactly one active phase",
     ])
     def test_sprint_preserves_keywords(self, keyword):
         _, wf, _ = _prompts()
@@ -89,23 +89,20 @@ class TestAC2SprintProtocolOnly:
 
     def test_sprint_preserves_pdca_phases(self):
         _, wf, _ = _prompts()
-        for phase in ["Plan", "Act", "Check", "Close"]:
+        for phase in ["Plan", "Act", "Check", "Done"]:
             assert phase in wf.SPRINT_PROMPT, (
                 f"SPRINT_PROMPT must contain '{phase}'"
             )
 
-    def test_sprint_has_agent_types(self):
-        """STORY-slim-050: security-auditor removed per R1 (QA Check covers SEC-1~8)"""
+    def test_sprint_is_host_and_role_neutral(self):
         _, wf, _ = _prompts()
         for agent in ["system-architect", "qa-engineer", "repo-maintainer"]:
-            assert agent in wf.SPRINT_PROMPT, (
-                f"SPRINT_PROMPT must mention agent type '{agent}'"
-            )
+            assert agent not in wf.SPRINT_PROMPT
 
     def test_sprint_has_playbook_refs(self):
         _, wf, _ = _prompts()
-        assert "project-plan.md" in wf.SPRINT_PROMPT or "project-plan" in wf.SPRINT_PROMPT
-        assert "project-act.md" in wf.SPRINT_PROMPT or "project-act" in wf.SPRINT_PROMPT
+        for phase in ("plan", "act", "check", "done"):
+            assert f"phases/{phase}-contract.md" in wf.SPRINT_PROMPT
 
 
 # ---------------------------------------------------------------------------

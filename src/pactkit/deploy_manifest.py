@@ -11,10 +11,20 @@ import json
 from pathlib import Path
 
 from pactkit import __version__
-from pactkit.config import VALID_AGENTS, VALID_COMMANDS
+from pactkit.config import DEFAULT_RULE_IDS, VALID_AGENTS, VALID_COMMANDS
 from pactkit.profiles import get_profile, is_environment_format
-from pactkit.prompts.guides import GUIDES_DIR
-from pactkit.prompts.rules import RULES_FILES, RULES_ONDEMAND_DIR
+from pactkit.prompts.guides import GUIDE_DEFINITIONS, GUIDES_DIR, GUIDES_FILES
+from pactkit.prompts.rules import (
+    COMMAND_CONDITIONAL_RULES_MAP,
+    COMMAND_RULES_MAP,
+    GLOBAL_RULE_IDS,
+    PHASE_CONTRACTS,
+    RULE_CLAUSES,
+    RULE_DEFINITIONS,
+    RULES_ONDEMAND_DIR,
+    SPRINT_PHASE_SEQUENCE,
+    normalize_rule_id,
+)
 from pactkit.prompts.skills import SKILL_MANIFEST
 from pactkit.workflow_engine import CORE_PROTOCOL_VERSION
 
@@ -61,6 +71,7 @@ def sha256_file(path: Path) -> str:
 
 def pactkit_owned_files(
     deploy_root: Path, components: dict, format_name: str = "classic",
+    enabled_rules: list[str] | None = None,
 ) -> dict[str, str]:
     """Map relative path -> sha256 for every pactkit-owned deployed file (R1).
 
@@ -82,7 +93,12 @@ def pactkit_owned_files(
         skill_dir = root / "skills" / name
         if skill_dir.is_dir():
             for f in sorted(skill_dir.rglob("*")):
-                if f.is_file():
+                candidate = f.with_suffix(f.suffix + ".pactkit-new")
+                if (
+                    f.is_file()
+                    and not f.name.endswith(".pactkit-new")
+                    and not candidate.exists()
+                ):
                     owned[f.relative_to(root).as_posix()] = sha256_file(f)
 
     if format_name == "copilot":
@@ -99,18 +115,120 @@ def pactkit_owned_files(
 
     # Managed rules — filename placement is format-dependent (global rules/ vs
     # on-demand skills/_rules/), so probe both locations for each managed file.
-    for filename in sorted(RULES_FILES.values()):
-        for cand in (root / "rules" / filename, root / "skills" / RULES_ONDEMAND_DIR / filename):
-            if cand.is_file():
+    # A sibling ``.pactkit-new`` is an explicit unresolved conflict marker: the
+    # original is user-preserved and must not be reclaimed by a new manifest.
+    configured = RULE_DEFINITIONS if enabled_rules is None else enabled_rules
+    enabled_ids = {
+        normalized
+        for rule_id in configured
+        if (normalized := normalize_rule_id(rule_id)) is not None
+    }
+    for rule_id in sorted(enabled_ids):
+        filename = RULE_DEFINITIONS[rule_id].filename
+        candidates = (
+            root / "rules" / filename,
+            root / "skills" / RULES_ONDEMAND_DIR / filename,
+        )
+        for cand in candidates:
+            candidate = cand.with_suffix(cand.suffix + ".pactkit-new")
+            if cand.is_file() and not candidate.exists():
                 owned[cand.relative_to(root).as_posix()] = sha256_file(cand)
 
     # Engineering guides — on-demand reference under skills/_rules/guides/.
+    # Only record content that still matches PactKit's rendered source.  A
+    # same-named, drifted file may be a user adaptation preserved by deploy;
+    # listing it as owned would authorize a later overwrite.
     guides_dir = root / "skills" / RULES_ONDEMAND_DIR / GUIDES_DIR
     if guides_dir.is_dir():
-        for f in sorted(guides_dir.rglob("*.md")):
-            owned[f.relative_to(root).as_posix()] = sha256_file(f)
+        for filename, expected in GUIDES_FILES.items():
+            guide = guides_dir / filename
+            candidate = guide.with_suffix(guide.suffix + ".pactkit-new")
+            if (
+                guide.is_file()
+                and not candidate.exists()
+                and guide.read_text(encoding="utf-8") == expected
+            ):
+                owned[guide.relative_to(root).as_posix()] = sha256_file(guide)
 
     return owned
+
+
+def pactkit_rule_ownership(
+    deploy_root: Path, format_name: str = "classic",
+    enabled_rules: list[str] | None = None,
+    enabled_commands: list[str] | None = None,
+) -> list[dict]:
+    """Describe registry-owned rule artifacts without inspecting user files.
+
+    File hashes remain the integrity evidence.  This metadata makes ownership
+    explicit so update/uninstall logic never has to infer it from a filename.
+    """
+    root = Path(deploy_root)
+    records: list[dict[str, str]] = []
+    configured = RULE_DEFINITIONS if enabled_rules is None else enabled_rules
+    enabled_ids = {
+        normalized
+        for rule_id in configured
+        if (normalized := normalize_rule_id(rule_id)) is not None
+    }
+    command_ids = set(COMMAND_RULES_MAP if enabled_commands is None else enabled_commands)
+    for rule_id in sorted(enabled_ids):
+        definition = RULE_DEFINITIONS[rule_id]
+        # Copilot inlines rules into prompts, so it has no standalone registry
+        # artifacts to record. Codex stores only Runtime globally; conditional
+        # modules are copied into each applicable command skill's references/.
+        if format_name == "copilot":
+            continue
+        if format_name == "codex" and definition.load_policy != "global":
+            for command, candidates in COMMAND_CONDITIONAL_RULES_MAP.items():
+                if command not in command_ids or rule_id not in candidates:
+                    continue
+                relative = f"skills/{command}/references/rules/{rule_id}.md"
+                path = root / relative
+                candidate = path.with_suffix(path.suffix + ".pactkit-new")
+                if path.is_file() and not candidate.exists():
+                    records.append({
+                        "id": definition.id,
+                        "owner": definition.owner,
+                        "path": relative,
+                        "sha256": sha256_file(path),
+                        "level": definition.level,
+                        "scope": list(definition.scope),
+                        "load_policy": definition.load_policy,
+                        "failure": definition.failure,
+                        "trigger": definition.trigger,
+                        "skip_when": list(definition.skip_when),
+                        "evidence": list(definition.evidence),
+                        "override": definition.override,
+                        "clauses": list(definition.clauses),
+                        "legacy_ids": list(definition.legacy_ids),
+                    })
+            continue
+        base = (
+            "rules" if definition.load_policy == "global"
+            else f"skills/{RULES_ONDEMAND_DIR}"
+        )
+        relative = f"{base}/{definition.filename}"
+        path = root / relative
+        candidate = path.with_suffix(path.suffix + ".pactkit-new")
+        if path.is_file() and not candidate.exists():
+            records.append({
+                "id": definition.id,
+                "owner": definition.owner,
+                "path": relative,
+                "sha256": sha256_file(path),
+                "level": definition.level,
+                "scope": list(definition.scope),
+                "load_policy": definition.load_policy,
+                "failure": definition.failure,
+                "trigger": definition.trigger,
+                "skip_when": list(definition.skip_when),
+                "evidence": list(definition.evidence),
+                "override": definition.override,
+                "clauses": list(definition.clauses),
+                "legacy_ids": list(definition.legacy_ids),
+            })
+    return records
 
 
 def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | None = None) -> Path:
@@ -118,6 +236,11 @@ def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | No
     deploy_root = Path(deploy_root)
     deploy_root.mkdir(parents=True, exist_ok=True)
     components = expected_components(format_name, config)
+    enabled_rules = (
+        config.get("rules", sorted(DEFAULT_RULE_IDS))
+        if config is not None
+        else sorted(DEFAULT_RULE_IDS)
+    )
     # The manifest is also the durable declaration of a user's intentional
     # selective deployment.  Doctor can keep auditing default installs against
     # the current registry while avoiding false drift for a declared subset.
@@ -180,8 +303,78 @@ def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | No
         "host_capabilities": host_capabilities,
         "component_scope": component_scope,
         **components,
+        "rule_schema_version": 2,
+        "rule_loading": {
+            "primary_hosts": ["classic", "codex", "opencode"],
+            "compatibility_hosts": ["copilot"],
+            "layout": (
+                "skill_local_references" if format_name == "codex"
+                else "shared_on_demand_rules"
+            ),
+            "global": sorted(GLOBAL_RULE_IDS),
+            "command": {
+                command: list(rule_ids)
+                for command, rule_ids in COMMAND_RULES_MAP.items()
+            },
+            "conditional": {
+                command: list(rule_ids)
+                for command, rule_ids in COMMAND_CONDITIONAL_RULES_MAP.items()
+            },
+            "risk": {"source": "change_risk_profile", "max_guides": 3},
+        },
+        "rules": pactkit_rule_ownership(
+            deploy_root, format_name, enabled_rules, components["commands"],
+        ),
+        "rule_clauses": {
+            clause_id: {
+                "level": clause.level,
+                "trigger": clause.trigger,
+                "skip_when": list(clause.skip_when),
+                "evidence": list(clause.evidence),
+                "failure": clause.failure,
+                "override": clause.override,
+            }
+            for clause_id, clause in RULE_CLAUSES.items()
+        },
+        "phase_contracts": {
+            command: {
+                "phase": contract.phase,
+                "entry": contract.entry,
+                "inputs": list(contract.inputs),
+                "outputs": list(contract.outputs),
+                "invariants": list(contract.invariants),
+                "completion_evidence": list(contract.completion_evidence),
+                "failure_semantics": contract.failure_semantics,
+                "allowed_next": list(contract.allowed_next),
+                "external_effects": list(contract.external_effects),
+            }
+            for command, contract in PHASE_CONTRACTS.items()
+        },
+        "guides": {
+            filename: {
+                "trigger": guide.trigger,
+                "questions": list(guide.questions),
+                "safe_invariants": list(guide.safe_invariants),
+                "defaults": list(guide.defaults),
+                "alternatives": list(guide.alternatives),
+                "evidence": list(guide.evidence),
+                "non_applicable": list(guide.non_applicable),
+            }
+            for filename, guide in GUIDE_DEFINITIONS.items()
+        },
+        "sprint_capsules": {
+            "strategy": (
+                "skill_local_references" if format_name == "codex"
+                else "managed_phase_references"
+            ),
+            "sequence": list(SPRINT_PHASE_SEQUENCE),
+            "single_active_phase": True,
+        },
         # STORY-slim-141 R1: content hashes for doctor's content-level parity.
-        "files": pactkit_owned_files(deploy_root, components, format_name),
+        "files": pactkit_owned_files(
+            deploy_root, components, format_name,
+            enabled_rules,
+        ),
     }
     path = deploy_root / MANIFEST_NAME
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

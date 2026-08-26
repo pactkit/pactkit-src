@@ -49,6 +49,16 @@
 
 ## ✅ Done
 
+### [STORY-slim-202608268fc379dbe6ef] PactKit PDCA 规则语义深化与风险驱动执行模型
+> Spec: docs/specs/STORY-slim-202608268fc379dbe6ef.md
+
+- [x] 细化 RuleClause 与 PhaseContract schema
+- [x] 实现 Sprint 动态 phase capsule
+- [x] 建立 Change Risk Profile 与风险路由
+- [x] 原生重写 engineering guides 并补三类实践
+- [x] 实现 scope integrity 与 test adequacy evidence
+- [x] 完善兼容迁移、doctor 与四 Adapter parity
+
 ### [STORY-slim-145] Codex 部署命令语义完整性与 Adapter 兼容门禁
 > Spec: docs/specs/STORY-slim-145.md
 
@@ -125,3 +135,13 @@
 - [x] 覆盖 handler、部署和防循环测试
 - [x] 完成真实 Codex Plan/Done 提前终止 E2E
 - [x] pip 更新并验证真实本机 Codex 部署
+
+### [STORY-slim-20260825b1c83a046b4b] PactKit 场景化规则架构与非阻塞执行契约
+> Spec: docs/specs/STORY-slim-20260825b1c83a046b4b.md
+
+- [x] 建立规则注册表与最小 Runtime Kernel
+- [x] 拆分 Phase Contracts 与共享能力模块
+- [x] 统一非阻塞失败和完成语义
+- [x] 重写风险驱动 Engineering Guides
+- [x] 实现 ownership 安全迁移与回滚
+- [x] 验证四种 Adapter 语义一致性

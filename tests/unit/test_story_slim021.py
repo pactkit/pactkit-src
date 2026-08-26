@@ -9,7 +9,7 @@ Verifies:
 - R5: DESIGN_PROMPT still produces same section structure
 """
 
-from pactkit.config import VALID_RULES
+from pactkit.config import CURRENT_RULE_IDS, VALID_RULES
 from pactkit.prompts import COMMANDS_CONTENT
 from pactkit.prompts.rules import RULES_FILES, RULES_MODULES, RULES_ONDEMAND_FILES
 
@@ -23,26 +23,25 @@ class TestR6RuleExists:
     """R6: sectional-write rule exists in rule system."""
 
     def test_valid_rules_contains_sectional_write(self):
-        # Post-merge refactor: sectional is now 05-sectional-write
+        # Legacy configuration stays accepted during migration.
         assert "05-sectional-write" in VALID_RULES
+        assert "sectional-heuristics" in CURRENT_RULE_IDS
 
-    def test_valid_rules_count_is_8(self):
-        # Post STORY-slim-128: 8 rules (1 merged global + 7 on-demand)
-        assert len(VALID_RULES) == 8
+    def test_current_rules_are_a_subset_of_accepted_rule_ids(self):
+        assert CURRENT_RULE_IDS <= VALID_RULES
 
     def test_rules_modules_contains_sectional(self):
         assert "sectional" in RULES_MODULES
 
     def test_core_files_contains_sectional(self):
         # sectional is on-demand (loaded only when generating files)
-        assert "sectional" in RULES_ONDEMAND_FILES
+        assert "sectional-heuristics" in RULES_ONDEMAND_FILES
 
     def test_rules_files_contains_sectional(self):
-        assert "sectional" in RULES_FILES
+        assert "sectional-heuristics" in RULES_FILES
 
     def test_core_file_maps_to_correct_filename(self):
-        # Post-merge refactor: sectional is now 05-sectional-write.md
-        assert RULES_ONDEMAND_FILES["sectional"] == "05-sectional-write.md"
+        assert RULES_ONDEMAND_FILES["sectional-heuristics"] == "execution/sectional-heuristics.md"
 
 
 # ---------------------------------------------------------------------------

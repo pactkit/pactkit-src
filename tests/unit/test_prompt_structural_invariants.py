@@ -32,7 +32,7 @@ COMMAND_INVARIANTS = {
     "project-check.md": ["Command: Check", "Security", "Quality"],
     "project-done.md": ["Command: Done", "Git Commit", "Regression"],
     "project-init.md": ["Command: Init", "Phase 0"],
-    "project-sprint.md": ["Command: Sprint", "Orchestrator"],
+    "project-sprint.md": ["Command: Sprint", "Orchestrator", "current session"],
     "project-hotfix.md": ["Command: Hotfix", "fast-fix"],
     "project-design.md": ["Command: Design", "PRD"],
 }
@@ -114,8 +114,11 @@ class TestPromptModuleCounts:
     """Verify expected counts of prompt modules."""
 
     def test_rule_count(self):
-        """14 rule module keys: 13 individual modules + 1 merged 'pactkit' key (post STORY-slim-128)."""
-        assert len(prompts.RULES_MODULES) == 14
+        """Active registry modules coexist with retained legacy source keys."""
+        from pactkit.prompts.rules import RULE_DEFINITIONS
+
+        assert set(RULE_DEFINITIONS) <= set(prompts.RULES_MODULES)
+        assert len(prompts.RULES_MODULES) >= len(RULE_DEFINITIONS)
 
     def test_command_count(self):
         """STORY-slim-133: Should have 12 command playbooks (added project-debug)."""

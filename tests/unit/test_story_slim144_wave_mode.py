@@ -3,8 +3,8 @@
 AC1: --json emits {waves, conflicts} with sorted deterministic ordering
 AC2: cycle under --json -> non-zero exit, stderr names cycle
 AC3: mode detection in SPRINT_PROMPT (args -> single-story; empty -> wave mode)
-AC4: scheduling policy encoded (declared Touches, max_parallel cap, serialized tail)
-AC5: wave gate + failure policy + pre-dispatch wave plan
+AC4: scheduling policy encoded (dependency order and serialized default)
+AC5: parallel execution requires an explicit user choice
 """
 
 from __future__ import annotations
@@ -125,17 +125,16 @@ class TestSprintWavePrompt:
 
     def test_scheduling_policy(self):
         p = workflows.SPRINT_PROMPT
-        assert "spec-graph --json" in p
-        assert "max_parallel" in p
-        # safe-by-default: undeclared Touches serialize
+        assert "spec-graph" in p and "--json" in p
+        assert "dependency order" in p
         assert "serialize" in p.lower() or "serialized" in p.lower()
 
     def test_wave_gate_and_failure_policy(self):
         p = workflows.SPRINT_PROMPT
         lower = p.lower()
-        assert "wave gate" in lower or ("wave" in lower and "merged" in lower)
-        assert "never auto-retry" in lower or "no auto-retry" in lower or "NEVER auto-retry" in p
-        assert "git merge --abort" in p
+        assert "explicitly requests parallel" in lower
+        assert "unknown or conflicting touch surfaces" in lower
+        assert "git merge" not in lower
 
     def test_wave_plan_before_dispatch(self):
         assert "wave plan" in workflows.SPRINT_PROMPT.lower()
@@ -144,4 +143,4 @@ class TestSprintWavePrompt:
         """Existing single-story markers must survive the edit."""
         p = workflows.SPRINT_PROMPT
         assert "pactkit generate-id" in p
-        assert "TeamCreate" in p
+        assert "docs/specs/{STORY_ID}.md" in p

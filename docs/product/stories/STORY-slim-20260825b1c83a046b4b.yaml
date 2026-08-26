@@ -1,0 +1,26 @@
+schema_version: 1
+id: STORY-slim-20260825b1c83a046b4b
+title: PactKit 场景化规则架构与非阻塞执行契约
+spec_path: docs/specs/STORY-slim-20260825b1c83a046b4b.md
+status: done
+tasks:
+- id: task-d629e5e070
+  title: 建立规则注册表与最小 Runtime Kernel
+  completed: true
+- id: task-544e973c35
+  title: 拆分 Phase Contracts 与共享能力模块
+  completed: true
+- id: task-884a5f6dce
+  title: 统一非阻塞失败和完成语义
+  completed: true
+- id: task-6b5fcaa752
+  title: 重写风险驱动 Engineering Guides
+  completed: true
+- id: task-9dde43613d
+  title: 实现 ownership 安全迁移与回滚
+  completed: true
+- id: task-1b17fc54c1
+  title: 验证四种 Adapter 语义一致性
+  completed: true
+created_at: '2026-08-25T10:29:35+00:00'
+updated_at: '2026-08-25T11:37:39+00:00'

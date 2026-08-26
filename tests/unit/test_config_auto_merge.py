@@ -94,12 +94,25 @@ class TestUpgradeAutoMerge:
     def test_missing_rule_auto_added(self, tmp_path):
         cfg = _config()
         yaml_path = tmp_path / 'pactkit.yaml'
-        # Post-merge refactor: use new rule IDs
-        rules = sorted(cfg.VALID_RULES - {'02-mcp-integration'})
+        rules = sorted(cfg.DEFAULT_RULE_IDS - {'external-tools'})
         _write_yaml(yaml_path, {'rules': rules})
 
         added = cfg.auto_merge_config_file(yaml_path)
-        assert any('02-mcp-integration' in item for item in added)
+        assert any('external-tools' in item for item in added)
+
+    def test_rule_auto_merge_does_not_write_compatibility_aliases_or_overlay(self, tmp_path):
+        """Legacy IDs remain readable, but config upgrades only add current defaults."""
+        cfg = _config()
+        yaml_path = tmp_path / 'pactkit.yaml'
+        _write_yaml(yaml_path, {'rules': ['pactkit']})
+
+        cfg.auto_merge_config_file(yaml_path)
+
+        rules = yaml.safe_load(yaml_path.read_text())['rules']
+        assert 'pactkit' in rules
+        assert set(rules) - {'pactkit'} == cfg.DEFAULT_RULE_IDS
+        assert 'pactkit-maintainer' not in rules
+        assert not (set(rules) & cfg.LEGACY_RULE_IDS - {'pactkit'})
 
     def test_load_config_after_merge_has_new_items(self, tmp_path):
         """After auto_merge, load_config returns the merged list."""

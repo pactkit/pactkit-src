@@ -48,7 +48,8 @@ class TestAC2PactKitManagedVersionUpdate:
         _deploy_claude_md(tmp_path, [])
 
         result = claude_md.read_text()
-        assert f"# PactKit Global Constitution (v{__version__} Modular)" in result
+        assert f"# PactKit Runtime Contract (v{__version__})" in result
+        assert "@~/.claude/rules/pactkit-runtime.md" in result
 
 
 class TestAC3FreshInstall:
@@ -65,7 +66,8 @@ class TestAC3FreshInstall:
         _deploy_claude_md(tmp_path, [])
 
         result = claude_md.read_text()
-        assert f"# PactKit Global Constitution (v{__version__} Modular)" in result
+        assert f"# PactKit Runtime Contract (v{__version__})" in result
+        assert "@~/.claude/rules/pactkit-runtime.md" in result
 
 
 class TestAC5IdempotentRedeploy:
@@ -77,7 +79,10 @@ class TestAC5IdempotentRedeploy:
         from pactkit.generators.deployer import _deploy_claude_md
 
         claude_md = tmp_path / "CLAUDE.md"
-        template = f"# PactKit Global Constitution (v{__version__} Modular)\n"
+        template = (
+            f"# PactKit Runtime Contract (v{__version__})\n\n"
+            "@~/.claude/rules/pactkit-runtime.md\n"
+        )
         claude_md.write_text(template)
 
         _deploy_claude_md(tmp_path, [])

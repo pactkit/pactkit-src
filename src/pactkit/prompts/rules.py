@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from pactkit import __version__
 
 RULES_MODULES = {
@@ -79,13 +81,13 @@ When skipping a SHOULD requirement, leave a traceable comment:
 
 ## RFC Protocol (Spec Amendment Escalation)
 - If the Senior Developer determines a Spec requirement is technically infeasible, contradictory, or would violate security/architectural constraints, they MUST invoke the RFC Protocol rather than producing non-compliant code
-- RFC Protocol: STOP implementation, report the infeasibility to the user, suggest alternatives, and wait for guidance
+- RFC Protocol: do not implement behavior that depends on the contradiction; report it, suggest alternatives, and continue safe investigation while waiting for guidance
 - This exception does NOT weaken the general principle (Spec > Code) — it adds a safety valve for genuinely impossible requirements
 
 ## Pre-existing Test Protocol
-- If a pre-existing test fails during regression, NEVER modify the failing test or the code it tests — doing so silently corrupts the regression baseline and the failure will only surface in CI
-- STOP and report: which test failed, what it tests, which change caused it
-- MUST NOT assume you understand the design intent behind pre-existing tests — misinterpreting intent leads to tests that pass but verify the wrong behavior
+- If a pre-existing test fails during regression, classify and report it before changing the test or its code
+- Do not guess at historical intent. Read the governing Spec/Test Case and modify it only when the user's requested scope authorizes the repair; otherwise preserve it and report the evidence
+- A pre-existing failure prevents an all-green completion claim, but does not block unrelated safe investigation or repair
 
 ## Operating Guidelines
 - Before modifying code, you must first read the relevant Spec (`docs/specs/`)
@@ -778,7 +780,8 @@ MUST load only 1-3 relevant guides. NEVER load all 19.
 """,
 }
 
-# Merged global rules key — concatenation of all 6 core modules (core + hierarchy + atlas +
+# Merged global rules key — retained below as a migration source for 2.23 installs.
+# The active registry is declared after the legacy constants.
 # routing + principles + nudge). Deployed as a single pactkit.md to ~/.claude/rules/.
 # Individual module keys are kept for COMMAND_RULES_MAP and inline embedding.
 RULES_MODULES["pactkit"] = "\n\n---\n\n".join([
@@ -887,4 +890,567 @@ The file is generated locally and is not imported or committed.
 """
 
 # Backward-compatible: combine all modules for anything that still reads this
+CONSTITUTION_EXPERT = CLAUDE_MD_TEMPLATE
+
+
+# ---------------------------------------------------------------------------
+# STORY-slim-20260825b1c83a046b4b: scenario-driven rule registry
+# ---------------------------------------------------------------------------
+#
+# Keep the pre-2.24 values above addressable as migration evidence.  Existing
+# project configuration used their file-stem identifiers, so deleting them
+# outright would turn an upgrade into a surprising configuration failure.  The
+# active public constants below are projections of RULE_DEFINITIONS; callers
+# must not infer ownership or load policy from a filename.
+
+LEGACY_RULE_CONTENTS = {
+    filename: RULES_MODULES[key]
+    for key, filename in RULES_FILES.items()
+}
+
+
+@dataclass(frozen=True)
+class RuleDefinition:
+    """One logical PactKit rule, independent from a host filesystem path."""
+
+    id: str
+    filename: str
+    content: str
+    owner: str
+    level: str
+    scope: tuple[str, ...]
+    load_policy: str
+    failure: str
+    trigger: str
+    skip_when: tuple[str, ...]
+    evidence: tuple[str, ...]
+    override: str
+    clauses: tuple[str, ...] = ()
+    legacy_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class RuleClause:
+    """One independently enforceable statement in a rendered rule."""
+
+    id: str
+    level: str
+    trigger: str
+    skip_when: tuple[str, ...]
+    evidence: tuple[str, ...]
+    failure: str
+    override: str
+
+
+@dataclass(frozen=True)
+class PhaseContract:
+    """Outcome contract for one command, independent of its playbook."""
+
+    phase: str
+    entry: str
+    inputs: tuple[str, ...]
+    outputs: tuple[str, ...]
+    invariants: tuple[str, ...]
+    completion_evidence: tuple[str, ...]
+    failure_semantics: str
+    allowed_next: tuple[str, ...]
+    external_effects: tuple[str, ...] = ()
+
+    @property
+    def next_commands(self) -> tuple[str, ...]:
+        """Compatibility alias for the pre-2.24 PhasePolicy API."""
+        return self.allowed_next
+
+    def render(self) -> str:
+        """Render a compact, tool-neutral contract for an active command."""
+        title = self.phase.replace("_", " ").title()
+        sections = (
+            ("Entry", (self.entry,)),
+            ("Inputs", self.inputs),
+            ("Outputs", self.outputs),
+            ("Invariants", self.invariants),
+            ("Completion Evidence", self.completion_evidence),
+            ("Failure Semantics", (self.failure_semantics,)),
+            ("Allowed Next", self.allowed_next or ("none",)),
+            ("External Effects", self.external_effects or ("none",)),
+        )
+        lines = [f"# {title} Contract"]
+        for heading, values in sections:
+            lines.extend(("", f"## {heading}", *(f"- {value}" for value in values)))
+        return "\n".join(lines) + "\n"
+
+
+RUNTIME_KERNEL = """# PactKit Runtime Contract
+
+## Activation
+PactKit phase rules are active only when the user invokes a PactKit skill or
+the task explicitly requests that workflow. Do not redirect ordinary questions
+or coding into PDCA automatically.
+
+## Current Session
+Work in the current host and current session. Do not require a new session, a
+runner, delegated work item, or resumable agent thread unless the user asks for
+that execution model. Historical workflow records and phase states are evidence,
+never exclusive locks.
+
+## Authority and Safety
+Follow the user's latest explicit instruction within platform safety and
+permission boundaries. Obtain applicable authorization before push, pull
+request, release, publication, destructive deletion, or external messages.
+Never expose passwords, API keys, tokens, or other credentials, and never
+persist secrets in source control or generated evidence.
+
+## Rule Semantics
+Hard rules may block only credential exposure, permissions, or material risk of
+irreversible damage. Required rules define evidence needed to claim a phase is
+complete; missing evidence keeps completion incomplete but never prevents safe
+investigation, implementation, testing, or repair. Defaults may be changed
+with project evidence. Advisories never create gates.
+
+## Failure Handling
+Classify failures as current regression, pre-existing failure, obsolete
+contract/test, or environment/dependency failure. Continue safe in-scope work
+when possible and report unresolved evidence without creating a workflow lock.
+
+## Language and Loading
+Match the user's language. Load only rules declared by the active skill and
+only the engineering guides selected by the Spec or current risk.
+"""
+
+
+LEGACY_PHASE_RULE_CONTENTS = {
+    "phase-plan": """# Plan Contract
+
+Create or amend a Spec from current project evidence. Clarification improves
+precision but a user may decline it. Record assumptions and decisions in the
+Spec; do not make historical workflow state a planning gate.
+""",
+    "phase-act": """# Act Contract
+
+Read the active Spec and preflight declared inputs before the first source
+write. Use tests to establish intended behavior before implementation when the
+change is testable. Missing required evidence makes the phase incomplete, not
+locked: continue safe investigation and repair in this session.
+""",
+    "phase-check": """# Check Contract
+
+Review the implementation without changing it. Report security, quality, test
+quality, and Spec-alignment findings with evidence. A failed check identifies
+work to repair; it does not prevent a later Act run.
+""",
+    "phase-done": """# Done Contract
+
+Only claim completion when required evidence exists. Reuse a recent verified
+regression result when no source changed. Commit, archive, and other external
+side effects require current authorization.
+""",
+    "phase-pr": """# PR Contract
+
+Prepare a reviewable summary and test evidence. Push and pull-request creation
+are external side effects and require current authorization.
+""",
+    "phase-release": """# Release Contract
+
+Verify version, changelog, artifacts, and release evidence. Tags, publication,
+and GitHub releases require explicit current authorization.
+""",
+    "phase-hotfix": """# Hotfix Contract
+
+Use the smallest safe repair path. Validate the regression and affected tests;
+escalate to a Spec when scope or product behavior expands beyond a hotfix.
+""",
+}
+
+SHARED_RULES = {
+    "pdca-lifecycle": """# PDCA Lifecycle
+
+## Entry
+Activate a phase only when the user invokes its skill or explicitly asks for
+that workflow. Resolve the current objective, project root, and relevant Story
+from the current request and repository evidence; old run state is advisory.
+
+## Execution
+Work in the current conversation. Reuse valid evidence already produced in this
+session. Do not repeat a completed step unless inputs changed or verification
+shows a reason. Ask only when a missing decision would materially change the
+result or authorize an external or destructive action.
+
+## Transition
+Finishing one phase does not automatically authorize the next phase. Continue
+into another phase only when the user's request includes it, such as Sprint, or
+when the user explicitly invokes the next skill. A new session is optional.
+
+## Completion
+Report complete only when that phase's required outputs and evidence exist.
+Missing evidence means incomplete-with-next-action, not a lock on reading,
+diagnosis, implementation, testing, or repair.
+
+## Interruption and Change
+If the user interrupts, replaces the request, or changes a requirement, stop
+the superseded work and follow the latest instruction. Update stale artifacts
+when authorized; never force execution against a known-obsolete Spec or state.
+
+## Exit
+End with the achieved outcome, remaining evidence gaps, and the smallest useful
+next action. Do not manufacture a handoff, background run, or separate session.
+""",
+    "shared-execution": """# Shared Execution
+
+Use the current session. Failure classification is: current regression,
+pre-existing failure, obsolete contract/test, or environment failure. Only a
+hard risk blocks its exact action; otherwise record evidence and continue.
+""",
+    "spec-preflight": """# Spec Preflight
+
+For an Act bound to a Spec, read declared references and constraints before the
+first source write. A receipt is bound to project root and Spec hash. A missing
+receipt prevents a completion claim, not safe read/test/repair work. Hotfixes
+and explicit user overrides may proceed with a recorded rationale.
+""",
+    "external-tools": """# External Tools
+
+MCP and external tools are conditional. Use them when available and useful;
+their absence is a warning, not a workflow blocker.
+""",
+    "git-workflow": """# Git Workflow
+
+Use the repository's established commit and branch conventions. Do not push,
+create a pull request, tag, publish, or release without current authorization.
+""",
+    "capability-design": """# Capability Design
+
+Before reimplementing an available framework or project capability, compare
+the needed behavior with its public interface and document the chosen gap.
+""",
+    "engineering-index": RULES_MODULES["engineering"],
+    "sectional-heuristics": """# Sectional Editing Heuristics
+
+For large files, prefer small verified edits and preserve surrounding context.
+This is a host editing technique, not an engineering law or completion gate.
+""",
+    "pactkit-maintainer": """# PactKit Maintainer Overlay
+
+Apply this overlay only while changing the PactKit repository: preserve adapter
+parity, prompt integrity, deployment ownership, and bounded prompt budgets.
+Do not load this overlay in business projects.
+""",
+    "sprint-orchestrator": """# Sprint Orchestrator
+
+Keep exactly one phase active at a time in the current session. Before each
+stage, load that phase's managed capsule using the host-native instruction in
+the Sprint command. A completed or failed capsule becomes historical evidence
+and cannot constrain later safe work. Check failures return to Act for repair;
+external effects remain subject to current authorization.
+""",
+}
+
+
+RULE_CLAUSES = {
+    "runtime.activation": RuleClause(
+        id="runtime.activation", level="required",
+        trigger="when deciding whether PactKit phase rules apply",
+        skip_when=("no PactKit workflow is invoked or requested",),
+        evidence=("the user explicitly invoked or requested the workflow",),
+        failure="incomplete_continue",
+        override="the user's latest explicit workflow choice controls activation",
+    ),
+    "runtime.current-session": RuleClause(
+        id="runtime.current-session", level="default",
+        trigger="while executing an active workflow",
+        skip_when=("the user requests another supported execution model",),
+        evidence=("work continues in the current host session unless the user chooses otherwise",),
+        failure="record_deviation",
+        override="the user may explicitly request another supported execution model",
+    ),
+    "runtime.language": RuleClause(
+        id="runtime.language", level="advisory",
+        trigger="when producing user-facing output",
+        skip_when=("the user requests another language",),
+        evidence=("output matches the user's language",),
+        failure="warn_continue", override="the user may request another language",
+    ),
+    "runtime.evidence-reuse": RuleClause(
+        id="runtime.evidence-reuse", level="default",
+        trigger="before repeating a completed verification",
+        skip_when=("inputs changed", "freshness is uncertain", "the user requests a rerun"),
+        evidence=("the evidence input fingerprint still matches current inputs",),
+        failure="record_deviation",
+        override="rerun when freshness is uncertain or the user requests it",
+    ),
+    "safety.credentials": RuleClause(
+        id="safety.credentials", level="hard",
+        trigger="before exposing or persisting a secret",
+        skip_when=("the content is verified non-secret test data",),
+        evidence=("no credential or secret is disclosed or committed",),
+        failure="block_exact_action", override="not overridable beyond platform policy",
+    ),
+    "safety.authorization": RuleClause(
+        id="safety.authorization", level="hard",
+        trigger="before an external side effect such as push, PR, publish, release, or message",
+        skip_when=("the action is read-only or confined to the authorized local workspace",),
+        evidence=("current user authorization covers the exact action and target",),
+        failure="block_exact_action", override="explicit current authorization is required",
+    ),
+    "safety.irreversible-damage": RuleClause(
+        id="safety.irreversible-damage", level="hard",
+        trigger="before a destructive or materially irreversible operation",
+        skip_when=("the operation is read-only or safely reversible",),
+        evidence=("the exact target is resolved and recovery or authorization is established",),
+        failure="block_exact_action",
+        override="explicit authorization cannot override platform safety",
+    ),
+}
+
+
+def _phase_contract(
+    phase: str, entry: str, inputs: tuple[str, ...], outputs: tuple[str, ...],
+    invariants: tuple[str, ...], evidence: tuple[str, ...],
+    allowed_next: tuple[str, ...], external_effects: tuple[str, ...] = (),
+) -> PhaseContract:
+    return PhaseContract(
+        phase=phase, entry=entry, inputs=inputs, outputs=outputs,
+        invariants=invariants, completion_evidence=evidence,
+        failure_semantics="incomplete_continue", allowed_next=allowed_next,
+        external_effects=external_effects,
+    )
+
+
+PHASE_CONTRACTS = {
+    "project-init": _phase_contract(
+        "bootstrap", "explicit initialization request",
+        ("project root", "selected host profile"),
+        ("project governance scaffold",),
+        ("preserve existing project and user files",),
+        ("required project markers exist",),
+        ("project-plan", "project-design"),
+    ),
+    "project-plan": _phase_contract(
+        "plan", "explicit planning request for one bounded change",
+        ("current user intent", "repository evidence"),
+        ("Spec", "Story record", "change risk profile"),
+        ("requirements are testable and scope is explicit",),
+        ("Spec lint passes", "requirements map to acceptance criteria"),
+        ("project-act",),
+    ),
+    "project-clarify": _phase_contract(
+        "clarify", "explicit clarification request or material ambiguity",
+        ("current request", "known constraints"), ("clarified brief",),
+        ("unanswered questions remain visible and never become invented facts",),
+        ("decisions and assumptions are distinguishable",), ("project-plan",),
+    ),
+    "project-act": _phase_contract(
+        "act", "explicit implementation request with a usable objective",
+        ("current request", "Spec when Spec-bound", "declared inputs"),
+        ("implementation", "behavioral tests"),
+        ("scope integrity", "edit the source of truth", "safe work remains available"),
+        ("Spec alignment", "fresh adequate behavioral tests", "regression classification"),
+        ("project-check", "project-done"),
+    ),
+    "project-check": _phase_contract(
+        "check", "explicit verification or review request",
+        ("implementation diff", "Spec and test evidence"),
+        ("evidence-backed verdict",),
+        ("review is read-only unless the user also requests repair",),
+        ("security, quality, test adequacy, freshness, and Spec alignment assessed",),
+        ("project-act", "project-done"),
+    ),
+    "project-done": _phase_contract(
+        "done", "explicit finalization request for verified work",
+        ("fresh verification evidence", "project governance state"),
+        ("consistent project records", "optional commit"),
+        ("reuse fresh evidence and disclose every remaining gap",),
+        ("required verification is adequate and current", "status projections agree"), (),
+        ("commit", "archive"),
+    ),
+    "project-release": _phase_contract(
+        "release", "explicit release request",
+        ("verified version", "changelog", "artifacts"),
+        ("release-ready artifacts",),
+        ("publishing requires exact current authorization",),
+        ("version and artifact provenance agree",), (),
+        ("tag", "publish", "release"),
+    ),
+    "project-pr": _phase_contract(
+        "pr", "explicit pull-request request",
+        ("reviewable branch", "fresh test evidence"), ("reviewable PR",),
+        ("push and PR creation require exact current authorization",),
+        ("summary, risk, and test evidence are complete",), (),
+        ("push", "pull request"),
+    ),
+    "project-hotfix": _phase_contract(
+        "hotfix", "explicit bounded repair request",
+        ("reproduced symptom", "affected scope"),
+        ("minimal repair", "focused regression test"),
+        ("escalate when product behavior or architecture expands",),
+        ("reported failure is fixed", "affected tests pass"),
+        ("project-check", "project-done"),
+    ),
+    "project-design": _phase_contract(
+        "design", "explicit greenfield or multi-story product design request",
+        ("product objective", "users and constraints"),
+        ("PRD", "decomposed Specs", "Story records"),
+        ("outcomes and non-goals remain explicit",),
+        ("scope, risks, and dependencies are traceable",),
+        ("project-plan", "project-act"),
+    ),
+    "project-sprint": _phase_contract(
+        "sprint", "explicit request to execute an ordered PDCA sequence",
+        ("selected Story or confirmed wave",), ("ordered phase outcomes",),
+        ("exactly one phase capsule is active at a time",),
+        ("each entered phase meets its own completion evidence",), (),
+    ),
+    "project-debug": _phase_contract(
+        "debug", "explicit diagnosis request",
+        ("observable symptom", "bounded target"),
+        ("reproduced symptom", "ranked root-cause conclusion"),
+        ("test hypotheses against evidence before proposing a cause",),
+        ("cause and uncertainty are stated",),
+        ("project-hotfix", "project-plan"),
+    ),
+}
+
+
+PHASE_RULE_CONTENTS = {
+    "phase-plan": PHASE_CONTRACTS["project-plan"].render(),
+    "phase-act": PHASE_CONTRACTS["project-act"].render(),
+    "phase-check": PHASE_CONTRACTS["project-check"].render(),
+    "phase-done": PHASE_CONTRACTS["project-done"].render(),
+    "phase-pr": PHASE_CONTRACTS["project-pr"].render(),
+    "phase-release": PHASE_CONTRACTS["project-release"].render(),
+    "phase-hotfix": PHASE_CONTRACTS["project-hotfix"].render(),
+}
+
+
+def _definition(
+    rule_id: str, filename: str, content: str, *, scope: tuple[str, ...],
+    load_policy: str = "command", level: str = "required",
+    failure: str = "incomplete_continue", legacy_ids: tuple[str, ...] = (),
+    trigger: str | None = None, skip_when: tuple[str, ...] = (),
+    evidence: tuple[str, ...] | None = None, override: str | None = None,
+    clauses: tuple[str, ...] = (),
+) -> RuleDefinition:
+    resolved_trigger = trigger or (
+        "every host interaction" if load_policy == "global"
+        else "when referenced by the active PactKit skill"
+    )
+    resolved_evidence = evidence or (
+        "rule is present in the host's active instruction artifact",
+    )
+    resolved_override = override or (
+        "not overridable without changing the exact hard-risk condition"
+        if level == "hard"
+        else "user may override with an explicit reason within safety boundaries"
+    )
+    return RuleDefinition(
+        id=rule_id, filename=filename, content=content, owner="pactkit",
+        level=level, scope=scope, load_policy=load_policy, failure=failure,
+        trigger=resolved_trigger, skip_when=skip_when, evidence=resolved_evidence,
+        override=resolved_override, clauses=clauses, legacy_ids=legacy_ids,
+    )
+
+
+RULE_DEFINITIONS = {
+    "runtime": _definition(
+        "runtime", "pactkit-runtime.md", RUNTIME_KERNEL,
+        scope=("global",), load_policy="global", level="required",
+        failure="incomplete_continue", legacy_ids=("pactkit", "01-core-protocol"),
+        trigger="when PactKit is installed in the current host",
+        evidence=("ordinary work remains outside PDCA unless explicitly activated",),
+        override="the user's latest explicit workflow choice controls activation",
+        clauses=tuple(RULE_CLAUSES),
+    ),
+    "phase-plan": _definition("phase-plan", "phases/plan-contract.md", PHASE_RULE_CONTENTS["phase-plan"], scope=("project-plan", "project-design", "project-clarify"), load_policy="phase", legacy_ids=("plan",)),
+    "phase-act": _definition("phase-act", "phases/act-contract.md", PHASE_RULE_CONTENTS["phase-act"], scope=("project-act",), load_policy="phase", legacy_ids=("act",)),
+    "phase-check": _definition("phase-check", "phases/check-contract.md", PHASE_RULE_CONTENTS["phase-check"], scope=("project-check",), load_policy="phase", legacy_ids=("check",)),
+    "phase-done": _definition("phase-done", "phases/done-contract.md", PHASE_RULE_CONTENTS["phase-done"], scope=("project-done",), load_policy="phase", legacy_ids=("done",)),
+    "phase-pr": _definition("phase-pr", "phases/pr-contract.md", PHASE_RULE_CONTENTS["phase-pr"], scope=("project-pr",), load_policy="phase", legacy_ids=("pr",)),
+    "phase-release": _definition("phase-release", "phases/release-contract.md", PHASE_RULE_CONTENTS["phase-release"], scope=("project-release",), load_policy="phase", legacy_ids=("release",)),
+    "phase-hotfix": _definition("phase-hotfix", "phases/hotfix-contract.md", PHASE_RULE_CONTENTS["phase-hotfix"], scope=("project-hotfix",), load_policy="phase", legacy_ids=("hotfix",)),
+    "pdca-lifecycle": _definition("pdca-lifecycle", "execution/pdca-lifecycle.md", SHARED_RULES["pdca-lifecycle"], scope=("pdca",), legacy_ids=("04-routing-table",)),
+    "shared-execution": _definition("shared-execution", "execution/shared-execution.md", SHARED_RULES["shared-execution"], scope=("execution",), legacy_ids=("02-hierarchy-of-truth", "03-shared-protocols", "07-shared-protocols", "shared")),
+    "spec-preflight": _definition(
+        "spec-preflight", "execution/spec-preflight.md",
+        SHARED_RULES["spec-preflight"], scope=("project-act",),
+        trigger="before the first source write in a Spec-bound Act",
+        skip_when=("no Spec reference", "project-hotfix is active"),
+        evidence=("preflight receipt matches project root and Spec hash",),
+    ),
+    "external-tools": _definition("external-tools", "execution/external-tools.md", SHARED_RULES["external-tools"], scope=("external",), load_policy="conditional", level="default", failure="record_deviation", legacy_ids=("02-mcp-integration", "06-mcp-integration", "mcp")),
+    "git-workflow": _definition("git-workflow", "execution/git-workflow.md", SHARED_RULES["git-workflow"], scope=("git",), legacy_ids=("01-workflow-conventions", "05-workflow-conventions", "workflow")),
+    "capability-design": _definition("capability-design", "design/capability-design.md", SHARED_RULES["capability-design"], scope=("design",), load_policy="conditional", level="default", failure="record_deviation", legacy_ids=("04-architecture-principles", "06-solution-design", "08-architecture-principles", "solution")),
+    "engineering-index": _definition("engineering-index", "engineering/index.md", SHARED_RULES["engineering-index"], scope=("engineering",), load_policy="conditional", level="default", failure="record_deviation", legacy_ids=("03-file-atlas", "07-engineering-concerns", "engineering")),
+    "sectional-heuristics": _definition("sectional-heuristics", "execution/sectional-heuristics.md", SHARED_RULES["sectional-heuristics"], scope=("editing",), load_policy="conditional", level="advisory", failure="warn_continue", legacy_ids=("05-sectional-write", "09-sectional-write", "sectional")),
+    "pactkit-maintainer": _definition("pactkit-maintainer", "maintainer/pactkit-maintainer.md", SHARED_RULES["pactkit-maintainer"], scope=("pactkit-self",), load_policy="conditional", level="default", failure="record_deviation"),
+    "sprint-orchestrator": _definition("sprint-orchestrator", "execution/sprint-orchestrator.md", SHARED_RULES["sprint-orchestrator"], scope=("project-sprint",)),
+}
+
+
+RULE_ID_ALIASES = {
+    alias: definition.id
+    for definition in RULE_DEFINITIONS.values()
+    for alias in (definition.id, *definition.legacy_ids)
+}
+
+
+def normalize_rule_id(rule_id: str) -> str | None:
+    """Return the current logical ID for a current or 2.23 legacy ID."""
+    return RULE_ID_ALIASES.get(rule_id.removesuffix(".md"))
+
+
+# Public compatibility projections.  RULES_MODULES keeps legacy source keys
+# for older imports, and adds all active logical IDs.
+RULES_MODULES.update({key: item.content for key, item in RULE_DEFINITIONS.items()})
+GLOBAL_RULE_IDS = frozenset({"runtime"})
+RULES_CORE_FILES = {
+    rule_id: RULE_DEFINITIONS[rule_id].filename for rule_id in GLOBAL_RULE_IDS
+}
+RULES_ONDEMAND_FILES = {
+    key: item.filename
+    for key, item in RULE_DEFINITIONS.items()
+    if item.load_policy != "global"
+}
+RULES_FILES = {**RULES_CORE_FILES, **RULES_ONDEMAND_FILES}
+RULES_GLOBAL_PREFIXES = ["pactkit-runtime"]
+RULES_ONDEMAND_PREFIXES = []
+RULES_ONDEMAND_DIR = "_rules"
+RULES_INSTRUCTIONS_CORE = ["rules/pactkit-runtime.md"]
+
+COMMAND_RULES_MAP = {
+    "project-init": ["runtime", "pdca-lifecycle", "phase-plan", "shared-execution"],
+    "project-plan": ["runtime", "pdca-lifecycle", "phase-plan", "shared-execution"],
+    "project-clarify": ["runtime", "pdca-lifecycle", "phase-plan"],
+    "project-act": ["runtime", "pdca-lifecycle", "phase-act", "shared-execution", "spec-preflight"],
+    "project-check": ["runtime", "pdca-lifecycle", "phase-check", "shared-execution"],
+    "project-done": ["runtime", "pdca-lifecycle", "phase-done", "shared-execution", "git-workflow"],
+    "project-release": ["runtime", "pdca-lifecycle", "phase-release", "git-workflow"],
+    "project-pr": ["runtime", "pdca-lifecycle", "phase-pr", "git-workflow"],
+    "project-hotfix": ["runtime", "pdca-lifecycle", "phase-hotfix", "shared-execution"],
+    "project-design": ["runtime", "pdca-lifecycle", "phase-plan"],
+    "project-sprint": ["runtime", "pdca-lifecycle", "sprint-orchestrator", "shared-execution"],
+    "project-debug": ["runtime", "pdca-lifecycle", "shared-execution"],
+}
+
+# Candidate rules are available to a command but are not activated until the
+# command's documented trigger is observed.  Keeping this separate from
+# COMMAND_RULES_MAP prevents deployers from accidentally preloading them.
+COMMAND_CONDITIONAL_RULES_MAP = {
+    "project-init": ["sectional-heuristics"],
+    "project-plan": ["external-tools", "capability-design", "engineering-index", "sectional-heuristics"],
+    "project-act": ["external-tools", "capability-design", "engineering-index"],
+    "project-check": ["external-tools"],
+    "project-design": ["external-tools", "capability-design", "sectional-heuristics"],
+}
+
+
+PHASE_POLICIES = PHASE_CONTRACTS
+SPRINT_PHASE_SEQUENCE = ("phase-plan", "phase-act", "phase-check", "phase-done")
+
+RULES_MANAGED_PREFIXES = RULES_GLOBAL_PREFIXES
+_claude_rules_imports = "\n".join(
+    f"@~/.claude/rules/{filename}" for filename in RULES_CORE_FILES.values()
+)
+CLAUDE_MD_TEMPLATE = f"""# PactKit Runtime Contract (v{__version__})
+
+{_claude_rules_imports}
+"""
 CONSTITUTION_EXPERT = CLAUDE_MD_TEMPLATE

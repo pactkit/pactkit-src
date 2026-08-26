@@ -318,76 +318,54 @@ This example demonstrates: Container grouping (`c_backend`), Actor node (`n_user
 # 5. EXPERT MODE CONTENT
 
 SPRINT_PROMPT = """---
-description: "Automated PDCA Sprint orchestration via Subagent Team (Slim Team)"
+description: "Sequential PDCA in the current session"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
 
-# Command: Sprint (v1.5.0 Protocol-Only Orchestrator)
+# Command: Sprint (Current-Session PDCA Orchestrator)
 - **Usage**: `/project-sprint "$ARGUMENTS"`
-- **Agent**: Team Lead (current session)
+- **Execution**: Continue sequentially in this conversation. Keep all phase
+  evidence in the current session unless the user explicitly chooses another
+  supported execution mode.
 
-> **CORE PRINCIPLE**: Thin Orchestrator — Lead only dispatches; subagents read `docs/specs/`,
-> command playbooks, and Story facts via `pactkit board list`.
+## Resolve work
 
-## Phase 0: Setup
-0. `$ARGUMENTS` non-empty → single-story mode; empty → Wave Mode.
-0a. If `TeamCreate`/`TaskCreate`/`SendMessage`/`TeamDelete` are unavailable,
-keep this run and execute Plan → Act → Check → Close sequentially; omit no stage.
-1. Parse requirement from `$ARGUMENTS`. Run `pactkit generate-id` to allocate a STORY-ID.
-2. `TeamCreate("sprint-{STORY_ID}")`.
-3. `TaskCreate` for each stage: Plan (no deps), Act (blockedBy: Plan), Check-QA (blockedBy: Act), Close (blockedBy: Check-QA).
-4. If `git worktree list` succeeds, use `isolation="worktree"`.
-5. Read `pactkit.yaml` (`{PACTKIT_YAML}`) `agent_models`; defaults: system-architect=opus, senior-developer=sonnet.
+In single-story mode, resolve an existing Story ID from the argument. For a new
+requirement, run `pactkit generate-id`, carry that STORY-ID into Plan, and use
+its `docs/specs/{STORY_ID}.md` as the file-driven contract.
 
-## Phase 1: PDCA Execution
+In Wave Mode (empty arguments), inspect the board and `pactkit spec-graph
+--json` to produce a deterministic Wave Plan. Process eligible Stories
+sequentially by dependency order. Do not use `max_parallel` unless the user
+explicitly requests parallel execution; unknown or conflicting touch surfaces
+remain serialized.
 
-### Stage A: Build
+## Phase capsule lifecycle
 
-**A1** (`system-architect`, model: opus, isolation="worktree"): Execute `commands/project-plan.md`.
-- **Sprint override**: Skip Phase 0.7 Clarify Gate. Use STORY-ID {STORY_ID} (already allocated — skip `pactkit generate-id`).
-- Verify Spec. STOP on failure.
+Keep exactly one active phase. Before entering a phase, use the host Read tool
+to read its managed capsule below; do not treat this list as Markdown imports:
 
-**A2** (`senior-developer`, model: sonnet, isolation="worktree"): Execute `commands/project-act.md`. Merge worktree. STOP on failure.
+- Plan: `{SKILLS_ROOT}/_rules/phases/plan-contract.md`
+- Act: `{SKILLS_ROOT}/_rules/phases/act-contract.md`
+- Check: `{SKILLS_ROOT}/_rules/phases/check-contract.md`
+- Done: `{SKILLS_ROOT}/_rules/phases/done-contract.md`
 
-### Stage B: Check
-- Launch `qa-engineer` (model: sonnet, isolation="worktree"): Execute `commands/project-check.md` (includes SEC-1~8 in Phase 1). Report "QA PASS/FAIL".
-- Collect reports from worktree. On FAIL: STOP.
+Then execute the corresponding native command playbook in order:
 
-### Stage C: Close
-- Launch `repo-maintainer` (model: sonnet, isolation="worktree"): Execute `commands/project-done.md`.
-- **Sprint overrides**: Skip `pactkit update` in Phase 4. Skip `pactkit visualize --lazy` in Phase 2 (Act already ran it).
-- Report "DONE PASS/FAIL". Merge worktree branch on success.
+1. Plan — create or update the Spec and Story.
+2. Act — implement and produce fresh, adequate behavior evidence.
+3. Check — perform QA for security, quality, scope, tests, and Spec alignment.
+4. Done — close the Story only when requested external effects are authorized.
 
-## Phase 2: Cleanup
-1. `SendMessage(type="shutdown_request")` to all teammates.
-2. `TeamDelete` to remove task directory.
-3. Report Spec, tests, commit, and reports.
+When a phase finishes, mark its capsule historical and activate only the next
+capsule. A failed Check returns to Act for repair in this same session. Missing
+evidence makes completion incomplete; it does not lock reading, implementation,
+testing, or repair and does not require restarting Sprint.
 
-## Wave Mode (STORY-slim-144)
-> Empty `$ARGUMENTS`: use `spec-graph` data for conflict-aware backlog scheduling.
-> Without team/worktree orchestration, execute batches sequentially.
+## Completion
 
-1. **Wave Plan (before any dispatch)**: Run `{BOARD_CMD} list_stories` (BACKLOG IDs) + `pactkit spec-graph --json` (waves + conflicts, deterministic). Filter to backlog IDs with Specs. Partition each wave:
-   - **Parallel batch**: declared Touches (no placeholder) AND pairwise non-conflicting per the matrix. Cap: `sprint.max_parallel` from `{PACTKIT_YAML}` (default 3); excess spills to the next sub-batch.
-   - **Serialized tail**: same-wave-conflicted or undeclared Touches — run one at a time after the batch. Safe-by-default: unknown conflict surface = NEVER parallelize.
-   - If no story is parallelizable, log and suggest single-story mode instead.
-2. **Print the wave plan** (wave N: parallel=[...], serialized=[...], skipped=[...] with reasons) and wait for user confirmation before spawning any subagent.
-3. **Dispatch**: each story (parallel or serialized) runs the Stage A→B→C chain above in its own worktree — reference those stages verbatim; do NOT redefine them.
-4. **Wave Gate**: wave N+1 MUST NOT start until every wave-N story is merged green. Merges are always sequential (one worktree at a time).
-5. **Failure policy**: fail-fast — any story failure STOPs the wave; report completed/merged vs pending; NEVER auto-retry. Resume = re-run `/project-sprint` (spec-graph excludes Done stories, so re-runs are idempotent).
-
-## Error Handling
-- ANY stage failure → STOP, report, and run `TeamDelete`.
-- Merge conflict → STOP, report conflicting files, suggest `git merge --abort`.
-- Worktree fallback: If `git worktree list` fails (e.g., shallow clone), run without isolation and warn about potential conflicts.
-
-## Subagent Reference
-| Stage | subagent_type | Model | Playbook |
-|-------|--------------|-------|----------|
-| Plan | system-architect | opus (agent_models) | project-plan.md |
-| Act  | senior-developer | sonnet (agent_models) | project-act.md |
-| Check-QA | qa-engineer | sonnet | project-check.md |
-| Close | repo-maintainer | sonnet | project-done.md |
+Report the active Story, changed files, phase evidence, tests, and remaining
+gaps. Never infer success from an old workflow state or an agent response.
 """
 
 REVIEW_PROMPT = """---
@@ -825,7 +803,7 @@ DEBUG_PROMPT = """---
 description: "Hypothesis-driven troubleshooting: structured debug from symptom to root cause"
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ---
-@{{SKILLS_PREFIX}}_rules/03-shared-protocols.md
+@{{SKILLS_PREFIX}}_rules/execution/shared-execution.md
 
 
 # Command: Debug (v1.0.0 Hypothesis-Driven)

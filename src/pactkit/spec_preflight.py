@@ -21,6 +21,9 @@ _INLINE_RANGE = re.compile(r"^(?P<path>.+?):L?(?P<start>\d+)-(?P<end>\d+)$", re.
 _CONSTRAINT = re.compile(r"^.*(?:\b(?:MUST(?: NOT)?|SHALL|REQUIRED|NEVER)\b|禁止|必须|不得|对齐).*$", re.I | re.M)
 _CSS_TOKEN = re.compile(r"(?P<name>--[A-Za-z0-9_-]+)\s*:\s*(?P<value>[^;{}]+)")
 _CODE_SUFFIXES = frozenset({".py", ".js", ".jsx", ".ts", ".tsx"})
+_IGNORED_TREE_PARTS = frozenset({
+    ".git", ".pactkit", "node_modules", ".venv", "worktrees",
+})
 
 
 class PreflightError(ValueError):
@@ -103,13 +106,16 @@ def _discover_references(root: Path, spec_path: Path, raw: str) -> list[dict[str
                 path for path in root.rglob(value)
                 if path.is_file()
                 and not any(
-                    part in {".git", ".pactkit", "node_modules", ".venv"}
+                    part in _IGNORED_TREE_PARTS
                     for part in path.parts
                 )
             )
             if len(matches) > 1:
-                options = ", ".join(path.relative_to(root).as_posix() for path in matches[:5])
-                raise PreflightError(f"ambiguous referenced file {value!r}: {options}")
+                # A bare basename in prose may describe an artifact kind (for
+                # example ``SKILL.md``) rather than declare one exact input.
+                # Only the Implementation Inputs table is authoritative when
+                # multiple files share that name.
+                continue
             if matches:
                 candidate = matches[0]
                 value = candidate.relative_to(root).as_posix()

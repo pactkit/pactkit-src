@@ -111,24 +111,20 @@ class TestWorkflowConventionsRegistered:
 
     def test_rules_files_has_workflow(self):
         p = _prompts()
-        assert 'workflow' in p.RULES_FILES
-        # Post-merge refactor: workflow is now 01-workflow-conventions.md
-        assert p.RULES_FILES['workflow'] == '01-workflow-conventions.md'
+        assert 'git-workflow' in p.RULES_FILES
+        assert p.RULES_FILES['git-workflow'] == 'execution/git-workflow.md'
 
-    def test_managed_prefixes_has_01(self):
-        """Post-merge: '01-' is in RULES_ONDEMAND_PREFIXES (01-workflow-conventions is on-demand).
-        """
+    def test_legacy_workflow_identifier_normalizes_to_git_workflow(self):
         p = _prompts()
-        # 01- is an on-demand prefix
-        assert '01-' in p.RULES_ONDEMAND_PREFIXES
+        from pactkit.prompts.rules import normalize_rule_id
 
-    def test_claude_md_template_imports_workflow(self):
-        """Post-merge: 01-workflow-conventions is on-demand (not in CLAUDE_MD_TEMPLATE).
-        It's deployed to skills/_rules/ and loaded via @import in command prompts.
-        """
+        assert normalize_rule_id('workflow') == 'git-workflow'
+        assert normalize_rule_id('01-workflow-conventions') == 'git-workflow'
+
+    def test_git_workflow_is_command_scoped(self):
         p = _prompts()
-        # workflow is an on-demand rule, not in global CLAUDE_MD_TEMPLATE
-        assert '01-workflow-conventions.md' in p.RULES_ONDEMAND_FILES.values()
+        assert 'execution/git-workflow.md' in p.RULES_ONDEMAND_FILES.values()
+        assert 'execution/git-workflow.md' not in p.CLAUDE_MD_TEMPLATE
 
 
 class TestWorkflowConventionsContent:
@@ -170,13 +166,13 @@ class TestRoutingTableUnchanged:
         for cmd in expected:
             assert cmd in routing, f"Missing {cmd} in routing"
 
-    def test_routing_in_pactkit_merged(self):
-        """Post-merge: routing is folded into pactkit.md (no standalone file)."""
+    def test_routing_is_not_promoted_to_runtime(self):
         p = _prompts()
-        # routing key still exists in RULES_MODULES and pactkit merged content contains it
+        # Legacy source remains inspectable but command routing is now owned by
+        # individual skills, not the global Runtime Kernel.
         assert 'routing' in p.RULES_MODULES
-        # pactkit.md is the only global file; routing content is part of it
-        assert 'pactkit' in p.RULES_CORE_FILES
+        assert p.RULES_CORE_FILES == {'runtime': 'pactkit-runtime.md'}
+        assert 'Command Reference' not in p.RULES_MODULES['runtime']
 
 
 class TestBackwardCompatibility:

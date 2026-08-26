@@ -68,7 +68,9 @@ class TestFullConfigDeploysAll:
             assert (rules_dir / filename).is_file(), f"Missing global rule: {filename}"
         # On-demand rules must be in skills/_rules/
         ondemand_dir = claude / "skills" / RULES_ONDEMAND_DIR
-        for filename in RULES_ONDEMAND_FILES.values():
+        for rule_id, filename in RULES_ONDEMAND_FILES.items():
+            if rule_id == "pactkit-maintainer":
+                continue
             assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
     def test_no_config_means_full_deploy(self, tmp_path):
@@ -224,8 +226,7 @@ class TestPartialCommandConfig:
 
 
 class TestSelectiveRules:
-    def test_claude_md_no_global_rule_imports(self, tmp_path):
-        """STORY-slim-011: CLAUDE.md no longer has old rule @imports (moved to per-command)."""
+    def test_claude_md_loads_runtime_not_legacy_or_phase_rules(self, tmp_path):
         cfg = get_default_config()
         cfg["rules"] = ["pactkit", "01-workflow-conventions"]
 
@@ -235,7 +236,9 @@ class TestSelectiveRules:
         # STORY-slim-011: CLAUDE.md should not have old rule filenames
         assert "01-core-protocol.md" not in content
         assert "01-workflow-conventions.md" not in content
-        assert "# PactKit Global Constitution" in content
+        assert "# PactKit Runtime Contract" in content
+        assert "@~/.claude/rules/pactkit-runtime.md" in content
+        assert "skills/_rules" not in content
 
     def test_only_enabled_rule_files_exist(self, tmp_path):
         cfg = get_default_config()
@@ -244,7 +247,7 @@ class TestSelectiveRules:
         claude = _run_deploy(tmp_path, config=cfg)
         rules_dir = claude / "rules"
 
-        assert (rules_dir / "pactkit.md").is_file()
+        assert (rules_dir / "pactkit-runtime.md").is_file()
         assert not (rules_dir / "01-core-protocol.md").exists()
         assert not (rules_dir / "02-mcp-integration.md").exists()
 
@@ -260,7 +263,9 @@ class TestSelectiveRules:
         for filename in RULES_CORE_FILES.values():
             assert (rules_dir / filename).is_file(), f"Missing global rule: {filename}"
         # On-demand rules in skills/_rules/
-        for filename in RULES_ONDEMAND_FILES.values():
+        for rule_id, filename in RULES_ONDEMAND_FILES.items():
+            if rule_id == "pactkit-maintainer":
+                continue
             assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
 
@@ -311,14 +316,14 @@ class TestConfigAutoGeneration:
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # 13 embedded skills + 12 commands.
-        # Post STORY-slim-128: 8 rules (1 merged global + 7 on-demand)
+        # Scenario registry: 1 Runtime Kernel + 16 command/shared modules.
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
         assert "25/25 Skills" in output
         assert "13 embedded" in output
         assert "12 commands" in output
-        assert "8/8 Rules" in output
+        assert "17/17 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-slim-133: 25 total (13 embedded + 12 commands)
@@ -331,6 +336,13 @@ class TestDeploymentSummary:
         assert "2/9 Agents" in output
         # 13 embedded skills + 3 commands = 16 total skills deployed out of 25.
         assert "16/25 Skills" in output
+
+    def test_self_development_summary_counts_the_maintainer_overlay(self, tmp_path, capsys):
+        cfg = get_default_config()
+        cfg["rules"].append("pactkit-maintainer")
+
+        _run_deploy(tmp_path, config=cfg)
+        assert "18/18 Rules" in capsys.readouterr().out
 
 
 # ===========================================================================

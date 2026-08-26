@@ -154,8 +154,8 @@ class TestAC6PromptVersions:
         # Check runtime value (f-string uses __version__)
         from pactkit.prompts.rules import CLAUDE_MD_TEMPLATE
 
-        m = re.search(r"PactKit Global Constitution \((v[\d.]+)", CLAUDE_MD_TEMPLATE)
-        assert m, "Constitution version not found in CLAUDE_MD_TEMPLATE"
+        m = re.search(r"PactKit Runtime Contract \((v[\d.]+)", CLAUDE_MD_TEMPLATE)
+        assert m, "Runtime Contract version not found in CLAUDE_MD_TEMPLATE"
         assert m.group(1) == CURRENT_V_PREFIX, f"Got {m.group(1)}, expected {CURRENT_V_PREFIX}"
 
     def test_visualize_py_no_old_iterations(self):

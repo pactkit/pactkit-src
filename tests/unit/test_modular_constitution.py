@@ -20,7 +20,8 @@ class TestClaudeMdUsesImport:
     def test_claude_md_contains_version_header(self, tmp_path):
         _deploy(tmp_path)
         content = (tmp_path / '.claude' / 'CLAUDE.md').read_text()
-        assert '# PactKit Global Constitution' in content
+        assert '# PactKit Runtime Contract' in content
+        assert '@~/.claude/rules/pactkit-runtime.md' in content
 
     def test_claude_md_no_context_import(self, tmp_path):
         """BUG-slim-089: Global CLAUDE.md no longer has @./docs/product/context.md (invalid path)."""
@@ -41,8 +42,7 @@ class TestRuleModulesGenerated:
     def test_all_rule_files_exist(self, tmp_path):
         _deploy(tmp_path)
         rules_dir = tmp_path / '.claude' / 'rules'
-        # Post-merge refactor: single merged pactkit.md in rules/
-        expected = ['pactkit.md']
+        expected = ['pactkit-runtime.md']
         for fname in expected:
             assert (rules_dir / fname).is_file(), f'{fname} 不存在'
 
@@ -122,13 +122,13 @@ class TestDeployedCoreMatchesSource:
     """STORY-008: Deployed core file matches source"""
 
     def test_deployed_file_matches_source(self, tmp_path):
-        """Deployed pactkit.md matches rendered RULES_MODULES['pactkit'] source"""
+        """Deployed Runtime Kernel matches its registry source."""
         from pactkit.generators.deployer import _render_prompt
         from pactkit.profiles import get_profile
-        from pactkit.prompts import RULES_MODULES
+        from pactkit.prompts.rules import RULE_DEFINITIONS
         _deploy(tmp_path)
-        deployed = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
-        expected = _render_prompt(RULES_MODULES['pactkit'], get_profile('classic'))
+        deployed = (tmp_path / '.claude' / 'rules' / 'pactkit-runtime.md').read_text()
+        expected = _render_prompt(RULE_DEFINITIONS['runtime'].content, get_profile('classic'))
         assert deployed.strip() == expected.strip()
 
 

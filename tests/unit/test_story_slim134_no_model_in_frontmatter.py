@@ -4,7 +4,7 @@ Verifies R1-R4:
 - R1: commands.py frontmatter has no model field
 - R2: workflows.py frontmatter has no model field
 - R3: deployed plugin commands have no model field
-- R4: sprint body text references to model are preserved
+- R4: sprint body remains model-neutral
 """
 import re
 import sys
@@ -72,31 +72,14 @@ class TestNoModelInWorkflowsFrontmatter:
         )
 
 
-class TestSprintBodyModelReferencesPreserved:
-    """R4: sprint body text references to model must be preserved (not frontmatter)."""
+class TestSprintBodyModelNeutral:
+    """R4: orchestration must not bind a host-specific model."""
 
-    def test_sprint_body_mentions_opus_for_plan(self):
-        """Stage A body text should still reference opus for A1 Plan sub-stage."""
+    def test_sprint_body_has_no_model_routing(self):
         from pactkit.prompts import SPRINT_PROMPT
-        # Find Stage A section (body text, not frontmatter)
-        a_start = SPRINT_PROMPT.find('Stage A')
-        b_start = SPRINT_PROMPT.find('Stage B', a_start)
-        assert a_start != -1 and b_start != -1
-        stage_a = SPRINT_PROMPT[a_start:b_start]
-        assert 'model: opus' in stage_a or 'model="opus"' in stage_a, (
-            "Stage A body text must still reference opus for A1 — do not remove body references."
-        )
-
-    def test_sprint_body_mentions_sonnet_for_act(self):
-        """Stage A body text should still reference sonnet for A2 Act sub-stage."""
-        from pactkit.prompts import SPRINT_PROMPT
-        a_start = SPRINT_PROMPT.find('Stage A')
-        b_start = SPRINT_PROMPT.find('Stage B', a_start)
-        assert a_start != -1 and b_start != -1
-        stage_a = SPRINT_PROMPT[a_start:b_start]
-        assert 'model: sonnet' in stage_a or 'model="sonnet"' in stage_a, (
-            "Stage A body text must still reference sonnet for A2 — do not remove body references."
-        )
+        lower = SPRINT_PROMPT.lower()
+        for term in ("opus", "sonnet", "haiku", "model:", "agent_models"):
+            assert term not in lower
 
 
 class TestDeployedPluginCommandsNoModel:

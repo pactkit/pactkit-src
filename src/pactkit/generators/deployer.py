@@ -26,10 +26,11 @@ if str(project_root) not in sys.path:
 
 from pactkit import __version__, prompts
 from pactkit.config import (
+    CURRENT_RULE_IDS,
     VALID_AGENTS,
     VALID_COMMANDS,
-    VALID_RULES,
     VALID_SKILLS,
+    activate_pactkit_maintainer_overlay,
     auto_merge_config_file,
     detect_venv,
     generate_default_yaml,
@@ -241,7 +242,14 @@ def _build_rule_id_to_key() -> dict:
 
     Used by _deploy_rules() and _deploy_claude_md_inline().
     """
-    return {filename.removesuffix(".md"): key for key, filename in prompts.RULES_FILES.items()}
+    from pactkit.prompts.rules import RULE_DEFINITIONS, normalize_rule_id
+
+    result = {filename.removesuffix(".md"): key for key, filename in prompts.RULES_FILES.items()}
+    for rule_id, definition in RULE_DEFINITIONS.items():
+        result[rule_id] = rule_id
+        for legacy_id in definition.legacy_ids:
+            result[legacy_id] = normalize_rule_id(legacy_id) or rule_id
+    return result
 
 
 def _build_rule_id_to_filename() -> dict:
@@ -251,7 +259,14 @@ def _build_rule_id_to_filename() -> dict:
 
     Used by _deploy_claude_md().
     """
-    return {filename.removesuffix(".md"): filename for filename in prompts.RULES_FILES.values()}
+    from pactkit.prompts.rules import RULE_DEFINITIONS
+
+    result = {filename.removesuffix(".md"): filename for filename in prompts.RULES_FILES.values()}
+    for rule_id, definition in RULE_DEFINITIONS.items():
+        result[rule_id] = definition.filename
+        for legacy_id in definition.legacy_ids:
+            result[legacy_id] = definition.filename
+    return result
 
 
 def _render_skill_md(sd: dict, profile, _prefix: str) -> str:
@@ -479,6 +494,7 @@ def _deploy_classic(config=None, target=None, *, project_root=None):
         config = load_config(project_yaml)
 
     validate_config(config)
+    config = activate_pactkit_maintainer_overlay(config, project_root)
 
     # Warn about orphaned global config (BUG-013)
     global_yaml = claude_root / "pactkit.yaml"
@@ -500,7 +516,7 @@ def _deploy_classic(config=None, target=None, *, project_root=None):
 
     # Deploy components filtered by config
     enabled_skills = config.get("skills", sorted(VALID_SKILLS))
-    enabled_rules = config.get("rules", sorted(VALID_RULES))
+    enabled_rules = config.get("rules", sorted(CURRENT_RULE_IDS - {"pactkit-maintainer"}))
     enabled_agents = config.get("agents", sorted(VALID_AGENTS))
     enabled_commands = config.get("commands", sorted(VALID_COMMANDS))
 
@@ -536,7 +552,13 @@ def _deploy_classic(config=None, target=None, *, project_root=None):
     from pactkit.prompts.skills import SKILL_MANIFEST
 
     total_skills = len(SKILL_MANIFEST) + len(VALID_COMMANDS)
-    total_rules = len(VALID_RULES)
+    # VALID_RULES includes legacy aliases accepted only for migration.  They
+    # are not separately deployed rules and must not inflate the user-facing
+    # deployment summary. The optional maintainer overlay counts only when it
+    # is active for PactKit self-development.
+    total_rules = len(CURRENT_RULE_IDS - {"pactkit-maintainer"})
+    if "pactkit-maintainer" in enabled_rules:
+        total_rules += 1
 
     print(
         f"\n✅ Deployed: {n_agents}/{total_agents} Agents, "
@@ -743,55 +765,92 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     ondemand_dir = claude_root / "skills" / prompts.RULES_ONDEMAND_DIR
     ondemand_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build reverse map: rule identifier -> config key
-    # e.g. 'pactkit' -> 'pactkit', '01-workflow-conventions' -> 'workflow'
-    rule_id_to_key = _build_rule_id_to_key()
+    from pactkit.prompts.rules import (
+        LEGACY_RULE_CONTENTS,
+        RULE_DEFINITIONS,
+        normalize_rule_id,
+    )
 
-    # OLD filenames from before the merge refactor — remove on upgrade.
-    _legacy_global_filenames = {
-        "01-core-protocol.md",
-        "02-hierarchy-of-truth.md",
-        "03-file-atlas.md",
-        "04-routing-table.md",
-        "05-principles.md",
-        "11-pdca-nudge.md",
+    # A legacy filename is deleted only when its bytes still equal the exact
+    # 2.23 managed content.  A matching name alone is never ownership proof.
+    # This protects files the user edited in place before this registry existed.
+    legacy_paths = {
+        filename for filename in LEGACY_RULE_CONTENTS
+    } | {
+        "01-core-protocol.md", "02-hierarchy-of-truth.md",
+        "03-file-atlas.md", "04-routing-table.md",
+        "05-principles.md", "11-pdca-nudge.md",
+        "05-workflow-conventions.md", "06-mcp-integration.md",
+        "07-shared-protocols.md", "08-architecture-principles.md",
+        "09-sectional-write.md", "12-solution-design.md",
     }
-    _legacy_ondemand_filenames = {
-        "05-workflow-conventions.md",
-        "06-mcp-integration.md",
-        "07-shared-protocols.md",
-        "08-architecture-principles.md",
-        "09-sectional-write.md",
-        "12-solution-design.md",
-    }
+    for directory in (rules_dir, ondemand_dir):
+        for path in directory.rglob("*.md"):
+            if path.name not in legacy_paths:
+                continue
+            expected = LEGACY_RULE_CONTENTS.get(path.name)
+            if expected is not None and path.read_text(encoding="utf-8") == expected:
+                path.unlink()
+            elif expected is not None:
+                print(f"  ⚠️  preserved user-modified legacy rule: {path}")
 
-    # Clean managed rule files from global rules/ dir.
-    # Includes current filename (pactkit.md) and legacy filenames (upgrade path).
-    global_managed_filenames = set(prompts.RULES_CORE_FILES.values())
-    cleanup_from_global = global_managed_filenames | _legacy_global_filenames | _legacy_ondemand_filenames
-    for f in rules_dir.glob("*.md"):
-        if f.name in cleanup_from_global:
-            f.unlink()
+    # The previous manifest is the only reliable ownership proof for a
+    # current-format file.  A path can exist for many legitimate user reasons,
+    # so never infer ownership from its name alone.
+    previous_hashes = {}
+    manifest_path = claude_root / ".pactkit-deployed.json"
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            files = manifest.get("files", {})
+            if isinstance(files, dict):
+                previous_hashes = files
+        except (OSError, ValueError, TypeError):
+            # A corrupt advisory manifest must not make deployment unsafe or
+            # unavailable.  It merely means we cannot prove old ownership.
+            pass
 
-    # Clean managed rule files from on-demand dir.
-    # Includes current filenames (01-06) and legacy filenames (05-12, upgrade path).
-    ondemand_managed_filenames = set(prompts.RULES_ONDEMAND_FILES.values())
-    cleanup_from_ondemand = ondemand_managed_filenames | _legacy_ondemand_filenames
-    for f in ondemand_dir.glob("*.md"):
-        if f.name in cleanup_from_ondemand:
-            f.unlink()
+    # Resolve current and legacy config identifiers to deduplicated logical IDs.
+    enabled_ids = []
+    for configured_id in enabled_rules:
+        rule_id = normalize_rule_id(configured_id)
+        if rule_id and rule_id not in enabled_ids:
+            enabled_ids.append(rule_id)
 
-    # Determine which filenames belong to global vs on-demand
-    global_filenames = set(prompts.RULES_CORE_FILES.values())
+    # A selective deployment is a projection of the configured registry, not
+    # an additive install. Retire a disabled rule only when the previous
+    # manifest proves ownership and the bytes are still unchanged. Modified
+    # files remain user-owned and are omitted from the replacement manifest.
+    enabled_paths = set()
+    for rule_id in enabled_ids:
+        definition = RULE_DEFINITIONS[rule_id]
+        base = rules_dir if definition.load_policy == "global" else ondemand_dir
+        enabled_paths.add((base / definition.filename).relative_to(claude_root).as_posix())
+    for definition in RULE_DEFINITIONS.values():
+        for base in (rules_dir, ondemand_dir):
+            path = base / definition.filename
+            relative = path.relative_to(claude_root).as_posix()
+            expected_hash = previous_hashes.get(relative)
+            if relative in enabled_paths or not path.is_file() or not expected_hash:
+                continue
+            import hashlib
 
-    # Write only enabled rules to the appropriate directory
+            if hashlib.sha256(path.read_bytes()).hexdigest() == expected_hash:
+                path.unlink()
+                parent = path.parent
+                while parent not in (rules_dir, ondemand_dir, claude_root):
+                    try:
+                        parent.rmdir()
+                    except OSError:
+                        break
+                    parent = parent.parent
+
+    # Write only enabled rules to their registry-defined paths.
     deployed = 0
-    for rule_id in enabled_rules:
-        key = rule_id_to_key.get(rule_id)
-        if key is None:
-            continue
-        filename = prompts.RULES_FILES[key]
-        content = prompts.RULES_MODULES[key]
+    for rule_id in enabled_ids:
+        definition = RULE_DEFINITIONS[rule_id]
+        filename = definition.filename
+        content = definition.content
 
         # Render template variables if profile provided
         if profile is not None:
@@ -799,6 +858,8 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
 
         # Add includeFiles frontmatter if scope is defined (STORY-028)
         scope = rule_scopes.get(rule_id)
+        if scope is None:
+            scope = next((rule_scopes[legacy] for legacy in definition.legacy_ids if legacy in rule_scopes), None)
         if scope:
             if isinstance(scope, list):
                 include_lines = "\n".join(f'  - "{p}"' for p in scope)
@@ -807,18 +868,44 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
                 frontmatter = f'---\nincludeFiles: ["{scope}"]\n---\n\n'
             content = frontmatter + content
 
-        # Route to correct directory
-        dest_dir = rules_dir if filename in global_filenames else ondemand_dir
+        # Runtime is the only always-loaded PactKit rule.  All others are
+        # private to skills and are imported or inlined by the active command.
+        dest_dir = rules_dir if definition.load_policy == "global" else ondemand_dir
+        destination = dest_dir / filename
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        relative_path = destination.relative_to(claude_root).as_posix()
+
+        # Preserve a user-modified managed file.  Write the newly rendered
+        # PactKit proposal alongside it so upgrade remains both non-destructive
+        # and actionable.  The candidate deliberately stays outside the
+        # manifest's owned set.
+        expected_hash = previous_hashes.get(relative_path)
+        if destination.is_file():
+            import hashlib
+
+            actual_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            # A same-named file without a prior manifest record is user-owned
+            # until proven otherwise.  For a known managed file, a hash drift
+            # has the same preservation behavior.
+            if actual_hash != content_hash and (not expected_hash or actual_hash != expected_hash):
+                candidate = destination.with_suffix(destination.suffix + ".pactkit-new")
+                atomic_write(candidate, content)
+                print(
+                    f"  ⚠️  preserved user-modified PactKit rule: {destination}; "
+                    f"wrote candidate {candidate.name}"
+                )
+                continue
 
         if profile is not None:
             _enforce_deploy_integrity(content, profile, f"rule:{rule_id}")
-        atomic_write(dest_dir / filename, content)
+        atomic_write(destination, content)
         deployed += 1
 
     return deployed
 
 
-def _deploy_guides(claude_root, profile=None):
+def _deploy_guides(claude_root, profile=None, relative_dir=None):
     """Deploy engineering guide files to skills/_rules/guides/ (STORY-slim-128).
 
     Guides are on-demand reference files loaded by Act Phase 1.5 based on
@@ -826,19 +913,52 @@ def _deploy_guides(claude_root, profile=None):
     """
     from pactkit.prompts.guides import GUIDES_DIR, GUIDES_FILES
 
-    guides_dir = claude_root / "skills" / prompts.RULES_ONDEMAND_DIR / GUIDES_DIR
+    guides_dir = (
+        claude_root / relative_dir
+        if relative_dir is not None
+        else claude_root / "skills" / prompts.RULES_ONDEMAND_DIR / GUIDES_DIR
+    )
     guides_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clean existing managed guide files (upgrade path)
-    for f in guides_dir.glob("*.md"):
-        if f.name in GUIDES_FILES:
-            f.unlink()
+    # The deployment manifest is the ownership proof for current-format
+    # guides.  A matching filename alone is not authority to delete or
+    # overwrite a user's local adaptation.
+    previous_hashes = {}
+    manifest_path = claude_root / ".pactkit-deployed.json"
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            files = manifest.get("files", {})
+            if isinstance(files, dict):
+                previous_hashes = files
+        except (OSError, ValueError, TypeError):
+            # A corrupt advisory manifest must not make upgrades destructive.
+            pass
 
     deployed = 0
     for filename, content in GUIDES_FILES.items():
         if profile is not None:
             content = _render_prompt(content, profile)
-        atomic_write(guides_dir / filename, content)
+        destination = guides_dir / filename
+        relative_path = destination.relative_to(claude_root).as_posix()
+        expected_hash = previous_hashes.get(relative_path)
+        if destination.is_file():
+            import hashlib
+
+            actual_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            # A same-named guide without a manifest record is user-owned
+            # until PactKit can prove otherwise.  For a recorded guide, hash
+            # drift gets the same non-destructive treatment.
+            if actual_hash != content_hash and (not expected_hash or actual_hash != expected_hash):
+                candidate = destination.with_suffix(destination.suffix + ".pactkit-new")
+                atomic_write(candidate, content)
+                print(
+                    f"  ⚠️  preserved user-modified PactKit guide: {destination}; "
+                    f"wrote candidate {candidate.name}"
+                )
+                continue
+        atomic_write(destination, content)
         deployed += 1
 
     return deployed
@@ -847,23 +967,24 @@ def _deploy_guides(claude_root, profile=None):
 def _is_pactkit_managed_global_md(content):
     """Detect if CLAUDE.md content is a PactKit-managed template (BUG-slim-089).
 
-    Returns True if the first line starts with '# PactKit Global Constitution'.
+    Returns True if the first line starts with a PactKit generated heading.
     """
     first_line = content.split("\n", 1)[0] if content else ""
-    return first_line.startswith("# PactKit Global Constitution")
+    return first_line.startswith(("# PactKit Global Constitution", "# PactKit Runtime Contract"))
 
 
 def _deploy_claude_md(claude_root, enabled_rules):
-    """Generate global CLAUDE.md — header only (STORY-slim-011).
+    """Generate the small global Claude entrypoint.
 
-    Rules are auto-loaded by Claude Code from ~/.claude/rules/.
-    Context.md reference removed — invalid at global level (BUG-slim-089).
+    Only the Runtime Kernel is always loaded.  Phase and concern rules remain
+    private to the active skill, preventing ordinary conversations from being
+    captured by PDCA governance.
 
     BUG-slim-089: Read-before-write guard to preserve user-modified content.
     """
     claude_md_path = claude_root / "CLAUDE.md"
-    new_header = f"# PactKit Global Constitution (v{__version__} Modular)"
-    new_content = f"{new_header}\n"
+    new_header = f"# PactKit Runtime Contract (v{__version__})"
+    new_content = f"{new_header}\n\n@~/.claude/rules/pactkit-runtime.md\n"
 
     # Fresh install — no existing file
     if not claude_md_path.exists():
@@ -882,15 +1003,11 @@ def _deploy_claude_md(claude_root, enabled_rules):
     if not _is_pactkit_managed_global_md(existing):
         return
 
-    # PactKit-managed — update version header in-place if changed (R2)
-    updated = re.sub(
-        r"^# PactKit Global Constitution \(v[^\)]+\)",
-        new_header,
-        existing,
-        count=1,
-    )
-    if updated != existing:
-        atomic_write(claude_md_path, updated)
+    # PactKit-managed — replace the tiny generated entrypoint as a whole. A
+    # title-only rewrite would leave a 2.23 file without the new Runtime
+    # import, while user-owned content has already returned above untouched.
+    if existing != new_content:
+        atomic_write(claude_md_path, new_content)
     # else: idempotent — skip write (AC5)
 
 
@@ -1001,23 +1118,36 @@ def _get_command_rules(cmd_name, config=None):
     """Resolve the rule list for a command (STORY-slim-011).
 
     Priority: config['command_rules'][cmd] > COMMAND_RULES_MAP default.
-    SEC-1: 'credential' is always forced into the result.
+    Credential safety is part of the global Runtime Kernel and is therefore
+    not duplicated into every command.
 
     Args:
         cmd_name: Command name (e.g. 'project-act').
         config: Optional config dict with 'command_rules' override.
 
     Returns:
-        List of rule keys (e.g. ['core', 'hierarchy', 'credential']).
+        List of active rule IDs.
     """
+    from pactkit.prompts.rules import normalize_rule_id
+
     if config and "command_rules" in config and cmd_name in config["command_rules"]:
         rules = list(config["command_rules"][cmd_name])
     else:
         rules = list(prompts.COMMAND_RULES_MAP.get(cmd_name, []))
 
-    # SEC-1: Force credential safety
-    if "credential" not in rules:
-        rules.append("credential")
+    # Normalize legacy configuration values. The old virtual credential rule
+    # maps to Runtime because credential safety is now self-contained there.
+    # Unknown values are ignored here because
+    # config validation reports them before deployment.
+    normalized = []
+    for rule in rules:
+        current = "runtime" if rule == "credential" else normalize_rule_id(rule) or rule
+        if current not in normalized:
+            normalized.append(current)
+    rules = normalized
+
+    if config and config.get("_pactkit_self_development") and "pactkit-maintainer" not in rules:
+        rules.append("pactkit-maintainer")
 
     return rules
 
@@ -1045,35 +1175,33 @@ def _build_command_rules_header(cmd_name, profile, config=None):
     style = profile.rules_import_style
 
     if style == "@import":
+        from pactkit.prompts.rules import RULE_DEFINITIONS
         rule_id_to_filename = _build_rule_id_to_filename()
-        global_filenames = set(prompts.RULES_CORE_FILES.values())
         ondemand_dir = prompts.RULES_ONDEMAND_DIR
-        rules_prefix = profile.rules_dir  # e.g. "~/.claude/rules"
         skills_prefix = profile.skills_dir  # e.g. "~/.claude/skills"
         lines = []
         for key in sorted(rules):
-            if key == "credential":
-                lines.append(f"@{rules_prefix}/{prompts.CREDENTIAL_SAFETY_FILE}")
-            else:
-                filename = rule_id_to_filename.get(key) if key in rule_id_to_filename else prompts.RULES_FILES.get(key)
-                if filename:
-                    if filename in global_filenames:
-                        pass
-                    else:
-                        lines.append(f"@{skills_prefix}/{ondemand_dir}/{filename}")
+            filename = rule_id_to_filename.get(key)
+            if filename:
+                definition = RULE_DEFINITIONS.get(key)
+                if definition and definition.load_policy == "global":
+                    pass
+                else:
+                    lines.append(f"@{skills_prefix}/{ondemand_dir}/{filename}")
         lines.append("")  # blank line before command content
         return "\n".join(lines) + "\n"
 
     elif style == "inline":
-        # Inline content embedding — credential handled externally, not inlined.
-        # Global core rules (RULES_CORE_FILES, e.g. merged pactkit.md) are loaded
-        # via the format's global config (opencode.json instructions), so they are
-        # skipped here — same as the @import branch (STORY-slim-139 map migration).
+        # Inline content embedding. Runtime is already global; every
+        # phase/shared module is embedded
+        # only for the active command.
+        from pactkit.prompts.rules import RULE_DEFINITIONS
         parts = []
         for key in sorted(rules):
-            if key == "credential" or key in prompts.RULES_CORE_FILES:
+            definition = RULE_DEFINITIONS.get(key)
+            if definition and definition.load_policy == "global":
                 continue
-            content = prompts.RULES_MODULES.get(key)
+            content = definition.content if definition else None
             if content:
                 parts.append(content.strip())
         if parts:
@@ -1706,22 +1834,15 @@ def _deploy_plugin_json(plugin_meta_dir):
 
 
 def _deploy_claude_md_inline(plugin_root, skills_prefix=CLASSIC_SKILLS_PREFIX):
-    """Generate CLAUDE.md with all rules inlined (no @import references)."""
-    # Build reverse map: rule_id -> key for ordered iteration
-    rule_id_to_key = _build_rule_id_to_key()
+    """Generate plugin CLAUDE.md with only the Runtime Kernel inlined."""
+    from pactkit.prompts.rules import RULE_DEFINITIONS
 
-    lines = [f"# PactKit Global Constitution (v{__version__} Modular)", ""]
-
-    # Inline all rule modules in sorted order
-    for rule_id in sorted(rule_id_to_key.keys()):
-        key = rule_id_to_key[rule_id]
-        module_content = prompts.RULES_MODULES[key].strip()
-        lines.append(module_content)
-        lines.append("")  # blank line between modules
-
-    # Add TIP for cross-session context (plugin mode has no context.md by default)
-    lines.append("> **TIP**: Run `/project-init` to set up project governance and enable cross-session context.")
-    lines.append("")
+    lines = [
+        f"# PactKit Runtime Contract (v{__version__})", "",
+        RULE_DEFINITIONS["runtime"].content.strip(), "",
+        "Phase contracts and shared capabilities are supplied by the active command only.",
+        "",
+    ]
 
     rewritten = _rewrite_skills_prefix("\n".join(lines), skills_prefix)
     atomic_write(plugin_root / "CLAUDE.md", rewritten)

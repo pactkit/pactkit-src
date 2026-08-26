@@ -36,7 +36,7 @@ completion.
 
 ## 🛡️ Phase 0.5: Init Guard (Auto-detect)
 1.  Run `pactkit guard` to check init markers (pactkit.yaml via `{PACTKIT_YAML}`, `docs/product/stories/`, `docs/architecture/graphs/`).
-2.  If exit code 1: project is not initialized — print the missing markers and **STOP**. Suggest running `/project-init`.
+2.  If exit code 1: project is not initialized — print the missing markers and do not create the Spec yet. Suggest `/project-init`; safe inspection and initialization repair remain available in this session.
 3.  If all exist: check config completeness (ci, issue_tracker sections). If stale, report the missing or outdated sections and ask for explicit authorization before running `pactkit update`; otherwise continue planning with the existing configuration.
 4.  If PASS: proceed to Phase 1.
 
@@ -101,7 +101,7 @@ completion.
     - **Threshold**: If the same operation has **≥ 3 independent implementations**, the Spec's Technical Design MUST include a shared abstraction evaluation before adding the Nth implementation.
     - **Skip condition**: Pure greenfield features with no existing codebase analog — log "Lateral Scan: no existing pattern found" and proceed.
 5.  **Solution Design Protocol (Conditional)** — if the requirement involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
+    - Execute the **Capability Design** module from `{SKILLS_ROOT}/_rules/design/capability-design.md` to evaluate capability delta (framework native + project existing vs. needs implementation).
     - Include the Capability Assessment output in Phase 2 Spec writing.
 6.  **Checkpoint**: Record `archaeology` with provider decision, freshness, query targets, and bounded trace summary.
 
@@ -109,7 +109,7 @@ completion.
 1.  **Diff**: Compare User Request vs Current Reality (from Phase 1).
 2.  **Duplication Audit**: Run the Duplication Audit from system-architect protocol — if this is the Nth same-kind implementation, grep existing implementations and assess shared abstraction needs before writing Spec.
 3.  **Engineering Concerns Assessment** — scan the requirement for NFR keywords:
-    - Reference the Engineering Concerns trigger index (`{SKILLS_ROOT}/_rules/07-engineering-concerns.md`) keyword table.
+    - Reference the Engineering Concerns trigger index (`{SKILLS_ROOT}/_rules/engineering/index.md`) keyword table.
     - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
     - Unmatched concerns → do not add (avoid noise).
     - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
@@ -187,7 +187,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **Execution Style**: Work through each phase incrementally — output progress as you go. Do NOT try to plan all implementation steps in your head before producing output.
 1.  **Read Law**: Read the Spec (`docs/specs/`) carefully.
 2.  **RFC Gate (Feasibility Check)**: If you identify a requirement in the Spec that is technically infeasible, contradictory, or would require violating a security/architectural constraint, invoke the **RFC Protocol**:
-    - **STOP** implementation immediately. Do NOT write any code.
+    - Do not implement the contradictory requirement. Continue safe investigation and collect the evidence needed to resolve it; do not write source code whose behavior depends on that unresolved requirement.
     - **Report** to the user: (a) quote the exact problematic requirement from the Spec, (b) explain why it is infeasible (technical reasoning), (c) suggest an alternative approach.
     - You MUST NOT modify the Spec unilaterally — only the user (or Architect via a new `/project-plan` cycle) may amend Tier 1.
     - Wait for user guidance before proceeding.
@@ -204,9 +204,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     ```
     If `pactkit` is not on `$PATH`, use `python3 -m pactkit spec-lint docs/specs/{STORY_ID}.md` instead.
     Replace `{STORY_ID}` with the actual Story ID from `$ARGUMENTS` (e.g., `STORY-042`).
-2.  **If ERRORs found**: **STOP**. Output all ERROR and WARN items. Instruct the user:
-    > "Spec Lint failed. Fix the issues above in `docs/specs/{STORY_ID}.md`, then re-run `/project-act`."
-    Do NOT proceed to Phase 1.
+2.  **If ERRORs found**: Output all ERROR and WARN items and mark phase completion as incomplete. Fix the Spec where authorized, or continue safe read-only investigation; do not create a permanent workflow lock or require a new session.
 3.  **If WARNs only**: Output the WARN list, then **continue** to Phase 1.
 4.  **If all pass**: Continue silently to Phase 1.
 
@@ -222,9 +220,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **PURPOSE**: Deterministically place referenced implementation inputs and constraints in the current context before any source edit.
 1. Run `pactkit spec-preflight docs/specs/{STORY_ID}.md --activate` in the current session.
 2. Review the emitted file excerpts, CSS custom properties, interfaces, and MUST/NEVER/禁止/必须/对齐 constraints before writing code.
-3. If a required input is missing, ambiguous, outside the project root, or exceeds its extraction budget, stop and fix the Spec declaration.
+3. If a required input is missing, ambiguous, outside the project root, or exceeds its extraction budget, mark completion incomplete and fix the declaration where authorized. Safe reading, diagnosis and repair remain available.
 4. Continue directly to Phase 1 in this session. A new session is never required; activation only binds the current host session for optional preflight enforcement.
-5. The Claude Code hook is deployed automatically; `pactkit preflight-guard --install` is the explicit repair command if local hook configuration was removed.
+5. The current host may provide a preflight guard; `pactkit preflight-guard --install` is an explicit repair command if its local configuration was removed. Guard failures must provide a next step and must not permanently lock safe work.
 
 ## 🎬 Phase 1: Precision Targeting
 0.  **Previous-session context (optional)**: You MAY inspect `pactkit continuation resume {STORY_ID}` for notes from an earlier session. Its status is never an execution gate: a blocked, completed, stale, or missing record does not prevent this session from implementing and verifying the current Story. Record a new checkpoint only as optional local handover evidence.
@@ -240,18 +238,18 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For **api_call**: Run `api_convention_summary(root)` to check API path prefixes and fetch function conventions. Use these conventions when writing new API calls to maintain consistency.
     - For **agent**: Check AgentParser output for orchestration edges so new code doesn't break agent flow.
 5.  **Solution Design Protocol (Conditional)** — if the implementation involves frameworks already used by the project:
-    - Execute the **Solution Design Protocol** from `{SKILLS_ROOT}/_rules/06-solution-design.md` to evaluate capability delta before writing code.
+    - Execute the **Capability Design** module from `{SKILLS_ROOT}/_rules/design/capability-design.md` to evaluate capability delta before writing code.
     - Output brief capability assessment before proceeding to Phase 1.5.
 
 ## 🔧 Phase 1.5: Engineering Concerns Loading (Conditional)
 > **PURPOSE**: Load only the NFR guides relevant to this Story — keeps context minimal while ensuring engineering rigor.
 1.  **Read Spec Technical Design**: Check if the Spec contains engineering concern decisions (from Plan Phase 2).
-2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/07-engineering-concerns.md` for the keyword→guide mapping table.
+2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/engineering/index.md` for the keyword→guide mapping table.
 3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
     - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
     - NEVER load all 13 guides.
     - If Spec has no engineering concerns section, skip this phase silently.
-4.  **Apply constraints**: Use the loaded guides' MUST/NEVER rules as implementation constraints in Phase 3.
+4.  **Apply decisions**: Use the loaded guides as risk-driven decision support. Their hard-safety notes are non-negotiable; defaults may be changed with project evidence.
 5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`
 
 ## 🎬 Phase 2: Test Scaffolding (TDD)
@@ -586,11 +584,11 @@ Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source
 If Act already verified lint with no later source/test change, log `"Lint: SKIP — Act already passed lint, no new changes"`. Otherwise run `pactkit lint` (or `LANG_PROFILES[stack].lint_command`); honor `auto_fix` and `lint_blocking`, and report non-blocking warnings. No configured command means skip.
 
 ### Step 3: Gate
-- If any test fails, **STOP immediately**. Do NOT proceed to commit.
-- **Do NOT attempt to fix** pre-existing test failures or modify code you do not understand.
+- If any test fails, do not commit or archive. Classify the failure and report the evidence.
+- Do not guess at a pre-existing test's intent. A user-authorized repair may continue after reading its governing Spec/Test Case; otherwise leave that failure unchanged and disclose it.
 - The agent MUST NOT assume it understands pre-existing test intent — the project may have adopted PDCA mid-way and there is no Spec for older features.
 - Report the failure to the user with: which test failed, what it appears to test, and which change likely caused it.
-- Only continue if ALL tests and lint checks are GREEN.
+- Proceed to commit/archive only if all required tests and blocking lint checks are green. Safe diagnosis and repair remain available.
 
 ## 🎬 Phase 3: Hygiene Check & Fix
 1.  **Verify**: Are tasks for this Story marked `[x]`?
@@ -611,7 +609,7 @@ If Act already verified lint with no later source/test change, log `"Lint: SKIP 
     - These are non-blocking: report warnings but do not stop the Done flow.
 6.  **Spec Status Update (MUST)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file. If `pactkit spec-status` is unavailable, manually edit the spec file.
 7.  **Archive Honesty Gate (CRITICAL — STORY-slim-136)**: Run `pactkit done-verify {STORY_ID}` — it mechanically verifies requirement→test evidence, checkbox↔case honesty, and status consistency (Spec Done + Board `[x]` + archive).
-    - **Any FAIL (exit ≠ 0)**: STOP. Print the evidence lines; do NOT archive or commit — the user resolves the findings first. WARN-only: print and proceed. CLI too old: warn that the gate was skipped, then proceed.
+    - **Any FAIL (exit ≠ 0)**: Print the evidence lines and do not archive or commit. Continue safe diagnosis or repair when it is within the user's request. WARN-only: print and proceed. CLI too old: warn that the gate was skipped, then proceed.
 8.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
 9.  **Harness Audit Refresh (Conditional)**: Run `pactkit audit --append --if-needed {STORY_ID}`. Only refreshes when `harness_audit.json` exists AND its `story_id` matches `{STORY_ID}` (this story owns the audit). Silently skips if no audit was ever run or if the audit belongs to a different story. If it runs and `ready` changed from `true` to `false`, WARN the user.
 
@@ -798,7 +796,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 1.  **Version Detection**: Check if `pyproject.toml` version was changed vs the previous commit.
     - Run `git diff HEAD~1 pyproject.toml | grep version` (or vs branch base)
     - Capture the new version value (e.g., `1.4.1`).
-    - If no version change detected: print "ℹ️ No version bump detected. Update `pyproject.toml` version before releasing." and STOP.
+    - If no version change is detected: print "ℹ️ No version bump detected. Update `pyproject.toml` version before releasing." Do not tag, publish, or create a release; safe release diagnosis remains available.
 2.  **Read Config**: Read `pactkit.yaml` to detect stack and release configuration.
 
 ## 🎬 Phase 1: Invoke pactkit-release Skill
@@ -819,16 +817,16 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 ## 🧠 Phase 0: Pre-flight Check
 1.  **Branch Check**:
     - Run `git branch --show-current` to get current branch name
-    - If branch is `main` or `master`: print "Skipping PR: working on main branch" → STOP
+    - If branch is `main` or `master`: print "Skipping PR: working on main branch" and do not push or create a PR.
 2.  **Existing PR Check**:
     - Run `gh pr list --head <branch> --state open --json number` to check for existing PR
-    - If PR exists: print "PR already open: <URL>" → STOP
-    - If `gh` CLI unavailable: print "⚠️ gh CLI not available — cannot create PR" → STOP
+    - If PR exists: print "PR already open: <URL>" and do not create a duplicate.
+    - If `gh` CLI is unavailable: print "⚠️ gh CLI not available — cannot create PR"; do not push solely for this command, but still provide the prepared title/body and diagnostics.
 3.  **Story Detection**: Infer active Story ID from branch name (e.g., `feature/STORY-051-desc` → `STORY-051`).
 
 ## 🎬 Phase 1: Push Assurance
 1.  **Check Remote**: If remote tracking branch does not exist, run `git push -u origin <branch>`.
-2.  **If push fails**: STOP and report the error.
+2.  **If push fails**: Do not create the PR. Report the error and preserve the local branch for retry.
 
 ## 🎬 Phase 2: PR Generation
 1.  **Generate PR Title**: Format `{type}({scope}): {spec_title}`

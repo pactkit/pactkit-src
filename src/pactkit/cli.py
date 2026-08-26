@@ -1291,6 +1291,7 @@ def main():
             check_graph_provider,
             check_hld_module_count,
             check_orphaned_specs,
+            check_rule_ownership,
             check_stale_graphs,
             check_workflow_continuation,
         )
@@ -1371,6 +1372,41 @@ def main():
             print(f"  ⚠️  {detail}")
         for warning in parity["warnings"]:
             print(f"  ⚠️  {warning}")
+
+        ownership = check_rule_ownership(root)
+        print(
+            "  Rule ownership: "
+            f"pactkit={len(ownership['pactkit_owned'])} "
+            f"project={len(ownership['project_owned'])} "
+            f"user={len(ownership['user_owned'])} "
+            f"conflicts={len(ownership['conflicts'])}"
+        )
+        for item in ownership["conflicts"]:
+            print(
+                f"  ⚠️  Rule conflict: {item['path']} preserved; "
+                f"review candidate {item['candidate']}"
+            )
+        for item in ownership["potential_conflicts"]:
+            print(
+                f"  ⚠️  Personal rule advisory: {item['path']}:{item['line']} "
+                f"contains {item['signal']}"
+            )
+        for warning in ownership["warnings"]:
+            print(f"  ⚠️  {warning}")
+
+        from pactkit.doctor import resolve_rule_context
+
+        resolution = resolve_rule_context("project-sprint")
+        loaded_rule_ids = ", ".join(item["id"] for item in resolution["loaded"])
+        print(
+            "  Rule resolution: "
+            f"command={resolution['command']} "
+            f"phase={resolution['active_phase'] or 'dynamic'} "
+            f"loaded={loaded_rule_ids or 'none'}"
+        )
+        print(f"  Rule precedence: {resolution['precedence']}")
+        for warning in resolution["warnings"]:
+            print(f"  ⚠️  Rule resolution: {warning}")
 
         from pactkit.doctor import check_codex_execution_capability
 

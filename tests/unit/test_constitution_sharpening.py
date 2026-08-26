@@ -176,35 +176,24 @@ class TestStructureIntact:
         for key in expected:
             assert key in p.RULES_MODULES, f"Missing rule key: {key}"
 
-    def test_all_rule_files_mapped(self):
+    def test_registry_files_are_mapped_by_logical_identity(self):
         p = _prompts()
-        # Global merged file
-        assert p.RULES_FILES['pactkit'] == 'pactkit.md'
-        # On-demand files with new numbering
+        assert p.RULES_FILES['runtime'] == 'pactkit-runtime.md'
         expected_ondemand = {
-            'workflow': '01-workflow-conventions.md',
-            'mcp': '02-mcp-integration.md',
-            'shared': '03-shared-protocols.md',
-            'architecture': '04-architecture-principles.md',
-            'sectional': '05-sectional-write.md',
-            'solution': '06-solution-design.md',
+            'git-workflow': 'execution/git-workflow.md',
+            'external-tools': 'execution/external-tools.md',
+            'shared-execution': 'execution/shared-execution.md',
+            'sectional-heuristics': 'execution/sectional-heuristics.md',
+            'capability-design': 'design/capability-design.md',
         }
-        for key, fname in expected_ondemand.items():
-            assert p.RULES_FILES[key] == fname
+        for key, filename in expected_ondemand.items():
+            assert p.RULES_FILES[key] == filename
 
     def test_claude_md_template_references_global_rules(self):
-        """CLAUDE_MD_TEMPLATE references the single merged pactkit.md global file.
-        On-demand rules (01-workflow-conventions, 02-mcp-integration, etc.) are loaded via
-        @import in skill commands, not in the global CLAUDE_MD_TEMPLATE.
-        """
+        """Only the Runtime Kernel is a global Claude import."""
         p = _prompts()
-        # Merged global file should be in CLAUDE_MD_TEMPLATE
-        assert 'pactkit.md' in p.CLAUDE_MD_TEMPLATE, (
-            "CLAUDE_MD_TEMPLATE should reference pactkit.md (merged global rules)"
-        )
-        # On-demand rules should NOT be in CLAUDE_MD_TEMPLATE (they're in skills/_rules/)
-        for fname in ['01-workflow-conventions', '02-mcp-integration']:
-            assert fname not in p.CLAUDE_MD_TEMPLATE, (
-                f"On-demand rule '{fname}' should NOT be in CLAUDE_MD_TEMPLATE "
-                f"(deployed to skills/_rules/, not rules/)"
+        assert 'pactkit-runtime.md' in p.CLAUDE_MD_TEMPLATE
+        for filename in ['execution/git-workflow.md', 'execution/external-tools.md']:
+            assert filename not in p.CLAUDE_MD_TEMPLATE, (
+                f"On-demand rule '{filename}' should not be globally imported"
             )

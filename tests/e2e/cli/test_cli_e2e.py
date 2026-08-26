@@ -297,20 +297,17 @@ class TestDeploymentCompleteness:
                 f"{skill_name}/scripts/{script_file} missing"
 
     def test_all_rules_deployed(self, deploy_target):
-        """AC4: All 12 rule files deployed across two directories (STORY-slim-112).
-
-        Global rules (6) → rules/
-        On-demand rules (6) → skills/_rules/
-        Combined stems must match VALID_RULES exactly.
-        """
-        from pactkit.config import VALID_RULES
+        """The Runtime and command-scoped registry rules use their declared paths."""
         from pactkit.prompts.rules import RULES_CORE_FILES, RULES_ONDEMAND_FILES, RULES_ONDEMAND_DIR
 
         rules_dir = deploy_target / "rules"
         ondemand_dir = deploy_target / "skills" / RULES_ONDEMAND_DIR
 
         # Global rules in rules/
-        global_deployed = {f.stem for f in rules_dir.glob("*.md")}
+        global_deployed = {
+            f.relative_to(rules_dir).as_posix().removesuffix(".md")
+            for f in rules_dir.rglob("*.md")
+        }
         expected_global = {fn.removesuffix(".md") for fn in RULES_CORE_FILES.values()}
         assert global_deployed == expected_global, (
             f"rules/ should contain exactly global rules. "
@@ -319,19 +316,28 @@ class TestDeploymentCompleteness:
 
         # On-demand rules in skills/_rules/
         assert ondemand_dir.exists(), f"On-demand rules dir {ondemand_dir} should exist"
-        ondemand_deployed = {f.stem for f in ondemand_dir.glob("*.md")}
-        expected_ondemand = {fn.removesuffix(".md") for fn in RULES_ONDEMAND_FILES.values()}
+        ondemand_deployed = {
+            f.relative_to(ondemand_dir).as_posix().removesuffix(".md")
+            for f in ondemand_dir.rglob("*.md")
+            if "guides" not in f.relative_to(ondemand_dir).parts
+        }
+        from pactkit.config import is_pactkit_self_development_root
+
+        expected_ondemand = {
+            filename.removesuffix(".md")
+            for rule_id, filename in RULES_ONDEMAND_FILES.items()
+            if rule_id != "pactkit-maintainer"
+            or is_pactkit_self_development_root(PROJECT_ROOT)
+        }
         assert ondemand_deployed == expected_ondemand, (
             f"skills/_rules/ should contain exactly on-demand rules. "
             f"Expected: {sorted(expected_ondemand)}, got: {sorted(ondemand_deployed)}"
         )
 
-        # Combined must equal VALID_RULES
+        # VALID_RULES also accepts legacy aliases, which deliberately have no
+        # duplicate artifacts. The deployed union must match the registry.
         all_deployed = global_deployed | ondemand_deployed
-        assert all_deployed == set(VALID_RULES), (
-            f"All deployed rules must equal VALID_RULES. "
-            f"Missing: {set(VALID_RULES) - all_deployed}, Extra: {all_deployed - set(VALID_RULES)}"
-        )
+        assert all_deployed == expected_global | expected_ondemand
 
     def test_no_empty_files(self, deploy_target):
         """AC5: Every deployed file has non-zero byte size."""
@@ -367,13 +373,13 @@ class TestDeploymentCompleteness:
                 assert field in content, \
                     f"{cmd_file.name}: missing frontmatter field '{field}'"
 
-    def test_claude_md_no_global_rule_imports(self, deploy_target):
-        """STORY-slim-011 AC11: CLAUDE.md no longer has global rule @imports (rules are per-command)."""
+    def test_claude_md_imports_runtime_only(self, deploy_target):
+        """The small Runtime Kernel is global; phase rules are command-local."""
         content = (deploy_target / "CLAUDE.md").read_text()
         rule_lines = [ln for ln in content.splitlines() if ln.startswith("@~/.claude/rules/")]
-        assert len(rule_lines) == 0, \
-            f"CLAUDE.md should not have global rule imports, found: {rule_lines}"
-        assert "# PactKit Global Constitution" in content
+        assert rule_lines == ["@~/.claude/rules/pactkit-runtime.md"]
+        assert "skills/_rules" not in content
+        assert "# PactKit Runtime Contract" in content
 
 
 @pytest.mark.e2e

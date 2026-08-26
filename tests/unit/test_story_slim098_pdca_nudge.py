@@ -84,30 +84,29 @@ class TestNudgeRegistration:
         assert 'nudge' in RULES_MODULES
 
     def test_managed_prefixes_covers_pactkit(self):
-        """Post-merge: global content identified by 'pactkit' name."""
+        """The Runtime Kernel remains the sole globally managed rule."""
         from pactkit.prompts.rules import RULES_MANAGED_PREFIXES
-        assert 'pactkit' in RULES_MANAGED_PREFIXES
+        assert 'pactkit-runtime' in RULES_MANAGED_PREFIXES
 
 
 class TestAC6DeployVerification:
-    """AC6: Deploy produces merged pactkit.md containing nudge content."""
+    """Deployment keeps Runtime minimal and loads workflow guidance by command."""
 
     def test_deployed_pactkit_has_pdca_nudge(self, tmp_path):
-        """Merged pactkit.md contains nudge section."""
+        """Runtime explicitly prevents unsolicited PDCA takeover."""
         _deploy(tmp_path)
-        pactkit = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
-        assert '## PDCA Nudge' in pactkit
+        runtime = (tmp_path / '.claude' / 'rules' / 'pactkit-runtime.md').read_text()
+        assert 'ordinary questions\nor coding into PDCA automatically' in runtime
 
     def test_deployed_pactkit_rule_exists(self, tmp_path):
         _deploy(tmp_path)
-        pactkit_file = tmp_path / '.claude' / 'rules' / 'pactkit.md'
-        assert pactkit_file.is_file()
-        content = pactkit_file.read_text()
+        runtime_file = tmp_path / '.claude' / 'rules' / 'pactkit-runtime.md'
+        assert runtime_file.is_file()
+        content = runtime_file.read_text()
         assert len(content.strip()) > 50
 
     def test_deployed_nudge_has_trigger_matrix(self, tmp_path):
-        """Nudge trigger matrix is in the merged pactkit.md."""
+        """A requested skill receives its scoped phase contract."""
         _deploy(tmp_path)
-        content = (tmp_path / '.claude' / 'rules' / 'pactkit.md').read_text()
-        assert '/project-hotfix' in content
-        assert '/project-plan' in content
+        content = (tmp_path / '.claude' / 'skills' / 'project-hotfix' / 'SKILL.md').read_text()
+        assert 'hotfix-contract.md' in content

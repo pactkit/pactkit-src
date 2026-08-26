@@ -1,9 +1,9 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
-import subprocess
-import sys
 
 from pactkit.spec_preflight import (
     PreflightError,
@@ -90,6 +90,22 @@ def test_discovers_basename_and_inline_line_range_references(tmp_path):
     assert "--surface" in result.rendered
     assert "3: row 3" in result.rendered
     assert "5: row 5" in result.rendered
+
+
+def test_ignores_ambiguous_bare_basename_mentioned_in_prose(tmp_path):
+    root, spec = _project(tmp_path)
+    (root / "one").mkdir()
+    (root / "two").mkdir()
+    (root / "one" / "SKILL.md").write_text("one\n")
+    (root / "two" / "SKILL.md").write_text("two\n")
+    spec.write_text(
+        "# STORY-033\n\nCodex stores each command in a `SKILL.md` file.\n"
+    )
+
+    result = run_spec_preflight(root, spec)
+
+    assert result.receipt["inputs"] == []
+    assert "SKILL.md [" not in result.rendered
 
 
 def test_required_missing_input_fails_and_does_not_write_receipt(tmp_path):

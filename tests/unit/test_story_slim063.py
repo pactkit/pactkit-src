@@ -51,7 +51,8 @@ class TestAC1CommandsDeployedToSkillsDir:
         _deploy_commands(skills_dir, ["project-plan"], profile=profile, config={})
 
         content = (skills_dir / "project-plan" / "SKILL.md").read_text()
-        assert "@~/.claude/rules/" in content
+        assert "@~/.claude/skills/_rules/" in content
+        assert "@~/.claude/rules/" not in content
 
 
 class TestAC2ValidSkillsContainsAll:

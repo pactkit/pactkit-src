@@ -13,7 +13,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from pactkit.generators.deployer import deploy
 from pactkit.prompts import AGENTS_EXPERT, COMMANDS_CONTENT
-from pactkit.prompts.rules import RULES_MODULES
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -136,29 +135,28 @@ class TestPluginClaudeMd:
         content = (out / "CLAUDE.md").read_text()
         assert "@~/.claude/" not in content
 
-    def test_contains_core_protocol(self, tmp_path):
+    def test_contains_runtime_kernel_only(self, tmp_path):
         out = _run_deploy_plugin(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        assert "# Core Protocol" in content
-        assert "Strict TDD" in content
+        assert "# PactKit Runtime Contract" in content
+        assert "current session" in content.lower()
+        assert "Strict TDD" not in content
 
-    def test_contains_hierarchy_of_truth(self, tmp_path):
+    def test_does_not_promote_phase_rules_to_global_plugin_context(self, tmp_path):
         out = _run_deploy_plugin(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        assert "# The Hierarchy of Truth" in content
+        assert "# Act Contract" not in content
+        assert "# Git Workflow" not in content
 
-    def test_contains_all_rule_modules(self, tmp_path):
+    def test_plugin_runtime_is_self_contained_without_host_imports(self, tmp_path):
         out = _run_deploy_plugin(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        for key, module_content in RULES_MODULES.items():
-            # Check the first heading line of each module is present
-            first_line = module_content.strip().split('\n')[0]
-            assert first_line in content, f"Missing rule module: {key} (expected: {first_line})"
+        assert "@~/.claude/" not in content
 
     def test_has_constitution_header(self, tmp_path):
         out = _run_deploy_plugin(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        assert "PactKit Global Constitution" in content
+        assert "PactKit Runtime Contract" in content
 
 
 # ===========================================================================
@@ -168,12 +166,13 @@ class TestPluginClaudeMd:
 class TestClassicModeUnchanged:
     """Acceptance Criteria Scenario 4: Classic 模式不受影响"""
 
-    def test_classic_claude_md_no_global_rule_imports(self, tmp_path):
-        """STORY-slim-011: CLAUDE.md no longer has global rule @imports."""
+    def test_classic_claude_md_imports_runtime_only(self, tmp_path):
+        """Classic keeps exactly the small Runtime Kernel globally active."""
         out = _run_deploy_classic(tmp_path)
         content = (out / "CLAUDE.md").read_text()
-        assert "@~/.claude/rules/" not in content
-        assert "# PactKit Global Constitution" in content
+        assert "@~/.claude/rules/pactkit-runtime.md" in content
+        assert "skills/_rules" not in content
+        assert "# PactKit Runtime Contract" in content
 
     def test_classic_has_rules_dir(self, tmp_path):
         """STORY-slim-112: Global rules in rules/, on-demand rules in skills/_rules/."""
@@ -187,7 +186,9 @@ class TestClassicModeUnchanged:
         # On-demand rules must be in skills/_rules/
         ondemand_dir = out / "skills" / RULES_ONDEMAND_DIR
         assert ondemand_dir.is_dir(), "skills/_rules/ should exist"
-        for filename in RULES_ONDEMAND_FILES.values():
+        for rule_id, filename in RULES_ONDEMAND_FILES.items():
+            if rule_id == "pactkit-maintainer":
+                continue
             assert (ondemand_dir / filename).is_file(), f"Missing on-demand rule: {filename}"
 
     def test_classic_no_plugin_dir(self, tmp_path):
@@ -199,7 +200,7 @@ class TestClassicModeUnchanged:
         out = tmp_path / ".claude"
         deploy(target=str(out))
         content = (out / "CLAUDE.md").read_text()
-        assert "PactKit Global Constitution" in content
+        assert "PactKit Runtime Contract" in content
         assert not (out / ".claude-plugin").exists()
 
 
@@ -265,7 +266,7 @@ class TestCliFormatArgument:
         with patch("sys.argv", ["pactkit", "init", "--format", "classic", "-t", str(out)]):
             main()
         assert (out / "CLAUDE.md").is_file()
-        assert "PactKit Global Constitution" in (out / "CLAUDE.md").read_text()
+        assert "PactKit Runtime Contract" in (out / "CLAUDE.md").read_text()
 
     def test_cli_default_format_is_all(self, tmp_path):
         """pactkit init (no --format) defaults to 'all' (all IDE formats)."""

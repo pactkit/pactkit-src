@@ -17,6 +17,10 @@ from typing import Union
 
 import yaml
 
+# This module is intentionally imported after the standard dependencies: the
+# rule registry depends only on PactKit's version module and never on config.
+from pactkit.prompts.rules import RULE_DEFINITIONS, RULE_ID_ALIASES
+
 # ---------------------------------------------------------------------------
 # Valid identifiers (the registry of all known components)
 # ---------------------------------------------------------------------------
@@ -84,20 +88,18 @@ VALID_SKILLS = frozenset(
     }
 )
 
-VALID_RULES = frozenset(
-    {
-        # Global rules (deployed to ~/.claude/rules/ as single merged file)
-        "pactkit",                # merged: core + hierarchy + atlas + routing + principles + nudge
-        # On-demand rules (deployed to ~/.claude/skills/_rules/, loaded via @import)
-        "01-workflow-conventions",
-        "02-mcp-integration",
-        "03-shared-protocols",
-        "04-architecture-principles",
-        "05-sectional-write",
-        "06-solution-design",
-        "07-engineering-concerns",
-    }
-)
+# Rules are a logical registry, not a filename convention.  Keep legacy IDs
+# accepted for existing pactkit.yaml files; deployment normalizes them to the
+# current ID before rendering.  This import is safe: prompts.rules depends only
+# on the version module, never on config.
+
+CURRENT_RULE_IDS = frozenset(RULE_DEFINITIONS)
+LEGACY_RULE_IDS = frozenset(set(RULE_ID_ALIASES) - set(CURRENT_RULE_IDS))
+VALID_RULES = CURRENT_RULE_IDS | LEGACY_RULE_IDS
+# The maintainer overlay is intentionally opt-in.  It protects PactKit's own
+# repository and adapter work, but must not be deployed into ordinary projects
+# merely because PactKit is installed there.
+DEFAULT_RULE_IDS = CURRENT_RULE_IDS - {"pactkit-maintainer"}
 
 VALID_STACKS = frozenset({"auto", "python", "node", "go", "java"})
 
@@ -395,7 +397,10 @@ CONFIG_SCHEMA: dict[str, dict] = {
         "validator": _make_component_list_validator(VALID_SKILLS),
     },
     "rules": {
-        "default": sorted(VALID_RULES),
+        # New configs use logical registry IDs.  VALID_RULES also accepts
+        # legacy identifiers solely so an existing pactkit.yaml can upgrade
+        # without becoming invalid.
+        "default": sorted(DEFAULT_RULE_IDS),
         "deep_merge": False,
         "kind": "list",
         "comment": "# Rules — constitution modules",
@@ -557,6 +562,41 @@ DEEP_MERGE_KEYS = frozenset(k for k, v in CONFIG_SCHEMA.items() if v["deep_merge
 def get_default_config() -> dict:
     """Return the default config with all components enabled."""
     return {k: copy.deepcopy(v["default"]) for k, v in CONFIG_SCHEMA.items() if not v.get("optional")}
+
+
+def is_pactkit_self_development_root(project_root: Path | str) -> bool:
+    """Return whether *project_root* is the PactKit source repository.
+
+    The maintainer overlay is intentionally not a user-selectable business
+    default.  Detecting the actual source layout avoids enabling it merely
+    because an unrelated repository happens to be named "pactkit".
+    """
+    root = Path(project_root).resolve()
+    pyproject = root / "pyproject.toml"
+    if not (root / "src" / "pactkit").is_dir() or not pyproject.is_file():
+        return False
+    try:
+        return bool(re.search(r'(?m)^name\s*=\s*["\']pactkit["\']\s*$', pyproject.read_text(encoding="utf-8")))
+    except OSError:
+        return False
+
+
+def activate_pactkit_maintainer_overlay(config: dict, project_root: Path | str) -> dict:
+    """Add the maintainer overlay only for PactKit self-development.
+
+    The private marker is consumed by command renderers so the overlay is
+    referenced by phase skills as well as being deployed.  Callers receive a
+    copy and never have their user-provided configuration mutated.
+    """
+    if not is_pactkit_self_development_root(project_root):
+        return config
+    effective = copy.deepcopy(config)
+    rules = list(effective.get("rules", sorted(DEFAULT_RULE_IDS)))
+    if "pactkit-maintainer" not in rules:
+        rules.append("pactkit-maintainer")
+    effective["rules"] = rules
+    effective["_pactkit_self_development"] = True
+    return effective
 
 
 # ---------------------------------------------------------------------------
@@ -881,6 +921,12 @@ def auto_merge_config_file(path: Union[Path, str]) -> list[str]:
     # If a list key is absent from yaml, it means "deploy all" (VALID_* default).
     # Only merge if the user explicitly provides a list (opt-in customization).
     for key, valid_set in _REGISTRY.items():
+        # Rule aliases are read compatibility only.  Upgrade must never write
+        # deprecated names back into a user's configuration, nor implicitly
+        # enable the PactKit-maintainer overlay for ordinary projects.
+        # Validation still uses VALID_RULES through _REGISTRY.
+        if key == "rules":
+            valid_set = DEFAULT_RULE_IDS
         user_list = user_data.get(key)
         if user_list is None:
             # Key absent = deploy all by default. No backfill needed.

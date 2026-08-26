@@ -63,8 +63,11 @@ class TestDeployerLineCount:
     """AC6: deployer.py should be significantly smaller after 057+058+059."""
 
     def test_deployer_reduced_from_original(self):
-        """deployer.py line budget. Bumped 1660 -> 1760 for STORY-slim-145 R2:
-        operation tokens ({PACTKIT_OP_*}) in var_map + Core CLI→fallback replace
-        in _render_prompt are required structured-operation-contract code."""
+        """Deployer budget includes 2.24 ownership and registry safety.
+
+        STORY-slim-20260825b1c83a046b4b adds registry normalization, nested
+        rule routing, manifest-backed conflict preservation, and Runtime
+        entrypoint migration. Prompt budgets remain constrained separately.
+        """
         lines = (_SRC_ROOT / "generators" / "deployer.py").read_text().splitlines()
-        assert len(lines) < 1760, f"deployer.py has {len(lines)} lines, should be < 1760"
+        assert len(lines) < 1900, f"deployer.py has {len(lines)} lines, should be < 1900"

@@ -49,13 +49,13 @@ class TestTriggerIndexRule:
 
     def test_engineering_key_in_ondemand_files(self):
         rules = _rules()
-        assert "engineering" in rules.RULES_ONDEMAND_FILES, (
-            "RULES_ONDEMAND_FILES must contain 'engineering' key"
+        assert "engineering-index" in rules.RULES_ONDEMAND_FILES, (
+            "RULES_ONDEMAND_FILES must contain the engineering-index key"
         )
 
     def test_engineering_filename(self):
         rules = _rules()
-        assert rules.RULES_ONDEMAND_FILES["engineering"] == "07-engineering-concerns.md"
+        assert rules.RULES_ONDEMAND_FILES["engineering-index"] == "engineering/index.md"
 
     def test_engineering_content_has_keyword_table(self):
         rules = _rules()
@@ -65,25 +65,25 @@ class TestTriggerIndexRule:
 
     def test_engineering_in_valid_rules(self):
         config = _config()
-        assert "07-engineering-concerns" in config.VALID_RULES
+        assert "engineering-index" in config.VALID_RULES
 
     def test_engineering_referenced_in_plan_command(self):
         """Plan command references engineering concerns for on-demand Read."""
         import pactkit.prompts as prompts
         importlib.reload(prompts)
         plan_content = prompts.COMMANDS_CONTENT["project-plan.md"]
-        assert "07-engineering-concerns.md" in plan_content
+        assert "engineering/index.md" in plan_content
 
     def test_engineering_referenced_in_act_command(self):
         """Act command references engineering concerns for on-demand Read."""
         import pactkit.prompts as prompts
         importlib.reload(prompts)
         act_content = prompts.COMMANDS_CONTENT["project-act.md"]
-        assert "07-engineering-concerns.md" in act_content
+        assert "engineering/index.md" in act_content
 
-    def test_ondemand_prefixes_includes_07(self):
+    def test_engineering_index_uses_logical_path_not_numeric_prefix(self):
         rules = _rules()
-        assert "07-" in rules.RULES_ONDEMAND_PREFIXES
+        assert rules.RULES_ONDEMAND_PREFIXES == []
 
 
 # ---------------------------------------------------------------------------
@@ -110,12 +110,15 @@ class TestGuidesFiles:
         "performance-antipatterns.md",
         "graceful-shutdown.md",
         "testing-strategy.md",
+        "operational-readiness.md",
+        "dependency-supply-chain.md",
+        "ui-state-accessibility.md",
     }
 
-    def test_guides_files_has_19_entries(self):
+    def test_guides_files_has_22_entries(self):
         guides = _guides()
-        assert len(guides.GUIDES_FILES) == 19, (
-            f"GUIDES_FILES should have 19 entries, got {len(guides.GUIDES_FILES)}: "
+        assert len(guides.GUIDES_FILES) == 22, (
+            f"GUIDES_FILES should have 22 entries, got {len(guides.GUIDES_FILES)}: "
             f"{list(guides.GUIDES_FILES.keys())}"
         )
 
@@ -131,19 +134,18 @@ class TestGuidesFiles:
                 f"Guide '{filename}' has {line_count} lines (max 50)"
             )
 
-    def test_each_guide_has_must_section(self):
+    def test_each_guide_has_risk_driven_sections(self):
         guides = _guides()
         for filename, content in guides.GUIDES_FILES.items():
-            assert "MUST" in content or "must" in content.lower(), (
-                f"Guide '{filename}' missing MUST rules"
-            )
-
-    def test_each_guide_has_never_section(self):
-        guides = _guides()
-        for filename, content in guides.GUIDES_FILES.items():
-            assert "NEVER" in content or "never" in content.lower(), (
-                f"Guide '{filename}' missing NEVER rules"
-            )
+            for section in (
+                "## Trigger", "## Questions", "## Safe Invariants",
+                "## Defaults", "## Alternatives", "## Evidence",
+                "## Non-applicable",
+            ):
+                assert section in content, f"Guide '{filename}' missing {section}"
+            body = content.split("## Evidence", 1)[-1]
+            assert "## MUST" not in body
+            assert "## NEVER" not in body
 
     def test_deploy_guides_creates_directory(self):
         from pactkit.generators.deployer import _deploy_guides
@@ -152,9 +154,9 @@ class TestGuidesFiles:
             count = _deploy_guides(claude_root)
             guides_dir = claude_root / "skills" / "_rules" / "guides"
             assert guides_dir.exists()
-            assert count == 19
+            assert count == 22
             files = list(guides_dir.glob("*.md"))
-            assert len(files) == 19
+            assert len(files) == 22
 
     def test_deploy_guides_file_content_matches_source(self):
         from pactkit.generators.deployer import _deploy_guides

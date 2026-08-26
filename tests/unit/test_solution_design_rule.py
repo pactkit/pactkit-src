@@ -28,29 +28,25 @@ class TestSolutionDesignRuleRegistered:
     def test_rules_files_has_solution(self):
         """Solution design file mapping exists."""
         p = _prompts()
-        assert "solution" in p.RULES_FILES
-        # Post-merge refactor: solution is now 06-solution-design.md
-        assert p.RULES_FILES["solution"] == "06-solution-design.md"
+        assert "capability-design" in p.RULES_FILES
+        assert p.RULES_FILES["capability-design"] == "design/capability-design.md"
 
-    def test_managed_prefixes_has_06(self):
-        """Post-merge: 06- is an on-demand prefix (in RULES_ONDEMAND_PREFIXES).
-        RULES_MANAGED_PREFIXES only covers global rules deployed to rules/.
-        """
+    def test_legacy_solution_identifier_normalizes_to_capability_design(self):
         p = _prompts()
-        assert "06-" in p.RULES_ONDEMAND_PREFIXES
+        from pactkit.prompts.rules import normalize_rule_id
+
+        assert normalize_rule_id("solution") == "capability-design"
+        assert normalize_rule_id("06-solution-design") == "capability-design"
 
     def test_valid_rules_has_solution(self):
-        """06-solution-design is in VALID_RULES."""
+        """The current logical ID is accepted by config validation."""
         c = _config()
-        assert "06-solution-design" in c.VALID_RULES
+        assert "capability-design" in c.VALID_RULES
 
     def test_claude_md_template_imports_solution(self):
-        """Post-merge: 06-solution-design is on-demand (not in global CLAUDE_MD_TEMPLATE).
-        It is deployed to skills/_rules/ and loaded via @import in command prompts.
-        """
+        """Capability design is command scoped, not globally loaded."""
         p = _prompts()
-        # On-demand rule — in RULES_ONDEMAND_FILES, not in CLAUDE_MD_TEMPLATE
-        assert "06-solution-design.md" in p.RULES_ONDEMAND_FILES.values()
+        assert "design/capability-design.md" in p.RULES_ONDEMAND_FILES.values()
 
 
 class TestSolutionDesignContent:
@@ -136,10 +132,10 @@ class TestPlaybookIntegration:
         """R8: project-plan references solution design rule for on-demand Read."""
         p = _prompts()
         plan_content = p.COMMANDS_CONTENT["project-plan.md"]
-        assert "06-solution-design.md" in plan_content
+        assert "design/capability-design.md" in plan_content
 
     def test_act_command_references_solution_design(self):
         """R8: project-act references solution design rule for on-demand Read."""
         p = _prompts()
         act_content = p.COMMANDS_CONTENT["project-act.md"]
-        assert "06-solution-design.md" in act_content
+        assert "design/capability-design.md" in act_content

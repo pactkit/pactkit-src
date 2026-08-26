@@ -49,9 +49,11 @@ class TestGetDefaultConfig:
         assert len(cfg["skills"]) == 25
 
     def test_default_rules_count(self):
-        """8 rule modules (1 merged global + 7 on-demand, post STORY-slim-128)."""
+        """New configurations deploy every current logical registry rule."""
+        from pactkit.config import DEFAULT_RULE_IDS
+
         cfg = _config().get_default_config()
-        assert len(cfg["rules"]) == 8
+        assert set(cfg["rules"]) == set(DEFAULT_RULE_IDS)
 
     def test_default_stack_is_auto(self):
         cfg = _config().get_default_config()

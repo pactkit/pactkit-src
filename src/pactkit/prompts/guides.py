@@ -1,657 +1,278 @@
-"""Engineering Concern Guides — on-demand loaded by Act Phase 1.5.
+"""Native, risk-driven engineering guides.
 
-Each guide is < 50 lines, format: Decision Table + MUST + NEVER + Template.
-Deployed to ~/.claude/skills/_rules/guides/ by deployer._deploy_guides().
+Each guide separates correctness boundaries from overridable defaults and
+states when it does not apply. Guides are loaded only from concrete risk
+evidence; they are never global workflow gates.
 """
 
-GUIDES_FILES = {
-    "concurrency.md": """\
-# Concurrency — Implementation Guide
+from __future__ import annotations
 
-## Decision Table
-| Scenario | Choice | Reason |
-|----------|--------|--------|
-| I/O-bound batch (network, file) | asyncio / ThreadPoolExecutor | Release CPU while waiting |
-| CPU-bound (image, crypto, ML) | ProcessPoolExecutor / multiprocessing | Bypass GIL |
-| Mixed I/O + CPU | async + ProcessPoolExecutor | async for I/O, process for compute |
-| Shared mutable state required | threading + Lock | IPC overhead too high |
-| Crash isolation needed | multiprocessing | Child crash won't kill parent |
+from dataclasses import dataclass
 
-## MUST
-- Pool size MUST be configurable (not hardcoded)
-- Shared mutable state MUST have explicit synchronization (Lock/Queue)
-- All pools MUST support graceful shutdown (signal handling + join with timeout)
-- Thread/process count MUST have an upper bound
 
-## NEVER
-- NEVER create unbounded threads/processes in a loop
-- NEVER use threading for CPU-bound work in Python (GIL)
-- NEVER share mutable state without synchronization
+@dataclass(frozen=True)
+class GuideDefinition:
+    title: str
+    trigger: str
+    questions: tuple[str, ...]
+    safe_invariants: tuple[str, ...]
+    defaults: tuple[str, ...]
+    alternatives: tuple[str, ...]
+    evidence: tuple[str, ...]
+    non_applicable: tuple[str, ...]
 
-## Template
-```python
-from concurrent.futures import ThreadPoolExecutor
-with ThreadPoolExecutor(max_workers=config.POOL_SIZE) as pool:
-    results = list(pool.map(process_item, items))
-```
-""",
+    @property
+    def hard_safety(self) -> tuple[str, ...]:
+        """Compatibility alias for consumers of the 2.23 metadata API."""
+        return self.safe_invariants
 
-    "async-patterns.md": """\
-# Async Patterns — Implementation Guide
+    def render(self) -> str:
+        sections = (
+            ("Trigger", (self.trigger,)),
+            ("Questions", self.questions),
+            ("Safe Invariants", self.safe_invariants),
+            ("Defaults", self.defaults),
+            ("Alternatives", self.alternatives),
+            ("Evidence", self.evidence),
+            ("Non-applicable", self.non_applicable),
+        )
+        blocks = [f"# {self.title} — Engineering Guide"]
+        for heading, values in sections:
+            blocks.append(
+                f"## {heading}\n" + "\n".join(f"- {value}" for value in values)
+            )
+        return "\n\n".join(blocks) + "\n"
 
-## Decision Table
-| Scenario | Choice |
-|----------|--------|
-| Web server (FastAPI, aiohttp) | async mandatory |
-| Many concurrent I/O (100+ parallel requests) | async preferred |
-| Simple script, few I/O calls | sync — simpler |
-| All dependencies are sync-only | sync — avoid run_in_executor everywhere |
 
-## MUST
-- Blocking calls in async context MUST use `loop.run_in_executor()`
-- All async resources MUST use `async with` (connections, files, locks)
-- Every awaitable MUST have timeout (`asyncio.wait_for(coro, timeout=)`)
-- Choose sync or async at project start — MUST NOT mix architectures
-
-## NEVER
-- NEVER call `requests.*`, `time.sleep()`, sync file I/O inside async functions
-- NEVER forget to `await` a coroutine (silent no-op)
-- NEVER use `asyncio.run()` inside an already-running event loop
-
-## Template
-```python
-async with httpx.AsyncClient(timeout=10.0) as client:
-    response = await asyncio.wait_for(
-        client.get(url), timeout=15.0
+def _guide(
+    title: str,
+    trigger: str,
+    questions: tuple[str, ...],
+    safe_invariants: tuple[str, ...],
+    defaults: tuple[str, ...],
+    alternatives: tuple[str, ...],
+    evidence: tuple[str, ...],
+    non_applicable: tuple[str, ...],
+) -> GuideDefinition:
+    return GuideDefinition(
+        title=title,
+        trigger=trigger,
+        questions=questions,
+        safe_invariants=safe_invariants,
+        defaults=defaults,
+        alternatives=alternatives,
+        evidence=evidence,
+        non_applicable=non_applicable,
     )
-```
-""",
 
-    "configuration.md": """\
-# Configuration — Implementation Guide
 
-## Layering (highest priority first)
-1. Environment variables (12-factor)
-2. Command-line arguments
-3. Environment-specific config file (config.prod.yaml)
-4. Default config file (config.default.yaml)
-5. Code constants (named, with semantic meaning)
-
-## MUST
-- Values that differ across environments MUST be config, not code
-- Every magic number MUST have a named constant with semantic name
-- Secrets (API keys, passwords) MUST use env vars or secret manager, NEVER in config files
-- Config loading MUST fail fast on missing required values (not silently use None)
-
-## NEVER
-- NEVER hardcode IP addresses, ports, or URLs in source code
-- NEVER commit secrets to version control
-- NEVER use bare literals (30, 8080, "localhost") without naming
-
-## Classification
-| Type | Where | Example |
-|------|-------|---------|
-| Secret | env var / Vault | API_KEY, DB_PASSWORD |
-| Environment-specific | config file | DB_HOST, LOG_LEVEL |
-| Tuning parameter | config with default | POOL_SIZE, TIMEOUT_SEC |
-| True constant | code constant | HTTP_OK = 200, PI = 3.14159 |
-""",
-
-    "observability.md": """\
-# Observability — Implementation Guide
-
-## Three Pillars
-| Pillar | Tool | Purpose |
-|--------|------|---------|
-| Logs | structlog / loguru | Discrete events ("what happened") |
-| Metrics | prometheus / statsd | Aggregates ("how many, how fast") |
-| Traces | OpenTelemetry | Request flow ("which path, where slow") |
-
-## MUST
-- Use structured logging library (NOT print)
-- Each module: `logger = structlog.get_logger(__name__)`
-- ERROR logs MUST include: context to reproduce (inputs, state, traceback)
-- All logs MUST include request_id / trace_id for correlation
-- Log rotation MUST be configured (prevent disk exhaustion)
-
-## NEVER
-- NEVER use `print()` for production logging
-- NEVER log secrets (passwords, tokens, PII)
-- NEVER log inside hot loops without sampling or DEBUG guard
-- NEVER use wrong level (login=INFO not ERROR; connection failure=ERROR not DEBUG)
-
-## Level Guide
-| Level | Meaning | Example |
-|-------|---------|---------|
-| DEBUG | Dev only | SQL queries, variable values |
-| INFO | Normal business events | User login, order created |
-| WARN | Abnormal but recovered | Retry succeeded, fallback triggered |
-| ERROR | Failed, needs attention | Request failed, data inconsistency |
-""",
-
-    "module-design.md": """\
-# Module Design — Implementation Guide
-
-## Boundary Criteria (when to extract a module)
-1. Change direction is consistent — one requirement change affects only this module
-2. Independently testable — no full system needed
-3. Interface is stable — internal refactoring doesn't break callers
-4. Single responsibility — describable in one sentence
-
-## MUST
-- Single file SHOULD NOT exceed 300 lines
-- Single function SHOULD NOT exceed 50 lines
-- Inter-module communication MUST use public interface only
-- New feature MUST check: does an existing module own this responsibility?
-- Circular dependencies MUST be resolved (indicates layering violation)
-
-## NEVER
-- NEVER access `_private` members from outside the module
-- NEVER create "util" or "helper" modules (dumping ground anti-pattern)
-- NEVER abstract prematurely — wait for 3 occurrences (Rule of Three)
-
-## Abstraction Decision
-| Signal | Action |
-|--------|--------|
-| Same pattern 1-2 times | Tolerate duplication |
-| Same pattern 3+ times | Extract shared abstraction |
-| Extraction makes caller harder to read | Don't extract |
-| Module needs god-object disclaimer | Split by responsibility |
-""",
-
-    "database.md": """\
-# Database — Implementation Guide
-
-## Decision Table
-| Scenario | Strategy |
-|----------|----------|
-| Single-row concurrent update | Optimistic lock: `WHERE version = ?` + retry |
-| Counter / balance | Atomic: `SET x = x + ?` |
-| Batch update | Chunk < 1000 rows, independent transactions |
-| Read-heavy, low conflict | No lock, rely on MVCC |
-
-## MUST
-- Use connection pool (project's existing engine/pool)
-- All connections via `async with` / `with` context manager
-- Transactions MUST be minimal scope (no network calls inside txn)
-- Connection acquire MUST have timeout
-- Pool size MUST be configurable (default: `(cores * 2) + disk_count`)
-
-## NEVER
-- NEVER raw `connect()` — use pool
-- NEVER call external APIs inside a transaction
-- NEVER `SELECT FOR UPDATE` without WHERE clause or LIMIT
-- NEVER hold transactions > 1 second
-- NEVER ignore deadlock — implement retry with backoff
-
-## Template
-```python
-async with db_pool.acquire(timeout=5.0) as conn:
-    async with conn.transaction():
-        await conn.execute(query, *params)
-```
-""",
-
-    "caching.md": """\
-# Caching — Implementation Guide
-
-## Strategy Selection
-| Strategy | Read | Write | Consistency | Use When |
-|----------|------|-------|-------------|----------|
-| Cache Aside | miss→DB→fill cache | update DB→delete cache | Eventual | Most cases |
-| Write Through | miss→DB→fill cache | write cache+DB together | Strong | Write-rare |
-| Write Behind | same | write cache only, async flush | Weak | Counters, analytics |
-
-## MUST
-- All caches MUST have TTL (no infinite cache)
-- TTL SHOULD include random jitter (prevent stampede)
-- Cache miss for non-existent keys MUST cache null (short TTL) — prevent penetration
-- Hot keys MUST use singleflight/mutex — prevent thundering herd
-- In-memory caches MUST have maxsize and eviction policy (LRU/LFU)
-
-## NEVER
-- NEVER cache without TTL
-- NEVER treat cache as source of truth
-- NEVER let all keys expire at the same time (add random offset)
-- NEVER skip cache invalidation after write operations
-
-## Template
-```python
-from functools import lru_cache
-from cachetools import TTLCache
-
-cache = TTLCache(maxsize=10000, ttl=300)  # 5min, max 10k entries
-```
-""",
-
-    "api-integration.md": """\
-# API Integration — Implementation Guide
-
-## Defense Layers (all external calls)
-| Layer | Purpose | Implementation |
-|-------|---------|---------------|
-| Timeout | Don't wait forever | connect=5s, read=30s |
-| Retry | Transient failure recovery | 3 attempts, exponential backoff |
-| Circuit Breaker | Stop hammering dead service | Open after 5 failures, half-open after 30s |
-| Fallback | Graceful degradation | Return cached/default value |
-
-## MUST
-- All external HTTP calls MUST have explicit timeout (connect + read)
-- Retries MUST use exponential backoff with jitter
-- Retries MUST have max attempt limit (default: 3)
-- Request and response MUST have schema validation
-- API clients SHOULD be reusable (connection pooling via shared client)
-
-## NEVER
-- NEVER make external calls without timeout
-- NEVER retry infinitely (`while True`)
-- NEVER retry non-idempotent operations (POST) without confirmation
-- NEVER trust external API response without validation
-
-## Template
-```python
-from tenacity import retry, stop_after_attempt, wait_exponential
-import httpx
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
-async def call_api(url, payload):
-    async with httpx.AsyncClient(timeout=httpx.Timeout(connect=5, read=30)) as c:
-        resp = await c.post(url, json=payload)
-        resp.raise_for_status()
-        return resp.json()
-```
-""",
-
-    "event-driven.md": """\
-# Event-Driven — Implementation Guide
-
-## When to Use Events
-| Signal | Use Events |
-|--------|-----------|
-| One action triggers 3+ downstream effects | Yes — decouple |
-| Effects are independent of each other | Yes — parallel |
-| Caller must wait for all effects | No — direct call |
-| Effects need transactional guarantee | No — saga pattern |
-
-## MUST
-- Events MUST have a defined schema (dataclass / Pydantic)
-- Event handlers MUST be idempotent (same event twice = same result)
-- Critical events MUST be processed async (not blocking the main flow)
-- Failed events MUST have retry + dead letter queue (DLQ)
-- Each event MUST carry a unique event_id for dedup
-
-## NEVER
-- NEVER hardcode a chain of 3+ downstream calls in one function
-- NEVER process events without idempotency check
-- NEVER fire-and-forget without error visibility
-- NEVER emit events without schema definition
-
-## Template
-```python
-@dataclass
-class OrderCreated:
-    event_id: str
-    order_id: str
-    user_id: str
-    timestamp: datetime
-
-@event_bus.subscribe(OrderCreated)
-def handle(event: OrderCreated):
-    if already_processed(event.event_id): return
-    mark_processed(event.event_id)
-    # ... handle logic
-```
-""",
-
-    "resilience.md": """\
-# Resilience — Implementation Guide
-
-## Four Defense Lines
-| Line | Pattern | Purpose |
-|------|---------|---------|
-| 1 | Timeout | Don't wait forever |
-| 2 | Circuit Breaker | Stop calling dead dependencies |
-| 3 | Bulkhead | Isolate failure domains |
-| 4 | Backpressure | Reject when overloaded |
-
-## MUST
-- All external calls MUST have timeout (connect + read + total)
-- Retries MUST have max count + exponential backoff
-- Independent dependencies SHOULD use separate resource pools (bulkhead)
-- Queues/pools MUST have size limits — reject on full, never unlimited queue
-- System MUST have health check endpoint (liveness + readiness)
-
-## NEVER
-- NEVER wait indefinitely for external resource
-- NEVER retry in `while True` without max attempts
-- NEVER let one slow dependency block all other functionality
-- NEVER queue unlimited work (leads to OOM then crash)
-
-## Template
-```python
-from circuitbreaker import circuit
-
-@circuit(failure_threshold=5, recovery_timeout=30)
-def call_service(payload):
-    return httpx.post(url, json=payload, timeout=10)
-```
-""",
-
-    "memory-management.md": """\
-# Memory Management — Implementation Guide
-
-## Common Leak Patterns
-| Pattern | Cause | Fix |
-|---------|-------|-----|
-| Unbounded collection | Global list/dict only grows | maxsize + eviction |
-| Closure capture | Lambda holds reference to large object | Capture only needed fields |
-| Event listener leak | Subscribe without unsubscribe | WeakRef or explicit cleanup |
-| Resource leak | Connection/file not closed | Context manager |
-| Full file read | `.read()` on large file | Streaming / chunked read |
-
-## MUST
-- All caches/collections MUST have size limit (maxsize)
-- Large file processing MUST use streaming (line-by-line or chunked)
-- Event listeners MUST have corresponding unsubscribe mechanism
-- Long-lived objects referencing short-lived SHOULD use WeakRef
-- Closures MUST capture minimal data (not entire large objects)
-
-## NEVER
-- NEVER append to global list/dict without eviction
-- NEVER `.read()` entire file of unknown/unbounded size into memory
-- NEVER subscribe to events without corresponding cleanup path
-- NEVER hold large objects in closure when only a field is needed
-
-## Template
-```python
-# Streaming read
-with open(path) as f:
-    for line in f:  # O(1) memory
-        process(line)
-
-# Bounded cache
-from functools import lru_cache
-@lru_cache(maxsize=1000)
-def get_item(key): ...
-```
-""",
-
-    "code-review-first.md": """\
-# Code Review First — Implementation Guide
-
-## Before Writing New Code (MUST)
-1. Find the "exemplar file" — an existing implementation most similar to your task
-2. Check shared/common/utils — what's already built?
-3. `git blame` on related files — understand WHY code is the way it is
-4. Search GitHub for existing open-source solutions
-
-## MUST
-- New feature MUST find an existing similar implementation as template
-- New code MUST use same patterns as existing code (logger, ORM, error handling)
-- "Redundant-looking" code MUST be investigated via git blame before removing
-- MUST NOT introduce a second way of doing something the project already does
-
-## NEVER
-- NEVER write new code without reviewing existing patterns first
-- NEVER introduce a new library when project already uses one for the same purpose
-- NEVER delete code that "looks useless" without checking git history
-- NEVER bypass project's abstraction layers to use framework directly
-
-## Checklist
-- [ ] Found exemplar file for this task?
-- [ ] Using same logging library as rest of project?
-- [ ] Using same ORM/DB access pattern?
-- [ ] Using same error handling approach?
-- [ ] No new lib when existing one covers the need?
-""",
-
-    "component-reuse.md": """\
-# Component Reuse — Implementation Guide
-
-## Reuse Priority (check in order)
-1. Standard library provides it? → Use native API
-2. Project already has it? → Use existing wrapper (do NOT bypass)
-3. Framework provides it? → Enable native capability
-4. Mature third-party exists? → Evaluate and adopt
-5. None of above → Implement new (only valid case)
-
-## MUST
-- Before implementing, MUST search: stdlib → project → framework → ecosystem
-- Third-party evaluation MUST check: maintenance (6mo commits), license, CVEs
-- Project abstractions MUST be used — never bypass wrapper to call underlying lib
-- MUST NOT self-implement: crypto, auth protocols, date parsing, retry logic
-
-## NEVER
-- NEVER reimplement what stdlib provides (lru_cache, dataclass, pathlib, etc.)
-- NEVER bypass project's existing wrapper to use framework directly
-- NEVER self-implement cryptography or security primitives
-- NEVER add a dependency for trivial functionality (< 20 lines to implement)
-
-## Evaluation Criteria (for third-party)
-| Dimension | Threshold |
-|-----------|-----------|
-| Last commit | < 6 months |
-| GitHub stars | > 500 |
-| License | MIT/Apache/BSD compatible |
-| Known CVEs | Zero unpatched |
-| Dependency count | Fewer is better |
-""",
-
-    "error-recovery.md": """\
-# Error Recovery — Implementation Guide
-
-## Decision Table
-| Scenario | Strategy |
-|----------|----------|
-| Transient failure (network, 5xx) | Retry with exponential backoff + jitter |
-| Non-transient (4xx, validation) | Fail immediately — no retry |
-| Batch processing (N items) | Continue on failure, collect errors, report summary |
-| Idempotent operation | Safe to retry unconditionally |
-| Non-idempotent (payment, email) | Idempotency key required before retry |
-
-## MUST
-- Retries MUST use exponential backoff (not fixed interval)
-- Retries MUST have max attempt limit (default: 3)
-- Non-idempotent operations MUST use idempotency key before retrying
-- Partial failures in batch MUST be reported (not silently swallowed)
-- Error recovery MUST preserve the operation's original context for debugging
-
-## NEVER
-- NEVER retry infinitely (`while True` without max)
-- NEVER retry non-idempotent operations without idempotency guarantee
-- NEVER catch-all with bare `except:` or `except Exception: pass`
-- NEVER swallow partial batch failures silently
-
-## Template
-```python
-from tenacity import retry, stop_after_attempt, wait_exponential
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
-def call_with_retry(payload):
-    return client.post(url, json=payload)
-```
-""",
-
-    "data-consistency.md": """\
-# Data Consistency — Implementation Guide
-
-## Decision Table
-| Scenario | Strategy |
-|----------|----------|
-| Single DB, multi-table | DB transaction (ACID) |
-| Multi-service write | Saga pattern (compensating transactions) |
-| Concurrent updates to same row | Optimistic lock (`WHERE version = ?`) |
-| Counter / balance | Atomic update (`SET x = x + ?`) |
-| Exactly-once delivery | Idempotency key + dedup table |
-
-## MUST
-- Multi-table writes MUST be wrapped in a transaction
-- Cross-service writes MUST define compensation (rollback) for each step
-- Concurrent-write fields MUST use optimistic locking or atomic operations
-- All write APIs MUST accept and enforce idempotency key
-- Saga steps MUST be individually retriable and reversible
-
-## NEVER
-- NEVER write to multiple services without compensation strategy
-- NEVER assume network calls inside transactions will succeed
-- NEVER use `SELECT then UPDATE` without locking (lost update problem)
-- NEVER skip idempotency for payment/notification operations
-
-## Template
-```python
-# Optimistic locking
-rows = await db.execute(
-    "UPDATE account SET balance = balance - $1, version = version + 1 "
-    "WHERE id = $2 AND version = $3", amount, id, expected_version)
-if rows == 0:
-    raise OptimisticLockError("Concurrent modification")
-```
-""",
-
-    "backwards-compatibility.md": """\
-# Backwards Compatibility — Implementation Guide
-
-## Decision Table
-| Change Type | Strategy |
-|-------------|----------|
-| Add new API field | Add as optional — never required |
-| Remove API field | Deprecate → stop populating → remove after 2 versions |
-| Rename API field | Add new + keep old (alias) → deprecate old |
-| DB column add | Add nullable or with default — never NOT NULL without default |
-| DB column remove | Stop writing → stop reading → drop after migration window |
-
-## MUST
-- API changes MUST be backwards compatible within same major version
-- DB migrations MUST be non-breaking (add before remove, nullable first)
-- New required fields MUST have server-side defaults for old clients
-- Deprecated fields MUST emit warnings for at least 1 version cycle
-- Breaking changes MUST use API versioning (URL prefix or header)
-
-## NEVER
-- NEVER add NOT NULL column without default to existing table
-- NEVER rename/remove API fields without deprecation period
-- NEVER deploy code that requires new schema before schema is migrated
-- NEVER break existing client contracts in minor/patch versions
-
-## Template
-```python
-# Non-breaking migration: add nullable, backfill, then constrain
-# Step 1: ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL;
-# Step 2: UPDATE users SET email = legacy_email WHERE email IS NULL;
-# Step 3 (next release): ALTER TABLE users ALTER COLUMN email SET NOT NULL;
-```
-""",
-
-    "performance-antipatterns.md": """\
-# Performance Anti-patterns — Implementation Guide
-
-## Detection Table
-| Anti-pattern | Signal | Fix |
-|--------------|--------|-----|
-| N+1 query | Loop containing DB call | JOIN or batch prefetch |
-| Unbounded query | `SELECT *` without LIMIT | Always paginate (LIMIT + OFFSET or cursor) |
-| Missing index | WHERE/ORDER on unindexed column | Add index (check EXPLAIN) |
-| Hot-path serialization | JSON encode/decode per request for static data | Cache serialized form |
-| Full table scan | Large table, no WHERE | Add filter condition or index |
-
-## MUST
-- All list endpoints MUST have pagination (default + max page size)
-- Loops with DB/API calls MUST be refactored to batch operations
-- Queries on columns in WHERE/JOIN/ORDER MUST have appropriate indexes
-- Large object serialization MUST be cached if called >1/request
-
-## NEVER
-- NEVER query inside a loop (N+1) — batch fetch before loop
-- NEVER return unbounded result sets (no LIMIT)
-- NEVER ignore EXPLAIN output for slow queries
-- NEVER serialize/deserialize repeatedly in hot paths
-
-## Template
-```python
-# Batch prefetch instead of N+1
-user_ids = [order.user_id for order in orders]
-users = {u.id: u for u in User.query.filter(User.id.in_(user_ids))}
-for order in orders:
-    order.user = users[order.user_id]  # O(1) lookup, not O(N) queries
-```
-""",
-
-    "graceful-shutdown.md": """\
-# Graceful Shutdown — Implementation Guide
-
-## Shutdown Sequence
-| Step | Action | Purpose |
-|------|--------|---------|
-| 1 | Stop accepting new requests | No new work enters |
-| 2 | Drain in-flight requests (with timeout) | Complete current work |
-| 3 | Close external connections (DB, Redis, MQ) | Release resources |
-| 4 | Flush buffers (logs, metrics, queues) | No data loss |
-| 5 | Exit process | Clean termination |
-
-## MUST
-- All long-running services MUST register SIGTERM/SIGINT handlers
-- Shutdown MUST have a maximum timeout (default: 30s) then force exit
-- In-flight requests MUST be given time to complete before connection close
-- Background workers MUST stop accepting new jobs on shutdown signal
-- Resource cleanup MUST follow reverse-initialization order
-
-## NEVER
-- NEVER call `os._exit()` or `sys.exit()` without cleanup
-- NEVER ignore SIGTERM (container orchestrators send it before SIGKILL)
-- NEVER close DB connections while requests are still in-flight
-- NEVER leave background threads/tasks running after main exit
-
-## Template
-```python
-import signal, asyncio
-
-async def shutdown(app):
-    app.is_shutting_down = True          # Step 1: reject new
-    await asyncio.sleep(app.drain_time)  # Step 2: drain
-    await app.db_pool.close()            # Step 3: close deps
-    await app.flush_metrics()            # Step 4: flush
-
-loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(shutdown(app)))
-```
-""",
-
-    "testing-strategy.md": """\
-# Testing Strategy — Implementation Guide
-
-## Decision Table
-| Scenario | Test Type | Mock? |
-|----------|-----------|-------|
-| Pure logic (no I/O) | Unit test | No mocks needed |
-| DB interaction | Integration test | Real DB (testcontainers or SQLite) |
-| External API | Unit + contract test | Mock HTTP, contract for schema |
-| Multi-service flow | E2E test | Real services or docker-compose |
-| Flaky dependency | Unit test | Mock the flaky part |
-
-## MUST
-- Tests MUST be deterministic (same input → same output, no time/random)
-- Each test MUST test ONE behavior (not multiple assertions of unrelated things)
-- Test data MUST be isolated (no shared mutable state between tests)
-- Boundary conditions MUST be tested (empty, null, max, overflow, unicode)
-- Mocks MUST verify interaction (called with correct args), not just exist
-
-## NEVER
-- NEVER use `time.sleep()` in tests (use polling or event-based waits)
-- NEVER share mutable state between tests (leads to order-dependent failures)
-- NEVER test implementation details (private methods, internal state)
-- NEVER write tests that pass when code is deleted (test actual behavior)
-
-## Template
-```python
-@pytest.mark.parametrize("input,expected", [
-    ("", []),              # empty
-    ("a", ["a"]),          # single
-    ("a,b,c", ["a","b","c"]),  # normal
-    ("a,,b", ["a","b"]),   # boundary: empty element
-])
-def test_parse_list(input, expected):
-    assert parse_list(input) == expected
-```
-""",
+GUIDE_DEFINITIONS = {
+    "concurrency.md": _guide(
+        "Concurrency", "Concurrent execution or shared mutable state is in scope.",
+        ("Is work I/O-bound or CPU-bound?", "Who owns ordering and cancellation?"),
+        ("Bound workers and queues.", "Synchronize shared mutable state and expose failures."),
+        ("Reuse the project executor with configurable limits.",),
+        ("Use sequential execution when load does not justify concurrency.",),
+        ("Contention, ordering, cancellation, and shutdown tests.",),
+        ("Single-threaded work with no shared state or parallel execution.",),
+    ),
+    "async-patterns.md": _guide(
+        "Async Patterns", "An async boundary or event loop is changed.",
+        ("Which calls can block?", "How are timeout and cancellation propagated?"),
+        ("Do not block an event loop.", "Close resources on success, failure, and cancellation."),
+        ("Keep a coherent async model and bound external waits.",),
+        ("Use synchronous code when concurrency needs are small or dependencies are synchronous.",),
+        ("Timeout, cancellation, cleanup, and concurrent-call tests.",),
+        ("Pure synchronous code with no async callers or resources.",),
+    ),
+    "configuration.md": _guide(
+        "Configuration", "Runtime configuration, environment values, or secrets change.",
+        ("Which values vary by environment?", "What is required and what has a safe default?"),
+        ("Never persist credentials in source or public artifacts.", "Validate untrusted configuration."),
+        ("Use existing config layering and fail clearly for missing required values.",),
+        ("Use a named code constant for a true invariant.",),
+        ("Precedence, invalid-input, missing-value, and redaction tests.",),
+        ("A local detail that cannot vary by deployment.",),
+    ),
+    "observability.md": _guide(
+        "Observability", "A runtime path needs operational diagnosis or service-level signals.",
+        ("Which failures must operators distinguish?", "Which identifiers safely correlate events?"),
+        ("Do not log credentials or sensitive payloads.", "Telemetry must not fail the primary operation."),
+        ("Reuse project logging and record structured outcomes and correlation fields.",),
+        ("Metrics or traces may answer the operational question better than logs.",),
+        ("Captured failure signals and sensitive-field redaction evidence.",),
+        ("Pure library logic already observable through its caller.",),
+    ),
+    "module-design.md": _guide(
+        "Module Design", "Responsibilities, boundaries, or public interfaces are added or moved.",
+        ("Who owns this responsibility?", "Can callers use a smaller stable interface?"),
+        ("Avoid circular ownership and parallel sources of truth.",),
+        ("Follow an existing boundary and extract cohesive, independently testable behavior.",),
+        ("Local duplication can be clearer than premature abstraction.",),
+        ("Caller map, public-interface tests, and ownership rationale.",),
+        ("A contained change inside an established boundary.",),
+    ),
+    "database.md": _guide(
+        "Database", "Persistent database reads, writes, schema, or transactions change.",
+        ("What consistency and isolation are required?", "What is the query and transaction cost?"),
+        ("Parameterize untrusted values.", "Release connections and preserve atomicity on failure."),
+        ("Reuse the project pool and keep transactions scoped to database work.",),
+        ("Choose optimistic locking, atomic updates, or serialization from contention evidence.",),
+        ("Query-plan or index evidence plus rollback, conflict, and failure tests.",),
+        ("No persistent database interaction or schema impact.",),
+    ),
+    "caching.md": _guide(
+        "Caching", "A cache is introduced or its lifecycle changes.",
+        ("What is the source of truth?", "How are invalidation, bounds, and stale reads handled?"),
+        ("A cache cannot be an undeclared source of truth.", "Bound memory growth."),
+        ("Prefer cache-aside with explicit invalidation and measured usefulness.",),
+        ("Use immutable keys, explicit versions, or no cache when safer than TTL.",),
+        ("Hit/miss, invalidation, expiry, stampede, and capacity evidence.",),
+        ("No repeated expensive read or measured latency need.",),
+    ),
+    "api-integration.md": _guide(
+        "API Integration", "An external HTTP, RPC, webhook, or service contract changes.",
+        ("What are timeout, retry, schema, and ownership boundaries?", "Is the operation idempotent?"),
+        ("Validate untrusted responses.", "Do not retry non-idempotent actions without deduplication."),
+        ("Reuse the project client with bounded timeout and typed validation.",),
+        ("Fail fast, queue, cache, or degrade according to consistency needs.",),
+        ("Contract, timeout, partial-response, retry, and duplicate-delivery tests.",),
+        ("No call crosses a process or trust boundary.",),
+    ),
+    "event-driven.md": _guide(
+        "Event-Driven", "Events, queues, subscribers, or at-least-once delivery are introduced.",
+        ("What are delivery and ordering guarantees?", "How are duplicates handled?"),
+        ("Make retried handlers safe and failed delivery observable.",),
+        ("Use versioned schemas, stable event IDs, and bounded retry or dead-letter handling.",),
+        ("Use a synchronous call when the caller requires the result immediately.",),
+        ("Duplicate, ordering, schema-version, and dead-letter tests.",),
+        ("No asynchronous message boundary or downstream fan-out.",),
+    ),
+    "resilience.md": _guide(
+        "Resilience", "A remote dependency or overload-sensitive runtime path can fail.",
+        ("Which failures are transient?", "What is the resource and latency budget?"),
+        ("Bound waits, retries, queues, and resources.", "Do not hide permanent failure as success."),
+        ("Use explicit timeout and limited retry for recoverable operations.",),
+        ("Choose circuit breaking, bulkheads, backpressure, or immediate failure from evidence.",),
+        ("Timeout, overload, dependency outage, and recovery tests.",),
+        ("Pure in-process deterministic logic without resource contention.",),
+    ),
+    "memory-management.md": _guide(
+        "Memory Management", "Data volume, lifetime, caching, streaming, or resource ownership changes.",
+        ("What bounds allocation?", "Who releases long-lived references?"),
+        ("Bound collections fed by untrusted input.", "Release owned resources on every path."),
+        ("Stream unknown-size inputs and use context-managed resources.",),
+        ("Materialize inputs when a verified small bound improves clarity.",),
+        ("Peak-memory, large-input, cleanup, and repeated-operation evidence.",),
+        ("Small fixed-size values with no retained resources.",),
+    ),
+    "code-review-first.md": _guide(
+        "Code Review First", "The project contains nearby patterns or abstractions.",
+        ("What is the closest maintained exemplar?", "Why does redundant-looking code exist?"),
+        ("Do not bypass security or ownership abstractions without evidence.",),
+        ("Follow project conventions and inspect history when intent is unclear.",),
+        ("Introduce a new pattern when existing ones cannot meet a documented requirement.",),
+        ("Exemplar, caller/history inspection, and capability-gap rationale.",),
+        ("Greenfield code with no meaningful project precedent.",),
+    ),
+    "component-reuse.md": _guide(
+        "Component Reuse", "A capability may exist in the project, framework, or ecosystem.",
+        ("Can an existing public interface meet the need?", "What is the trust and maintenance cost?"),
+        ("Do not implement cryptographic or authentication primitives ad hoc.",),
+        ("Evaluate standard library, project abstraction, then framework capability.",),
+        ("Prefer small local code over a dependency when behavior is well bounded.",),
+        ("Capability comparison, reuse decision, and compatibility tests.",),
+        ("The requirement is novel and no comparable capability exists.",),
+    ),
+    "error-recovery.md": _guide(
+        "Error Recovery", "Partial failure, retry, resumability, or interrupted writes are possible.",
+        ("Is failure transient?", "Can retry duplicate or corrupt the operation?"),
+        ("Bound retries and preserve failure context.", "Do not silently discard partial failure."),
+        ("Fail fast for permanent errors; retry idempotent transient errors with bounded backoff.",),
+        ("Resume, compensate, quarantine, or manual recovery may fit better than retry.",),
+        ("Interrupted-run, duplicate-attempt, terminal-error, and recovery tests.",),
+        ("Atomic deterministic work with no recoverable intermediate state.",),
+    ),
+    "data-consistency.md": _guide(
+        "Data Consistency", "One logical change spans records, stores, services, or concurrent writers.",
+        ("What consistency level is required?", "What compensation or conflict policy applies?"),
+        ("Do not claim unavailable atomicity.", "Protect against lost updates."),
+        ("Use the smallest transaction boundary satisfying the invariant.",),
+        ("Saga, outbox, optimistic concurrency, or eventual consistency require explicit trade-offs.",),
+        ("Conflict, duplicate, compensation, and partial-commit tests.",),
+        ("A single atomic write with no concurrent or distributed boundary.",),
+    ),
+    "backwards-compatibility.md": _guide(
+        "Backwards Compatibility", "A public API, CLI, config, schema, protocol, or layout changes.",
+        ("Which old callers or data must work?", "What are migration and rollback semantics?"),
+        ("Do not execute irreversible high-risk migration without exact authorization.",),
+        ("Add before remove, preserve declared aliases, and make migration idempotent.",),
+        ("Use a versioned break or explicit rejection when compatibility is impossible.",),
+        ("Legacy fixture, repeated upgrade, interrupted migration, and rollback evidence.",),
+        ("Private implementation with no persisted or externally consumed shape.",),
+    ),
+    "performance-antipatterns.md": _guide(
+        "Performance Antipatterns", "A hot path, large collection, query fan-out, or latency target changes.",
+        ("What measured budget is at risk?", "Does work scale with input or caller count?"),
+        ("Bound untrusted work and avoid unbounded query or allocation growth.",),
+        ("Measure first; batch, paginate, or index the proven bottleneck.",),
+        ("Prefer clear simple code when evidence shows no material risk.",),
+        ("Representative benchmark, query count, complexity, or profile evidence.",),
+        ("Cold or fixed-size path with no performance requirement.",),
+    ),
+    "graceful-shutdown.md": _guide(
+        "Graceful Shutdown", "A service, worker, pool, or background task owns resources.",
+        ("How are new and in-flight work sequenced?", "What is the shutdown deadline?"),
+        ("Do not abandon durable state or leave owned resources running.",),
+        ("Stop intake, drain within a bound, close dependencies, and expose timeout failure.",),
+        ("Immediate termination can fit stateless disposable work.",),
+        ("Signal, drain, timeout, forced-stop, and cleanup tests.",),
+        ("Short-lived commands without background work or persistent resources.",),
+    ),
+    "testing-strategy.md": _guide(
+        "Testing Strategy", "Behavior, regression coverage, or trust boundaries materially change.",
+        ("Would the test fail if implementation were removed?", "Which boundary and failure paths matter?"),
+        ("Tests cannot expose credentials or mutate uncontrolled external systems.",),
+        ("Assert observable behavior and reproduce the defect before relying on mocks.",),
+        ("Select unit, integration, contract, property, mutation, or E2E depth from risk.",),
+        ("Behavior assertion, defect reproduction, boundary cases, and negative control.",),
+        ("Generated or documentation-only change with deterministic structural validation.",),
+    ),
+    "operational-readiness.md": _guide(
+        "Operational Readiness", "A service, scheduled task, worker, or rollout behavior changes.",
+        ("How will operators detect failure?", "What rollout, capacity, and rollback signals exist?"),
+        ("Do not expose sensitive diagnostics or report false readiness.",),
+        ("Define health signals, failure visibility, capacity bounds, and rollback criteria.",),
+        ("Use a flag, canary, shadow run, or manual rollback according to deployment risk.",),
+        ("Isolated deploy, startup/shutdown, degraded dependency, and rollback evidence.",),
+        ("Non-running library, docs, or build-time-only code.",),
+    ),
+    "dependency-supply-chain.md": _guide(
+        "Dependency Supply Chain", "A dependency, package source, lockfile, or installer changes.",
+        ("Is it necessary?", "What source, license, scripts, binaries, and permissions are introduced?"),
+        ("Do not execute untrusted scripts or expand privileges without review.",),
+        ("Pin reproducibly, retain integrity metadata, and prefer maintained minimal dependencies.",),
+        ("Use the standard library, an existing dependency, vendoring, or bounded local code.",),
+        ("Dependency diff, provenance, license, advisory, script, and clean-install evidence.",),
+        ("No dependency graph, source, binary, installer, or permission change.",),
+    ),
+    "ui-state-accessibility.md": _guide(
+        "UI State and Accessibility", "Interactive UI structure, state, or navigation changes.",
+        (
+            "What are loading, empty, error, disabled, and optimistic states?",
+            "Can keyboard and assistive users complete the task?",
+        ),
+        ("Preserve keyboard access, visible focus, semantic labels, and error recovery.",),
+        ("Use semantic controls, managed focus, labelled states, responsive overflow, and rollback.",),
+        ("Use platform-native interactions instead of custom behavior when suitable.",),
+        ("Keyboard, focus, label, contrast, state, and responsive tests.",),
+        ("No user interface, rendered state, or interaction behavior changes.",),
+    ),
+}
+
+GUIDES_FILES = {
+    filename: definition.render()
+    for filename, definition in GUIDE_DEFINITIONS.items()
 }
 
 GUIDES_DIR = "guides"

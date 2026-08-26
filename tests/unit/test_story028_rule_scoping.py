@@ -61,8 +61,8 @@ class TestAC2ScopedRule:
         _deploy_rules_to(tmp_path, config=config)
         # On-demand rules are in skills/_rules/
         ondemand_dir = _get_ondemand_dir(tmp_path)
-        rule_file = ondemand_dir / '02-mcp-integration.md'
-        assert rule_file.exists(), "02-mcp-integration.md should be in skills/_rules/, not rules/"
+        rule_file = ondemand_dir / 'execution' / 'external-tools.md'
+        assert rule_file.exists(), "external-tools.md should be in skills/_rules/execution/, not rules/"
         content = rule_file.read_text()
         assert 'includeFiles' in content
 
@@ -75,7 +75,7 @@ class TestAC2ScopedRule:
         config['rule_scopes'] = {'02-mcp-integration': 'src/integrations/**'}
         _deploy_rules_to(tmp_path, config=config)
         ondemand_dir = _get_ondemand_dir(tmp_path)
-        rule_file = ondemand_dir / '02-mcp-integration.md'
+        rule_file = ondemand_dir / 'execution' / 'external-tools.md'
         content = rule_file.read_text()
         assert 'src/integrations/**' in content
 
