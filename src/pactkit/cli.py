@@ -1542,6 +1542,10 @@ def main():
         result = check_coverage(args.files, project_root)
         import json
         print(json.dumps(result, indent=2))
+        # A "block" verdict must block — exit 0 made the gate prompt-only
+        # (STORY-slim-20260826ce35b77ce005 R4, Code Enforces).
+        if result.get("overall") == "block":
+            raise SystemExit(1)
 
     elif args.command == "spec-status":
         from pathlib import Path

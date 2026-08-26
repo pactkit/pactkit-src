@@ -36,11 +36,15 @@ class TestClassifyChangesDocOnly:
         assert "doc" in reason.lower()
 
     def test_test_files_only(self):
-        """Only test files changed → skip (tests/** matches doc-only pattern)."""
+        """Only test files changed → impact (tests are NOT doc-only).
+
+        STORY-slim-20260826ce35b77ce005 R5 amended the classification: a
+        commit that modifies tests must run them, so tests/** no longer
+        matches the doc-only pattern.
+        """
         files = ["tests/unit/test_foo.py", "tests/e2e/test_bar.py"]
         strategy, reason = classify_changes(files)
-        assert strategy == "skip"
-        assert "doc" in reason.lower()
+        assert strategy == "impact"
 
     def test_empty_list(self):
         """Empty file list → skip (nothing changed)."""

@@ -1,0 +1,33 @@
+schema_version: 1
+id: STORY-slim-20260826ce35b77ce005
+title: 'Gate subsystem fails closed: fix inverted and fail-open gates'
+spec_path: docs/specs/STORY-slim-20260826ce35b77ce005.md
+status: archived
+tasks:
+- id: task-f1a85c7118
+  title: RED tests AC1-AC9 with mocked subprocesses
+  completed: true
+- id: task-d36f3ad27f
+  title: 'Fix audit.py: pip-audit exit contract, exception surfacing, no_secrets pathspec,
+    single-layer scorecard guard, load_config path'
+  completed: true
+- id: task-42776c20d3
+  title: Fix done_verify.py word-boundary matching
+  completed: true
+- id: task-774aead6d4
+  title: Extract shared venv-aware pytest helper; coverage_gate fail-closed + CLI
+    exit code
+  completed: true
+- id: task-98f8bcb97a
+  title: Fix commit_gate collection-failure transparency + tests/** classification
+  completed: true
+- id: task-14bcd27bd7
+  title: Fix doctor.py stale-graph config loading
+  completed: true
+- id: task-707b2e3e2b
+  title: Full regression
+  completed: true
+created_at: '2026-08-26T07:27:39+00:00'
+updated_at: '2026-08-26T07:46:29+00:00'
+completed_at: '2026-08-26T07:46:00+00:00'
+archived_at: '2026-08-26T07:46:29+00:00'

@@ -220,14 +220,18 @@ class TestR2InvariantsRefresh:
 class TestR3CoverageGate:
     """Scenario 4+5: coverage thresholds and pytest-cov unavailable."""
 
-    def test_skip_when_pytest_cov_unavailable(self, tmp_path):
+    def test_block_when_pytest_cov_unavailable(self, tmp_path):
+        """Probe failure is a failure to verify, not a pass.
+
+        STORY-slim-20260826ce35b77ce005 R4 amended the original skip
+        behavior: the coverage gate fails closed."""
         from pactkit.coverage_gate import check_coverage
 
         with patch("pactkit.coverage_gate._run_pytest_cov") as mock_run:
             mock_run.side_effect = FileNotFoundError("pytest-cov not installed")
             result = check_coverage(["src/pactkit/foo.py"], project_root=tmp_path)
-        assert result["overall"] == "skip"
-        assert "reason" in result
+        assert result["overall"] == "block"
+        assert "probe failed" in result["reason"]
 
     def test_pass_threshold(self):
         from pactkit.coverage_gate import _classify_coverage

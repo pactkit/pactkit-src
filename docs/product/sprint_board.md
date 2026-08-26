@@ -45,19 +45,44 @@
 - [ ] Write TDD tests for AC1-AC4
 - [ ] Run pactkit update to redeploy
 
+### [STORY-slim-2026082672b57c78fd67] Subtraction pass: dead code removal, completion-rule dedup, CLI decomposition
+> Spec: docs/specs/STORY-slim-2026082672b57c78fd67.md
+
+- [ ] RED: taxonomy-consistency + help-surface snapshot tests
+- [ ] Completion-rule delegation to workflow_validators (R1)
+- [ ] Shared step taxonomy (R2)
+- [ ] cli.py decomposition (R3)
+- [ ] Dead code removal with adapter-package grep proof (R4)
+- [ ] Doctor FORMAT_PROFILES root helper (R5)
+- [ ] Full regression + CHANGELOG
+
+### [STORY-slim-202608267c3989223b4d] Workflow engine robustness: no bricked runs, corrupt-file isolation, Windows locks
+> Spec: docs/specs/STORY-slim-202608267c3989223b4d.md
+
+- [ ] RED tests AC1-AC6
+- [ ] workflow_engine: fingerprint consistency + scan isolation
+- [ ] continuation: platform-split lock + story lock + stale tolerance + typed guards
+- [ ] host_continuation typed access
+- [ ] Full regression
+
+### [STORY-slim-20260826ac1f0bfe4148] Prompt-to-CLI contract consistency: machine-checked and gap-closed
+> Spec: docs/specs/STORY-slim-20260826ac1f0bfe4148.md
+
+- [ ] RED contract test AC1/AC2
+- [ ] board.py add_task subcommand + AC3 round-trip test
+- [ ] spec_preflight dedup + oversized-reference WARN + AC4/AC5 tests
+- [ ] Playbook interface inventory (R4)
+- [ ] Full regression
+
+### [STORY-slim-20260826f9492ab32c3d] Unify pactkit.yaml read and sync precedence into one canonical order
+> Spec: docs/specs/STORY-slim-20260826f9492ab32c3d.md
+
+- [ ] RED tests AC1-AC4 fixture matrix
+- [ ] Expose single candidate-order constant in profiles.py
+- [ ] sync_config_copies: sync-from-effective + atomic write + divergence warning
+- [ ] Full regression + pre-existing sync test migration
+
 ## 🔄 In Progress
-
-### [STORY-slim-202608264cf429c75e22] Unify deployment ownership safety across skills, agents, CLAUDE.md and rollback
-> Spec: docs/specs/STORY-slim-202608264cf429c75e22.md
-
-- [x] Extract shared ownership helper (load_previous_hashes + preserve_or_write) in deploy_manifest.py; narrow manifest skill ownership to registered artifacts
-- [x] Write RED tests for skill/agent ownership preservation (AC1-AC4, AC9)
-- [x] Refactor _deploy_rules/_deploy_guides to shared helper; add ownership checks to _deploy_skills/_deploy_agents; fix _deploy_claude_md unreadable+appended-content paths; retire disabled skills with proof
-- [x] Write RED tests for CLAUDE.md preservation and skill retirement (AC5, AC8)
-- [x] Fix rollback_paths: catch BaseException + per-restore isolation
-- [x] Write RED tests for KeyboardInterrupt rollback and restore isolation (AC7, AC10)
-- [x] Full regression + update spec status
-- [x] QA fix iteration — command-skill ownership, CLAUDE.md boundary tightening, gate unification, retirement hardening, count honesty
 
 ## ✅ Done
 
@@ -148,6 +173,18 @@
 - [x] 实现 ownership 安全迁移与回滚
 - [x] 验证四种 Adapter 语义一致性
 
+### [STORY-slim-202608264cf429c75e22] Unify deployment ownership safety across skills, agents, CLAUDE.md and rollback
+> Spec: docs/specs/STORY-slim-202608264cf429c75e22.md
+
+- [x] Extract shared ownership helper (load_previous_hashes + preserve_or_write) in deploy_manifest.py; narrow manifest skill ownership to registered artifacts
+- [x] Write RED tests for skill/agent ownership preservation (AC1-AC4, AC9)
+- [x] Refactor _deploy_rules/_deploy_guides to shared helper; add ownership checks to _deploy_skills/_deploy_agents; fix _deploy_claude_md unreadable+appended-content paths; retire disabled skills with proof
+- [x] Write RED tests for CLAUDE.md preservation and skill retirement (AC5, AC8)
+- [x] Fix rollback_paths: catch BaseException + per-restore isolation
+- [x] Write RED tests for KeyboardInterrupt rollback and restore isolation (AC7, AC10)
+- [x] Full regression + update spec status
+- [x] QA fix iteration — command-skill ownership, CLAUDE.md boundary tightening, gate unification, retirement hardening, count honesty
+
 ### [STORY-slim-202608268fc379dbe6ef] PactKit PDCA 规则语义深化与风险驱动执行模型
 > Spec: docs/specs/STORY-slim-202608268fc379dbe6ef.md
 
@@ -157,3 +194,14 @@
 - [x] 原生重写 engineering guides 并补三类实践
 - [x] 实现 scope integrity 与 test adequacy evidence
 - [x] 完善兼容迁移、doctor 与四 Adapter parity
+
+### [STORY-slim-20260826ce35b77ce005] Gate subsystem fails closed: fix inverted and fail-open gates
+> Spec: docs/specs/STORY-slim-20260826ce35b77ce005.md
+
+- [x] RED tests AC1-AC9 with mocked subprocesses
+- [x] Fix audit.py: pip-audit exit contract, exception surfacing, no_secrets pathspec, single-layer scorecard guard, load_config path
+- [x] Fix done_verify.py word-boundary matching
+- [x] Extract shared venv-aware pytest helper; coverage_gate fail-closed + CLI exit code
+- [x] Fix commit_gate collection-failure transparency + tests/** classification
+- [x] Fix doctor.py stale-graph config loading
+- [x] Full regression

@@ -18,7 +18,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -74,14 +73,34 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
         return 1, ""
 
 
+class GitCollectionError(Exception):
+    """git collection failed — the gate must block, not masquerade as skip."""
+
+
 def collect_changed_files(root: Path) -> list[str]:
-    """Staged + worktree changes + untracked files (what a commit would include)."""
+    """Staged + worktree changes + untracked files (what a commit would include).
+
+    A nonzero git exit code is a collection failure, not evidence of an
+    empty change set (STORY-slim-20260826ce35b77ce005 R5).  The single
+    exception is a repo with no commits yet: ``git diff HEAD`` has nothing
+    to diff against, which is a benign known state, not a probe failure —
+    staged + untracked probes still cover the full initial change set.
+    """
     seen: set[str] = set()
-    for args in (("diff", "--cached", "--name-only"), ("diff", "HEAD", "--name-only"),
-                 ("ls-files", "--others", "--exclude-standard")):
+    probes = [
+        ("diff", "--cached", "--name-only"),
+        ("ls-files", "--others", "--exclude-standard"),
+    ]
+    head_code, _ = _git(root, "rev-parse", "--verify", "--quiet", "HEAD")
+    if head_code == 0:
+        probes.insert(1, ("diff", "HEAD", "--name-only"))
+    for args in probes:
         code, out = _git(root, *args)
-        if code == 0:
-            seen.update(ln.strip() for ln in out.splitlines() if ln.strip())
+        if code != 0:
+            raise GitCollectionError(
+                f"git {' '.join(args)} failed (exit {code}) — cannot collect changes"
+            )
+        seen.update(ln.strip() for ln in out.splitlines() if ln.strip())
     return sorted(seen)
 
 
@@ -91,16 +110,10 @@ def current_branch(root: Path) -> str:
 
 
 def _pytest_command(root: Path) -> list[str]:
-    """Prefer the project venv's python (STORY-039 detection), else current."""
-    from pactkit.config import detect_venv
+    """Venv-aware pytest command (shared single source in utils.py)."""
+    from pactkit.utils import pytest_command
 
-    found = detect_venv(root)
-    if found:
-        venv_dir, layout = found
-        candidate = root / venv_dir / ("Scripts/python.exe" if layout == "windows" else "bin/python3")
-        if candidate.exists():
-            return [str(candidate), "-m", "pytest"]
-    return [sys.executable, "-m", "pytest"]
+    return pytest_command(root)
 
 
 def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
@@ -204,6 +217,10 @@ def run_gate(root: Path) -> GateResult:
             result.exit_code = 1
         return result
 
+    except GitCollectionError as exc:
+        result.lines.append(f"[FAIL] commit-gate: COLLECTION-FAILED — {exc}")
+        result.exit_code = 1
+        return result
     except GateUnavailable as exc:
         result.lines.append(f"[WARN] commit-gate unavailable ({exc}) — allowing commit")
         return result

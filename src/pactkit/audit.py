@@ -7,6 +7,7 @@ AI Ready = min(all 7 levels) ≥ L1.
 """
 import json
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -254,10 +255,15 @@ def _check_h5(root):
     code_checks = {}
     code_checks['gitignore'] = (root / '.gitignore').exists()
     # No secrets committed: check git for tracked .env/.key files
+    # DEFERRED(SHOULD): R7 — probe-failure downgrade to an explicit
+    # "unknown" state is deferred; _compute_layer_level has no three-state
+    # handling and a falsy value would silently drop the whole layer score.
     code_checks['no_secrets'] = True
     try:
         result = subprocess.run(
-            ['git', 'ls-files', '--cached', '*.env', '.env*', '*.key', '*credentials*'],
+            ['git', 'ls-files', '--cached',
+             '*.env', '.env*', '*.key', '*credentials*',
+             'id_rsa*', '*.pem', '*.p12', '*.pfx', '*secrets.json*'],
             capture_output=True, text=True, cwd=str(root), timeout=5,
         )
         if result.stdout.strip():
@@ -437,8 +443,8 @@ def _collect_findings(root):
                 ),
                 'file': v['importer'],
             })
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f'  ⚠️  audit collector failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
     # Code: high complexity functions
     try:
@@ -452,8 +458,8 @@ def _collect_findings(root):
                 'message': f"High complexity: {entry['function']} = {entry['complexity']} ({entry['classification']})",
                 'file': entry['file'],
             })
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f'  ⚠️  audit collector failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
     # Code: dead code via garden
     try:
@@ -466,8 +472,8 @@ def _collect_findings(root):
                 'message': item.get('message', 'Dead import detected'),
                 'file': item.get('file', ''),
             })
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f'  ⚠️  audit collector failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
     # Sort by severity
     _sev_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
@@ -591,8 +597,8 @@ def _collect_insights(root):
             for fname, count in sorted(file_func_count.items(), key=lambda x: -x[1]):
                 if count > 15:
                     insights['god_objects'].append({'file': fname, 'function_count': count})
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f'  ⚠️  audit collector failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
     return insights
 
@@ -675,6 +681,24 @@ def _max_nesting_depth(node, current):
     return max_d
 
 
+def _flatten_pip_audit_vulns(data) -> list:
+    """Normalize pip-audit JSON output to a flat vulnerability list.
+
+    Tolerates both the flat list of vulnerability objects and the
+    dependency-wrapped {"dependencies": [{"vulns": [...]}]} shape.
+    """
+    if isinstance(data, dict):
+        data = data.get('dependencies', [])
+    vulns = []
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict) and isinstance(item.get('vulns'), list):
+                vulns.extend(v for v in item['vulns'] if isinstance(v, dict))
+            elif isinstance(item, dict):
+                vulns.append(item)
+    return vulns
+
+
 def _check_dependency_health(root):
     """R5: Project-level dependency vulnerability check."""
     root = Path(root)
@@ -685,11 +709,17 @@ def _check_dependency_health(root):
                 ['pip-audit', '--format', 'json'],
                 capture_output=True, text=True, cwd=str(root), timeout=10,
             )
-            if result.returncode == 0:
-                data = json.loads(result.stdout)
-                vulns = data if isinstance(data, list) else []
-                critical = sum(1 for v in vulns if v.get('fix_versions'))
-                return {'vulns': len(vulns), 'critical': critical, 'details': vulns[:5]}
+            # pip-audit exits 0 when clean and 1 when vulnerabilities are
+            # found; >= 2 is a probe failure. Parsing only on exit 0 inverted
+            # the verdict (STORY-slim-20260826ce35b77ce005 R1).
+            if result.returncode >= 2:
+                return {'vulns': -1, 'error': f'pip-audit exit {result.returncode}'}
+            data = json.loads(result.stdout)
+            vulns = _flatten_pip_audit_vulns(data)
+            # pip-audit JSON carries no severity field; count actionable
+            # (fixable) vulnerabilities instead of mislabeling them critical.
+            fixable = sum(1 for v in vulns if v.get('fix_versions'))
+            return {'vulns': len(vulns), 'fixable': fixable, 'details': vulns[:5]}
         except FileNotFoundError:
             return {'vulns': -1, 'error': 'pip-audit not installed'}
         except subprocess.TimeoutExpired:
@@ -789,8 +819,8 @@ def _compute_hotspots(root):
                             })
                             entry['complexity_sum'] += sum(cm.values())
                             entry['func_count'] += len(cm)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f'  ⚠️  audit collector failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
     if not file_data:
         return []
@@ -1060,6 +1090,14 @@ def _scaffold_audit_spec(root, spec_id, hotspot):
 
 # --- File Output (R11) ---
 
+def _run_layer(fn, root, layer_id):
+    """Run one layer check; a crash becomes a visible error entry (R6)."""
+    try:
+        return fn(root)
+    except Exception as exc:
+        return {'level': 0, 'name': 'Error', 'checks': {}, 'error': str(exc)}
+
+
 def _write_audit_json(result, root):
     """Write slim audit result to docs/architecture/governance/harness_audit.json.
 
@@ -1137,20 +1175,24 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
         fn = check_map.get(layer.upper())
         if not fn:
             return json.dumps({'error': f'Unknown layer: {layer}'})
-        layers = {layer.upper(): fn(root)}
+        layers = {layer.upper(): _run_layer(fn, root, layer.upper())}
         for k in check_map:
             if k not in layers:
                 layers[k] = {'level': 0, 'name': 'None', 'checks': {}}
     else:
         layers = {
-            'H1': _check_h1(root),
-            'H2': _check_h2(root),
-            'H3': _check_h3(root),
-            'H4': _check_h4(root),
-            'H5': _check_h5(root),
-            'H6': _check_h6(root),
-            'H7': _check_h7(root),
+            k: _run_layer(fn, root, k)
+            for k, fn in (
+                ('H1', _check_h1), ('H2', _check_h2), ('H3', _check_h3),
+                ('H4', _check_h4), ('H5', _check_h5), ('H6', _check_h6),
+                ('H7', _check_h7),
+            )
         }
+    # A crashed analyzer must be distinguishable from "no findings"
+    # (STORY-slim-20260826ce35b77ce005 R6).
+    checks_failed = sorted(
+        k for k, v in layers.items() if isinstance(v, dict) and v.get('error')
+    )
 
     scoring = _compute_score(layers)
 
@@ -1164,9 +1206,10 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
     suggested_tasks = []
     if not layer and hotspots:
         try:
-            from pactkit.config import load_config
-            cfg = load_config(root)
-            developer = cfg.get('developer', '')
+            from pactkit.config import find_pactkit_yaml, load_config
+
+            config_path = find_pactkit_yaml(root) or root / '.claude' / 'pactkit.yaml'
+            developer = load_config(config_path).get('developer', '')
         except Exception:
             developer = ''
         if developer:
@@ -1199,6 +1242,7 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
         'weakest': scoring.get('weakest'),
         'dimensions': scoring.get('dimensions', {}),
         'layers': layers,
+        'checks_failed': checks_failed,
         'hotspots': hotspots,
         'suggested_tasks': suggested_tasks,
         'dependency_health': dep_health,
@@ -1208,8 +1252,9 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
         result['findings'] = findings
         result['insights'] = insights
 
-    # Write slim JSON file
-    dest = _write_audit_json(result, root)
+    # Write slim JSON file — a single-layer probe MUST NOT overwrite the
+    # persisted full scorecard (STORY-slim-20260826ce35b77ce005 R8).
+    dest = None if layer else _write_audit_json(result, root)
 
     if json_only:
         if verbose:
@@ -1222,9 +1267,13 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
             'ready': result['ready'],
             'weakest': result.get('weakest'),
             'layers': {
-                k: {'level': v['level'], 'name': v['name']}
+                k: (
+                    {'level': v['level'], 'name': v['name'], 'error': v['error']}
+                    if v.get('error') else {'level': v['level'], 'name': v['name']}
+                )
                 for k, v in layers.items()
             },
+            'checks_failed': checks_failed,
             'dimensions': scoring.get('dimensions', {}),
             'hotspots': hotspots,
             'suggested_tasks': suggested_tasks,
@@ -1298,5 +1347,6 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
                 f"{len(insights['high_fan_in'])} files with ≥5 importers"
             )
 
-    lines.append(f'\nAudit saved: {dest}')
+    if dest:
+        lines.append(f'\nAudit saved: {dest}')
     return '\n'.join(lines)

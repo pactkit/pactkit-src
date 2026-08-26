@@ -130,8 +130,12 @@ def _archived(project_root: Path, story_id: str) -> str | None:
     archive_dir = project_root / "docs" / "product" / "archive"
     if not archive_dir.is_dir():
         return None
+    import re
+
     for f in sorted(archive_dir.glob("*.md")):
-        if story_id in _read(f):
+        # Word-boundary match: STORY-slim-10 must not match STORY-slim-100
+        # (STORY-slim-20260826ce35b77ce005 R2).
+        if re.search(rf"(?<![\w-]){re.escape(story_id)}(?![\w-])", _read(f)):
             return f.name
     return None
 
@@ -163,11 +167,20 @@ def check_requirement_evidence(story_id: str, project_root: Path) -> list[CheckR
     case_text = _read(case_path)
     ac_map = _parse_ac_to_reqs(spec_text)
     results: list[CheckResult] = []
+    import re
+
+    def _mentioned(token: str, text: str) -> bool:
+        # Boundary excludes word chars AND hyphens on both sides, so
+        # STORY-slim-10 does not match STORY-slim-100 or STORY-slim-10-a1b2.
+        return re.search(rf"(?<![\w-]){re.escape(token)}(?![\w-])", text) is not None
+
     for rid in musts:
         covered_acs = [ac for ac, reqs in ac_map.items() if rid in reqs]
-        hit = rid in case_text or any(ac in case_text for ac in covered_acs)
+        hit = _mentioned(rid, case_text) or any(
+            _mentioned(ac, case_text) for ac in covered_acs
+        )
         if hit:
-            via = rid if rid in case_text else "/".join(covered_acs)
+            via = rid if _mentioned(rid, case_text) else "/".join(covered_acs)
             results.append(CheckResult(f"R2 evidence {rid}", "PASS", f"case references {via}"))
         else:
             results.append(

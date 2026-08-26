@@ -9,11 +9,12 @@ import fnmatch
 # Files that match these patterns are considered "doc-only" — safe to skip tests.
 _DOC_ONLY_PATTERNS: tuple[str, ...] = (
     "docs/**",
-    "tests/**",
     "*.md",
     "README*",
     "*.txt",
 )
+# tests/** is deliberately NOT doc-only: a commit that modifies tests must
+# run them (STORY-slim-20260826ce35b77ce005 R5).
 
 # Version/dependency manifest files that trigger full regression.
 _VERSION_FILES: frozenset[str] = frozenset(

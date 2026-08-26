@@ -6,6 +6,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from pactkit.utils import pytest_command as _pytest_command
+
 
 def _extract_module_path(file_path: str) -> str:
     """Convert source file path to Python module path.
@@ -53,13 +55,17 @@ def _parse_coverage_output(output: str) -> list[dict]:
 
 
 def _run_pytest_cov(modules: list[str], project_root: Path) -> str:
-    """Run pytest --cov and return stdout."""
+    """Run pytest --cov and return stdout.
+
+    Uses the shared venv-aware interpreter selection — never a bare
+    "python" (STORY-slim-20260826ce35b77ce005 R4).
+    """
     cov_args = []
     for m in modules:
         cov_args.extend(["--cov", m])
 
     cmd = [
-        "python", "-m", "pytest",
+        *_pytest_command(project_root),
         *cov_args,
         "--cov-report=term-missing",
         "tests/",
@@ -97,9 +103,35 @@ def check_coverage(
     try:
         output = _run_pytest_cov(modules, project_root)
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-        return {"files": [], "overall": "skip", "reason": str(e)}
+        # The probe itself failed — that is a failure to verify, not a pass
+        # (R4: fail closed).
+        return {"files": [], "overall": "block", "reason": f"coverage probe failed: {e}"}
 
     files = _parse_coverage_output(output)
+
+    # A changed source file absent from the coverage report was never
+    # measured (module path unresolved or untested) — surface it as a
+    # blocking entry instead of silently dropping it (R4).  Runs before
+    # the empty check so an all-unresolvable change set cannot skip.
+    reported = {f["file"] for f in files}
+    for source in source_files:
+        normalized = source.replace("\\", "/")
+        if normalized.startswith("./"):
+            normalized = normalized[2:]
+        try:
+            normalized = str(
+                Path(normalized).resolve().relative_to(Path(project_root).resolve())
+            )
+        except ValueError:
+            pass
+        if normalized not in reported:
+            files.append({
+                "file": normalized,
+                "coverage": 0,
+                "status": "block",
+                "reason": "no coverage data (module path unresolved or untested)",
+            })
+
     if not files:
         return {"files": [], "overall": "skip", "reason": "no coverage data parsed"}
 

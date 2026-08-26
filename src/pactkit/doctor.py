@@ -449,10 +449,16 @@ def check_stale_graphs(
     # Find newest source file mtime
     source_dirs = ["src/"]  # Default Python
     try:
-        from pactkit.config import load_config
+        from pactkit.config import find_pactkit_yaml, load_config
         from pactkit.prompts.workflows import LANG_PROFILES
 
-        cfg = load_config(project_root)
+        # load_config takes a file path — passing the project root directory
+        # raised IsAdirectoryError that the except below silently swallowed
+        # (STORY-slim-20260826ce35b77ce005 R3).
+        config_path = find_pactkit_yaml(project_root) or project_root / ".claude" / "pactkit.yaml"
+        if not config_path.is_file():
+            print(f"  ⚠️  pactkit.yaml not found at {config_path} — defaulting source dirs to src/")
+        cfg = load_config(config_path)
         stack = cfg.get("stack", "python")
         profile = LANG_PROFILES.get(stack, LANG_PROFILES.get("python", {}))
         source_dirs = profile.get("source_dirs", ["src/"])
