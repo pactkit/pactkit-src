@@ -200,11 +200,6 @@ def main():
         "spec-preflight", help="Load Spec implementation inputs and write a verified receipt"
     )
     preflight_parser.add_argument("spec", help="Path to the Story Spec")
-    preflight_parser.add_argument(
-        "--activate", action="store_true",
-        help="Bind this host session to the Story for optional mutation enforcement",
-    )
-    preflight_parser.add_argument("--session-id", default=None, help=argparse.SUPPRESS)
 
     # pactkit schema
     schema_parser = subparsers.add_parser("schema", help="Show document structure rules")
@@ -565,12 +560,6 @@ def main():
         help="Install .git/hooks/pre-commit wrapper for human commits",
     )
 
-    preflight_guard_parser = subparsers.add_parser(
-        "preflight-guard", help="Claude Code Spec preflight mutation guard"
-    )
-    preflight_guard_parser.add_argument("--hook", action="store_true")
-    preflight_guard_parser.add_argument("--install", action="store_true")
-
     # pactkit deps (STORY-slim-137: external dependency check/install)
     deps_parser = subparsers.add_parser("deps", help="Check or install external dependencies (node/codegraph/gh)")
     deps_sub = deps_parser.add_subparsers(dest="deps_action")
@@ -640,25 +629,14 @@ def main():
     if args.command in ("init", "update", "upgrade"):
         _run_deploy_command(args, project_root)
     elif args.command == "spec-preflight":
-        import os
-
         from pactkit.spec_preflight import PreflightError, run_spec_preflight
 
-        session_id = args.session_id or os.environ.get("CLAUDE_SESSION_ID", "")
-        activate_in_process = args.activate and bool(session_id)
         try:
-            result = run_spec_preflight(
-                project_root, args.spec, session_id=session_id, activate=activate_in_process,
-            )
+            result = run_spec_preflight(project_root, args.spec)
         except PreflightError as exc:
             parser.error(str(exc))
         print(result.rendered, end="")
         print(f"Receipt: {result.receipt_path}")
-        if args.activate and not session_id:
-            print(
-                "Activation requested: the Claude Code PreToolUse hook binds the host session; "
-                "receipt generation succeeded."
-            )
 
     elif args.command == "spec-lint":
         from pactkit.skills.spec_linter import main as spec_lint_main
@@ -1538,22 +1516,6 @@ def main():
         result = run_gate(project_root)
         print(result.render())
         raise SystemExit(result.exit_code)
-
-    elif args.command == "preflight-guard":
-        import sys
-
-        from pactkit.preflight_guard import hook_entry, install_preflight_hook
-
-        if args.install:
-            print(install_preflight_hook(project_root))
-            raise SystemExit(0)
-        if args.hook:
-            message, exit_code = hook_entry(sys.stdin.read(), project_root)
-            if message:
-                print(message, file=sys.stderr)
-            raise SystemExit(exit_code)
-        preflight_guard_parser.print_help()
-        raise SystemExit(1)
 
     elif args.command == "interface-summary":
         from pathlib import Path

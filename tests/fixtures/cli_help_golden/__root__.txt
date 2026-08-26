@@ -1,10 +1,10 @@
 usage: pactkit [-h] [-C PROJECT_ROOT]
-               {init,update,upgrade,spec-lint,spec-preflight,schema,guard,generate-id,clean,regression,context,board,governance,continuation,workflow,work-unit,sec-scope,spec-graph,lint-context,lint-lessons,lint-testcase,visualize,sync,garden,observe,doctor,audit,report,backfill-release,issue-sync,test-map,lint,lesson-append,invariants-refresh,coverage-gate,spec-status,done-verify,commit-gate,preflight-guard,deps,interface-summary,redetect-stack,query,version} ...
+               {init,update,upgrade,spec-lint,spec-preflight,schema,guard,generate-id,clean,regression,context,board,governance,continuation,workflow,work-unit,sec-scope,spec-graph,lint-context,lint-lessons,lint-testcase,visualize,sync,garden,observe,doctor,audit,report,backfill-release,issue-sync,test-map,lint,lesson-append,invariants-refresh,coverage-gate,spec-status,done-verify,commit-gate,deps,interface-summary,redetect-stack,query,version} ...
 
 PactKit — Spec-driven agentic DevOps toolkit
 
 positional arguments:
-  {init,update,upgrade,spec-lint,spec-preflight,schema,guard,generate-id,clean,regression,context,board,governance,continuation,workflow,work-unit,sec-scope,spec-graph,lint-context,lint-lessons,lint-testcase,visualize,sync,garden,observe,doctor,audit,report,backfill-release,issue-sync,test-map,lint,lesson-append,invariants-refresh,coverage-gate,spec-status,done-verify,commit-gate,preflight-guard,deps,interface-summary,redetect-stack,query,version}
+  {init,update,upgrade,spec-lint,spec-preflight,schema,guard,generate-id,clean,regression,context,board,governance,continuation,workflow,work-unit,sec-scope,spec-graph,lint-context,lint-lessons,lint-testcase,visualize,sync,garden,observe,doctor,audit,report,backfill-release,issue-sync,test-map,lint,lesson-append,invariants-refresh,coverage-gate,spec-status,done-verify,commit-gate,deps,interface-summary,redetect-stack,query,version}
     init                Deploy PactKit configuration
     update              Re-deploy PactKit configuration
     upgrade             Upgrade PactKit (migrate legacy scafpy config)
@@ -46,7 +46,6 @@ positional arguments:
     done-verify         Verify archive honesty for a story (evidence chain,
                         exit 1 on FAIL)
     commit-gate         Pre-commit test gate (skip != pass transparency)
-    preflight-guard     Claude Code Spec preflight mutation guard
     deps                Check or install external dependencies
                         (node/codegraph/gh)
     interface-summary   Output interface summary (signatures only)

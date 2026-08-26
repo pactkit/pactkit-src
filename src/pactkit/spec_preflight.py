@@ -37,13 +37,6 @@ class PreflightResult:
     receipt: dict
 
 
-@dataclass(frozen=True)
-class ReceiptCheck:
-    valid: bool
-    reason: str
-    receipt: dict | None = None
-
-
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -193,26 +186,12 @@ def _receipt_dir(root: Path, story_id: str) -> Path:
     return root / ".pactkit" / "preflight" / story_id
 
 
-def _active_path(root: Path, session_id: str) -> Path:
-    key = _sha256(session_id.encode("utf-8"))[:24]
-    return root / ".pactkit" / "preflight" / "active" / f"{key}.json"
 
 
-def bind_active_story(root: Path | str, story_id: str, session_id: str) -> Path:
-    """Bind one explicit host session to one Act Story."""
-    if not session_id:
-        raise PreflightError("Act preflight activation requires a host session id")
-    if not re.fullmatch(r"(?:STORY|HOTFIX|BUG)(?:-[a-z]+)?-[A-Za-z0-9]+", story_id):
-        raise PreflightError(f"invalid Story ID for preflight activation: {story_id}")
-    project_root = Path(root).resolve()
-    binding_path = _active_path(project_root, session_id)
-    binding = {"story_id": story_id, "session_id": session_id}
-    atomic_write(binding_path, json.dumps(binding, indent=2) + "\n")
-    return binding_path
 
 
 def run_spec_preflight(
-    project_root: Path | str, spec_path: Path | str, *, session_id: str = "", activate: bool = False
+    project_root: Path | str, spec_path: Path | str
 ) -> PreflightResult:
     root = Path(project_root).resolve()
     spec = Path(spec_path)
@@ -281,7 +260,6 @@ def run_spec_preflight(
         "story_id": story_id,
         "spec_path": spec.relative_to(root).as_posix(),
         "spec_sha256": _sha256(raw_bytes),
-        "session_id": session_id,
         "inputs": inputs,
         "constraints": constraints,
     }
@@ -289,52 +267,11 @@ def run_spec_preflight(
     atomic_write(receipt_path, json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
     current_path = _receipt_dir(root, story_id) / "current.json"
     atomic_write(current_path, json.dumps(receipt, ensure_ascii=False, indent=2) + "\n")
-    if activate:
-        bind_active_story(root, story_id, session_id)
     return PreflightResult("\n\n".join(rendered_parts).rstrip() + "\n", receipt_path, receipt)
 
 
-def active_story(root: Path, session_id: str) -> str | None:
-    if not session_id:
-        return None
-    path = _active_path(root.resolve(), session_id)
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    return data.get("story_id") if data.get("session_id") == session_id else None
 
 
-def clear_active_story(root: Path | str, session_id: str) -> None:
-    """Consume a session binding after its first verified source mutation."""
-    if not session_id:
-        return
-    try:
-        _active_path(Path(root).resolve(), session_id).unlink()
-    except FileNotFoundError:
-        pass
 
 
-def check_preflight_receipt(
-    project_root: Path | str, story_id: str, *, session_id: str = ""
-) -> ReceiptCheck:
-    root = Path(project_root).resolve()
-    path = _receipt_dir(root, story_id) / "current.json"
-    try:
-        receipt = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        return ReceiptCheck(False, f"preflight receipt missing for {story_id}")
-    except (OSError, json.JSONDecodeError) as exc:
-        return ReceiptCheck(False, f"preflight receipt unreadable: {exc}")
-    if receipt.get("project_root") != str(root):
-        return ReceiptCheck(False, "preflight project root changed", receipt)
-    if session_id and receipt.get("session_id") not in {"", session_id}:
-        return ReceiptCheck(False, "preflight receipt belongs to another session", receipt)
-    spec = root / str(receipt.get("spec_path", ""))
-    if not spec.is_file() or _sha256(spec.read_bytes()) != receipt.get("spec_sha256"):
-        return ReceiptCheck(False, "Spec changed after preflight", receipt)
-    for item in receipt.get("inputs", []):
-        source = root / item["path"]
-        if not source.is_file() or _sha256(source.read_bytes()) != item.get("sha256"):
-            return ReceiptCheck(False, f"input changed after preflight: {item['path']}", receipt)
-    return ReceiptCheck(True, "valid", receipt)
+

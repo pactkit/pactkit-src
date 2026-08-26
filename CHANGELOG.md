@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Removed
+- **Preflight guard** (the PreToolUse mutation-enforcement hook): freshness-only
+  checking, one-shot binding, and warn-by-default gave it near-zero enforcement
+  value while producing hook noise during Act sessions. The Spec preflight
+  LOADER (deterministic input inlining + receipts) is kept in full. The
+  `pactkit preflight-guard` subcommand and `spec-preflight --activate` are gone;
+  Act playbooks updated. (HOTFIX 2026-08-26)
+
 ### Deprecated
 - Legacy workflow engine (`pactkit workflow` / `work-unit` / explicit `continuation`
   subcommands) moved to the frozen `pactkit.legacy` package — deletion candidate.

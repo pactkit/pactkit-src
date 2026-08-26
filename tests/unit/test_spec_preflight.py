@@ -5,11 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pactkit.spec_preflight import (
-    PreflightError,
-    check_preflight_receipt,
-    run_spec_preflight,
-)
+from pactkit.spec_preflight import PreflightError, run_spec_preflight
 
 
 def _project(tmp_path: Path) -> tuple[Path, Path]:
@@ -46,7 +42,7 @@ The implementation MUST use tokens.css and 禁止 hard-coded colors.
 """
     )
 
-    result = run_spec_preflight(root, spec, session_id="session-1")
+    result = run_spec_preflight(root, spec)
 
     assert "--color-brand" in result.rendered
     assert "--card-gap" in result.rendered
@@ -57,7 +53,6 @@ The implementation MUST use tokens.css and 禁止 hard-coded colors.
     receipt = json.loads(result.receipt_path.read_text())
     assert receipt["project_root"] == str(root.resolve())
     assert receipt["story_id"] == "STORY-033"
-    assert receipt["session_id"] == "session-1"
     assert {item["path"] for item in receipt["inputs"]} == {
         "src/tokens.css", "src/prototype.html"
     }
@@ -143,28 +138,8 @@ def test_rejects_path_and_symlink_escape(tmp_path):
         run_spec_preflight(root, spec)
 
 
-def test_receipt_invalidates_when_spec_or_input_changes(tmp_path):
-    root, spec = _project(tmp_path)
-    source = root / "src" / "policy.txt"
-    source.write_text("v1\n")
-    spec.write_text("# STORY-033\nRead `src/policy.txt`.\n")
-    run_spec_preflight(root, spec, session_id="s1")
-
-    assert check_preflight_receipt(root, "STORY-033", session_id="s1").valid
-    source.write_text("v2\n")
-    stale = check_preflight_receipt(root, "STORY-033", session_id="s1")
-    assert not stale.valid
-    assert "input changed" in stale.reason
 
 
-def test_receipt_is_session_bound_when_session_is_declared(tmp_path):
-    root, spec = _project(tmp_path)
-    spec.write_text("# STORY-033\nNo file inputs.\n")
-    run_spec_preflight(root, spec, session_id="s1")
-
-    result = check_preflight_receipt(root, "STORY-033", session_id="s2")
-    assert not result.valid
-    assert "session" in result.reason
 
 
 def test_spec_preflight_cli_from_subdirectory(tmp_path):

@@ -218,11 +218,10 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🧾 Phase 0.7: Spec Input Preflight (MUST)
 > **PURPOSE**: Deterministically place referenced implementation inputs and constraints in the current context before any source edit.
-1. Run `pactkit spec-preflight docs/specs/{STORY_ID}.md --activate` in the current session.
+1. Run `pactkit spec-preflight docs/specs/{STORY_ID}.md` in the current session.
 2. Review the emitted file excerpts, CSS custom properties, interfaces, and MUST/NEVER/禁止/必须/对齐 constraints before writing code.
 3. If a required input is missing, ambiguous, outside the project root, or exceeds its extraction budget, mark completion incomplete and fix the declaration where authorized. Safe reading, diagnosis and repair remain available.
-4. Continue directly to Phase 1 in this session. A new session is never required; activation only binds the current host session for optional preflight enforcement.
-5. The current host may provide a preflight guard; `pactkit preflight-guard --install` is an explicit repair command if its local configuration was removed. Guard failures must provide a next step and must not permanently lock safe work.
+4. Continue directly to Phase 1 in this session; a new session is never required.
 
 ## 🎬 Phase 1: Precision Targeting
 0.  **Previous-session context (optional)**: You MAY inspect `pactkit continuation resume {STORY_ID}` for notes from an earlier session. Its status is never an execution gate: a blocked, completed, stale, or missing record does not prevent this session from implementing and verifying the current Story. Record a new checkpoint only as optional local handover evidence.

@@ -1,9 +1,7 @@
-usage: pactkit spec-preflight [-h] [--activate] spec
+usage: pactkit spec-preflight [-h] spec
 
 positional arguments:
   spec        Path to the Story Spec
 
 options:
   -h, --help  show this help message and exit
-  --activate  Bind this host session to the Story for optional mutation
-              enforcement
