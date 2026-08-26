@@ -202,16 +202,24 @@ class TestCopyDrift:
     def test_sync_makes_copies_identical(self, tmp_path):
         c1, c2 = _make_copies(tmp_path, "slim", "")
         synced = sync_config_copies(tmp_path)
-        assert c2 in synced
+        assert c1 in synced
         assert c1.read_text() == c2.read_text()
 
-    def test_sync_prefers_claude_copy_as_canonical(self, tmp_path):
-        """Canonical = first existing in CANONICAL_PREFERENCE (.claude first),
-        regardless of key count — an inflated default-wall copy must NOT win."""
+    def test_sync_prefers_effective_copy_as_canonical(self, tmp_path):
+        """Canonical = the copy readers actually load (first existing in
+        PACTKIT_YAML_CANDIDATES — codex before classic here), regardless of
+        key count — an inflated default-wall copy must NOT win on key count.
+
+        STORY-slim-20260826f9492ab32c3d R1 superseded the STORY-slim-135
+        classic-first order: propagating a copy no reader loads destroyed
+        user edits to the effective copy."""
         c1, c2 = _make_copies(tmp_path, "slim", "")
         sync_config_copies(tmp_path)
-        assert 'developer: "slim"' in c2.read_text()
-        assert "agent_models" in c2.read_text()
+        # c2 (.codex) is the effective copy; c1 (.claude) receives its content
+        # and the .claude-only value is NOT propagated in the other direction.
+        assert 'developer: ""' in c1.read_text()
+        assert "agent_models" not in c1.read_text()
+        assert 'developer: ""' in c2.read_text()
 
 
 # ---------------------------------------------------------------------------

@@ -650,6 +650,7 @@ from pactkit.profiles import (  # noqa: E402, F401
     get_profile,
     is_environment_format,
 )
+from pactkit.utils import atomic_write  # noqa: E402
 
 # Re-export for downstream consumers (deployer, cli, etc.)
 __all__ = [
@@ -711,29 +712,30 @@ def resolve_pactkit_yaml_dir(cwd: Path | None = None, format: str | None = None)
 # Multi-copy governance (STORY-slim-135 R4)
 # ---------------------------------------------------------------------------
 
-# Canonical preference: classic (.claude) first — it is the primary
-# environment for most users and the copy humans actually edit.
-CANONICAL_PREFERENCE = (
-    ".claude/pactkit.yaml",
-    ".codex/pactkit.yaml",
-    ".github/pactkit.yaml",
-    ".opencode/pactkit.yaml",
-)
-
-
 def existing_config_copies(project_root: Path) -> list[Path]:
-    """Return all pactkit.yaml copies that exist under the project root."""
+    """Return all pactkit.yaml copies that exist under the project root.
+
+    Ordered by PACTKIT_YAML_CANDIDATES — the same single ordering every
+    reader uses — so copies[0] IS the effective copy
+    (STORY-slim-20260826f9492ab32c3d R1).
+    """
     return [project_root / c for c in PACTKIT_YAML_CANDIDATES if (project_root / c).exists()]
 
 
 def sync_config_copies(project_root: Path) -> list[Path]:
-    """Sync all existing pactkit.yaml copies to the canonical one's content.
+    """Sync all existing pactkit.yaml copies to the effective copy's content.
 
-    Canonical = the first existing copy in CANONICAL_PREFERENCE order
-    (.claude first). Key-count heuristics are NOT used: an auto-generated
-    "default wall" copy has more keys but less user intent than a hand-curated
-    minimal one. Only existing copies are touched — new copies are never
-    created here.
+    The sync source is the copy readers actually load — the first existing
+    candidate in PACTKIT_YAML_CANDIDATES, exactly what find_pactkit_yaml
+    resolves. The copy being read is the copy being propagated, so user
+    edits to the effective copy can never be destroyed by sync
+    (STORY-slim-20260826f9492ab32c3d R1; supersedes the STORY-slim-135
+    classic-first canonical order, which propagated a copy no reader
+    loads). Key-count heuristics are NOT used. Only existing copies are
+    touched — new copies are never created here.
+
+    Writes are atomic (R2) and each overwrite is reported before it
+    happens (R3).
 
     Returns the list of paths that were updated.
     """
@@ -741,19 +743,20 @@ def sync_config_copies(project_root: Path) -> list[Path]:
     if len(copies) < 2:
         return []
 
-    def _pref(p: Path) -> int:
-        rel = p.relative_to(project_root).as_posix()
-        return CANONICAL_PREFERENCE.index(rel) if rel in CANONICAL_PREFERENCE else len(CANONICAL_PREFERENCE)
-
-    canonical = min(copies, key=_pref)
+    canonical = copies[0]
     content = canonical.read_text(encoding="utf-8")
 
     synced = []
-    for copy_path in copies:
-        if copy_path == canonical:
-            continue
+    for copy_path in copies[1:]:
         if copy_path.read_text(encoding="utf-8") != content:
-            copy_path.write_text(content, encoding="utf-8")
+            # R3: make the overwrite visible before it happens.
+            print(
+                f"  ⚠️  overwriting {copy_path.relative_to(project_root)} "
+                f"with {canonical.relative_to(project_root)} content "
+                f"({len(content.splitlines())} lines)"
+            )
+            # R2: atomic — a crash mid-write must not truncate any copy.
+            atomic_write(copy_path, content)
             synced.append(copy_path)
     return synced
 
