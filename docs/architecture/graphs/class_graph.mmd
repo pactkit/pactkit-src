@@ -8,8 +8,6 @@ classDiagram
     ValueError <|-- PreflightError
     class PreflightResult {
     }
-    class ReceiptCheck {
-    }
     class EnterpriseConfig {
     }
     class PactKitConfig {
@@ -47,101 +45,12 @@ classDiagram
         +validate(state, step, evidence, status)
     }
     NoopValidator <|-- ActEvidenceValidator
-    class WorkUnitError {
-    }
-    ValueError <|-- WorkUnitError
-    class ProtocolError {
-    }
-    ValueError <|-- ProtocolError
-    class ExecutionMode {
-    }
-    str <|-- ExecutionMode
-    Enum <|-- ExecutionMode
-    class HostCapabilities {
-    }
-    class WorkUnitTemplate {
-    }
-    class WorkflowRun {
-    }
-    class WorkUnit {
-    }
-    class EvidenceReceipt {
-        +for_files(cls, unit)
-    }
-    class SubmissionResult {
-    }
-    class WorkflowEngine {
-        -__init__(root)
-        +path_for(run_id)
-        -_lock(run_id)
-        -_story_lock(story_id)
-        -_validate_completed_finalize_journal(state)
-        -_read(run_id)
-        -_read_scanned_state(path)
-        -_write(state)
-        -_run(state)
-        +start(workflow_id)
-        -_start(workflow_id)
-        -_template(state)
-        -_unit(record)
-        -_idempotent_unit_result(cls, cached)
-        -_idempotent_run_result(cached)
-        -_idempotent_submission_result(cached)
-        +acquire(run_id)
-        +lease_current(run_id)
-        -_find_run_for_unit(unit_id)
-        -_active_runs_for_story(story_id)
-        -_completed_run_for_story(story_id, workflow_id)
-        +resume(story_id)
-        +bind_story(run_id)
-        +renew(unit_id)
-        -_validate_receipt(state, record, receipt, owner, now)
-        +reject(unit_id)
-        +retry(unit_id)
-        +expire(unit_id)
-        +submit(unit_id, receipt)
-        +record_turn_terminal(run_id)
-        +status(run_id)
-        +import_legacy(path)
-        +complete(run_id)
-        -_complete_locked(state, fingerprints)
-        +plan_ready_to_finalize(state)
-        +workflow_ready_to_finalize(state)
-    }
-    class PlanFinalizer {
-        -__init__(root, engine)
-        -_journal_path(run_id)
-        -_projection_lock()
-        -_story_lock(story_id)
-        -_write_board()
-        -_write_context()
-        -_save_journal(path, journal)
-        -_validate_journal(journal)
-        +finalize(run_id)
-    }
-    class WorkflowFinalizer {
-        -__init__(root, engine)
-        -_journal_path(run_id)
-        -_save(path, journal)
-        +finalize(run_id, receipt)
-        -_completion_evidence(state, receipt)
-        -_validate_completion(state, evidence)
-        -_complete_act_story_tasks(state, evidence)
-        -_validate_act_story_projection(story_id, board_tasks)
-        -_validate_pdca_completion(workflow_id, evidence)
-    }
-    class HostContinuationRunner {
-        -__init__(engine, capabilities)
-        -_digest(state)
-        -_session_reference(session_locator)
-        +after_model_turn(identifier)
-        -_after_legacy_turn(identifier)
-        +before_operation(identifier, operation)
-        +record_resume_failure(identifier)
-    }
     class GateResult {
         +render()
     }
+    class GitCollectionError {
+    }
+    Exception <|-- GitCollectionError
     class GateUnavailable {
     }
     Exception <|-- GateUnavailable
@@ -167,6 +76,7 @@ classDiagram
     class ContinuationEngine {
         -__init__(project_root)
         -_run_lock(run_id)
+        -_bind_lock()
         +definition(workflow_id)
         -_validate_run_id(run_id)
         +path_for(run_id)
@@ -290,6 +200,7 @@ classDiagram
         +list()
         -_write(record)
         +add(item_id, title, tasks)
+        +add_task(item_id, task)
         +complete_task(item_id, task)
         +move(item_id, status)
     }
@@ -311,6 +222,99 @@ classDiagram
         -_legacy_lessons()
         -_remove_installed(paths)
         +migrate()
+    }
+    class WorkUnitError {
+    }
+    ValueError <|-- WorkUnitError
+    class ProtocolError {
+    }
+    ValueError <|-- ProtocolError
+    class ExecutionMode {
+    }
+    str <|-- ExecutionMode
+    Enum <|-- ExecutionMode
+    class HostCapabilities {
+    }
+    class WorkUnitTemplate {
+    }
+    class WorkflowRun {
+    }
+    class WorkUnit {
+    }
+    class EvidenceReceipt {
+        +for_files(cls, unit)
+    }
+    class SubmissionResult {
+    }
+    class WorkflowEngine {
+        -__init__(root)
+        +path_for(run_id)
+        -_lock(run_id)
+        -_story_lock(story_id)
+        -_validate_completed_finalize_journal(state)
+        -_read(run_id)
+        -_read_scanned_state(path)
+        -_write(state)
+        -_run(state)
+        +start(workflow_id)
+        -_start(workflow_id)
+        -_template(state)
+        -_unit(record)
+        -_idempotent_unit_result(cls, cached)
+        -_idempotent_run_result(cached)
+        -_idempotent_submission_result(cached)
+        +acquire(run_id)
+        +lease_current(run_id)
+        -_find_run_for_unit(unit_id)
+        -_scan_or_skip(path)
+        -_active_runs_for_story(story_id)
+        -_completed_run_for_story(story_id, workflow_id)
+        +resume(story_id)
+        +bind_story(run_id)
+        +renew(unit_id)
+        -_validate_receipt(state, record, receipt, owner, now)
+        +reject(unit_id)
+        +retry(unit_id)
+        +expire(unit_id)
+        +submit(unit_id, receipt)
+        +record_turn_terminal(run_id)
+        +status(run_id)
+        +import_legacy(path)
+        +complete(run_id)
+        -_complete_locked(state, fingerprints)
+        +plan_ready_to_finalize(state)
+        +workflow_ready_to_finalize(state)
+    }
+    class PlanFinalizer {
+        -__init__(root, engine)
+        -_journal_path(run_id)
+        -_projection_lock()
+        -_story_lock(story_id)
+        -_write_board()
+        -_write_context()
+        -_save_journal(path, journal)
+        -_validate_journal(journal)
+        +finalize(run_id)
+    }
+    class WorkflowFinalizer {
+        -__init__(root, engine)
+        -_journal_path(run_id)
+        -_save(path, journal)
+        +finalize(run_id, receipt)
+        -_completion_evidence(state, receipt)
+        -_validate_completion(state, evidence)
+        -_complete_act_story_tasks(state, evidence)
+        -_validate_act_story_projection(story_id, board_tasks)
+        -_validate_pdca_completion(workflow_id, evidence)
+    }
+    class HostContinuationRunner {
+        -__init__(engine, capabilities)
+        -_digest(state)
+        -_session_reference(session_locator)
+        +after_model_turn(identifier)
+        -_after_legacy_turn(identifier)
+        +before_operation(identifier, operation)
+        +record_resume_failure(identifier)
     }
     class GuideDefinition {
         +hard_safety()

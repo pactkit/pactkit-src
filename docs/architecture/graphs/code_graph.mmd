@@ -1,6 +1,4 @@
 graph TD
-    src_pactkit_preflight_guard_py["preflight_guard.py"]
-    click src_pactkit_preflight_guard_py href "src/pactkit/preflight_guard.py"
     src_pactkit_portable_methods_py["portable_methods.py"]
     click src_pactkit_portable_methods_py href "src/pactkit/portable_methods.py"
     src_pactkit_id_generator_py["id_generator.py"]
@@ -29,6 +27,8 @@ graph TD
     click src_pactkit_garden_py href "src/pactkit/garden.py"
     src_pactkit_workflow_engine_py["workflow_engine.py"]
     click src_pactkit_workflow_engine_py href "src/pactkit/workflow_engine.py"
+    src_pactkit_protocols_py["protocols.py"]
+    click src_pactkit_protocols_py href "src/pactkit/protocols.py"
     src_pactkit_host_continuation_py["host_continuation.py"]
     click src_pactkit_host_continuation_py href "src/pactkit/host_continuation.py"
     src_pactkit_commit_gate_py["commit_gate.py"]
@@ -93,6 +93,14 @@ graph TD
     click src_pactkit_invariants_py href "src/pactkit/invariants.py"
     src_pactkit_governance_py["governance.py"]
     click src_pactkit_governance_py href "src/pactkit/governance.py"
+    src_pactkit_legacy_workflow_engine_py["workflow_engine.py"]
+    click src_pactkit_legacy_workflow_engine_py href "src/pactkit/legacy/workflow_engine.py"
+    src_pactkit_legacy_host_continuation_py["host_continuation.py"]
+    click src_pactkit_legacy_host_continuation_py href "src/pactkit/legacy/host_continuation.py"
+    src_pactkit_legacy___init___py["__init__.py"]
+    click src_pactkit_legacy___init___py href "src/pactkit/legacy/__init__.py"
+    src_pactkit_legacy_usage_py["usage.py"]
+    click src_pactkit_legacy_usage_py href "src/pactkit/legacy/usage.py"
     src_pactkit_prompts_guides_py["guides.py"]
     click src_pactkit_prompts_guides_py href "src/pactkit/prompts/guides.py"
     src_pactkit_prompts_skills_py["skills.py"]
@@ -111,8 +119,6 @@ graph TD
     click src_pactkit_prompts_commands_py href "src/pactkit/prompts/commands.py"
     src_pactkit_generators_deployer_py["deployer.py"]
     click src_pactkit_generators_deployer_py href "src/pactkit/generators/deployer.py"
-    src_pactkit_generators_adapter_py["adapter.py"]
-    click src_pactkit_generators_adapter_py href "src/pactkit/generators/adapter.py"
     src_pactkit_generators_claude_md_py["claude_md.py"]
     click src_pactkit_generators_claude_md_py href "src/pactkit/generators/claude_md.py"
     src_pactkit_generators___init___py["__init__.py"]
@@ -121,14 +127,11 @@ graph TD
     click src_pactkit_generators_deploy_base_py href "src/pactkit/generators/deploy_base.py"
     src_pactkit_generators_command_ownership_py["command_ownership.py"]
     click src_pactkit_generators_command_ownership_py href "src/pactkit/generators/command_ownership.py"
-    src_pactkit_preflight_guard_py --> src_pactkit_config_py
-    src_pactkit_preflight_guard_py --> src_pactkit_project_root_py
-    src_pactkit_preflight_guard_py --> src_pactkit_spec_preflight_py
-    src_pactkit_preflight_guard_py --> src_pactkit_utils_py
     src_pactkit_deps_py --> src_pactkit_config_py
     src_pactkit_spec_preflight_py --> src_pactkit_utils_py
     src_pactkit_config_py --> src_pactkit_prompts_rules_py
     src_pactkit_config_py --> src_pactkit_profiles_py
+    src_pactkit_config_py --> src_pactkit_utils_py
     src_pactkit_lessons_py --> src_pactkit_schemas_py
     src_pactkit_guards_py --> src_pactkit___init___py
     src_pactkit_guards_py --> src_pactkit_config_py
@@ -141,21 +144,12 @@ graph TD
     src_pactkit_workflow_validators_py --> src_pactkit_governance_py
     src_pactkit_garden_py --> src_pactkit_context_gen_py
     src_pactkit_garden_py --> src_pactkit_continuation_py
-    src_pactkit_workflow_engine_py --> src_pactkit_utils_py
-    src_pactkit_workflow_engine_py --> src_pactkit_config_py
-    src_pactkit_workflow_engine_py --> src_pactkit_spec_graph_py
-    src_pactkit_workflow_engine_py --> src_pactkit_context_gen_py
-    src_pactkit_workflow_engine_py --> src_pactkit_governance_py
-    src_pactkit_workflow_engine_py --> src_pactkit___init___py
-    src_pactkit_workflow_engine_py --> src_pactkit_workflow_validators_py
-    src_pactkit_workflow_engine_py --> src_pactkit_guards_py
-    src_pactkit_host_continuation_py --> src_pactkit_continuation_py
-    src_pactkit_host_continuation_py --> src_pactkit_utils_py
-    src_pactkit_host_continuation_py --> src_pactkit_workflow_registry_py
-    src_pactkit_commit_gate_py --> src_pactkit_config_py
+    src_pactkit_workflow_engine_py --> src_pactkit_legacy___init___py
+    src_pactkit_host_continuation_py --> src_pactkit_legacy___init___py
+    src_pactkit_commit_gate_py --> src_pactkit_utils_py
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
-    src_pactkit_commit_gate_py --> src_pactkit_preflight_guard_py
+    src_pactkit_commit_gate_py --> src_pactkit_config_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
     src_pactkit_lint_runner_py --> src_pactkit_config_py
@@ -171,8 +165,8 @@ graph TD
     src_pactkit_deploy_manifest_py --> src_pactkit_prompts_guides_py
     src_pactkit_deploy_manifest_py --> src_pactkit_prompts_rules_py
     src_pactkit_deploy_manifest_py --> src_pactkit_prompts_skills_py
+    src_pactkit_deploy_manifest_py --> src_pactkit_protocols_py
     src_pactkit_deploy_manifest_py --> src_pactkit_utils_py
-    src_pactkit_deploy_manifest_py --> src_pactkit_workflow_engine_py
     src_pactkit_lazy_visualize_py --> src_pactkit_cleaners_py
     src_pactkit_lazy_visualize_py --> src_pactkit_prompts_workflows_py
     src_pactkit_continuation_py --> src_pactkit_id_generator_py
@@ -188,13 +182,13 @@ graph TD
     src_pactkit_cli_py --> src_pactkit___init___py
     src_pactkit_cli_py --> src_pactkit_profiles_py
     src_pactkit_cli_py --> src_pactkit_schemas_py
+    src_pactkit_cli_py --> src_pactkit_generators_deployer_py
     src_pactkit_cli_py --> src_pactkit_workflow_engine_py
     src_pactkit_cli_py --> src_pactkit_doctor_py
     src_pactkit_cli_py --> src_pactkit_config_py
-    src_pactkit_cli_py --> src_pactkit_project_root_py
-    src_pactkit_cli_py --> src_pactkit_generators_deployer_py
     src_pactkit_cli_py --> src_pactkit_commit_gate_py
     src_pactkit_cli_py --> src_pactkit_deps_py
+    src_pactkit_cli_py --> src_pactkit_project_root_py
     src_pactkit_cli_py --> src_pactkit_spec_preflight_py
     src_pactkit_cli_py --> src_pactkit_guards_py
     src_pactkit_cli_py --> src_pactkit_id_generator_py
@@ -203,6 +197,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_context_gen_py
     src_pactkit_cli_py --> src_pactkit_utils_py
     src_pactkit_cli_py --> src_pactkit_governance_py
+    src_pactkit_cli_py --> src_pactkit_legacy_usage_py
     src_pactkit_cli_py --> src_pactkit_continuation_py
     src_pactkit_cli_py --> src_pactkit_workflow_registry_py
     src_pactkit_cli_py --> src_pactkit_spec_graph_py
@@ -221,14 +216,15 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_coverage_gate_py
     src_pactkit_cli_py --> src_pactkit_spec_status_py
     src_pactkit_cli_py --> src_pactkit_done_verify_py
-    src_pactkit_cli_py --> src_pactkit_preflight_guard_py
     src_pactkit_cli_py --> src_pactkit_graph_query_py
     src_pactkit_backfill_py --> src_pactkit_id_generator_py
     src_pactkit_backfill_py --> src_pactkit_schemas_py
     src_pactkit_backfill_py --> src_pactkit_governance_py
+    src_pactkit_utils_py --> src_pactkit_config_py
     src_pactkit_spec_graph_py --> src_pactkit_schemas_py
     src_pactkit_spec_graph_py --> src_pactkit___init___py
     src_pactkit_spec_status_py --> src_pactkit_schemas_py
+    src_pactkit_coverage_gate_py --> src_pactkit_utils_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py
@@ -241,17 +237,31 @@ graph TD
     src_pactkit_doctor_py --> src_pactkit_workflow_engine_py
     src_pactkit_doctor_py --> src_pactkit_prompts_guides_py
     src_pactkit_doctor_py --> src_pactkit_prompts_rules_py
+    src_pactkit_doctor_py --> src_pactkit_profiles_py
+    src_pactkit_doctor_py --> src_pactkit_legacy_usage_py
     src_pactkit_doctor_py --> src_pactkit_config_py
     src_pactkit_doctor_py --> src_pactkit_graph_query_py
     src_pactkit_doctor_py --> src_pactkit_deploy_manifest_py
     src_pactkit_doctor_py --> src_pactkit___init___py
     src_pactkit_doctor_py --> src_pactkit_governance_py
-    src_pactkit_doctor_py --> src_pactkit_profiles_py
     src_pactkit_doctor_py --> src_pactkit_prompts_workflows_py
     src_pactkit___main___py --> src_pactkit_cli_py
     src_pactkit_governance_py --> src_pactkit_id_generator_py
     src_pactkit_governance_py --> src_pactkit_utils_py
     src_pactkit_governance_py --> src_pactkit_continuation_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_protocols_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_utils_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_config_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_spec_graph_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_context_gen_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_governance_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit___init___py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_workflow_validators_py
+    src_pactkit_legacy_workflow_engine_py --> src_pactkit_guards_py
+    src_pactkit_legacy_host_continuation_py --> src_pactkit_continuation_py
+    src_pactkit_legacy_host_continuation_py --> src_pactkit_utils_py
+    src_pactkit_legacy_host_continuation_py --> src_pactkit_workflow_registry_py
+    src_pactkit_legacy_usage_py --> src_pactkit_utils_py
     src_pactkit_prompts_skills_py --> src_pactkit___init___py
     src_pactkit_prompts_skills_py --> src_pactkit_portable_methods_py
     src_pactkit_prompts_rules_py --> src_pactkit___init___py
