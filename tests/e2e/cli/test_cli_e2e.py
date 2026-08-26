@@ -320,6 +320,7 @@ class TestDeploymentCompleteness:
             f.relative_to(ondemand_dir).as_posix().removesuffix(".md")
             for f in ondemand_dir.rglob("*.md")
             if "guides" not in f.relative_to(ondemand_dir).parts
+            and f.name != "README.md"  # directory doc, not a rule
         }
         from pactkit.config import is_pactkit_self_development_root
 

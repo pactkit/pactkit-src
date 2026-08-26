@@ -41,7 +41,13 @@ class TestDeployRulesStillWorks:
         rules_dir = claude_root / "rules"
         ondemand_dir = claude_root / "skills" / "_rules"
         rules_written = sorted(f.relative_to(rules_dir).as_posix() for f in rules_dir.rglob("*.md"))
-        ondemand_written = sorted(f.relative_to(ondemand_dir).as_posix() for f in ondemand_dir.rglob("*.md"))
+        # README.md documents the on-demand directory (hotfix 2026-08-26);
+        # it is not a rule.
+        ondemand_written = sorted(
+            f.relative_to(ondemand_dir).as_posix()
+            for f in ondemand_dir.rglob("*.md")
+            if f.name != "README.md"
+        )
         assert count == 2
         assert rules_written == ["pactkit-runtime.md"]
         assert ondemand_written == ["execution/git-workflow.md"]

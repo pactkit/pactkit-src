@@ -780,6 +780,22 @@ def _migrate_from_scafpy(claude_root):
             old_yaml.unlink()
 
 
+_ON_DEMAND_RULES_README = """# PactKit On-Demand Rules
+
+This directory holds PactKit's phase and conditional rules. It has no
+SKILL.md by design: nothing here is a skill, and nothing here loads on
+its own. Claude Code's skills discovery intentionally skips it.
+
+Rules are @import-ed by the top of the PactKit command skills
+(/project-plan, /project-act, ...) only when those skills are invoked —
+they never enter an ordinary conversation. Engineering guides under
+guides/ are additionally risk-triggered (0-3 per task).
+
+Managed by `pactkit update`; user-modified files are preserved with a
+`.pactkit-new` candidate rather than overwritten.
+"""
+
+
 def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     """Deploy rule modules filtered by config.
 
@@ -829,12 +845,31 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
             elif expected is not None:
                 print(f"  ⚠️  preserved user-modified legacy rule: {path}")
 
+    # Superseded pre-split constitution: the Runtime Kernel replaced it
+    # (STORY-slim-112), but hosts load every file in rules/ each session —
+    # surface the double-loading conflict instead of leaving it silent
+    # (HOTFIX 2026-08-26). Byte-identical legacy copies were already retired
+    # above; anything remaining is an older version or user-edited.
+    superseded_constitution = rules_dir / "pactkit.md"
+    if superseded_constitution.is_file():
+        print(
+            f"  ⚠️  superseded constitution still present: {superseded_constitution} — "
+            f"the Runtime Kernel (pactkit-runtime.md) replaced it and both load "
+            f"every session with conflicting semantics. Review and archive it."
+        )
+
     # The previous manifest is the only reliable ownership proof for a
     # current-format file.  A path can exist for many legitimate user reasons,
     # so never infer ownership from its name alone.
     from pactkit.deploy_manifest import load_previous_hashes, preserve_or_write
 
     previous_hashes = load_previous_hashes(claude_root)
+
+    # Explain the shadow directory (no SKILL.md by design).
+    preserve_or_write(
+        claude_root, ondemand_dir / "README.md", _ON_DEMAND_RULES_README,
+        previous_hashes, "rules-readme",
+    )
 
     # Resolve current and legacy config identifiers to deduplicated logical IDs.
     enabled_ids = []
