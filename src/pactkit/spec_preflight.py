@@ -120,13 +120,23 @@ def _discover_references(root: Path, spec_path: Path, raw: str) -> list[dict[str
                 candidate = matches[0]
                 value = candidate.relative_to(root).as_posix()
         if candidate.is_file() and candidate.resolve() != spec_path.resolve():
+            # A prose basename that resolves to a path the Implementation
+            # Inputs table already declares (under any spelling) must not
+            # be added a second time — the table is authoritative
+            # (STORY-slim-20260826ac1f0bfe4148 R3).
+            resolved_rel = (
+                candidate.relative_to(root).as_posix()
+                if _inside(root, candidate) else value
+            )
+            if resolved_rel in known or value in known:
+                continue
             declared.append({
-                "path": value,
+                "path": resolved_rel,
                 "range": requested_range,
                 "mode": "auto",
                 "required": "SHOULD",
             })
-            known.add(value)
+            known.add(resolved_rel)
     return declared
 
 
@@ -236,7 +246,20 @@ def run_spec_preflight(
             raise PreflightError(f"input is not a file: {relative}")
         mode = row.get("mode", "auto").lower() or "auto"
         line_range = row.get("range", "all") or "all"
-        content = _extract(resolved, mode, line_range, MAX_TOTAL_BYTES - used)
+        try:
+            content = _extract(resolved, mode, line_range, MAX_TOTAL_BYTES - used)
+        except PreflightError as exc:
+            if required in {"MUST", "REQUIRED", "YES"}:
+                raise
+            # An oversized reference discovered from prose (not declared in
+            # the Implementation Inputs table) downgrades to a warning with
+            # a declaration hint instead of aborting preflight
+            # (STORY-slim-20260826ac1f0bfe4148 R3).
+            rendered_parts.append(
+                f"[WARN] skipped oversized prose reference: {relative} "
+                f"— declare it in Implementation Inputs with an extraction mode ({exc})"
+            )
+            continue
         used += len(content.encode("utf-8"))
         if used > MAX_TOTAL_BYTES:
             raise PreflightError("preflight extraction exceeds total context budget")

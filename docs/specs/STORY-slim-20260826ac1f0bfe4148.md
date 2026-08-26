@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | ID | STORY-slim-20260826ac1f0bfe4148 |
-| Status | Draft |
+| Status | Done |
 | Priority | P1 |
 | Release | 2.23.0 |
 
@@ -26,8 +26,9 @@ occurred:
    values.
 3. `spec-preflight` auto-discovers backtick-quoted file references in
    Spec prose (spec_preflight.py:86-130): a bare basename mentioned in
-   prose is rglob-resolved and force-inlined; a >32KB file (e.g.
-   .pactkit-deployed.json at 37KB) aborts preflight with a hard error,
+   prose is rglob-resolved and force-inlined; a >32KB file (the
+   deployed manifest, at 37KB in this repo) aborts preflight with a hard
+   error,
    and a file already declared in the Implementation Inputs table under
    its full path can still be re-added via a prose basename
    (spec_preflight.py:97 checks `value in known` BEFORE rglob
@@ -98,7 +99,7 @@ rather than discovered by trial-and-error.
 
 ### AC4: prose basename does not double-add (R3)
 
-- **Given** a Spec whose Implementation Inputs table declares `.github/.pactkit-deployed.json` and whose prose mentions the bare basename
+- **Given** a Spec whose Implementation Inputs table declares the .github deployed manifest by full path and whose prose mentions its bare basename
 - **When** spec-preflight runs
 - **Then** the file is inlined exactly once (from the table's mode), not re-added with mode=auto
 

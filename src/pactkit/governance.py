@@ -166,6 +166,31 @@ class StoryRepository:
         self._write(record, create_only=True)
         return {**record, "managed": ownership["managed"]}
 
+    def add_task(self, item_id: str, task: str) -> dict[str, Any]:
+        """Append a task to an existing Story (mid-story additions).
+
+        Adding open work to a done Story reopens it (in_progress), keeping
+        the all-completed status invariant honest.
+        """
+        ownership = self._authorize("update_story", item_id)
+        record = self.load(item_id)
+        normalized = task.strip()
+        if not normalized:
+            raise GovernanceError("task title must not be empty")
+        if any(entry["title"] == normalized for entry in record["tasks"]):
+            raise GovernanceError(f"task already exists: {normalized}")
+        record["tasks"].append({
+            "id": _task_id(normalized, len(record["tasks"])),
+            "title": normalized,
+            "completed": False,
+        })
+        if record["status"] == "done":
+            record["status"] = "in_progress"
+            record.pop("completed_at", None)
+        record["updated_at"] = _now()
+        self._write(record)
+        return {**record, "managed": ownership["managed"]}
+
     def complete_task(self, item_id: str, task: str) -> dict[str, Any]:
         ownership = self._authorize("update_story", item_id)
         record = self.load(item_id)

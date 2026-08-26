@@ -296,6 +296,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
       4. If outdated: Edit the affected step(s) in journey.md — update assertions, add new structure assertions, or adjust step description. MUST use Edit (incremental), MUST NOT use Write (full replace).
       5. If still accurate: skip with log "Journey steps verified — no update needed"
 2.  **Update Board (CRITICAL)**: Run `{BOARD_CMD} update_task {STORY_ID} "Task Name"` for each completed task to mark it as `[x]`.
+    Mid-story additions use `{BOARD_CMD} add_task {STORY_ID} "Task Name"` (subcommands: add_story, add_task, update_task, snapshot, move_story, archive, list_stories, fix_board, render).
     <!-- PACTKIT_ACT_OP:board_update -->
 3.  **Update local context (optional)**: You may run `pactkit context --continuation --last-command "/project-act {STORY_ID}" --phase "Phase 4: complete"` for a later handoff.
     <!-- PACTKIT_ACT_OP:continuation_update -->
@@ -607,7 +608,7 @@ If Act already verified lint with no later source/test change, log `"Lint: SKIP 
     - `pactkit context --stdout` — validates generation from Story/Lesson facts without writing tracked files
     - `pactkit board render --check` — validates the optional Board projection
     - These are non-blocking: report warnings but do not stop the Done flow.
-6.  **Spec Status Update (MUST)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file. If `pactkit spec-status` is unavailable, manually edit the spec file.
+6.  **Spec Status Update (MUST)**: Run `pactkit spec-status docs/specs/{STORY_ID}.md Done` to update `| Status | Draft |` to `| Status | Done |` in the spec file (accepted values: Draft, In Progress, Done). If `pactkit spec-status` is unavailable, manually edit the spec file.
 7.  **Archive Honesty Gate (CRITICAL — STORY-slim-136)**: Run `pactkit done-verify {STORY_ID}` — it mechanically verifies requirement→test evidence, checkbox↔case honesty, and status consistency (Spec Done + Board `[x]` + archive).
     - **Any FAIL (exit ≠ 0)**: Print the evidence lines and do not archive or commit. Continue safe diagnosis or repair when it is within the user's request. WARN-only: print and proceed. CLI too old: warn that the gate was skipped, then proceed.
 8.  **Memory MCP (Conditional)**: IF Memory MCP is available, use add_observations to record lessons learned (patterns, pitfalls, key files) on the `{STORY_ID}` entity.
