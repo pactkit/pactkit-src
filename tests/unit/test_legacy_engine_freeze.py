@@ -120,7 +120,7 @@ class TestZeroBehaviorChange:
         import subprocess
 
         proc = subprocess.run(
-            [".venv/bin/python", "-m", "pactkit", "-C", str(tmp_path),
+            [sys.executable, "-m", "pactkit", "-C", str(tmp_path),
              "workflow", "registry"],
             capture_output=True, text=True, cwd=str(PROJECT_ROOT),
             env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path),

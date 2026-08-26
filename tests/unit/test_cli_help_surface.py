@@ -13,7 +13,29 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 GOLDEN_DIR = PROJECT_ROOT / "tests" / "fixtures" / "cli_help_golden"
-ENV = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(PROJECT_ROOT / "src"), "HOME": "/tmp"}
+# COLUMNS pinned: argparse wraps to the terminal width; 80 is the
+# non-TTY default and keeps snapshots deterministic.
+ENV = {"PATH": "/usr/bin:/bin", "PYTHONPATH": str(PROJECT_ROOT / "src"), "HOME": "/tmp", "COLUMNS": "80"}
+
+
+def _canonical(help_text: str) -> str:
+    """Version-robust canonical form of an argparse help text.
+
+    Python 3.13+ changed option invocation formatting
+    ("-C, --project-root META" vs the older "-C META, --project-root
+    META") and line wrapping. Canonicalization is applied to BOTH the
+    live output and the golden snapshot, so it may be aggressive: it
+    normalizes the old option style to the new one and collapses all
+    whitespace, leaving only semantic surface (options, help text,
+    choices, command lists) to differ.
+    """
+    import re
+
+    lines = [
+        re.sub(r"^(\s*-[A-Za-z]) [A-Z_]+, ", r"\1, ", line)
+        for line in help_text.splitlines()
+    ]
+    return " ".join(" ".join(lines).split())
 
 
 def _run_help(args):
@@ -26,7 +48,9 @@ def _run_help(args):
 
 
 def test_root_help_matches_golden():
-    assert _run_help(["--help"]) == (GOLDEN_DIR / "__root__.txt").read_text()
+    assert _canonical(_run_help(["--help"])) == _canonical(
+        (GOLDEN_DIR / "__root__.txt").read_text()
+    )
 
 
 def test_all_subcommand_helps_match_golden():
@@ -38,8 +62,8 @@ def test_all_subcommand_helps_match_golden():
     )
     mismatches = []
     for cmd in commands:
-        live = _run_help([cmd, "--help"])
-        golden = (GOLDEN_DIR / f"{cmd}.txt").read_text()
+        live = _canonical(_run_help([cmd, "--help"]))
+        golden = _canonical((GOLDEN_DIR / f"{cmd}.txt").read_text())
         if live != golden:
             mismatches.append(cmd)
     assert not mismatches, f"help surface changed for: {mismatches}"
