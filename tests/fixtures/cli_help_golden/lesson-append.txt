@@ -1,0 +1,8 @@
+usage: pactkit lesson-append [-h] --story STORY --text TEXT
+                             [--context CONTEXT]
+
+options:
+  -h, --help         show this help message and exit
+  --story STORY      Story ID (e.g. STORY-017)
+  --text TEXT        Lesson text
+  --context CONTEXT  Context (file:func)

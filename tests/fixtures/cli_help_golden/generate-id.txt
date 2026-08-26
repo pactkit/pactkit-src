@@ -1,0 +1,5 @@
+usage: pactkit generate-id [-h] [--type {story,hotfix,bug}]
+
+options:
+  -h, --help            show this help message and exit
+  --type {story,hotfix,bug}

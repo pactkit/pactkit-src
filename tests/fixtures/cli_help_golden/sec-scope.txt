@@ -1,0 +1,7 @@
+usage: pactkit sec-scope [-h] [files ...]
+
+positional arguments:
+  files       Changed file paths
+
+options:
+  -h, --help  show this help message and exit

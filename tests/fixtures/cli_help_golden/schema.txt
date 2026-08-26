@@ -1,0 +1,11 @@
+usage: pactkit schema [-h] [--all]
+                      [{spec,board,context,lessons,testcase,config,--all}]
+
+positional arguments:
+  {spec,board,context,lessons,testcase,config,--all}
+                        Document type to show schema for ('config' lists all
+                        pactkit.yaml keys)
+
+options:
+  -h, --help            show this help message and exit
+  --all                 Show all schemas

@@ -1,0 +1,6 @@
+usage: pactkit clean [-h] [--stack STACK] [--dry-run]
+
+options:
+  -h, --help     show this help message and exit
+  --stack STACK  Language stack (default: auto)
+  --dry-run      List files without deleting

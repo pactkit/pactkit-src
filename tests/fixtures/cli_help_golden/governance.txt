@@ -1,0 +1,8 @@
+usage: pactkit governance [-h] {migrate} ...
+
+positional arguments:
+  {migrate}
+    migrate   Migrate legacy aggregate files
+
+options:
+  -h, --help  show this help message and exit

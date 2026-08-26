@@ -1,0 +1,6 @@
+usage: pactkit invariants-refresh [-h] --test-count TEST_COUNT
+
+options:
+  -h, --help            show this help message and exit
+  --test-count TEST_COUNT
+                        New test count

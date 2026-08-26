@@ -1,0 +1,7 @@
+usage: pactkit regression [-h] [files ...]
+
+positional arguments:
+  files       Changed file paths (default: git diff)
+
+options:
+  -h, --help  show this help message and exit

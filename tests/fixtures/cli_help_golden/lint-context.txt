@@ -1,0 +1,7 @@
+usage: pactkit lint-context [-h] [path]
+
+positional arguments:
+  path        Path to context.md
+
+options:
+  -h, --help  show this help message and exit

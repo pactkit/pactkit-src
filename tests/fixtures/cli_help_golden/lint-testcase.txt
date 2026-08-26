@@ -1,0 +1,7 @@
+usage: pactkit lint-testcase [-h] path
+
+positional arguments:
+  path        Path to test case file
+
+options:
+  -h, --help  show this help message and exit

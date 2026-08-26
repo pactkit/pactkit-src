@@ -1,0 +1,11 @@
+usage: pactkit continuation [-h] {checkpoint,status,verify,resume} ...
+
+positional arguments:
+  {checkpoint,status,verify,resume}
+    checkpoint          Write an explicit Act checkpoint
+    status              Read-only continuation status
+    verify              Read-only continuation verify
+    resume              Read-only continuation resume
+
+options:
+  -h, --help            show this help message and exit

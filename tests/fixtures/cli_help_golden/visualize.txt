@@ -1,0 +1,18 @@
+usage: pactkit visualize [-h] [--lazy] [--stack STACK]
+                         [--mode {file,class,call,module}] [--entry ENTRY]
+                         [--focus FOCUS] [--reverse] [--depth DEPTH]
+                         [--max-nodes MAX_NODES] [--sync]
+
+options:
+  -h, --help            show this help message and exit
+  --lazy                Skip if no source changes
+  --stack STACK         Language stack (default: auto)
+  --mode {file,class,call,module}
+                        Graph mode (default: all three)
+  --entry ENTRY         Entry function for call graph BFS
+  --focus FOCUS         Focus on specific module
+  --reverse             Reverse BFS: find callers of entry
+  --depth DEPTH         Limit traversal depth (0=unlimited)
+  --max-nodes MAX_NODES
+                        Truncate graph to N nodes (0=unlimited)
+  --sync                Force codegraph sync even if graphs are skipped

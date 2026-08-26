@@ -1,0 +1,7 @@
+usage: pactkit commit-gate [-h] [--hook] [--install-git-hook]
+
+options:
+  -h, --help          show this help message and exit
+  --hook              PreToolUse hook mode: read hook JSON from stdin, exit 2
+                      blocks git commit
+  --install-git-hook  Install .git/hooks/pre-commit wrapper for human commits

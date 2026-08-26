@@ -1,0 +1,6 @@
+usage: pactkit observe [-h] [--report] [--json]
+
+options:
+  -h, --help  show this help message and exit
+  --report    Human-readable report
+  --json      JSON output

@@ -1,0 +1,6 @@
+usage: pactkit garden [-h] [--json] [--scope SCOPE]
+
+options:
+  -h, --help     show this help message and exit
+  --json         JSON output
+  --scope SCOPE  Scan only this directory (relative path)

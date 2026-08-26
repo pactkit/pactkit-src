@@ -1259,25 +1259,20 @@ def audit(target='.', layer=None, json_only=False, append=False, verbose=False,
     if json_only:
         if verbose:
             return json.dumps(result, indent=2, ensure_ascii=False)
-        # Slim: same as file (includes suggested_tasks + dependency_health)
+        # Slim: derived from the single result dict — no second hand-built
+        # scorecard that can drift from it (the old copy omitted story_id;
+        # STORY-slim-2026082672b57c78fd67 R4).
         scorecard = {
-            'timestamp': result['timestamp'],
-            'commit': result['commit'],
-            'score': result['score'],
-            'ready': result['ready'],
-            'weakest': result.get('weakest'),
-            'layers': {
-                k: (
-                    {'level': v['level'], 'name': v['name'], 'error': v['error']}
-                    if v.get('error') else {'level': v['level'], 'name': v['name']}
-                )
-                for k, v in layers.items()
-            },
-            'checks_failed': checks_failed,
-            'dimensions': scoring.get('dimensions', {}),
-            'hotspots': hotspots,
-            'suggested_tasks': suggested_tasks,
-            'dependency_health': dep_health,
+            key: value
+            for key, value in result.items()
+            if key not in ('findings', 'insights')
+        }
+        scorecard['layers'] = {
+            k: (
+                {'level': v['level'], 'name': v['name'], 'error': v['error']}
+                if v.get('error') else {'level': v['level'], 'name': v['name']}
+            )
+            for k, v in layers.items()
         }
         return json.dumps(scorecard, indent=2, ensure_ascii=False)
 

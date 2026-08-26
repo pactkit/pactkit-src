@@ -1,0 +1,7 @@
+usage: pactkit test-map [-h] [files ...]
+
+positional arguments:
+  files       Source file paths
+
+options:
+  -h, --help  show this help message and exit

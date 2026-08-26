@@ -1,0 +1,22 @@
+usage: pactkit work-unit [-h]
+                         {start,acquire,renew,reject,retry,expire,submit,attempt-terminal,status,resume,bind-story,finalize-plan,finalize-workflow} ...
+
+positional arguments:
+  {start,acquire,renew,reject,retry,expire,submit,attempt-terminal,status,resume,bind-story,finalize-plan,finalize-workflow}
+    start               Start a WorkUnit workflow
+    acquire             Lease the current WorkUnit
+    renew               Renew a WorkUnit lease
+    reject              Reject and retry a WorkUnit
+    retry               Lease a rejected/expired WorkUnit again
+    expire              Expire an elapsed WorkUnit lease
+    submit              Submit a candidate EvidenceReceipt
+    attempt-terminal    Record a host turn terminal
+    status              Read authoritative WorkUnit state
+    resume              Read the unique active WorkUnit run bound to a Story
+    bind-story          Bind the Story allocated by the leased identity
+                        WorkUnit
+    finalize-plan       Journaled Plan finalization
+    finalize-workflow   Journaled non-Plan workflow finalization
+
+options:
+  -h, --help            show this help message and exit

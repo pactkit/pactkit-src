@@ -1,0 +1,7 @@
+usage: pactkit done-verify [-h] story_id
+
+positional arguments:
+  story_id    Story ID (e.g. STORY-slim-001)
+
+options:
+  -h, --help  show this help message and exit

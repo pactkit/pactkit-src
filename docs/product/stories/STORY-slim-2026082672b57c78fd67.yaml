@@ -2,28 +2,34 @@ schema_version: 1
 id: STORY-slim-2026082672b57c78fd67
 title: 'Subtraction pass: dead code removal, completion-rule dedup, CLI decomposition'
 spec_path: docs/specs/STORY-slim-2026082672b57c78fd67.md
-status: backlog
+status: archived
 tasks:
 - id: task-cb12d576c7
   title: 'RED: taxonomy-consistency + help-surface snapshot tests'
-  completed: false
+  completed: true
 - id: task-b442093267
   title: Completion-rule delegation to workflow_validators (R1)
-  completed: false
+  completed: true
 - id: task-6a7993eae2
   title: Shared step taxonomy (R2)
-  completed: false
+  completed: true
 - id: task-4ec5013664
   title: cli.py decomposition (R3)
-  completed: false
+  completed: true
 - id: task-f40c74cec5
   title: Dead code removal with adapter-package grep proof (R4)
-  completed: false
+  completed: true
 - id: task-10ec7417c8
   title: Doctor FORMAT_PROFILES root helper (R5)
-  completed: false
+  completed: true
 - id: task-305dfba532
   title: Full regression + CHANGELOG
-  completed: false
+  completed: true
+- id: task-c2c7043818
+  title: 'Delivered scope: R3 bounded + R4 partial + R5 project-level (R1/R2 dropped
+    per legacy freeze)'
+  completed: true
 created_at: '2026-08-26T07:29:47+00:00'
-updated_at: '2026-08-26T07:29:47+00:00'
+updated_at: '2026-08-26T09:16:43+00:00'
+completed_at: '2026-08-26T09:16:21+00:00'
+archived_at: '2026-08-26T09:16:43+00:00'

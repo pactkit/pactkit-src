@@ -1,0 +1,7 @@
+usage: pactkit backfill-release [-h] version
+
+positional arguments:
+  version     Version string to backfill (e.g. 2.3.0)
+
+options:
+  -h, --help  show this help message and exit

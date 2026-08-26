@@ -1,0 +1,6 @@
+usage: pactkit guard [-h] [-C COMMAND_PROJECT_ROOT]
+
+options:
+  -h, --help            show this help message and exit
+  -C, --project-root COMMAND_PROJECT_ROOT
+                        Initialized PactKit project root

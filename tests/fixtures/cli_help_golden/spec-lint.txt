@@ -1,0 +1,10 @@
+usage: pactkit spec-lint [-h] [--all] [--specs-dir SPECS_DIR] [spec]
+
+positional arguments:
+  spec                  Path to spec file to validate
+
+options:
+  -h, --help            show this help message and exit
+  --all                 Validate all specs in specs dir
+  --specs-dir SPECS_DIR
+                        Directory containing spec files (default: docs/specs)

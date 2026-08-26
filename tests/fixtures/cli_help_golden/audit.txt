@@ -1,0 +1,14 @@
+usage: pactkit audit [-h] [--json] [--layer LAYER] [--append] [--verbose]
+                     [--if-needed]
+                     [story_id]
+
+positional arguments:
+  story_id       Story ID for --if-needed dedup (e.g. STORY-slim-014)
+
+options:
+  -h, --help     show this help message and exit
+  --json         JSON output only
+  --layer LAYER  Check single layer (H1-H7)
+  --append       Silent update for Done integration
+  --verbose      Full detail
+  --if-needed    Skip if harness_audit.json already covers the given story ID

@@ -1,0 +1,7 @@
+usage: pactkit report [-h] [--input INPUT] [--output OUTPUT] [--all]
+
+options:
+  -h, --help       show this help message and exit
+  --input INPUT    Single .mmd file (generates individual .html)
+  --output OUTPUT  Output .html path (default: same name as input)
+  --all            Generate unified report from all .mmd files

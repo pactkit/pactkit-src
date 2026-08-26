@@ -55,6 +55,75 @@ def _schema_command(args) -> None:
         print("Usage: pactkit schema <type>  or  pactkit schema --all")
 
 
+def _run_deploy_command(args, project_root):
+    """Shared init/update/upgrade execution path (STORY-slim-2026082672b57c78fd67 R3)."""
+    # STORY-slim-102: --if-needed checks global deploy marker, not project yaml
+    if args.command == "update" and getattr(args, "if_needed", False):
+        from pathlib import Path
+
+        marker = Path.home() / ".claude" / ".pactkit-version"
+        if marker.exists():
+            deployed_version = marker.read_text().strip()
+            if deployed_version == __version__:
+                print(f"PactKit {__version__} up-to-date — skipping redeploy")
+                raise SystemExit(0)
+        else:
+            print("No pactkit.yaml found. Running first-time setup...")
+
+    from pactkit.generators.deployer import deploy
+
+    # STORY-slim-145 R6: gate adapter compat before any managed file is
+    # written (AC5). Single-format mismatch blocks before dispatch; the
+    # --allow-adapter-skew override skips the block with a warning.
+    if args.format not in ("all", "classic", "plugin", "marketplace"):
+        _allow_skew = getattr(args, "allow_adapter_skew", False)
+        _errors = _check_adapter_compat(args.format, allow_skew=_allow_skew)
+        if _errors:
+            for _e in _errors:
+                print(f"  ✗ {_e}")
+            raise SystemExit(1)
+        if _allow_skew:
+            print(
+                f"  ⚠ --allow-adapter-skew: compatibility NOT verified for "
+                f"{args.format}; proceeding at your own risk."
+            )
+
+    # STORY-slim-135 R4: sync config copies BEFORE deploy reads config
+    # (canonical = .claude first). Real deploys only.
+    if args.target is None:
+        from pathlib import Path
+
+        from pactkit.config import sync_config_copies
+
+        for synced in sync_config_copies(project_root):
+            print(f"  -> Synced config copy: {synced}")
+
+    deploy(
+        target=args.target,
+        format=args.format,
+        project_root=project_root,
+        agent=getattr(args, "agent", "claude"),
+        no_git=getattr(args, "no_git", False),
+        no_external=getattr(args, "no_external", False),
+        non_interactive=getattr(args, "non_interactive", False),
+        allow_skew=getattr(args, "allow_adapter_skew", False),
+    )
+
+    # Post-deploy housekeeping for real deploys: commit-gate channel
+    # dispatch (STORY-slim-138 R4 settings hook; STORY-slim-140 R1 git-hook
+    # fallback for non-Claude formats) + read-only deps summary (slim-137).
+    if args.target is None:
+        from pathlib import Path
+
+        from pactkit.commit_gate import ensure_gate_channel
+        from pactkit.deps import check_deps, render_check_report
+
+        print(f"  -> commit gate: {ensure_gate_channel(project_root, args.format)}")
+        report = render_check_report(check_deps())
+        if "❌" in report:
+            print(f"\n{report}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="pactkit",
@@ -67,151 +136,54 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # pactkit init
-    init_parser = subparsers.add_parser("init", help="Deploy PactKit configuration")
-    init_parser.add_argument(
-        "-t",
-        "--target",
-        type=str,
-        default=None,
-        help="Custom target directory (default: ~/.claude)",
-    )
-    init_parser.add_argument(
-        "--format",
-        type=str,
-        choices=sorted(VALID_FORMATS),
-        default="all",
-        help="Output format: all (default, deploy all installed IDEs), or a specific format",
-    )
-    init_parser.add_argument(
-        "--agent",
-        type=str,
-        choices=["claude", "cursor", "copilot", "generic", "all"],
-        default="claude",
-        help="Target agent format: claude (default), cursor, copilot, generic, or all",
-    )
-    # STORY-047: Enterprise flags
-    init_parser.add_argument(
-        "--no-git",
-        action="store_true",
-        default=False,
-        help="Disable all git operations (enterprise: air-gapped environments)",
-    )
-    init_parser.add_argument(
-        "--no-external",
-        action="store_true",
-        default=False,
-        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
-    )
-    init_parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        default=False,
-        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
-    )
-    init_parser.add_argument(
-        "--allow-adapter-skew",
-        action="store_true",
-        default=False,
-        help="Allow deploying an adapter whose major.minor differs from core (STORY-slim-145 R6)",
-    )
+    def _add_deploy_args(parser, *, if_needed=False):
+        """Shared init/update/upgrade arguments — one source, no drift
+        (STORY-slim-2026082672b57c78fd67 R3)."""
+        parser.add_argument(
+            "-t", "--target", type=str, default=None,
+            help="Custom target directory (default: ~/.claude)",
+        )
+        parser.add_argument(
+            "--format", type=str, choices=sorted(VALID_FORMATS), default="all",
+            help="Output format: all (default, deploy all installed IDEs), or a specific format",
+        )
+        parser.add_argument(
+            "--agent", type=str,
+            choices=["claude", "cursor", "copilot", "generic", "all"], default="claude",
+            help="Target agent format: claude (default), cursor, copilot, generic, or all",
+        )
+        parser.add_argument(
+            "--no-git", action="store_true", default=False,
+            help="Disable all git operations (enterprise: air-gapped environments)",
+        )
+        parser.add_argument(
+            "--no-external", action="store_true", default=False,
+            help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
+        )
+        parser.add_argument(
+            "--non-interactive", action="store_true", default=False,
+            help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
+        )
+        if if_needed:
+            # Registration order matches the historical surface (golden-pinned).
+            parser.add_argument(
+                "--if-needed", action="store_true", default=False,
+                help="Only redeploy if installed version differs from global deploy marker",
+            )
+        parser.add_argument(
+            "--allow-adapter-skew", action="store_true", default=False,
+            help="Allow deploying an adapter whose major.minor differs from core (STORY-slim-145 R6)",
+        )
 
-    # pactkit update (alias for init)
-    update_parser = subparsers.add_parser("update", help="Re-deploy PactKit configuration")
-    update_parser.add_argument(
-        "-t",
-        "--target",
-        type=str,
-        default=None,
-        help="Custom target directory (default: ~/.claude)",
+    _add_deploy_args(subparsers.add_parser("init", help="Deploy PactKit configuration"))
+    _add_deploy_args(
+        subparsers.add_parser("update", help="Re-deploy PactKit configuration"),
+        if_needed=True,
     )
-    update_parser.add_argument(
-        "--format",
-        type=str,
-        choices=sorted(VALID_FORMATS),
-        default="all",
-        help="Output format: all (default, deploy all installed IDEs), or a specific format",
-    )
-    update_parser.add_argument(
-        "--agent",
-        type=str,
-        choices=["claude", "cursor", "copilot", "generic", "all"],
-        default="claude",
-        help="Target agent format: claude (default), cursor, copilot, generic, or all",
-    )
-    # STORY-047: Enterprise flags
-    update_parser.add_argument(
-        "--no-git",
-        action="store_true",
-        default=False,
-        help="Disable all git operations (enterprise: air-gapped environments)",
-    )
-    update_parser.add_argument(
-        "--no-external",
-        action="store_true",
-        default=False,
-        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
-    )
-    update_parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        default=False,
-        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
-    )
-    # STORY-slim-023: Auto version sync
-    update_parser.add_argument(
-        "--if-needed",
-        action="store_true",
-        default=False,
-        help="Only redeploy if installed version differs from global deploy marker",
-    )
-    update_parser.add_argument(
-        "--allow-adapter-skew",
-        action="store_true",
-        default=False,
-        help="Allow deploying an adapter whose major.minor differs from core (STORY-slim-145 R6)",
-    )
-
-    # pactkit upgrade (alias for init, migrates legacy scafpy files)
-    upgrade_parser = subparsers.add_parser("upgrade", help="Upgrade PactKit (migrate legacy scafpy config)")
-    upgrade_parser.add_argument(
-        "-t",
-        "--target",
-        type=str,
-        default=None,
-        help="Custom target directory (default: ~/.claude)",
-    )
-    upgrade_parser.add_argument(
-        "--format",
-        type=str,
-        choices=sorted(VALID_FORMATS),
-        default="all",
-        help="Output format: all (default, deploy all installed IDEs), or a specific format",
-    )
-    upgrade_parser.add_argument(
-        "--agent",
-        type=str,
-        choices=["claude", "cursor", "copilot", "generic", "all"],
-        default="claude",
-        help="Target agent format: claude (default), cursor, copilot, generic, or all",
-    )
-    # STORY-060: Enterprise flags for upgrade (parity with init/update)
-    upgrade_parser.add_argument(
-        "--no-git",
-        action="store_true",
-        default=False,
-        help="Disable all git operations (enterprise: air-gapped environments)",
-    )
-    upgrade_parser.add_argument(
-        "--no-external",
-        action="store_true",
-        default=False,
-        help="Disable external network calls — MCP, gh CLI, pip install (enterprise)",
-    )
-    upgrade_parser.add_argument(
-        "--non-interactive",
-        action="store_true",
-        default=False,
-        help="Non-interactive mode: auto-accept defaults (CI/CD environments)",
+    _add_deploy_args(
+        subparsers.add_parser(
+            "upgrade", help="Upgrade PactKit (migrate legacy scafpy config)"
+        )
     )
 
     # pactkit spec-lint
@@ -666,72 +638,7 @@ def main():
         project_root = Path.cwd().resolve()
 
     if args.command in ("init", "update", "upgrade"):
-        # STORY-slim-102: --if-needed checks global deploy marker, not project yaml
-        if args.command == "update" and getattr(args, "if_needed", False):
-            from pathlib import Path
-
-            marker = Path.home() / ".claude" / ".pactkit-version"
-            if marker.exists():
-                deployed_version = marker.read_text().strip()
-                if deployed_version == __version__:
-                    print(f"PactKit {__version__} up-to-date — skipping redeploy")
-                    raise SystemExit(0)
-            else:
-                print("No pactkit.yaml found. Running first-time setup...")
-
-        from pactkit.generators.deployer import deploy
-
-        # STORY-slim-145 R6: gate adapter compat before any managed file is
-        # written (AC5). Single-format mismatch blocks before dispatch; the
-        # --allow-adapter-skew override skips the block with a warning.
-        if args.format not in ("all", "classic", "plugin", "marketplace"):
-            _allow_skew = getattr(args, "allow_adapter_skew", False)
-            _errors = _check_adapter_compat(args.format, allow_skew=_allow_skew)
-            if _errors:
-                for _e in _errors:
-                    print(f"  ✗ {_e}")
-                raise SystemExit(1)
-            if _allow_skew:
-                print(
-                    f"  ⚠ --allow-adapter-skew: compatibility NOT verified for "
-                    f"{args.format}; proceeding at your own risk."
-                )
-
-        # STORY-slim-135 R4: sync config copies BEFORE deploy reads config
-        # (canonical = .claude first). Real deploys only.
-        if args.target is None:
-            from pathlib import Path
-
-            from pactkit.config import sync_config_copies
-
-            for synced in sync_config_copies(project_root):
-                print(f"  -> Synced config copy: {synced}")
-
-        deploy(
-            target=args.target,
-            format=args.format,
-            project_root=project_root,
-            agent=getattr(args, "agent", "claude"),
-            no_git=getattr(args, "no_git", False),
-            no_external=getattr(args, "no_external", False),
-            non_interactive=getattr(args, "non_interactive", False),
-            allow_skew=getattr(args, "allow_adapter_skew", False),
-        )
-
-        # Post-deploy housekeeping for real deploys: commit-gate channel
-        # dispatch (STORY-slim-138 R4 settings hook; STORY-slim-140 R1 git-hook
-        # fallback for non-Claude formats) + read-only deps summary (slim-137).
-        if args.target is None:
-            from pathlib import Path
-
-            from pactkit.commit_gate import ensure_gate_channel
-            from pactkit.deps import check_deps, render_check_report
-
-            print(f"  -> commit gate: {ensure_gate_channel(project_root, args.format)}")
-            report = render_check_report(check_deps())
-            if "❌" in report:
-                print(f"\n{report}")
-
+        _run_deploy_command(args, project_root)
     elif args.command == "spec-preflight":
         import os
 

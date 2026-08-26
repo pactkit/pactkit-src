@@ -1,0 +1,7 @@
+usage: pactkit interface-summary [-h] files [files ...]
+
+positional arguments:
+  files       Source file(s) to summarize
+
+options:
+  -h, --help  show this help message and exit

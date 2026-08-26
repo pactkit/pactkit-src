@@ -1,0 +1,9 @@
+usage: pactkit spec-status [-h] spec {Draft,In Progress,Done}
+
+positional arguments:
+  spec                  Path to spec file
+  {Draft,In Progress,Done}
+                        New status value
+
+options:
+  -h, --help            show this help message and exit

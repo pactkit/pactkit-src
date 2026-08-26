@@ -1,0 +1,11 @@
+usage: pactkit context [-h] [--continuation] [--last-command LAST_COMMAND]
+                       [--phase PHASE] [--blockers BLOCKERS] [--stdout]
+
+options:
+  -h, --help            show this help message and exit
+  --continuation        Update Agent Continuation section
+  --last-command LAST_COMMAND
+                        Last PDCA command run
+  --phase PHASE         Phase reached
+  --blockers BLOCKERS   Blockers or open questions
+  --stdout              Print without writing cache

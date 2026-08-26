@@ -9,6 +9,7 @@ R6: Design calls pactkit context
 """
 
 import inspect
+from pathlib import Path
 
 
 def _get_done_prompt():
@@ -72,31 +73,31 @@ class TestR2DoneDocValidators:
 # ---------------------------------------------------------------------------
 class TestR3UpgradeAgentFlag:
     def test_upgrade_parser_has_agent_flag(self):
-        """Test by inspecting argparse, not subprocess."""
-        from pactkit.cli import main
+        """upgrade must expose --agent (golden-pinned help surface).
 
-        # Build the parser by inspecting source for --agent in upgrade section
-        source = inspect.getsource(main)
-        # Find the upgrade_parser section and verify --agent is there
-        upgrade_idx = source.index("upgrade_parser")
-        agent_after_upgrade = source.find('"--agent"', upgrade_idx)
-        assert agent_after_upgrade > 0, (
-            "upgrade_parser must have --agent argument"
-        )
+        STORY-slim-2026082672b57c78fd67 moved the parser definitions into
+        the shared _add_deploy_args builder, so source-string introspection
+        of main() no longer sees them — the golden help snapshot is the
+        behavior-level assertion."""
+        golden = (
+            Path(__file__).resolve().parent.parent
+            / "fixtures" / "cli_help_golden" / "upgrade.txt"
+        ).read_text(encoding="utf-8")
+        assert "--agent" in golden
 
     def test_upgrade_agent_choices_match_init(self):
         """Verify upgrade --agent has same choices as init."""
-        from pactkit.cli import main
-
-        source = inspect.getsource(main)
-        # Extract the choices list after upgrade_parser's --agent
-        upgrade_idx = source.index("upgrade_parser")
-        agent_idx = source.index('"--agent"', upgrade_idx)
-        choices_region = source[agent_idx:agent_idx + 200]
+        fixtures = Path(__file__).resolve().parent.parent / "fixtures" / "cli_help_golden"
+        upgrade = (fixtures / "upgrade.txt").read_text(encoding="utf-8")
+        init = (fixtures / "init.txt").read_text(encoding="utf-8")
         for choice in ("claude", "cursor", "copilot", "generic", "all"):
-            assert choice in choices_region, (
-                f"upgrade --agent must include choice '{choice}'"
-            )
+            assert choice in upgrade, f"upgrade --agent must include choice '{choice}'"
+        # Both parsers come from the same _add_deploy_args builder; the
+        # usage line wraps differently per command, so equality is asserted
+        # on the option help text, not the wrapped usage line.
+        up_help = next(l for l in upgrade.splitlines() if "Target agent format" in l)
+        init_help = next(l for l in init.splitlines() if "Target agent format" in l)
+        assert up_help == init_help
 
 
 # ---------------------------------------------------------------------------
@@ -104,12 +105,12 @@ class TestR3UpgradeAgentFlag:
 # ---------------------------------------------------------------------------
 class TestR4UpgradeForwardsAgent:
     def test_deploy_receives_agent_from_upgrade(self):
-        """The deploy() call in the upgrade branch must include agent=."""
+        """The deploy() call must include agent= (now in the extracted handler)."""
         from pactkit import cli as cli_module
 
-        source = inspect.getsource(cli_module.main)
+        source = inspect.getsource(cli_module._run_deploy_command)
         assert "agent=" in source, (
-            "deploy() call in main() must pass agent= parameter"
+            "deploy() call must pass agent= parameter"
         )
 
 

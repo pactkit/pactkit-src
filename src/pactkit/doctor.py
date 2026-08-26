@@ -118,6 +118,22 @@ def resolve_rule_context(
     }
 
 
+def _project_deploy_dirs(project_root: Path) -> dict[str, Path]:
+    """Format name -> project-local deploy directory.
+
+    Derived from profiles.FORMAT_PROFILES (each format's pactkit_yaml_path
+    parent IS its project deploy root) — adding a format to profiles.py
+    requires no doctor.py edit (STORY-slim-2026082672b57c78fd67 R5).
+    """
+    from pactkit.profiles import FORMAT_PROFILES, is_environment_format
+
+    return {
+        name: project_root / Path(profile.pactkit_yaml_path).parent
+        for name, profile in FORMAT_PROFILES.items()
+        if is_environment_format(name)
+    }
+
+
 def _project_host_guarantees(
     project_root: Path, warnings: list[str], *, home: Path | None = None,
 ) -> dict[str, str]:
@@ -129,12 +145,7 @@ def _project_host_guarantees(
     """
     import json
 
-    roots = {
-        "classic": project_root / ".claude",
-        "opencode": project_root / ".opencode",
-        "codex": project_root / ".codex",
-        "copilot": project_root / ".github",
-    }
+    roots = _project_deploy_dirs(project_root)
     global_codex = (home or Path.home()) / ".codex"
     if not (roots["codex"] / ".pactkit-deployed.json").is_file():
         roots["codex"] = global_codex
@@ -590,10 +601,10 @@ def check_rule_ownership(project_root: Path, *, home: Path | None = None) -> dic
         ("classic", home / ".claude", "user"),
         ("codex", home / ".codex", "user"),
         ("opencode", home / ".config" / "opencode", "user"),
-        ("classic", project_root / ".claude", "project"),
-        ("codex", project_root / ".codex", "project"),
-        ("opencode", project_root / ".opencode", "project"),
-        ("copilot", project_root / ".github", "project"),
+        *(
+            (name, directory, "project")
+            for name, directory in sorted(_project_deploy_dirs(project_root).items())
+        ),
     ]
     result = {
         "pactkit_owned": [], "project_owned": [], "user_owned": [],

@@ -1,0 +1,20 @@
+usage: pactkit workflow [-h]
+                        {start,bind,checkpoint,status,verify,resume,finish-guard,revalidate-artifacts,registry,contract} ...
+
+positional arguments:
+  {start,bind,checkpoint,status,verify,resume,finish-guard,revalidate-artifacts,registry,contract}
+    start               Start a workflow run
+    bind                Bind a run to a Story
+    checkpoint          Write a workflow checkpoint
+    status              Read-only workflow status
+    verify              Read-only workflow verify
+    resume              Read-only workflow resume
+    finish-guard        Read-only workflow finish-guard
+    revalidate-artifacts
+                        Deterministically revalidate drifted artifacts and
+                        audit new fingerprints
+    registry            Audit reliability registry
+    contract            Print the executable lifecycle contract for a workflow
+
+options:
+  -h, --help            show this help message and exit

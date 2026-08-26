@@ -1,0 +1,12 @@
+usage: pactkit board [-h] {add,complete-task,move,list,render} ...
+
+positional arguments:
+  {add,complete-task,move,list,render}
+    add                 Create one Story record
+    complete-task       Complete one Story task
+    move                Change one Story workflow status
+    list                List Story records
+    render              Render the Board projection
+
+options:
+  -h, --help            show this help message and exit

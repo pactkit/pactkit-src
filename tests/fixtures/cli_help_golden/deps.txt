@@ -1,0 +1,9 @@
+usage: pactkit deps [-h] {check,install} ...
+
+positional arguments:
+  {check,install}
+    check          Read-only dependency status report
+    install        Guided install of missing dependencies
+
+options:
+  -h, --help       show this help message and exit

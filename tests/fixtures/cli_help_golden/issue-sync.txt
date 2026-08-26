@@ -1,0 +1,7 @@
+usage: pactkit issue-sync [-h] item_id
+
+positional arguments:
+  item_id     Item ID (e.g. BUG-slim-003)
+
+options:
+  -h, --help  show this help message and exit

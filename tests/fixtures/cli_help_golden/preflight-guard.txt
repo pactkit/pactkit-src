@@ -1,0 +1,6 @@
+usage: pactkit preflight-guard [-h] [--hook] [--install]
+
+options:
+  -h, --help  show this help message and exit
+  --hook
+  --install

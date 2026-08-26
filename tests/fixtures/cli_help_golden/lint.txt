@@ -1,0 +1,5 @@
+usage: pactkit lint [-h] [--fix]
+
+options:
+  -h, --help  show this help message and exit
+  --fix       Auto-fix lint errors

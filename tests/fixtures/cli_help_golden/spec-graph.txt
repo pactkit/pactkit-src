@@ -1,0 +1,11 @@
+usage: pactkit spec-graph [-h] [--specs-dir SPECS_DIR] [--write-graph]
+                          [--graph-path GRAPH_PATH] [--json]
+
+options:
+  -h, --help            show this help message and exit
+  --specs-dir SPECS_DIR
+                        Directory containing spec files
+  --write-graph         Write Mermaid graph to --graph-path
+  --graph-path GRAPH_PATH
+                        Mermaid output path
+  --json                Emit machine-readable JSON (waves + conflicts)

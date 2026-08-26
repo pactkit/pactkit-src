@@ -1,0 +1,18 @@
+usage: pactkit query [-h] (--callers FUNC | --callees FUNC | --chain FUNC |
+                     --explore QUERY | --impact SYMBOL) [--down] [--db PATH]
+                     [--json] [--explain] [--allow-fallback]
+
+options:
+  -h, --help        show this help message and exit
+  --callers FUNC    Fan-in: list all callers of FUNC
+  --callees FUNC    Fan-out: list all callees of FUNC
+  --chain FUNC      Transitive chain for FUNC
+  --explore QUERY   Explore relevant symbols and paths
+  --impact SYMBOL   Analyze affected code
+  --down            With --chain: downstream callees (default: upstream
+                    callers)
+  --db PATH         Override default .codegraph/codegraph.db path
+  --json            Structured result
+  --explain         Show provider decision
+  --allow-fallback  Explicitly allow Codegraph to fall back to the built-in
+                    graph

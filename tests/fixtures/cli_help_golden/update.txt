@@ -1,0 +1,25 @@
+usage: pactkit update [-h] [-t TARGET]
+                      [--format {all,classic,codex,copilot,marketplace,opencode,plugin}]
+                      [--agent {claude,cursor,copilot,generic,all}] [--no-git]
+                      [--no-external] [--non-interactive] [--if-needed]
+                      [--allow-adapter-skew]
+
+options:
+  -h, --help            show this help message and exit
+  -t, --target TARGET   Custom target directory (default: ~/.claude)
+  --format {all,classic,codex,copilot,marketplace,opencode,plugin}
+                        Output format: all (default, deploy all installed
+                        IDEs), or a specific format
+  --agent {claude,cursor,copilot,generic,all}
+                        Target agent format: claude (default), cursor,
+                        copilot, generic, or all
+  --no-git              Disable all git operations (enterprise: air-gapped
+                        environments)
+  --no-external         Disable external network calls — MCP, gh CLI, pip
+                        install (enterprise)
+  --non-interactive     Non-interactive mode: auto-accept defaults (CI/CD
+                        environments)
+  --if-needed           Only redeploy if installed version differs from global
+                        deploy marker
+  --allow-adapter-skew  Allow deploying an adapter whose major.minor differs
+                        from core (STORY-slim-145 R6)

@@ -1,0 +1,7 @@
+usage: pactkit lint-lessons [-h] [path]
+
+positional arguments:
+  path        Path to lessons.md
+
+options:
+  -h, --help  show this help message and exit

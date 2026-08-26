@@ -371,6 +371,10 @@ def _ensure_entry_point_deployers():
         _ep_loaded = True
 
 
+# DEFERRED(SHOULD): R4 — deploy()'s agent/no_git/no_external/non_interactive
+# parameters are accepted but unused in the body. Removal deferred: they are
+# documented enterprise API surface, the CLI forwards all four, and tests pin
+# non_interactive. allow_skew IS used (adapter compat gate).
 def deploy(
     config=None, target=None, format="classic", agent="claude",
     no_git=False, no_external=False, non_interactive=False, mode=None,

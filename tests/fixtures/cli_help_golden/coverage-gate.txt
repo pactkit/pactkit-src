@@ -1,0 +1,7 @@
+usage: pactkit coverage-gate [-h] files [files ...]
+
+positional arguments:
+  files       Changed source file paths
+
+options:
+  -h, --help  show this help message and exit
