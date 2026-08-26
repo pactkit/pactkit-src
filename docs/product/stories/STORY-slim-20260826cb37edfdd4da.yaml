@@ -1,0 +1,28 @@
+schema_version: 1
+id: STORY-slim-20260826cb37edfdd4da
+title: Freeze and isolate the legacy workflow engine with a data-driven deletion track
+spec_path: docs/specs/STORY-slim-20260826cb37edfdd4da.md
+status: backlog
+tasks:
+- id: task-683586db5e
+  title: RED tests AC1-AC8
+  completed: false
+- id: task-25fd7437a7
+  title: Create protocols.py neutral constants module
+  completed: false
+- id: task-0cf8fca0b5
+  title: Move workflow_engine + host_continuation to frozen legacy package with compat
+    shims
+  completed: false
+- id: task-fc46eba20d
+  title: Re-point cli/doctor/deploy_manifest imports + usage instrumentation + doctor
+    usage line
+  completed: false
+- id: task-1ea74e5354
+  title: Test import migration + full regression
+  completed: false
+- id: task-129f26a070
+  title: CHANGELOG deprecation notice
+  completed: false
+created_at: '2026-08-26T08:44:35+00:00'
+updated_at: '2026-08-26T08:44:35+00:00'

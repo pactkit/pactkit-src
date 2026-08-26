@@ -72,7 +72,7 @@ graph TD
     end
 
     subgraph "Legacy / Explicit Compatibility APIs (Non-default)"
-        LegacyWorkflow["workflow / work-unit CLI<br/>historical recovery compatibility"]
+        LegacyWorkflow["workflow / work-unit CLI<br/>historical recovery compatibility<br/>FROZEN: src/pactkit/legacy/<br/>(STORY-slim-20260826cb37edfdd4da)"]
         LegacyContinuation["continuation records + verifier<br/>read only when explicitly invoked"]
         LegacyFinalize["legacy guarded finalize<br/>not a PDCA completion gate"]
     end
