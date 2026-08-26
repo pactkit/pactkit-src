@@ -3,23 +3,25 @@ id: STORY-slim-202608267c3989223b4d
 title: 'Workflow engine robustness: no bricked runs, corrupt-file isolation, Windows
   locks'
 spec_path: docs/specs/STORY-slim-202608267c3989223b4d.md
-status: backlog
+status: archived
 tasks:
 - id: task-c9af38c43b
   title: RED tests AC1-AC6
-  completed: false
+  completed: true
 - id: task-d23accb975
   title: 'workflow_engine: fingerprint consistency + scan isolation'
-  completed: false
+  completed: true
 - id: task-ce7454ad45
   title: 'continuation: platform-split lock + story lock + stale tolerance + typed
     guards'
-  completed: false
+  completed: true
 - id: task-bf4256adf6
   title: host_continuation typed access
-  completed: false
+  completed: true
 - id: task-59c46e6f2f
   title: Full regression
-  completed: false
+  completed: true
 created_at: '2026-08-26T07:29:08+00:00'
-updated_at: '2026-08-26T07:29:08+00:00'
+updated_at: '2026-08-26T08:22:56+00:00'
+completed_at: '2026-08-26T08:22:49+00:00'
+archived_at: '2026-08-26T08:22:56+00:00'

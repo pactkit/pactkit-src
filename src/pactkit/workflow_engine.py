@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import re
+import sys
 import time
 import uuid
 from contextlib import contextmanager
@@ -517,6 +518,27 @@ class SubmissionResult:
 
 def _fingerprint(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "missing"
+
+
+def _persisted_fingerprints(receipt_fingerprints: dict) -> dict[str, str]:
+    """State fingerprints taken from the just-validated receipt.
+
+    The receipt's digests were verified against disk by _validate_receipt
+    under the same engine lock, so persisting them directly closes both the
+    vanish window AND the modify window (a file rewritten between validation
+    and persistence must not become the trusted baseline). The literal
+    "missing" or any non-hex digest fails the submit explicitly instead of
+    bricking the run — the state validator rejects it forever
+    (STORY-slim-202608267c3989223b4d R1).
+    """
+    out: dict[str, str] = {}
+    for name, digest in receipt_fingerprints.items():
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise WorkUnitError(
+                f"artifact_vanished: evidence unavailable at validation: {name}"
+            )
+        out[name] = digest
+    return out
 
 
 def _safe_repo_path(root: Path, relative: str) -> Path:
@@ -1815,10 +1837,41 @@ class WorkflowEngine:
         _validate_unit_id(unit_id)
         paths = self.directory.glob("run-*.json") if self.directory.is_dir() else ()
         for path in paths:
-            state = self._read_scanned_state(path, validate_completed=False)
-            if unit_id in state.get("units", {}):
+            state = self._scan_or_skip(
+                path, relevance=lambda s: unit_id in s.get("units", {})
+            )
+            if state is not None and unit_id in state.get("units", {}):
                 return state["run_id"]
         raise WorkUnitError("unknown_unit")
+
+    def _scan_or_skip(
+        self, path: Path, *, relevance=None,
+    ) -> dict[str, Any] | None:
+        """Scan-read a run, skipping corrupt files with a warning — unless
+        the corrupted file is RELEVANT to the query.
+
+        A single malformed unrelated run file must not block every lookup
+        (STORY-slim-202608267c3989223b4d R2). But a parseable run whose
+        (unvalidated) content matches the query — the unit being looked up,
+        or the Story being resumed — is the TARGET: it fails closed, because
+        silently skipping it could mask tampering or resurrect duplicate
+        active runs. `relevance` receives the raw parsed dict.
+        """
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"  ⚠️  skipping unparseable run file {path.stem}: {exc}", file=sys.stderr)
+            return None
+        try:
+            return self._read_scanned_state(path, validate_completed=False)
+        except WorkUnitError as exc:
+            if relevance is not None and isinstance(raw, dict) and relevance(raw):
+                raise
+            print(
+                f"  ⚠️  skipping corrupt run file {path.stem}: {exc}",
+                file=sys.stderr,
+            )
+            return None
 
     def _active_runs_for_story(self, story_id: str) -> list[dict[str, Any]]:
         """Return valid, non-terminal runs bound to exactly one Story."""
@@ -1829,7 +1882,11 @@ class WorkflowEngine:
             # Completed runs cannot be active.  Their projection validity is
             # checked by direct status/replay reads, not while discovering a
             # different Story's runnable work.
-            state = self._read_scanned_state(path, validate_completed=False)
+            state = self._scan_or_skip(
+                path, relevance=lambda s: s.get("story_id") == story_id
+            )
+            if state is None:
+                continue
             if (
                 state["story_id"] == story_id
                 and state.get("status") == "running"
@@ -1848,7 +1905,11 @@ class WorkflowEngine:
         lookup and block project-check/project-done start.
         """
         for path in self.directory.glob("run-*.json") if self.directory.is_dir() else ():
-            state = self._read_scanned_state(path, validate_completed=False)
+            state = self._scan_or_skip(
+                path, relevance=lambda s: s.get("story_id") == story_id
+            )
+            if state is None:
+                continue
             if (
                 state.get("story_id") == story_id
                 and state.get("workflow_id") == workflow_id
@@ -2379,10 +2440,9 @@ class WorkflowEngine:
             if accepted:
                 record["state"] = "succeeded"
                 record["accepted_claims"] = dict(receipt.claims)
-                for name in receipt.file_fingerprints:
-                    state["fingerprints"][name] = _fingerprint(
-                        _safe_repo_path(self.root, name)
-                    )
+                state["fingerprints"].update(
+                    _persisted_fingerprints(receipt.file_fingerprints)
+                )
                 if state["current_index"] + 1 < len(WORKFLOW_UNITS[state["workflow_id"]]):
                     state["current_index"] += 1
                 decision = "execute_unit"

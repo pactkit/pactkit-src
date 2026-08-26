@@ -61,26 +61,110 @@ class ContinuationEngine:
 
     @contextmanager
     def _run_lock(self, run_id: str):
+        """Exclusive per-run lock, platform-split like _story_lock (R3).
+
+        fcntl is POSIX-only; the unconditional import crashed every engine
+        mutation path on Windows.
+        """
         lock_path = self.path_for(run_id).with_suffix(".lock")
         lock_path.parent.mkdir(parents=True, exist_ok=True)
         handle = lock_path.open("a+b")
         acquired = False
         deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
         try:
-            import fcntl
-            while time.monotonic() < deadline:
-                try:
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    acquired = True
-                    break
-                except BlockingIOError:
-                    time.sleep(LOCK_POLL_SECONDS)
+            if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                import msvcrt
+
+                while time.monotonic() < deadline:
+                    try:
+                        if handle.tell() == 0:
+                            handle.write(b"0")
+                            handle.flush()
+                        handle.seek(0)
+                        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                        acquired = True
+                        break
+                    except (BlockingIOError, PermissionError, OSError):
+                        time.sleep(LOCK_POLL_SECONDS)
+            else:
+                import fcntl
+
+                while time.monotonic() < deadline:
+                    try:
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        acquired = True
+                        break
+                    except BlockingIOError:
+                        time.sleep(LOCK_POLL_SECONDS)
             if not acquired:
                 raise ContinuationError(f"workflow lock timeout: {run_id}")
             yield
         finally:
             if acquired:
-                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                    import msvcrt
+
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            handle.close()
+
+    @contextmanager
+    def _bind_lock(self):
+        """Store-wide lock serializing cross-run Story bindings (R4).
+
+        Per-run locks cannot serialize a check-then-write that spans all run
+        files: two concurrent bind_story calls for different runs would both
+        pass the uniqueness scan. Lock ordering is bind lock outer, run lock
+        inner.
+        """
+        lock_path = self.directory / ".bind.lock"
+        self.directory.mkdir(parents=True, exist_ok=True)
+        handle = lock_path.open("a+b")
+        acquired = False
+        deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+        try:
+            if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                import msvcrt
+
+                while time.monotonic() < deadline:
+                    try:
+                        if handle.tell() == 0:
+                            handle.write(b"0")
+                            handle.flush()
+                        handle.seek(0)
+                        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                        acquired = True
+                        break
+                    except (BlockingIOError, PermissionError, OSError):
+                        time.sleep(LOCK_POLL_SECONDS)
+            else:
+                import fcntl
+
+                while time.monotonic() < deadline:
+                    try:
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        acquired = True
+                        break
+                    except BlockingIOError:
+                        time.sleep(LOCK_POLL_SECONDS)
+            if not acquired:
+                raise ContinuationError("story bind lock timeout")
+            yield
+        finally:
+            if acquired:
+                if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                    import msvcrt
+
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
             handle.close()
 
     def definition(self, workflow_id: str):
@@ -242,32 +326,37 @@ class ContinuationEngine:
         if not _STORY_ID.fullmatch(story_id):
             raise ContinuationError(f"invalid Story ID: {story_id}")
         path, initial = self._find(identifier)
-        with self._run_lock(initial["run_id"]):
-            path, state = self._find(initial["run_id"])
-            if state.get("status") == "completed":
-                raise ContinuationError("completed workflow is immutable")
-            if state.get("story_id") and state["story_id"] != story_id:
-                raise ContinuationError(f"workflow run already bound to {state['story_id']}")
-            for candidate in self.directory.glob("run-*.json"):
-                if candidate == path:
-                    continue
-                try:
-                    other = json.loads(candidate.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError) as exc:
-                    raise ContinuationError(
-                        f"corrupt workflow checkpoint: {candidate.name}"
-                    ) from exc
-                if not isinstance(other, dict):
-                    raise ContinuationError(
-                        f"corrupt workflow checkpoint: {candidate.name}"
-                    )
-                if other.get("story_id") == story_id and other.get("status") != "completed":
-                    raise ContinuationError(f"Story already bound to active run: {story_id}")
-            state["story_id"] = story_id
-            state["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-            atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+        with self._bind_lock():
+            with self._run_lock(initial["run_id"]):
+                path, state = self._find(initial["run_id"])
+                if state.get("status") == "completed":
+                    raise ContinuationError("completed workflow is immutable")
+                if state.get("story_id") and state["story_id"] != story_id:
+                    raise ContinuationError(f"workflow run already bound to {state['story_id']}")
+                for candidate in self.directory.glob("run-*.json"):
+                    if candidate == path:
+                        continue
+                    try:
+                        other = json.loads(candidate.read_text(encoding="utf-8"))
+                    except (OSError, json.JSONDecodeError) as exc:
+                        raise ContinuationError(
+                            f"corrupt workflow checkpoint: {candidate.name}"
+                        ) from exc
+                    if not isinstance(other, dict):
+                        raise ContinuationError(
+                            f"corrupt workflow checkpoint: {candidate.name}"
+                        )
+                    if other.get("story_id") == story_id and other.get("status") != "completed":
+                        raise ContinuationError(f"Story already bound to active run: {story_id}")
+                state["story_id"] = story_id
+                state["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
         return state
 
+    # DEFERRED(SHOULD): R6 typed disk-state guards (STORY-slim-202608267c3989223b4d)
+    # — direct state key access below operates on engine-validated states;
+    # guarding the legacy store's raw access sites requires a records schema
+    # redesign that exceeds this story's blast-radius budget.
     def checkpoint(
         self, identifier: str, *, step_id: str, evidence: dict[str, Any],
         status: str = "in_progress", blocker: str = "",
@@ -798,6 +887,17 @@ class ContinuationStore:
         resolution = self._generic_act_resolution(story_id)
         if resolution["kind"] == "ambiguous":
             return self._ambiguous_generic_act_result(story_id, resolution)
+        if resolution["kind"] == "active":
+            # An active v2 workflow run leaves the legacy checkpoint
+            # authoritative and fails closed — previously this block relied
+            # on a git-probe drift quirk rather than explicit semantics
+            # (STORY-slim-202608267c3989223b4d R5 follow-up).
+            return {
+                "decision": "blocked", "story_id": story_id,
+                "reasons": [
+                    "active v2 workflow run exists: " + ", ".join(resolution["paths"])
+                ],
+            }
         completed = resolution["decision"]
         if resolution["kind"] == "completed":
             return {
@@ -1092,6 +1192,17 @@ class ContinuationStore:
         resolution = self._generic_act_resolution(story_id)
         if resolution["kind"] == "ambiguous":
             return self._ambiguous_generic_act_result(story_id, resolution)
+        if resolution["kind"] == "active":
+            # An active v2 workflow run leaves the legacy checkpoint
+            # authoritative and fails closed — previously this block relied
+            # on a git-probe drift quirk rather than explicit semantics
+            # (STORY-slim-202608267c3989223b4d R5 follow-up).
+            return {
+                "decision": "blocked", "story_id": story_id,
+                "reasons": [
+                    "active v2 workflow run exists: " + ", ".join(resolution["paths"])
+                ],
+            }
         completed = resolution["decision"]
         if resolution["kind"] == "completed":
             return {
@@ -1138,9 +1249,21 @@ class ContinuationStore:
         for key in ("spec", "story_fact", "board"):
             if key in expected and expected[key] != current.get(key):
                 reasons.append(f"{key.replace('_', ' ')} fingerprint changed")
-        if expected.get("git_head") not in ("unavailable", current["git_head"]):
+        # A transiently failing git probe ("unavailable" CURRENT) is
+        # inconclusive, not drift; an ABSENT expected key (v1 checkpoint
+        # without git fingerprints) is nothing to compare
+        # (STORY-slim-202608267c3989223b4d R5).
+        if (
+            "git_head" in expected
+            and expected["git_head"] not in ("unavailable", current["git_head"])
+            and current["git_head"] != "unavailable"
+        ):
             reasons.append("git HEAD changed")
-        if expected.get("worktree") not in ("unavailable", current["worktree"]):
+        if (
+            "worktree" in expected
+            and expected["worktree"] not in ("unavailable", current["worktree"])
+            and current["worktree"] != "unavailable"
+        ):
             reasons.append("worktree fingerprint changed")
         return reasons
 
