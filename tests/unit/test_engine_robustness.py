@@ -89,25 +89,32 @@ class TestArtifactVanished:
 
 class TestCorruptSiblingIsolation:
     def test_corrupt_sibling_skipped_with_warning(self, tmp_path, capsys):
-        """AC2: one corrupt run file must not block unrelated lookups."""
+        """AC2: one corrupt run file must not block unrelated lookups.
+
+        Uses _active_runs_for_story: unlike _find_run_for_unit (which may
+        return before ever reaching the corrupt sibling, depending on
+        filesystem glob order), the story scan traverses every run file,
+        so the skip-warning is deterministic across platforms.
+        """
         engine = _engine(tmp_path)
         # A real run created through the engine's own start path.
-        run = engine.start("project-act", goal="robustness fixture", story_id=None)
+        run = engine.start("project-act", goal="robustness fixture", story_id="STORY-100")
         engine.directory.mkdir(parents=True, exist_ok=True)
         corrupt = engine.directory / ("run-" + "b" * 32 + ".json")
         corrupt.write_text("{ not json", encoding="utf-8")
 
-        # Materialize the first unit through the engine's own acquire path.
+        active = engine._active_runs_for_story("STORY-100")
+
+        assert [r["run_id"] for r in active] == [run.run_id]
+        err = capsys.readouterr().err
+        assert corrupt.stem in err
+
+        # The unit-lookup path also survives the corrupt sibling
+        # (warning presence there is glob-order dependent and not asserted).
         unit = engine.acquire(
             run.run_id, owner="robustness-fixture", idempotency_key="fixture-1"
         )
-        first_unit = unit.unit_id
-
-        found = engine._find_run_for_unit(first_unit)
-
-        assert found == run.run_id
-        err = capsys.readouterr().err
-        assert corrupt.stem in err
+        assert engine._find_run_for_unit(unit.unit_id) == run.run_id
 
     def test_malformed_target_still_errors(self, tmp_path):
         """AC3: a corrupt TARGET run still errors explicitly."""
