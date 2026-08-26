@@ -37,6 +37,11 @@ from pactkit.config import (
     load_config,
     validate_config,
 )
+
+# Re-export preserves the historical import path (BUG-slim-089 tests)
+from pactkit.generators.claude_md import (  # noqa: F401
+    _deploy_claude_md,
+)
 from pactkit.generators.command_ownership import (
     cleanup_disabled_command_skills,
     cleanup_unmodified_legacy_skills,
@@ -531,7 +536,6 @@ def _deploy_classic(config=None, target=None, *, project_root=None):
     agent_models = config.get("agent_models", {})
     n_agents = _deploy_agents(agents_dir, enabled_agents, profile=classic_profile, agent_models=agent_models)
     # STORY-slim-063: Deploy commands as skills (to skills_dir, not commands_dir)
-    _cleanup_legacy_commands(commands_dir)
     n_commands = _deploy_commands(skills_dir, enabled_commands, profile=classic_profile, config=config)
 
     # Deploy CI pipeline if configured (STORY-025)
@@ -654,10 +658,26 @@ def _deploy_skills(
     else:
         _prefix = CLASSIC_SKILLS_PREFIX
 
+    from pactkit.deploy_manifest import (
+        load_previous_hashes,
+        preserve_or_write,
+        retire_disabled_skills,
+    )
     from pactkit.prompts.skills import get_skill_manifest
 
     enabled_set = set(enabled_skills)
     deployed = 0
+
+    # Ownership checks apply to deployments into user environments.  Only
+    # plugin/marketplace generation (profile absent AND a legacy prefix) owns
+    # its output directory outright and keeps regenerating in place
+    # (STORY-slim-202608264cf429c75e22 R2).
+    enforce_ownership = profile is not None or _legacy_prefix is None
+    deploy_root = skills_dir.parent
+    previous_hashes = load_previous_hashes(deploy_root) if enforce_ownership else {}
+
+    if enforce_ownership:
+        retire_disabled_skills(skills_dir, enabled_set, deploy_root, previous_hashes)
 
     for sd in get_skill_manifest(include_portable_methods=include_portable_methods):
         is_method = sd["name"].startswith("pactkit-method-")
@@ -669,12 +689,26 @@ def _deploy_skills(
         skill_md = _render_skill_md(sd, profile, _prefix)
         if profile is not None:
             _enforce_deploy_integrity(skill_md, profile, f"skill:{sd['name']}")
-        atomic_write(skill_dir / "SKILL.md", skill_md)
+        if enforce_ownership:
+            written = preserve_or_write(
+                deploy_root, skill_dir / "SKILL.md", skill_md,
+                previous_hashes, f"skill:{sd['name']}",
+            )
+        else:
+            atomic_write(skill_dir / "SKILL.md", skill_md)
+            written = True
         if sd["script_name"]:
             scripts_dir = skill_dir / "scripts"
             scripts_dir.mkdir(exist_ok=True)
-            atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
-        deployed += 1
+            if enforce_ownership:
+                preserve_or_write(
+                    deploy_root, scripts_dir / sd["script_name"], sd["script_source"],
+                    previous_hashes, f"skill:{sd['name']} script",
+                )
+            else:
+                atomic_write(scripts_dir / sd["script_name"], sd["script_source"])
+        if written:
+            deployed += 1
 
     return deployed
 
@@ -704,6 +738,7 @@ def _cleanup_legacy(skills_dir):
     legacy = skills_dir / "pactkit_tools.py"
     if legacy.exists():
         legacy.unlink()
+
 
 
 def _cleanup_legacy_commands(commands_dir):
@@ -797,18 +832,9 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
     # The previous manifest is the only reliable ownership proof for a
     # current-format file.  A path can exist for many legitimate user reasons,
     # so never infer ownership from its name alone.
-    previous_hashes = {}
-    manifest_path = claude_root / ".pactkit-deployed.json"
-    if manifest_path.is_file():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            files = manifest.get("files", {})
-            if isinstance(files, dict):
-                previous_hashes = files
-        except (OSError, ValueError, TypeError):
-            # A corrupt advisory manifest must not make deployment unsafe or
-            # unavailable.  It merely means we cannot prove old ownership.
-            pass
+    from pactkit.deploy_manifest import load_previous_hashes, preserve_or_write
+
+    previous_hashes = load_previous_hashes(claude_root)
 
     # Resolve current and legacy config identifiers to deduplicated logical IDs.
     enabled_ids = []
@@ -873,34 +899,17 @@ def _deploy_rules(claude_root, enabled_rules, rule_scopes=None, profile=None):
         dest_dir = rules_dir if definition.load_policy == "global" else ondemand_dir
         destination = dest_dir / filename
         destination.parent.mkdir(parents=True, exist_ok=True)
-        relative_path = destination.relative_to(claude_root).as_posix()
 
         # Preserve a user-modified managed file.  Write the newly rendered
         # PactKit proposal alongside it so upgrade remains both non-destructive
         # and actionable.  The candidate deliberately stays outside the
         # manifest's owned set.
-        expected_hash = previous_hashes.get(relative_path)
-        if destination.is_file():
-            import hashlib
-
-            actual_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
-            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-            # A same-named file without a prior manifest record is user-owned
-            # until proven otherwise.  For a known managed file, a hash drift
-            # has the same preservation behavior.
-            if actual_hash != content_hash and (not expected_hash or actual_hash != expected_hash):
-                candidate = destination.with_suffix(destination.suffix + ".pactkit-new")
-                atomic_write(candidate, content)
-                print(
-                    f"  ⚠️  preserved user-modified PactKit rule: {destination}; "
-                    f"wrote candidate {candidate.name}"
-                )
-                continue
-
         if profile is not None:
             _enforce_deploy_integrity(content, profile, f"rule:{rule_id}")
-        atomic_write(destination, content)
-        deployed += 1
+        if preserve_or_write(
+            claude_root, destination, content, previous_hashes, f"rule:{rule_id}"
+        ):
+            deployed += 1
 
     return deployed
 
@@ -923,92 +932,21 @@ def _deploy_guides(claude_root, profile=None, relative_dir=None):
     # The deployment manifest is the ownership proof for current-format
     # guides.  A matching filename alone is not authority to delete or
     # overwrite a user's local adaptation.
-    previous_hashes = {}
-    manifest_path = claude_root / ".pactkit-deployed.json"
-    if manifest_path.is_file():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            files = manifest.get("files", {})
-            if isinstance(files, dict):
-                previous_hashes = files
-        except (OSError, ValueError, TypeError):
-            # A corrupt advisory manifest must not make upgrades destructive.
-            pass
+    from pactkit.deploy_manifest import load_previous_hashes, preserve_or_write
+
+    previous_hashes = load_previous_hashes(claude_root)
 
     deployed = 0
     for filename, content in GUIDES_FILES.items():
         if profile is not None:
             content = _render_prompt(content, profile)
         destination = guides_dir / filename
-        relative_path = destination.relative_to(claude_root).as_posix()
-        expected_hash = previous_hashes.get(relative_path)
-        if destination.is_file():
-            import hashlib
-
-            actual_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
-            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
-            # A same-named guide without a manifest record is user-owned
-            # until PactKit can prove otherwise.  For a recorded guide, hash
-            # drift gets the same non-destructive treatment.
-            if actual_hash != content_hash and (not expected_hash or actual_hash != expected_hash):
-                candidate = destination.with_suffix(destination.suffix + ".pactkit-new")
-                atomic_write(candidate, content)
-                print(
-                    f"  ⚠️  preserved user-modified PactKit guide: {destination}; "
-                    f"wrote candidate {candidate.name}"
-                )
-                continue
-        atomic_write(destination, content)
-        deployed += 1
+        if preserve_or_write(
+            claude_root, destination, content, previous_hashes, f"guide:{filename}"
+        ):
+            deployed += 1
 
     return deployed
-
-
-def _is_pactkit_managed_global_md(content):
-    """Detect if CLAUDE.md content is a PactKit-managed template (BUG-slim-089).
-
-    Returns True if the first line starts with a PactKit generated heading.
-    """
-    first_line = content.split("\n", 1)[0] if content else ""
-    return first_line.startswith(("# PactKit Global Constitution", "# PactKit Runtime Contract"))
-
-
-def _deploy_claude_md(claude_root, enabled_rules):
-    """Generate the small global Claude entrypoint.
-
-    Only the Runtime Kernel is always loaded.  Phase and concern rules remain
-    private to the active skill, preventing ordinary conversations from being
-    captured by PDCA governance.
-
-    BUG-slim-089: Read-before-write guard to preserve user-modified content.
-    """
-    claude_md_path = claude_root / "CLAUDE.md"
-    new_header = f"# PactKit Runtime Contract (v{__version__})"
-    new_content = f"{new_header}\n\n@~/.claude/rules/pactkit-runtime.md\n"
-
-    # Fresh install — no existing file
-    if not claude_md_path.exists():
-        atomic_write(claude_md_path, new_content)
-        return
-
-    # Read existing content
-    try:
-        existing = claude_md_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        # Unreadable file — overwrite as fresh install
-        atomic_write(claude_md_path, new_content)
-        return
-
-    # User-modified content — do not touch (R1)
-    if not _is_pactkit_managed_global_md(existing):
-        return
-
-    # PactKit-managed — replace the tiny generated entrypoint as a whole. A
-    # title-only rewrite would leave a 2.23 file without the new Runtime
-    # import, while user-owned content has already returned above untouched.
-    if existing != new_content:
-        atomic_write(claude_md_path, new_content)
-    # else: idempotent — skip write (AC5)
 
 
 def _deploy_agents(
@@ -1029,6 +967,7 @@ def _deploy_agents(
         _legacy_opencode: DEPRECATED. Use profile instead.
     """
     # Resolve profile (STORY-slim-005: prefer profile over legacy params)
+    had_profile = profile is not None
     if profile is None:
         # Legacy fallback: reconstruct from old params
         if _legacy_opencode:
@@ -1042,12 +981,23 @@ def _deploy_agents(
         agent_models = {}
     enabled_set = set(enabled_agents)
 
-    # Clean up managed agent files not in enabled set
-    managed_agent_files = {f"{name}.md" for name in prompts.AGENTS_EXPERT}
-    if agents_dir.exists():
-        for f in agents_dir.glob("*.md"):
-            if f.name in managed_agent_files and f.stem not in enabled_set:
-                f.unlink()
+    # Ownership checks apply to deployments into user environments; only
+    # plugin/marketplace generation (no profile AND a legacy prefix) owns
+    # its output directory outright (STORY-slim-202608264cf429c75e22 R3).
+    enforce_ownership = had_profile or _legacy_prefix is None
+    deploy_root = agents_dir.parent
+    from pactkit.deploy_manifest import (
+        load_previous_hashes,
+        preserve_or_write,
+        retire_disabled_agents,
+    )
+
+    previous_hashes = load_previous_hashes(deploy_root) if enforce_ownership else {}
+    retire_disabled_agents(
+        agents_dir, enabled_set, prompts.AGENTS_EXPERT,
+        enforce=enforce_ownership, deploy_root=deploy_root,
+        previous_hashes=previous_hashes,
+    )
 
     # Fields serialized as simple key: value (no nesting) — Claude Code format
     SIMPLE_OPTIONAL_FIELDS = ["permissionMode", "disallowedTools", "maxTurns", "memory", "skills"]
@@ -1108,8 +1058,15 @@ def _deploy_agents(
             _render_prompt(raw, profile) if _legacy_prefix is None else _rewrite_skills_prefix(raw, _effective_prefix)
         )
         _enforce_deploy_integrity(rendered, profile, f"agent:{name}")
-        atomic_write(agent_path, rendered)
-        deployed += 1
+        if enforce_ownership:
+            if preserve_or_write(
+                deploy_root, agent_path, rendered,
+                previous_hashes, f"agent:{name}",
+            ):
+                deployed += 1
+        else:
+            atomic_write(agent_path, rendered)
+            deployed += 1
 
     return deployed
 
@@ -1242,6 +1199,15 @@ def _deploy_commands(
 
     enabled_set = set(enabled_commands)
     _deploy_as_skill = profile.name == "classic" and _legacy_prefix is None
+    # Ownership checks apply to deployments into user environments; only
+    # plugin/marketplace generation regenerates in place
+    # (STORY-slim-202608264cf429c75e22 R2, QA clarification: command skills
+    # deploy under skills/ and are protected by the same manifest proof).
+    enforce_ownership = _legacy_prefix is None
+    deploy_root = commands_dir.parent
+    from pactkit.deploy_manifest import load_previous_hashes, preserve_or_write
+
+    previous_hashes = load_previous_hashes(deploy_root) if enforce_ownership else {}
     manifest = {}
     if _deploy_as_skill:
         manifest = cleanup_disabled_command_skills(
@@ -1278,11 +1244,20 @@ def _deploy_commands(
         if _deploy_as_skill:
             # STORY-slim-063: Write as skills_dir/{name}/SKILL.md
             target = commands_dir / cmd_name / "SKILL.md"
-            atomic_write(target, rendered)
-            record_deployed_command(manifest, cmd_name, target)
         else:
-            atomic_write(commands_dir / filename, rendered)
-        deployed += 1
+            target = commands_dir / filename
+        if enforce_ownership:
+            written = preserve_or_write(
+                deploy_root, target, rendered,
+                previous_hashes, f"command:{cmd_name}",
+            )
+        else:
+            atomic_write(target, rendered)
+            written = True
+        if written:
+            if _deploy_as_skill:
+                record_deployed_command(manifest, cmd_name, target)
+            deployed += 1
 
     if _deploy_as_skill:
         write_command_manifest(commands_dir, manifest)

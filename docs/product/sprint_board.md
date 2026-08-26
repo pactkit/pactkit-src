@@ -47,17 +47,19 @@
 
 ## 🔄 In Progress
 
+### [STORY-slim-202608264cf429c75e22] Unify deployment ownership safety across skills, agents, CLAUDE.md and rollback
+> Spec: docs/specs/STORY-slim-202608264cf429c75e22.md
+
+- [x] Extract shared ownership helper (load_previous_hashes + preserve_or_write) in deploy_manifest.py; narrow manifest skill ownership to registered artifacts
+- [x] Write RED tests for skill/agent ownership preservation (AC1-AC4, AC9)
+- [x] Refactor _deploy_rules/_deploy_guides to shared helper; add ownership checks to _deploy_skills/_deploy_agents; fix _deploy_claude_md unreadable+appended-content paths; retire disabled skills with proof
+- [x] Write RED tests for CLAUDE.md preservation and skill retirement (AC5, AC8)
+- [x] Fix rollback_paths: catch BaseException + per-restore isolation
+- [x] Write RED tests for KeyboardInterrupt rollback and restore isolation (AC7, AC10)
+- [x] Full regression + update spec status
+- [x] QA fix iteration — command-skill ownership, CLAUDE.md boundary tightening, gate unification, retirement hardening, count honesty
+
 ## ✅ Done
-
-### [STORY-slim-202608268fc379dbe6ef] PactKit PDCA 规则语义深化与风险驱动执行模型
-> Spec: docs/specs/STORY-slim-202608268fc379dbe6ef.md
-
-- [x] 细化 RuleClause 与 PhaseContract schema
-- [x] 实现 Sprint 动态 phase capsule
-- [x] 建立 Change Risk Profile 与风险路由
-- [x] 原生重写 engineering guides 并补三类实践
-- [x] 实现 scope integrity 与 test adequacy evidence
-- [x] 完善兼容迁移、doctor 与四 Adapter parity
 
 ### [STORY-slim-145] Codex 部署命令语义完整性与 Adapter 兼容门禁
 > Spec: docs/specs/STORY-slim-145.md
@@ -145,3 +147,13 @@
 - [x] 重写风险驱动 Engineering Guides
 - [x] 实现 ownership 安全迁移与回滚
 - [x] 验证四种 Adapter 语义一致性
+
+### [STORY-slim-202608268fc379dbe6ef] PactKit PDCA 规则语义深化与风险驱动执行模型
+> Spec: docs/specs/STORY-slim-202608268fc379dbe6ef.md
+
+- [x] 细化 RuleClause 与 PhaseContract schema
+- [x] 实现 Sprint 动态 phase capsule
+- [x] 建立 Change Risk Profile 与风险路由
+- [x] 原生重写 engineering guides 并补三类实践
+- [x] 实现 scope integrity 与 test adequacy evidence
+- [x] 完善兼容迁移、doctor 与四 Adapter parity

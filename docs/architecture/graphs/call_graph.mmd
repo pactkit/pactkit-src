@@ -164,6 +164,7 @@ graph TD
     WorkflowFinalizer__validate_pdca_completion["WorkflowFinalizer._validate_pdca_completion"]
     WorkflowFinalizer_finalize["WorkflowFinalizer.finalize"]
     __module__["__module__"]
+    _active_path["_active_path"]
     _add_fix_flag["_add_fix_flag"]
     _all_config_dirs["_all_config_dirs"]
     _append_host_warnings["_append_host_warnings"]
@@ -197,7 +198,7 @@ graph TD
     _classify_coverage["_classify_coverage"]
     _clean["_clean"]
     _cleanup_legacy["_cleanup_legacy"]
-    _cleanup_legacy_commands["_cleanup_legacy_commands"]
+    _cleanup_legacy_portable_methods["_cleanup_legacy_portable_methods"]
     _collect_findings["_collect_findings"]
     _collect_insights["_collect_insights"]
     _collect_insights__dfs["_collect_insights._dfs"]
@@ -225,9 +226,11 @@ graph TD
     _detect_ghe["_detect_ghe"]
     _detect_platform["_detect_platform"]
     _detect_sources["_detect_sources"]
+    _discover_references["_discover_references"]
     _done_completion["_done_completion"]
     _enforce_deploy_integrity["_enforce_deploy_integrity"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
+    _extract["_extract"]
     _extract_module_path["_extract_module_path"]
     _extract_sprint_contract["_extract_sprint_contract"]
     _finalize_request_digest["_finalize_request_digest"]
@@ -252,15 +255,18 @@ graph TD
     _has_production_caller["_has_production_caller"]
     _hash["_hash"]
     _hotfix_completion["_hotfix_completion"]
-    _inject_managed_workflow["_inject_managed_workflow"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
+    _inside["_inside"]
     _inside_protected["_inside_protected"]
     _install_argv["_install_argv"]
     _is_doc_only["_is_doc_only"]
+    _is_docs_only["_is_docs_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
+    _is_initialized["_is_initialized"]
     _is_json_value["_is_json_value"]
     _is_pactkit_managed_global_md["_is_pactkit_managed_global_md"]
+    _is_recovery_path["_is_recovery_path"]
     _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
@@ -271,6 +277,8 @@ graph TD
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
+    _minimal_paths["_minimal_paths"]
+    _mode["_mode"]
     _new_public_symbols["_new_public_symbols"]
     _no_external_enabled["_no_external_enabled"]
     _no_git_enabled["_no_git_enabled"]
@@ -287,6 +295,7 @@ graph TD
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
     _parse_requirements["_parse_requirements"]
+    _parse_table["_parse_table"]
     _parse_touches["_parse_touches"]
     _parse_version["_parse_version"]
     _pass["_pass"]
@@ -297,15 +306,20 @@ graph TD
     _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
     _project_host_guarantees["_project_host_guarantees"]
+    _propose_claude_md_candidate["_propose_claude_md_candidate"]
     _pytest_command["_pytest_command"]
     _python_files["_python_files"]
+    _python_interface["_python_interface"]
     _read["_read"]
     _read_content["_read_content"]
+    _read_manifest["_read_manifest"]
     _receipt_digest["_receipt_digest"]
+    _receipt_dir["_receipt_dir"]
     _receipt_execution_mode["_receipt_execution_mode"]
     _receipt_shape_reason["_receipt_shape_reason"]
     _record_story_id["_record_story_id"]
     _release_completion["_release_completion"]
+    _remove_path["_remove_path"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
@@ -323,12 +337,15 @@ graph TD
     _scaffold_audit_spec["_scaffold_audit_spec"]
     _schema_command["_schema_command"]
     _search_issue["_search_issue"]
+    _section["_section"]
+    _sha256["_sha256"]
     _should_refresh_audit["_should_refresh_audit"]
     _spec_status["_spec_status"]
     _sprint_completion["_sprint_completion"]
     _story_fact_block["_story_fact_block"]
     _strip_code_spans["_strip_code_spans"]
     _suggest_action["_suggest_action"]
+    _target_path["_target_path"]
     _task_id["_task_id"]
     _terminal["_terminal"]
     _tests_pass["_tests_pass"]
@@ -356,14 +373,19 @@ graph TD
     _validate_workflow_state["_validate_workflow_state"]
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
+    activate_pactkit_maintainer_overlay["activate_pactkit_maintainer_overlay"]
+    active_story["active_story"]
     append_lesson["append_lesson"]
     atomic_write["atomic_write"]
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
+    bind_active_story["bind_active_story"]
+    build_change_risk_profile["build_change_risk_profile"]
     build_report["build_report"]
     check_adapter_compat["check_adapter_compat"]
     check_adapter_skew["check_adapter_skew"]
     check_archive_honesty["check_archive_honesty"]
+    check_codex_execution_capability["check_codex_execution_capability"]
     check_codex_hook_capability["check_codex_hook_capability"]
     check_config_completeness["check_config_completeness"]
     check_config_copy_drift["check_config_copy_drift"]
@@ -380,7 +402,9 @@ graph TD
     check_init_markers["check_init_markers"]
     check_orphaned_specs["check_orphaned_specs"]
     check_pattern_duplication["check_pattern_duplication"]
+    check_preflight_receipt["check_preflight_receipt"]
     check_requirement_evidence["check_requirement_evidence"]
+    check_rule_ownership["check_rule_ownership"]
     check_stale_docs["check_stale_docs"]
     check_stale_graphs["check_stale_graphs"]
     check_status_consistency["check_status_consistency"]
@@ -390,6 +414,9 @@ graph TD
     classify_changes["classify_changes"]
     classify_signals["classify_signals"]
     clean_artifacts["clean_artifacts"]
+    cleanup_disabled_command_skills["cleanup_disabled_command_skills"]
+    cleanup_unmodified_legacy_skills["cleanup_unmodified_legacy_skills"]
+    clear_active_story["clear_active_story"]
     codegraph_sync["codegraph_sync"]
     collect_changed_files["collect_changed_files"]
     compute_conflicts["compute_conflicts"]
@@ -423,22 +450,30 @@ graph TD
     install_deps["install_deps"]
     install_git_hook["install_git_hook"]
     install_hook["install_hook"]
+    install_preflight_hook["install_preflight_hook"]
     is_environment_format["is_environment_format"]
+    is_pactkit_self_development_root["is_pactkit_self_development_root"]
     issue_sync["issue_sync"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
     load_config["load_config"]
+    load_previous_hashes["load_previous_hashes"]
+    load_previous_manifest["load_previous_manifest"]
     load_story_graph["load_story_graph"]
     main["main"]
     main__unit_json["main._unit_json"]
     main__workflow_evidence["main._workflow_evidence"]
     map_to_tests["map_to_tests"]
+    normalize_rule_id["normalize_rule_id"]
     pactkit_owned_files["pactkit_owned_files"]
+    pactkit_rule_ownership["pactkit_rule_ownership"]
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
+    preserve_or_write["preserve_or_write"]
     project_command_validator["project_command_validator"]
     project_router["project_router"]
+    record_deployed_command["record_deployed_command"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
     render["render"]
@@ -446,12 +481,18 @@ graph TD
     render_config_yaml["render_config_yaml"]
     render_mermaid["render_mermaid"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
+    resolve_project_root["resolve_project_root"]
+    resolve_rule_context["resolve_rule_context"]
     resolve_scope["resolve_scope"]
+    retire_disabled_agents["retire_disabled_agents"]
+    retire_disabled_skills["retire_disabled_skills"]
+    rollback_paths["rollback_paths"]
     run_garden["run_garden"]
     run_gate["run_gate"]
     run_lint["run_lint"]
     run_observe["run_observe"]
     run_pytest["run_pytest"]
+    run_spec_preflight["run_spec_preflight"]
     run_visualize_graphs["run_visualize_graphs"]
     run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
@@ -470,7 +511,22 @@ graph TD
     validate_registry["validate_registry"]
     validate_skill_recovery_contracts["validate_skill_recovery_contracts"]
     verify_story["verify_story"]
+    write_command_manifest["write_command_manifest"]
     write_deploy_manifest["write_deploy_manifest"]
+    _mode --> find_pactkit_yaml
+    _mode --> load_config
+    hook_entry --> _mode
+    hook_entry --> active_story
+    hook_entry --> check_preflight_receipt
+    hook_entry --> resolve_project_root
+    hook_entry --> resolve_project_root
+    hook_entry --> _is_recovery_path
+    hook_entry --> clear_active_story
+    hook_entry --> bind_active_story
+    hook_entry --> _target_path
+    hook_entry --> run_gate
+    hook_entry --> render
+    install_preflight_hook --> atomic_write
     check_deps --> _detect_platform
     check_deps --> _install_argv
     check_deps --> _tool_version
@@ -479,8 +535,36 @@ graph TD
     install_deps --> _detect_platform
     install_deps --> _install_argv
     install_deps --> check_deps
+    _section --> ContinuationEngine_start
+    _parse_table --> _section
+    _discover_references --> _parse_table
+    _discover_references --> LessonRepository_add
+    _extract --> ContinuationEngine_start
+    _extract --> _python_interface
+    _active_path --> _sha256
+    bind_active_story --> _active_path
+    bind_active_story --> atomic_write
+    run_spec_preflight --> _discover_references
+    run_spec_preflight --> atomic_write
+    run_spec_preflight --> atomic_write
+    run_spec_preflight --> _inside
+    run_spec_preflight --> _extract
+    run_spec_preflight --> _sha256
+    run_spec_preflight --> _receipt_dir
+    run_spec_preflight --> _receipt_dir
+    run_spec_preflight --> bind_active_story
+    run_spec_preflight --> _inside
+    run_spec_preflight --> _sha256
+    run_spec_preflight --> _sha256
+    active_story --> _active_path
+    clear_active_story --> _active_path
+    check_preflight_receipt --> _receipt_dir
+    check_preflight_receipt --> _sha256
+    check_preflight_receipt --> _sha256
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
+    activate_pactkit_maintainer_overlay --> is_pactkit_self_development_root
+    find_pactkit_yaml --> ContinuationEngine_start
     resolve_pactkit_yaml_dir --> is_environment_format
     resolve_pactkit_yaml_dir --> get_profile
     resolve_pactkit_yaml_dir --> get_profile
@@ -516,6 +600,8 @@ graph TD
     check_version_mismatch --> _get_global_version_marker
     check_version_mismatch --> _parse_version
     check_version_mismatch --> _parse_version
+    rollback_paths --> _minimal_paths
+    rollback_paths --> _remove_path
     _has_dir_with_files --> _all_config_dirs
     _check_h1 --> _has_dir_with_files
     _check_h1 --> _has_dir_with_files
@@ -942,7 +1028,6 @@ graph TD
     HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__digest
     HostContinuationRunner__after_legacy_turn --> atomic_write
     HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__session_reference
-    HostContinuationRunner__after_legacy_turn --> ContinuationEngine_checkpoint
     HostContinuationRunner__after_legacy_turn --> HostContinuationRunner__session_reference
     HostContinuationRunner_before_operation --> ContinuationEngine_finish_guard
     HostContinuationRunner_record_resume_failure --> ContinuationEngine_read
@@ -962,26 +1047,40 @@ graph TD
     run_gate --> decide_test_set
     run_gate --> run_pytest
     run_gate --> parse_pytest_summary
-    hook_entry --> run_gate
-    hook_entry --> render
     _no_git_enabled --> load_config
     install_hook --> _no_git_enabled
     install_git_hook --> _no_git_enabled
     gate_channel --> _no_git_enabled
     ensure_gate_channel --> gate_channel
     ensure_gate_channel --> install_hook
+    ensure_gate_channel --> install_preflight_hook
     ensure_gate_channel --> install_git_hook
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
     run_lint --> load_config
+    build_change_risk_profile --> _is_docs_only
+    resolve_project_root --> _is_initialized
+    resolve_project_root --> _is_initialized
     expected_components --> is_environment_format
     expected_components --> get_profile
+    load_previous_hashes --> load_previous_manifest
+    preserve_or_write --> atomic_write
+    preserve_or_write --> atomic_write
+    preserve_or_write --> atomic_write
+    retire_disabled_skills --> load_previous_manifest
     pactkit_owned_files --> sha256_file
     pactkit_owned_files --> sha256_file
     pactkit_owned_files --> sha256_file
     pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> normalize_rule_id
+    pactkit_rule_ownership --> normalize_rule_id
+    pactkit_rule_ownership --> sha256_file
+    pactkit_rule_ownership --> sha256_file
     write_deploy_manifest --> expected_components
+    write_deploy_manifest --> expected_components
+    write_deploy_manifest --> pactkit_rule_ownership
     write_deploy_manifest --> pactkit_owned_files
     should_visualize --> detect_stack
     run_visualize_single --> _print_codegraph_sync
@@ -1139,14 +1238,15 @@ graph TD
     run_observe --> build_report
     _schema_command --> schema_config_report
     main --> deploy
-    main --> deploy
+    main --> resolve_project_root
     main --> _check_adapter_compat
     main --> sync_config_copies
     main --> render_check_report
     main --> check_deps
+    main --> run_spec_preflight
     main --> _schema_command
-    main --> check_init_markers
     main --> ensure_gate_channel
+    main --> check_init_markers
     main --> check_version_mismatch
     main --> load_config
     main --> generate_item_id
@@ -1210,7 +1310,9 @@ graph TD
     main --> check_config_copy_drift
     main --> check_deps
     main --> check_deploy_parity
-    main --> check_codex_hook_capability
+    main --> check_rule_ownership
+    main --> resolve_rule_context
+    main --> check_codex_execution_capability
     main --> check_adapter_skew
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics
@@ -1238,6 +1340,9 @@ graph TD
     main --> hook_entry
     main --> render
     main --> install_git_hook
+    main --> ContinuationEngine_read
+    main --> hook_entry
+    main --> install_preflight_hook
     main --> ContinuationEngine_read
     main --> detect_stacks
     main --> update_yaml_stack
@@ -1310,6 +1415,7 @@ graph TD
     verify_story --> check_wiring
     verify_story --> check_status_consistency
     verify_story --> BoardRenderer_check
+    resolve_rule_context --> ContinuationEngine_definition
     check_workflow_continuation --> _project_host_guarantees
     check_workflow_continuation --> _append_host_warnings
     check_workflow_continuation --> _append_host_warnings
@@ -1323,8 +1429,14 @@ graph TD
     check_graph_provider --> BuiltinGraphProvider_health
     check_graph_provider --> load_config
     check_stale_graphs --> load_config
+    check_rule_ownership --> LessonRepository_add
+    check_codex_hook_capability --> check_codex_execution_capability
     check_deploy_parity --> LessonRepository_add
     check_deploy_parity --> expected_components
+    check_deploy_parity --> LessonRepository_add
+    check_deploy_parity --> LessonRepository_add
+    check_deploy_parity --> LessonRepository_add
+    check_deploy_parity --> LessonRepository_add
     check_deploy_parity --> sha256_file
     check_adapter_skew --> _major_minor
     check_adapter_skew --> _major_minor
@@ -1403,10 +1515,11 @@ graph TD
     GovernanceMigrator_migrate --> LessonRepository_import_legacy
     GovernanceMigrator_migrate --> GovernanceMigrator__remove_installed
     get_skill_manifest --> get_portable_methods
-    get_deployable_commands --> _inject_managed_workflow
-    get_deployable_commands --> _inject_managed_workflow
     _enforce_deploy_integrity --> DeployerBase_validate_deployed_content
     _render_prompt --> DeployerBase_strip_excluded_command_references
+    _build_rule_id_to_key --> ContinuationEngine_definition
+    _build_rule_id_to_key --> normalize_rule_id
+    _build_rule_id_to_filename --> ContinuationEngine_definition
     _render_skill_md --> _rewrite_skills_prefix
     _render_skill_md --> _render_prompt
     _render_skill_md --> _render_prompt
@@ -1416,19 +1529,23 @@ graph TD
     _ensure_entry_point_deployers --> _load_entry_point_deployers
     deploy --> _ensure_entry_point_deployers
     deploy --> _deploy_marketplace
+    deploy --> check_adapter_compat
     deploy --> deploy
     deploy --> deploy
     deploy --> check_adapter_compat
+    deploy --> deploy
+    deploy --> deploy
     _deploy_classic --> _migrate_from_scafpy
     _deploy_classic --> validate_config
+    _deploy_classic --> activate_pactkit_maintainer_overlay
     _deploy_classic --> get_profile
+    _deploy_classic --> _cleanup_legacy_portable_methods
     _deploy_classic --> _deploy_skills
     _deploy_classic --> _cleanup_legacy
     _deploy_classic --> _deploy_rules
     _deploy_classic --> _deploy_guides
     _deploy_classic --> _deploy_claude_md
     _deploy_classic --> _deploy_agents
-    _deploy_classic --> _cleanup_legacy_commands
     _deploy_classic --> _deploy_commands
     _deploy_classic --> _deploy_ci
     _deploy_classic --> _generate_config_if_missing
@@ -1440,39 +1557,53 @@ graph TD
     _deploy_classic --> load_config
     _deploy_classic --> _generate_project_claude_md
     _deploy_classic --> _update_stack_if_stale
-    _deploy_classic --> get_portable_methods
+    _deploy_plugin --> _cleanup_legacy_portable_methods
     _deploy_plugin --> _deploy_skills
     _deploy_plugin --> _deploy_claude_md_inline
     _deploy_plugin --> _deploy_agents
     _deploy_plugin --> _deploy_commands
     _deploy_plugin --> _deploy_plugin_json
     _deploy_plugin --> _print_mcp_recommendations
+    _deploy_plugin --> get_profile
     _deploy_marketplace --> _deploy_plugin
     _deploy_marketplace --> _deploy_marketplace_json
     _deploy_skills --> get_skill_manifest
+    _deploy_skills --> load_previous_hashes
+    _deploy_skills --> retire_disabled_skills
     _deploy_skills --> _render_skill_md
-    _deploy_skills --> atomic_write
     _deploy_skills --> _enforce_deploy_integrity
+    _deploy_skills --> preserve_or_write
     _deploy_skills --> atomic_write
-    _deploy_rules --> _build_rule_id_to_key
-    _deploy_rules --> atomic_write
+    _deploy_skills --> preserve_or_write
+    _deploy_skills --> atomic_write
+    _cleanup_legacy_portable_methods --> cleanup_unmodified_legacy_skills
+    _cleanup_legacy_portable_methods --> _render_skill_md
+    _cleanup_legacy_portable_methods --> get_portable_methods
+    _deploy_rules --> load_previous_hashes
+    _deploy_rules --> normalize_rule_id
+    _deploy_rules --> LessonRepository_add
+    _deploy_rules --> preserve_or_write
     _deploy_rules --> _render_prompt
     _deploy_rules --> _enforce_deploy_integrity
-    _deploy_guides --> atomic_write
+    _deploy_guides --> load_previous_hashes
+    _deploy_guides --> preserve_or_write
     _deploy_guides --> _render_prompt
-    _deploy_claude_md --> atomic_write
-    _deploy_claude_md --> _is_pactkit_managed_global_md
-    _deploy_claude_md --> atomic_write
-    _deploy_claude_md --> atomic_write
+    _deploy_agents --> retire_disabled_agents
+    _deploy_agents --> load_previous_hashes
     _deploy_agents --> _enforce_deploy_integrity
-    _deploy_agents --> atomic_write
     _deploy_agents --> get_profile
     _deploy_agents --> get_profile
     _deploy_agents --> _render_prompt
     _deploy_agents --> _rewrite_skills_prefix
+    _deploy_agents --> preserve_or_write
+    _deploy_agents --> atomic_write
+    _get_command_rules --> normalize_rule_id
     _build_command_rules_header --> _get_command_rules
     _build_command_rules_header --> _build_rule_id_to_filename
+    _deploy_commands --> load_previous_hashes
+    _deploy_commands --> cleanup_disabled_command_skills
     _deploy_commands --> _enforce_deploy_integrity
+    _deploy_commands --> write_command_manifest
     _deploy_commands --> get_profile
     _deploy_commands --> get_profile
     _deploy_commands --> get_deployable_commands
@@ -1480,9 +1611,10 @@ graph TD
     _deploy_commands --> _build_command_rules_header
     _deploy_commands --> _render_prompt
     _deploy_commands --> _rewrite_skills_prefix
-    _deploy_commands --> atomic_write
+    _deploy_commands --> preserve_or_write
     _deploy_commands --> atomic_write
     _deploy_commands --> _insert_after_frontmatter
+    _deploy_commands --> record_deployed_command
     _deploy_ci --> _build_github_workflow
     _deploy_ci --> atomic_write
     _deploy_ci --> _build_gitlab_ci
@@ -1509,7 +1641,6 @@ graph TD
     _generate_project_claude_md --> _is_user_modified_claude_md
     _generate_project_claude_md --> atomic_write
     _deploy_plugin_json --> atomic_write
-    _deploy_claude_md_inline --> _build_rule_id_to_key
     _deploy_claude_md_inline --> _rewrite_skills_prefix
     _deploy_claude_md_inline --> atomic_write
     _deploy_marketplace_json --> atomic_write
@@ -1518,6 +1649,13 @@ graph TD
     PluginDeployer_deploy --> _deploy_plugin
     __module__ --> _generate_project_claude_md
     transform --> strip_frontmatter
+    _deploy_claude_md --> atomic_write
+    _deploy_claude_md --> _is_pactkit_managed_global_md
+    _deploy_claude_md --> _propose_claude_md_candidate
+    _deploy_claude_md --> atomic_write
+    _deploy_claude_md --> _propose_claude_md_candidate
+    _deploy_claude_md --> atomic_write
+    _propose_claude_md_candidate --> atomic_write
     DeployerBase_validate_deployed_content --> _check_lexical_integrity
     DeployerBase_validate_deployed_content --> _check_semantic_integrity
     DeployerBase_render_prompt --> _render_prompt
@@ -1527,3 +1665,6 @@ graph TD
     DeployerBase_deploy_commands --> _deploy_commands
     DeployerBase_deploy_guides --> _deploy_guides
     DeployerBase_deploy_ci --> _deploy_ci
+    cleanup_disabled_command_skills --> _read_manifest
+    write_command_manifest --> atomic_write
+    cleanup_unmodified_legacy_skills --> LessonRepository_add

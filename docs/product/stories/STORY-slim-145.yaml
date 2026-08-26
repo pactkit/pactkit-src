@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-145
 title: Codex 部署命令语义完整性与 Adapter 兼容门禁
 spec_path: docs/specs/STORY-slim-145.md
-status: done
+status: archived
 tasks:
 - id: task-bfa1a08571
   title: 建立 CLI policy 与结构化操作渲染契约
@@ -20,4 +20,6 @@ tasks:
   title: 完成隔离迁移、双仓回归与 2.23.0 同版本构建验证
   completed: true
 created_at: '2026-08-22T05:25:07+00:00'
-updated_at: '2026-08-22T05:25:07+00:00'
+updated_at: '2026-08-26T07:21:32+00:00'
+completed_at: '2026-08-26T07:21:32+00:00'
+archived_at: '2026-08-26T07:21:32+00:00'

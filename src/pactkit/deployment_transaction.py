@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -59,17 +60,28 @@ def rollback_paths(paths: Iterable[Path]) -> Iterator[None]:
 
         try:
             yield
-        except Exception:
+        except BaseException:
+            # KeyboardInterrupt / SystemExit must roll back too: an
+            # interactive Ctrl-C is the most common mid-deployment abort
+            # (STORY-slim-202608264cf429c75e22 R6).
             for path, _backup, _kind in reversed(snapshots):
-                _remove_path(path)
+                try:
+                    _remove_path(path)
+                except OSError as exc:
+                    print(f"  ⚠️  rollback remove failed for {path}: {exc}", file=sys.stderr)
             for path, backup, kind in snapshots:
                 if kind == "missing":
                     continue
-                path.parent.mkdir(parents=True, exist_ok=True)
-                if kind == "dir":
-                    shutil.copytree(backup, path, symlinks=True)
-                elif kind == "symlink":
-                    path.symlink_to(backup.readlink(), target_is_directory=backup.is_dir())
-                else:
-                    shutil.copy2(backup, path, follow_symlinks=False)
+                try:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    if kind == "dir":
+                        shutil.copytree(backup, path, symlinks=True)
+                    elif kind == "symlink":
+                        path.symlink_to(backup.readlink(), target_is_directory=backup.is_dir())
+                    else:
+                        shutil.copy2(backup, path, follow_symlinks=False)
+                except OSError as exc:
+                    # One failed restore must not abandon the remaining
+                    # snapshots; the original exception still propagates (R7).
+                    print(f"  ⚠️  rollback restore failed for {path}: {exc}", file=sys.stderr)
             raise

@@ -9,6 +9,7 @@ deployment drift (R3) instead of letting it drop silently.
 import hashlib
 import json
 from pathlib import Path
+from typing import Iterable
 
 from pactkit import __version__
 from pactkit.config import DEFAULT_RULE_IDS, VALID_AGENTS, VALID_COMMANDS
@@ -26,6 +27,7 @@ from pactkit.prompts.rules import (
     normalize_rule_id,
 )
 from pactkit.prompts.skills import SKILL_MANIFEST
+from pactkit.utils import atomic_write
 from pactkit.workflow_engine import CORE_PROTOCOL_VERSION
 
 MANIFEST_NAME = ".pactkit-deployed.json"
@@ -69,6 +71,177 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def load_previous_manifest(deploy_root: Path) -> dict:
+    """Read the previous deployment manifest payload; {} when unusable.
+
+    The manifest is advisory: a missing, corrupt, or non-dict payload yields
+    no ownership proof but never blocks deployment (STORY-slim-202608264cf429c75e22 R1).
+    """
+    manifest_path = Path(deploy_root) / MANIFEST_NAME
+    if not manifest_path.is_file():
+        return {}
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def load_previous_hashes(deploy_root: Path) -> dict[str, str]:
+    """Ownership proof map (relative path -> sha256) from the previous manifest."""
+    files = load_previous_manifest(deploy_root).get("files", {})
+    if not isinstance(files, dict):
+        return {}
+    return {
+        path: digest
+        for path, digest in files.items()
+        if isinstance(path, str) and isinstance(digest, str)
+    }
+
+
+def preserve_or_write(
+    deploy_root: Path,
+    destination: Path,
+    content: str,
+    previous_hashes: dict[str, str],
+    label: str,
+) -> bool:
+    """Write ``content`` to ``destination`` only with ownership proof.
+
+    Overwrite is authorized when the destination is absent, byte-identical
+    to the new content, or manifest-proven unchanged since the previous
+    deployment. Any other existing bytes are user-owned: the original is
+    preserved untouched and the new content is proposed as a
+    ``.pactkit-new`` sibling candidate. Returns True when the file was
+    written in place.
+    """
+    destination = Path(destination)
+    root = Path(deploy_root)
+    try:
+        relative = destination.relative_to(root).as_posix()
+    except ValueError:
+        relative = None
+    expected_hash = previous_hashes.get(relative) if relative else None
+
+    if destination.is_file():
+        try:
+            actual_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+        except OSError:
+            # Unverifiable bytes at the exact moment ownership must be
+            # proven: preserve, never destroy.
+            actual_hash = None
+        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        if actual_hash is not None and (
+            actual_hash == content_hash or (expected_hash and actual_hash == expected_hash)
+        ):
+            atomic_write(destination, content)
+            return True
+        candidate = destination.with_suffix(destination.suffix + ".pactkit-new")
+        atomic_write(candidate, content)
+        print(
+            f"  ⚠️  preserved user-modified PactKit {label}: {destination}; "
+            f"wrote candidate {candidate.name}"
+        )
+        return False
+    if destination.exists():
+        # A directory or special file is never ours to replace.
+        print(f"  ⚠️  preserved non-file {label}: {destination}")
+        return False
+    atomic_write(destination, content)
+    return True
+
+
+def retire_disabled_skills(
+    skills_dir: Path, enabled_set: set, deploy_root: Path, previous_hashes: dict[str, str],
+) -> None:
+    """Retire a disabled skill only when the previous manifest proves ownership.
+
+    A directory name is not an ownership claim.  The skill directory is
+    removed only when it contains exactly the registered artifacts and every
+    one still matches its manifest-recorded hash; anything drifted or
+    extended by the user is preserved with a warning
+    (STORY-slim-202608264cf429c75e22 R8).
+    """
+    import shutil
+
+    script_names = {entry["name"]: entry["script_name"] for entry in SKILL_MANIFEST}
+    previous = load_previous_manifest(deploy_root).get("skills")
+    if not isinstance(previous, list):
+        return
+    for name in previous:
+        if not isinstance(name, str) or name in enabled_set:
+            continue
+        skill_dir = Path(skills_dir) / name
+        if not skill_dir.is_dir():
+            continue
+        registered = [skill_dir / "SKILL.md"]
+        script_name = script_names.get(name)
+        if script_name:
+            registered.append(skill_dir / "scripts" / script_name)
+        # Registered files and their parent directories are the only entries
+        # a proven-unchanged skill directory may contain; a user file — or a
+        # user-created (even empty) subdirectory — blocks retirement.
+        allowed = set(registered) | {artifact.parent for artifact in registered}
+        try:
+            entries = sorted(skill_dir.rglob("*"))
+        except OSError:
+            continue
+        if any(entry not in allowed for entry in entries):
+            print(f"  ⚠️  preserved user-modified skill directory: {skill_dir}")
+            continue
+        try:
+            proven = all(
+                previous_hashes.get(path.relative_to(deploy_root).as_posix())
+                == hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in registered
+            )
+        except OSError:
+            proven = False
+        if proven:
+            shutil.rmtree(skill_dir)
+        else:
+            print(f"  ⚠️  preserved user-modified skill directory: {skill_dir}")
+
+
+def retire_disabled_agents(
+    agents_dir: Path,
+    enabled_set: set,
+    managed_names: Iterable[str],
+    *,
+    enforce: bool,
+    deploy_root: Path,
+    previous_hashes: dict[str, str],
+) -> None:
+    """Retire managed agent files outside the enabled set, by ownership proof.
+
+    In generation mode (``enforce=False``) the registry owns the output
+    directory and deletes by name.  In deployment mode a filename alone is
+    never proof: deletion requires the previous manifest to record the
+    file's hash and the current bytes to still match
+    (STORY-slim-202608264cf429c75e22 R3).
+    """
+    managed_files = {f"{name}.md" for name in managed_names}
+    agents_dir = Path(agents_dir)
+    if not agents_dir.exists():
+        return
+    for f in agents_dir.glob("*.md"):
+        if f.name not in managed_files or f.stem in enabled_set:
+            continue
+        if not enforce:
+            f.unlink()
+            continue
+        expected_hash = previous_hashes.get(f.relative_to(deploy_root).as_posix())
+        try:
+            actual_hash = hashlib.sha256(f.read_bytes()).hexdigest()
+        except OSError:
+            print(f"  ⚠️  preserved unreadable agent file: {f}")
+            continue
+        if expected_hash and actual_hash == expected_hash:
+            f.unlink()
+        else:
+            print(f"  ⚠️  preserved user-owned agent file: {f}")
+
+
 def pactkit_owned_files(
     deploy_root: Path, components: dict, format_name: str = "classic",
     enabled_rules: list[str] | None = None,
@@ -86,20 +259,25 @@ def pactkit_owned_files(
     # Skills.  Commands deploy as skills in Core/Codex, but Copilot uses
     # .github/prompts/{name}.prompt.md.  The manifest must follow the real
     # adapter layout or doctor cannot detect prompt drift.
+    #
+    # Ownership is claimed only for registered artifacts (SKILL.md plus the
+    # registry-declared script).  Enumerating a whole directory would claim
+    # user files dropped inside it and authorize a later overwrite
+    # (STORY-slim-202608264cf429c75e22 R4).
+    skill_script = {entry["name"]: entry["script_name"] for entry in SKILL_MANIFEST}
     skill_names = set(components["skills"]) | set(components["portable_methods"])
     if format_name != "copilot":
         skill_names |= set(components["commands"])
     for name in sorted(skill_names):
         skill_dir = root / "skills" / name
-        if skill_dir.is_dir():
-            for f in sorted(skill_dir.rglob("*")):
-                candidate = f.with_suffix(f.suffix + ".pactkit-new")
-                if (
-                    f.is_file()
-                    and not f.name.endswith(".pactkit-new")
-                    and not candidate.exists()
-                ):
-                    owned[f.relative_to(root).as_posix()] = sha256_file(f)
+        registered = [skill_dir / "SKILL.md"]
+        script_name = skill_script.get(name)
+        if script_name:
+            registered.append(skill_dir / "scripts" / script_name)
+        for artifact in registered:
+            candidate = artifact.with_suffix(artifact.suffix + ".pactkit-new")
+            if artifact.is_file() and not candidate.exists():
+                owned[artifact.relative_to(root).as_posix()] = sha256_file(artifact)
 
     if format_name == "copilot":
         for name in components["commands"]:

@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-202608268fc379dbe6ef
 title: PactKit PDCA 规则语义深化与风险驱动执行模型
 spec_path: docs/specs/STORY-slim-202608268fc379dbe6ef.md
-status: done
+status: archived
 tasks:
 - id: task-e619b385fd
   title: 细化 RuleClause 与 PhaseContract schema
@@ -23,4 +23,6 @@ tasks:
   title: 完善兼容迁移、doctor 与四 Adapter parity
   completed: true
 created_at: '2026-08-26T02:59:11+00:00'
-updated_at: '2026-08-26T03:24:17+00:00'
+updated_at: '2026-08-26T07:21:32+00:00'
+completed_at: '2026-08-26T07:21:32+00:00'
+archived_at: '2026-08-26T07:21:32+00:00'

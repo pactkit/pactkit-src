@@ -4,7 +4,7 @@ graph TD
         Deployer["deployer.py<br/>DeployerProtocol + ClassicDeployer"]
         Config["config.py<br/>pactkit.yaml"]
         DeployBase["deploy_base.py<br/>DeployerBase<br/>(skills/rules/agents/commands/ci)"]
-        DeployManifest["deploy_manifest.py<br/>.pactkit-deployed.json<br/>+ content hashes (slim-141)"]
+        DeployManifest["deploy_manifest.py<br/>.pactkit-deployed.json<br/>+ content hashes (slim-141)<br/>+ shared ownership proof<br/>preserve-or-write / .pactkit-new<br/>(STORY-slim-202608264cf429c75e22)"]
         PromptIntegrity["Prompt Integrity Contract<br/>structured operations + semantic parity<br/>(STORY-slim-145)"]
         AdapterCompat["Adapter Compatibility Gate<br/>runtime + distribution versions<br/>(STORY-slim-145)"]
     end
@@ -92,6 +92,7 @@ graph TD
     CLI --> AdapterCompat
     AdapterCompat --> Deployer
     Deployer --> DeployBase
+    Deployer -->|"ownership proof for<br/>skills/agents/CLAUDE.md<br/>(slim-202608264cf429c75e22)"| DeployManifest
     Deployer --> PromptIntegrity
     OpenCodePkg -.->|"depends on"| DeployBase
     CodexPkg -.->|"depends on"| DeployBase

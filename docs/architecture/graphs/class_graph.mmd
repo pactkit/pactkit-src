@@ -3,6 +3,13 @@ classDiagram
     }
     class DepStatus {
     }
+    class PreflightError {
+    }
+    ValueError <|-- PreflightError
+    class PreflightResult {
+    }
+    class ReceiptCheck {
+    }
     class EnterpriseConfig {
     }
     class PactKitConfig {
@@ -147,6 +154,13 @@ classDiagram
     }
     class ReliabilityContract {
     }
+    class RiskDecision {
+    }
+    class ChangeRiskProfile {
+    }
+    class ProjectRootNotFound {
+    }
+    ValueError <|-- ProjectRootNotFound
     class ContinuationError {
     }
     ValueError <|-- ContinuationError
@@ -195,6 +209,12 @@ classDiagram
         -_stale_reasons(state, story_id)
         -_active_peer_story_ids(story_id)
         +diagnostics()
+    }
+    class ScopeIntegrityResult {
+    }
+    class EvidenceFreshnessResult {
+    }
+    class TestAdequacyResult {
     }
     class DependencyCycleError {
     }
@@ -292,12 +312,24 @@ classDiagram
         -_remove_installed(paths)
         +migrate()
     }
+    class GuideDefinition {
+        +hard_safety()
+        +render()
+    }
+    class RuleDefinition {
+    }
+    class RuleClause {
+    }
+    class PhaseContract {
+        +next_commands()
+        +render()
+    }
     class DeployIntegrityError {
         -__init__(label, violations)
     }
     Exception <|-- DeployIntegrityError
     class ClassicDeployer {
-        +deploy(config, target)
+        +deploy(config, target, project_root)
     }
     DeployerBase <|-- ClassicDeployer
     class PluginDeployer {

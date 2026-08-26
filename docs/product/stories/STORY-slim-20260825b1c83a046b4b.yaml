@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-20260825b1c83a046b4b
 title: PactKit 场景化规则架构与非阻塞执行契约
 spec_path: docs/specs/STORY-slim-20260825b1c83a046b4b.md
-status: done
+status: archived
 tasks:
 - id: task-d629e5e070
   title: 建立规则注册表与最小 Runtime Kernel
@@ -23,4 +23,6 @@ tasks:
   title: 验证四种 Adapter 语义一致性
   completed: true
 created_at: '2026-08-25T10:29:35+00:00'
-updated_at: '2026-08-25T11:37:39+00:00'
+updated_at: '2026-08-26T07:21:32+00:00'
+completed_at: '2026-08-26T07:21:32+00:00'
+archived_at: '2026-08-26T07:21:32+00:00'

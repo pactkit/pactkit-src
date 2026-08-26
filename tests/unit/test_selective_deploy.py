@@ -158,18 +158,44 @@ class TestPartialAgentConfig:
         assert not (agents_dir / "security-auditor.md").exists()
 
     def test_stale_agents_cleaned_on_partial(self, tmp_path):
-        """Pre-existing managed agents not in config should be removed."""
+        """Pre-existing managed agents not in config should be removed.
+
+        STORY-slim-202608264cf429c75e22 R3: deletion requires the previous
+        manifest to prove ownership, so the seeded agent is recorded the way
+        a real prior deployment would have recorded it.
+        """
+        import hashlib
+        import json
+
         claude = tmp_path / ".claude"
         agents_dir = claude / "agents"
         agents_dir.mkdir(parents=True)
         # Seed a managed agent that won't be in partial config
         (agents_dir / "qa-engineer.md").write_text("stale")
+        (claude / ".pactkit-deployed.json").write_text(json.dumps({
+            "files": {
+                "agents/qa-engineer.md": hashlib.sha256(b"stale").hexdigest(),
+            },
+        }))
 
         cfg = get_default_config()
         cfg["agents"] = ["system-architect"]
         _run_deploy(tmp_path, config=cfg)
 
         assert not (agents_dir / "qa-engineer.md").exists()
+
+    def test_unproven_stale_agent_preserved_on_partial(self, tmp_path):
+        """A same-named agent file without manifest proof is user-owned (R3)."""
+        claude = tmp_path / ".claude"
+        agents_dir = claude / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "qa-engineer.md").write_text("possibly user content")
+
+        cfg = get_default_config()
+        cfg["agents"] = ["system-architect"]
+        _run_deploy(tmp_path, config=cfg)
+
+        assert (agents_dir / "qa-engineer.md").read_text() == "possibly user content"
 
     def test_user_custom_agent_preserved(self, tmp_path):
         claude = tmp_path / ".claude"
