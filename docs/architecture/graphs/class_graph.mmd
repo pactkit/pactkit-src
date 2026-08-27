@@ -108,6 +108,7 @@ classDiagram
         -_fingerprints(story_id)
         +read(story_id)
         +legacy_handoff(story_id)
+        +deny(story_id, reason)
         +status(story_id)
         -_story_lock(story_id)
         +checkpoint(story_id)

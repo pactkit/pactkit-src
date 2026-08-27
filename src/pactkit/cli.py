@@ -301,6 +301,11 @@ def main():
         "events", help="List a run's append-only event stream"
     )
     events_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
+    deny_parser = continuation_actions.add_parser(
+        "deny", help="Record an explicit authorization denial (audit event)"
+    )
+    deny_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
+    deny_parser.add_argument("--reason", required=True, help="Sanitized denial reason")
 
     # STORY-slim-147: workflow-neutral continuation API.  The legacy
     # ``continuation`` command above remains the stable project-act facade.
@@ -873,6 +878,8 @@ def main():
                 if corrupt:
                     print(f"[WARN] {corrupt} corrupt event line(s) skipped")
                 raise SystemExit(0)
+            elif args.continuation_action == "deny":
+                result = store.deny(args.story_id, args.reason)
             else:
                 result = store.resume(args.story_id)
             print(json.dumps(result, indent=2, ensure_ascii=False))

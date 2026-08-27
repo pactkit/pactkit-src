@@ -22,6 +22,12 @@ EVENT_TYPES = (
     "blocker_cleared",
     "run_completed",
     "run_archived",
+    # Authorization audit layer (STORY-slim-20260827eddbe9669c87 R1):
+    # asked/granted are derived from blocker transitions; denied is written
+    # only by the explicit `pactkit continuation deny` action.
+    "authorization_asked",
+    "authorization_granted",
+    "authorization_denied",
 )
 
 

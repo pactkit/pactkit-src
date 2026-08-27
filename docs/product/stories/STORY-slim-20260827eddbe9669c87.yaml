@@ -1,0 +1,25 @@
+schema_version: 1
+id: STORY-slim-20260827eddbe9669c87
+title: Continuation 状态机补强：授权审计事件对与 outcome_unknown 恢复语义
+spec_path: docs/specs/STORY-slim-20260827eddbe9669c87.md
+status: archived
+tasks:
+- id: task-a8efbbeec3
+  title: R1 授权审计事件对（asked/granted 自动 + denied 显式，双路径发射）
+  completed: true
+- id: task-d110c08951
+  title: R2 pactkit continuation deny 命令（锁内、前置校验、blocked 重写）
+  completed: true
+- id: task-2421d25f0b
+  title: R3 验证尝试围栏 record_attempt + commit-gate 接入
+  completed: true
+- id: task-117b0a1a81
+  title: R4 resume/finish_guard outcome_unknown 交叉检查（阻塞与解除）
+  completed: true
+- id: task-7f72e34442
+  title: R5 stats 授权决策计数 + golden CLI 更新
+  completed: true
+created_at: '2026-08-27T10:10:27+00:00'
+updated_at: '2026-08-27T10:22:05+00:00'
+completed_at: '2026-08-27T10:20:23+00:00'
+archived_at: '2026-08-27T10:22:05+00:00'

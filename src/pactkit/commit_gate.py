@@ -186,7 +186,16 @@ def parse_pytest_summary(output: str) -> dict:
 
 def run_gate(root: Path) -> GateResult:
     """The shared decision pipeline. exit 1 = block, 0 = allow."""
-    from pactkit.enforcement import DEGRADED, FULL, UNAVAILABLE, record_status
+    from pactkit.enforcement import DEGRADED, FULL, UNAVAILABLE, record_attempt, record_status
+
+    # Attempt fence (STORY-slim-20260827eddbe9669c87 R3): opened before the
+    # gate runs, closed by every terminal record_status below.  A crash in
+    # between leaves the verdict unknowable — resume reports it as
+    # outcome unknown until the gate is re-run.
+    try:
+        record_attempt(root, "commit_gate")
+    except Exception:  # noqa: BLE001 - the fence is best-effort, never blocks
+        pass
 
     result = GateResult()
     try:

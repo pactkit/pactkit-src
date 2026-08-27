@@ -67,12 +67,19 @@ def _summarize(
     # every evidence invalidation.
     step_writes: dict[str, int] = {}
     invalidations = 0
+    authorization_decisions = {"asked": 0, "granted": 0, "denied": 0}
     for event in events:
         if event["event"] == "checkpoint_written":
             step = str(event.get("step_id") or "?")
             step_writes[step] = step_writes.get(step, 0) + 1
         elif event["event"] == "evidence_invalidated":
             invalidations += 1
+        elif event["event"] == "authorization_asked":
+            authorization_decisions["asked"] += 1
+        elif event["event"] == "authorization_granted":
+            authorization_decisions["granted"] += 1
+        elif event["event"] == "authorization_denied":
+            authorization_decisions["denied"] += 1
     rework = invalidations + sum(max(0, count - 1) for count in step_writes.values())
 
     status = "unknown"
@@ -95,6 +102,7 @@ def _summarize(
         "blocker_dwell_seconds": {k: round(v, 3) for k, v in blocker_dwell.items()},
         "step_rework": rework,
         "step_writes": step_writes,
+        "authorization_decisions": authorization_decisions,
         "status": status,
     }
 
@@ -114,6 +122,7 @@ def _unavailable(
         "blocker_dwell_seconds": {},
         "step_rework": 0,
         "step_writes": {},
+        "authorization_decisions": {"asked": 0, "granted": 0, "denied": 0},
         "status": status,
     }
 

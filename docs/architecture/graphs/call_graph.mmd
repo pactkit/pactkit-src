@@ -50,6 +50,7 @@ graph TD
     ContinuationStore__validate_step_evidence["ContinuationStore._validate_step_evidence"]
     ContinuationStore__validate_story_id["ContinuationStore._validate_story_id"]
     ContinuationStore_checkpoint["ContinuationStore.checkpoint"]
+    ContinuationStore_deny["ContinuationStore.deny"]
     ContinuationStore_diagnostics["ContinuationStore.diagnostics"]
     ContinuationStore_legacy_handoff["ContinuationStore.legacy_handoff"]
     ContinuationStore_path_for["ContinuationStore.path_for"]
@@ -496,6 +497,7 @@ graph TD
     read_events["read_events"]
     read_legacy_usage["read_legacy_usage"]
     read_status["read_status"]
+    record_attempt["record_attempt"]
     record_deployed_command["record_deployed_command"]
     record_legacy_usage["record_legacy_usage"]
     record_status["record_status"]
@@ -536,6 +538,7 @@ graph TD
     validate_config["validate_config"]
     validate_registry["validate_registry"]
     validate_skill_recovery_contracts["validate_skill_recovery_contracts"]
+    verification_outcome_unknown["verification_outcome_unknown"]
     verify_story["verify_story"]
     write_command_manifest["write_command_manifest"]
     write_deploy_manifest["write_deploy_manifest"]
@@ -752,6 +755,8 @@ graph TD
     __module__ --> _generate_project_claude_md
     record_status --> atomic_write
     record_status --> _status_path
+    record_attempt --> atomic_write
+    record_attempt --> _status_path
     read_status --> _status_path
     _no_git_enabled --> load_config
     _no_git_enabled --> load_config
@@ -768,6 +773,7 @@ graph TD
     decide_test_set --> current_branch
     decide_test_set --> classify_changes
     decide_test_set --> map_to_tests
+    run_gate --> record_attempt
     run_gate --> collect_changed_files
     run_gate --> decide_test_set
     run_gate --> run_pytest
@@ -837,6 +843,7 @@ graph TD
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
     _print_codegraph_sync --> codegraph_sync
+    verification_outcome_unknown --> read_status
     _sanitize_evidence --> _sanitize
     _sanitize_evidence --> _sanitize_evidence
     _sanitize_evidence --> _sanitize_evidence
@@ -890,6 +897,9 @@ graph TD
     ContinuationEngine__emit_run_events --> append_event
     ContinuationEngine__emit_run_events --> append_event
     ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> _sanitize_evidence
     ContinuationEngine_resume --> ContinuationEngine__find
     ContinuationEngine_resume --> NoopValidator_fingerprints
     ContinuationEngine_resume --> ContinuationEngine_definition
@@ -911,6 +921,7 @@ graph TD
     ContinuationEngine_finish_guard --> ContinuationEngine__find
     ContinuationEngine_finish_guard --> ContinuationEngine_definition
     ContinuationEngine_finish_guard --> NoopValidator_fingerprints
+    ContinuationEngine_finish_guard --> verification_outcome_unknown
     ContinuationEngine_finish_guard --> ContinuationStore__ambiguous_generic_act_result
     ContinuationEngine_finish_guard --> ContinuationEngine__legacy_finish_guard
     ContinuationEngine_finish_guard --> HostCapabilities_auto_resume_available
@@ -935,6 +946,16 @@ graph TD
     ContinuationStore_read --> ContinuationStore__validate_story_id
     ContinuationStore_read --> ContinuationStore_path_for
     ContinuationStore_legacy_handoff --> ContinuationStore__validate_story_id
+    ContinuationStore_deny --> ContinuationStore__validate_story_id
+    ContinuationStore_deny --> _sanitize
+    ContinuationStore_deny --> ContinuationStore__story_lock
+    ContinuationStore_deny --> ContinuationStore_read
+    ContinuationStore_deny --> atomic_write
+    ContinuationStore_deny --> append_event
+    ContinuationStore_deny --> _sanitize
+    ContinuationStore_deny --> ContinuationStore_path_for
+    ContinuationStore_deny --> story_events_path
+    ContinuationStore_deny --> _sanitize_evidence
     ContinuationStore_status --> ContinuationStore__validate_story_id
     ContinuationStore_status --> ContinuationStore__generic_act_resolution
     ContinuationStore_status --> ContinuationStore_read
@@ -964,6 +985,9 @@ graph TD
     ContinuationStore__emit_checkpoint_events --> append_event
     ContinuationStore__emit_checkpoint_events --> append_event
     ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
     ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
     ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
     ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
@@ -984,6 +1008,7 @@ graph TD
     ContinuationStore_resume --> ContinuationStore__generic_act_resolution
     ContinuationStore_resume --> ContinuationStore_read
     ContinuationStore_resume --> ContinuationStore__active_peer_story_ids
+    ContinuationStore_resume --> verification_outcome_unknown
     ContinuationStore_resume --> ContinuationStore__ambiguous_generic_act_result
     ContinuationStore_resume --> ContinuationStore_status
     ContinuationStore_resume --> validate_skill_recovery_contracts
@@ -1051,11 +1076,12 @@ graph TD
     main --> validate_registry
     main --> render
     main --> read_events
-    main --> ContinuationEngine_resume
     main --> get_workflow
     main --> detect_security_scope
     main --> BoardRenderer_check
     main --> story_events_path
+    main --> ContinuationStore_deny
+    main --> ContinuationEngine_resume
     main --> ContinuationEngine_start
     main --> ContinuationEngine_start
     main --> format_markdown_table

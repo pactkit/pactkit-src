@@ -28,6 +28,11 @@ from pactkit.utils import atomic_write
 FULL = "full"
 DEGRADED = "degraded"
 UNAVAILABLE = "unavailable"
+# Attempt fencing (STORY-slim-20260827eddbe9669c87 R3): a record written
+# BEFORE a verification runs and overwritten by its terminal outcome.  A
+# surviving "running" record means the attempt never completed — its
+# verdict cannot be trusted (outcome unknown).
+RUNNING = "running"
 UNKNOWN_TEXT = "unknown"
 STATUS_LEVELS = (FULL, DEGRADED, UNAVAILABLE)
 _RANK = {FULL: 0, DEGRADED: 1, UNAVAILABLE: 2}
@@ -40,7 +45,7 @@ def _status_path(root: Path, gate: str) -> Path:
 
 
 def record_status(root: Path, gate: str, status: str, reason: str = "") -> dict[str, Any]:
-    """Persist the gate's own observed status from its run path."""
+    """Persist the gate's terminal outcome, closing any open attempt fence."""
     if status not in STATUS_LEVELS:
         raise ValueError(f"unknown enforcement status: {status}")
     record = {
@@ -56,6 +61,31 @@ def record_status(root: Path, gate: str, status: str, reason: str = "") -> dict[
     return record
 
 
+def record_attempt(root: Path, gate: str) -> dict[str, Any]:
+    """Open an attempt fence BEFORE the verification runs (R3).
+
+    The fence is a durability barrier in the dsh sense: a crash between
+    this write and the terminal ``record_status`` leaves a surviving
+    ``running`` record whose verdict cannot be trusted.  Best-effort —
+    a failed fence write degrades to the pre-fence behavior, never
+    blocks the gate itself.
+    """
+    record = {
+        "gate": gate,
+        "status": RUNNING,
+        "reason": "",
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    try:
+        atomic_write(
+            _status_path(root, gate),
+            json.dumps(record, indent=2, ensure_ascii=False) + "\n",
+        )
+    except OSError:
+        pass
+    return record
+
+
 def read_status(root: Path, gate: str) -> dict[str, Any] | None:
     path = _status_path(root, gate)
     if not path.exists():
@@ -64,7 +94,7 @@ def read_status(root: Path, gate: str) -> dict[str, Any] | None:
         record = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
-    if not isinstance(record, dict) or record.get("status") not in STATUS_LEVELS:
+    if not isinstance(record, dict) or record.get("status") not in (*STATUS_LEVELS, RUNNING):
         return None
     return record
 
@@ -144,6 +174,11 @@ _PROBES = {
 
 def _merge(probe: dict[str, Any], record: dict[str, Any] | None) -> dict[str, Any]:
     if record is None:
+        return {"status": probe["status"], "reason": probe["reason"], "last_run": None}
+    if record["status"] == RUNNING:
+        # An open attempt fence is not an observed degradation — doctor's
+        # summary stays capability-based; the fence is consumed by the
+        # continuation outcome_unknown check (STORY-slim-20260827eddbe9669c87 R4).
         return {"status": probe["status"], "reason": probe["reason"], "last_run": None}
     probe_rank = _RANK[probe["status"]]
     record_rank = _RANK[record["status"]]

@@ -53,6 +53,31 @@ class ContinuationError(ValueError):
     """Raised when a checkpoint or its completion evidence is invalid."""
 
 
+def verification_outcome_unknown(root: Path) -> str | None:
+    """Reason string when a commit-gate attempt fence never closed (R4).
+
+    An open ``running`` fence means the last verification attempt produced
+    no terminal verdict — a crash (e.g. Ctrl-C) between the attempt record
+    and the outcome record.  Its conclusions cannot be trusted, so resume
+    blocks until the gate is re-run (which closes the fence).  Read-only
+    and fail-safe: a missing or corrupt fence reads as absent.
+    """
+    try:
+        from pactkit.enforcement import RUNNING, read_status
+
+        record = read_status(root, "commit_gate")
+    except Exception:  # noqa: BLE001 - the check must never break resume
+        return None
+    if not isinstance(record, dict) or record.get("status") != RUNNING:
+        return None
+    when = record.get("ts", "unknown time")
+    return (
+        "verification outcome unknown: commit-gate attempt at "
+        f"{when} never completed — re-run the gate "
+        "(if it is still running, wait for it to finish)"
+    )
+
+
 class ContinuationEngine:
     """Generic workflow-run store; the legacy Act store remains its compatibility facade."""
 
@@ -393,6 +418,7 @@ class ContinuationEngine:
             except WorkflowEvidenceError as exc:
                 raise ContinuationError(str(exc)) from exc
             previous_step, previous_status = state["step_id"], state["status"]
+            previous_blocker_kind = state.get("blocker_kind")
             state.update({
                 "step_id": step_id, "status": status,
                 "evidence": _sanitize_evidence(evidence), "blocker": _sanitize(blocker),
@@ -407,6 +433,7 @@ class ContinuationEngine:
                 previous_step=previous_step, previous_status=previous_status,
                 step_id=step_id, status=status,
                 detail={"blocker_kind": blocker_kind if status == "blocked" else None},
+                previous_blocker_kind=previous_blocker_kind,
             )
         return state
 
@@ -415,6 +442,7 @@ class ContinuationEngine:
         previous_step: str | None, previous_status: str | None,
         step_id: str, status: str,
         detail: dict[str, Any] | None = None,
+        previous_blocker_kind: str | None = None,
     ) -> None:
         """Append the transition events for one engine checkpoint write.
 
@@ -426,12 +454,21 @@ class ContinuationEngine:
             "story_id": story_id, "run_id": run_id,
             "step_id": step_id, "status": status,
         }
+        blocker_kind = (detail or {}).get("blocker_kind")
         if step_id != previous_step:
             append_event(path, event="step_entered", detail=detail, **common)
         if status == "blocked":
             append_event(path, event="blocker_raised", detail=detail, **common)
         elif previous_status == "blocked":
             append_event(path, event="blocker_cleared", detail=detail, **common)
+        # Authorization audit layer (STORY-slim-20260827eddbe9669c87 R1)
+        if status == "blocked" and blocker_kind == "authorization":
+            append_event(
+                path, event="authorization_asked",
+                detail=_sanitize_evidence({"blocker_kind": blocker_kind}), **common,
+            )
+        elif previous_status == "blocked" and previous_blocker_kind == "authorization":
+            append_event(path, event="authorization_granted", detail=detail, **common)
         if status == "completed":
             append_event(path, event="run_completed", detail=detail, **common)
         append_event(path, event="checkpoint_written", detail=detail, **common)
@@ -623,8 +660,13 @@ class ContinuationEngine:
                 return {**base, "decision": "fail_closed", "next_step": next_step,
                         "reasons": ["artifact drift: " + ", ".join(drift)],
                         "reason_code": "artifact_drift", "exit_code": 2}
+            # STORY-slim-20260827eddbe9669c87 R4: surface an open verification
+            # fence on the in-progress decision — the decision stays
+            # continue_current_turn, the reason demands a gate re-run.
+            unknown = verification_outcome_unknown(self.root)
             return {**base, "decision": "continue_current_turn", "next_step": next_step,
-                    "reasons": [], "reason_code": "in_progress", "exit_code": 2}
+                    "reasons": [unknown] if unknown else [],
+                    "reason_code": "in_progress", "exit_code": 2}
         except (ContinuationError, ValueError, KeyError, TypeError) as exc:
             return {
                 "decision": "fail_closed", "workflow_id": None, "run_id": None,
@@ -928,6 +970,46 @@ class ContinuationStore:
         except OSError:
             return False
 
+    def deny(self, story_id: str, reason: str) -> dict[str, Any]:
+        """Record an explicit authorization denial (STORY-slim-20260827eddbe9669c87 R2).
+
+        The only machine-expressible "no" in the state machine: appends an
+        ``authorization_denied`` audit event and rewrites the blocked
+        checkpoint so the blocker text itself carries the decision.  The
+        fingerprints keep the last trusted baseline (a denied handoff is
+        not a new verified baseline — same semantics as any blocked write).
+        """
+        self._validate_story_id(story_id)
+        reason = _sanitize(reason.strip())
+        if not reason:
+            raise ContinuationError("deny requires a non-empty reason")
+        with self._story_lock(story_id):
+            state = self.read(story_id)
+            if state is None:
+                raise ContinuationError(f"no checkpoint for {story_id}")
+            if state["status"] != "blocked":
+                raise ContinuationError("only a blocked checkpoint can be denied")
+            if state.get("blocker_kind") != "authorization":
+                raise ContinuationError("deny requires an authorization blocker")
+            if str(state.get("blocker", "")).startswith("denied:"):
+                raise ContinuationError("authorization already denied")
+            value = {
+                **state,
+                "blocker": _sanitize(f"denied: {reason}"),
+                "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
+            atomic_write(
+                self.path_for(story_id),
+                json.dumps(value, indent=2, ensure_ascii=False) + "\n",
+            )
+            append_event(
+                story_events_path(self.root, story_id),
+                event="authorization_denied", story_id=story_id, run_id=None,
+                step_id=state["step_id"], status="blocked",
+                detail=_sanitize_evidence({"reason": reason}),
+            )
+        return value
+
     def status(self, story_id: str) -> dict[str, Any]:
         """Read-only state summary, including explicit legacy-handoff detection."""
         self._validate_story_id(story_id)
@@ -1118,6 +1200,7 @@ class ContinuationStore:
         path = story_events_path(self.root, story_id)
         previous_step = previous.get("step_id") if previous else None
         previous_status = previous.get("status") if previous else None
+        previous_kind = previous.get("blocker_kind") if previous else None
         common = {
             "story_id": story_id, "run_id": None,
             "step_id": value["step_id"], "status": value["status"],
@@ -1135,6 +1218,18 @@ class ContinuationStore:
             )
         elif previous_status == "blocked":
             append_event(path, event="blocker_cleared", **common)
+        # Authorization audit layer (STORY-slim-20260827eddbe9669c87 R1):
+        # the decision record, not the waiting record — asked carries the
+        # sanitized question, granted fires when an authorization blocker
+        # resolves, denied only comes from the explicit deny action.
+        if value["status"] == "blocked" and value.get("blocker_kind") == "authorization":
+            append_event(
+                path, event="authorization_asked",
+                detail=_sanitize_evidence({"blocker": value.get("blocker", "")}),
+                **common,
+            )
+        elif previous_status == "blocked" and previous_kind == "authorization":
+            append_event(path, event="authorization_granted", **common)
         if value["status"] == "completed":
             append_event(path, event="run_completed", **common)
         append_event(
@@ -1325,6 +1420,11 @@ class ContinuationStore:
         if peers:
             reasons.append("competing active checkpoints: " + ", ".join(peers))
         reasons.extend(self._stale_reasons(state, story_id))
+        # STORY-slim-20260827eddbe9669c87 R4: an open verification fence means
+        # the last gate attempt never produced a verdict — block until re-run.
+        unknown = verification_outcome_unknown(self.root)
+        if unknown:
+            reasons.append(unknown)
         if reasons:
             return {"decision": "blocked", "story_id": story_id, "reasons": reasons}
         return {

@@ -1,12 +1,14 @@
-usage: pactkit continuation [-h] {checkpoint,status,verify,resume,events} ...
+usage: pactkit continuation [-h]
+                            {checkpoint,status,verify,resume,events,deny} ...
 
 positional arguments:
-  {checkpoint,status,verify,resume,events}
+  {checkpoint,status,verify,resume,events,deny}
     checkpoint          Write an explicit Act checkpoint
     status              Read-only continuation status
     verify              Read-only continuation verify
     resume              Read-only continuation resume
     events              List a run's append-only event stream
+    deny                Record an explicit authorization denial (audit event)
 
 options:
   -h, --help            show this help message and exit
