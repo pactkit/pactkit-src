@@ -1,6 +1,24 @@
 # Changelog
 
-## [Unreleased]
+## [2.23.0] - 2026-08-27
+
+### Added
+- **Spec preflight + native sessions** — `/project-act` Phase 0.7 deterministically inlines the Spec's referenced implementation inputs and constraints (with receipts) before any source edit; prose basenames resolving to table-declared paths no longer double-add; oversized prose references downgrade to WARN instead of aborting; native session execution restored.
+- **Progressive PDCA rule loading** — the 16 on-demand rules load on trigger instead of always; every rule now states its specific trigger and evidence (doctor no longer prints generic "when referenced" boilerplate); the on-demand set is enumerated per-format in pactkit.yaml `rules:`.
+- **Unified deployment ownership safety** — the manifest-hash ownership proof (previously rules/guides only) now covers skills, command prompts, agents, CLAUDE.md and rollback: deletions require manifest proof, user-modified files are preserved as `.pactkit-new` candidates, Ctrl-C rolls back atomically, and bare adapter calls fail safe.
+- **Machine-checked prompt-to-CLI consistency** — every `pactkit <subcommand>` reference in prompts/ must be a registered CLI subcommand (drift fails CI instead of failing an AI mid-session); mid-story task additions get a governed `add_task` path that reopens a done story.
+- **Legacy-engine usage counter** — machine-local counter (`~/.pactkit/legacy-engine-usage.json`) on the three explicit legacy entry points; `pactkit doctor` surfaces the invocation count that gates the frozen legacy package's deletion decision.
+
+### Fixed
+- **Gates fail closed** — pip-audit verdicts parsed correctly (vulnerabilities no longer read as pass), word-boundary requirement/test identity matching (R1 no longer satisfied by R10), coverage probe failures and "block" verdicts actually block, commit-gate git-collection failure is an error rather than a doc-only skip, config path arguments no longer silently swallowed.
+- **No bricked runs** — a vanished artifact fails with `artifact_vanished` instead of bricking the run forever; corrupt unrelated run files are skipped with a warning while matching runs still fail closed; Windows engine mutations no longer crash on the fcntl import; cross-run story binding serialized.
+- **pactkit.yaml multi-copy sync** — syncs from the copy readers actually load (user edits to the loaded copy were silently destroyed on every update) and writes atomically.
+- **Superseded-constitution warning** — machines still carrying the pre-slim-112 constitution alongside the Runtime Kernel get an explicit retirement warning instead of two conflicting governance layers silently co-loading.
+- **Prompts off the legacy surface** — /project-act and /project-plan no longer instruct agents to invoke the deprecated `continuation`/checkpoint commands (self-inflicted counter noise would keep the legacy deletion gate open forever); handover notes use the maintained `pactkit context --continuation` mechanism.
+- **Publish workflow unblocked** — the release test job installs `.[visualize,lint]` instead of `.[all]` (adapter extras are unresolvable before adapters publish — core-first order); five stale test deselects removed after their flakiness was fixed.
+
+### Changed
+- **Shared deploy-arg builder + golden-pinned CLI surface** — init/update/upgrade share one argument builder; the full argparse surface is pinned byte-for-byte by a golden help-snapshot test; dead `generators/adapter.py` removed; doctor's project deploy directories derive from FORMAT_PROFILES.
 
 ### Removed
 - **Preflight guard** (the PreToolUse mutation-enforcement hook): freshness-only
