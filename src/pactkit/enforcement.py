@@ -16,7 +16,6 @@ degraded run, and a degraded record must not survive an impossible probe.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import shutil
@@ -142,6 +141,38 @@ def _no_git_enabled(root: Path) -> bool:
     return False
 
 
+def _pytest_interpreter(root: Path) -> str | None:
+    """Resolve the interpreter the gates will actually drive (project venv
+    first, via ``pytest_command``) — NOT the current interpreter, which for
+    a pipx-installed CLI has no pytest at all (2.24.0 probe regression)."""
+    import subprocess
+
+    from pactkit.utils import pytest_command
+
+    cmd = pytest_command(root)
+    try:
+        proc = subprocess.run(
+            [cmd[0], "-m", "pytest", "--version"],
+            capture_output=True, timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return cmd[0] if proc.returncode == 0 else None
+
+
+def _module_available(interpreter: str, module: str) -> bool:
+    import subprocess
+
+    try:
+        proc = subprocess.run(
+            [interpreter, "-c", f"import {module}"],
+            capture_output=True, timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
 def probe_commit_gate(root: Path) -> dict[str, Any]:
     """Static capability probe for the commit gate."""
     if _no_git_enabled(root):
@@ -150,16 +181,17 @@ def probe_commit_gate(root: Path) -> dict[str, Any]:
         return {"status": UNAVAILABLE, "reason": "git binary not found"}
     if not (root / ".git").exists():
         return {"status": UNAVAILABLE, "reason": "not a git repository"}
-    if importlib.util.find_spec("pytest") is None:
-        return {"status": UNAVAILABLE, "reason": "pytest not importable"}
+    if _pytest_interpreter(root) is None:
+        return {"status": UNAVAILABLE, "reason": "pytest not resolvable (no project venv pytest)"}
     return {"status": FULL, "reason": ""}
 
 
 def probe_coverage_gate(root: Path) -> dict[str, Any]:
     """Static capability probe for the coverage gate."""
-    if importlib.util.find_spec("pytest") is None:
-        return {"status": UNAVAILABLE, "reason": "pytest not importable"}
-    if importlib.util.find_spec("pytest_cov") is None:
+    interpreter = _pytest_interpreter(root)
+    if interpreter is None:
+        return {"status": UNAVAILABLE, "reason": "pytest not resolvable (no project venv pytest)"}
+    if not _module_available(interpreter, "pytest_cov"):
         return {
             "status": DEGRADED,
             "reason": "pytest-cov not installed — coverage cannot be measured",

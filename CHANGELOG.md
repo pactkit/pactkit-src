@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.24.1] - 2026-08-27
+
+### Fixed
+- **Enforcement probes resolve the project venv's pytest** — 2.24.0's static probes checked `importlib` in the *current* interpreter, so a pipx-installed CLI (whose venv has no pytest) reported commit-gate and coverage-gate as `unavailable` even though the gates themselves run the project venv's pytest perfectly. Probes now resolve the interpreter the same way the gates do (`pytest_command`).
+
 ## [2.24.0] - 2026-08-27
 
 ### Added
