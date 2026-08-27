@@ -297,3 +297,27 @@ class TestHooksJsonLock:
         # Re-acquirable after release (no stale lock hold)
         with _hooks_json_lock(tmp_path):
             pass
+
+
+class TestAllFormatInstallsCodexChannel:
+    """2.24.2 follow-up: --format all deploys codex, so it must install the
+    codex hooks channel too (the default update path was left without it)."""
+
+    def test_all_format_installs_both_native_channels(self, tmp_path):
+        from pactkit.commit_gate import ensure_gate_channel
+
+        _project(tmp_path)
+        channel = ensure_gate_channel(tmp_path, "all")
+        assert (tmp_path / ".claude" / "settings.json").is_file()
+        assert (tmp_path / ".codex" / "hooks.json").is_file()
+        assert "PreToolUse hook" in channel
+        assert "codex" in channel
+
+    def test_classic_format_does_not_install_codex_channel(self, tmp_path):
+        from pactkit.commit_gate import ensure_gate_channel
+
+        _project(tmp_path)
+        channel = ensure_gate_channel(tmp_path, "classic")
+        assert (tmp_path / ".claude" / "settings.json").is_file()
+        assert not (tmp_path / ".codex" / "hooks.json").exists()
+        assert "codex" not in channel

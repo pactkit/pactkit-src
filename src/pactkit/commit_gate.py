@@ -554,8 +554,9 @@ def ensure_gate_channel(root: Path, format_name: str) -> str:
 
     STORY-slim-140 R1: classic/all → PreToolUse hook (Claude Code only).
     STORY-slim-20260827024e71df170f R4: codex → thin registration into
-    Codex's native hooks engine (.codex/hooks.json); the git pre-commit
-    fallback stays until the user completes Codex's trust confirmation.
+    Codex's native hooks engine (.codex/hooks.json); "all" deploys codex
+    too, so it installs both native channels. The git pre-commit fallback
+    stays for codex until the user completes Codex's trust confirmation.
     Anything else (opencode/copilot…) → git pre-commit fallback, because
     git-level interception is tool-agnostic. Returns the active channel
     string for the deploy summary (R2).
@@ -563,6 +564,8 @@ def ensure_gate_channel(root: Path, format_name: str) -> str:
     root = Path(root)
     if format_name in _PRETOOLUSE_FORMATS:
         install_hook(root)
+        if format_name == "all":
+            install_codex_hook(root)
     elif format_name == "codex":
         install_codex_hook(root)
         if (root / ".git").is_dir():

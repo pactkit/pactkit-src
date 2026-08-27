@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.24.2] - 2026-08-27
+
+### Fixed
+- **`--format all` installs the codex hooks channel** — the default `pactkit update`/`pactkit init` path deploys codex files but 2.24.1 only installed `.codex/hooks.json` for an explicit `--format codex`; "all" now installs both native channels (Claude settings.json + codex hooks.json).
+
 ## [2.24.1] - 2026-08-27
 
 ### Fixed
