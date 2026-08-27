@@ -22,20 +22,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[all]"
+          pip install -e ".[visualize,lint]"
           pip install pytest ruff
 
       - name: Lint
         run: ruff check src/ tests/
 
       - name: Test
-        run: |
-          pytest tests/ -q \
-            --deselect tests/unit/test_story049_community_standards.py \
-            --deselect tests/unit/test_story063_prompt_slimming.py::TestAC7PromptSizeReduced::test_total_size_reduced_15_percent \
-            --deselect tests/unit/test_story_slim026.py::TestAC5CharCount::test_plan_prompt_not_longer_than_baseline \
-            --deselect tests/unit/test_story_slim077_monorepo_stack.py::TestUpdateYamlStack::test_ac4_update_yaml_stack \
-            --deselect tests/unit/test_statusline.py::TestModelAndDirectory::test_model_name_shown
+        run: pytest tests/ -q
 
   publish:
     needs: test

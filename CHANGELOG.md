@@ -22,6 +22,20 @@ All notable changes to PactKit will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Withdrawn] - 2.21.0 / 2.22.0 - 2026-08-27
+
+- **v2.21.0 and v2.22.0 were withdrawn from PyPI.** Both were published on
+  2026-08-24 and deliberately removed shortly afterwards due to serious
+  defects: workflow runs could brick mid-flight, gates failed open (including
+  an inverted pip-audit verdict), and the preflight guard hook produced noise
+  during Act sessions. All of these are fixed in [Unreleased] and will ship in
+  2.23.0.
+- `pactkit-codex` 2.21.0 was withdrawn alongside. `pactkit-opencode` and
+  `pactkit-copilot` never published 2.21/2.22 — all adapter packages remain at
+  2.20.0 on PyPI.
+- **Guidance:** pin `pactkit==2.20.0` until 2.23.0 is available. Git tags
+  v2.21.0/v2.22.0 and their GitHub Releases remain as historical record.
+
 ## [2.22.0] - 2026-08-24
 
 ### Added
