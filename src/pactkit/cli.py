@@ -1250,6 +1250,7 @@ def main():
 
             from pactkit.doctor import (
                 check_codex_execution_capability,
+                check_codex_hook_capability,
                 check_deploy_parity,
             )
 
@@ -1262,6 +1263,7 @@ def main():
                 "graph_provider": check_graph_provider(root),
                 "deploy_parity": check_deploy_parity(root),
                 "codex_execution": check_codex_execution_capability(),
+                "codex_hooks": check_codex_hook_capability(root),
                 "workflow_continuation": check_workflow_continuation(root),
                 "issues": False,
             }
@@ -1392,7 +1394,7 @@ def main():
         for warning in resolution["warnings"]:
             print(f"  ⚠️  Rule resolution: {warning}")
 
-        from pactkit.doctor import check_codex_execution_capability
+        from pactkit.doctor import check_codex_execution_capability, check_codex_hook_capability
 
         codex_execution = check_codex_execution_capability()
         print(
@@ -1405,6 +1407,19 @@ def main():
             f"guarantee={codex_execution['guarantee_level']}"
         )
         for warning in codex_execution["warnings"]:
+            print(f"  ⚠️  {warning}")
+
+        # STORY-slim-20260827024e71df170f R4: native-hooks thin registration
+        codex_hooks = check_codex_hook_capability(root)
+        print(
+            "  Codex hooks capability: "
+            f"engine={codex_hooks['engine']} "
+            f"version={codex_hooks['codex_version'] or 'n/a'} "
+            f"hooks_json={codex_hooks['hooks_json']} "
+            f"entry={str(codex_hooks['entry_present']).lower()} "
+            f"trust={codex_hooks['trust']}"
+        )
+        for warning in codex_hooks["warnings"]:
             print(f"  ⚠️  {warning}")
 
         # STORY-slim-142 R3: adapter package version skew (report-only)

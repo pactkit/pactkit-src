@@ -245,16 +245,33 @@ def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
     Claude Code hook contract: exit 2 = block (stderr shown to the agent),
     exit 0 = allow. Non-commit commands exit 0 without running anything.
     Gate-internal failures always exit 0 (R3 self-lock protection).
+
+    Codex CLI uses the same wire contract (tool_name "Bash", exit 2 +
+    stderr block); its legacy shell tool may pass the command as an
+    array, and both hosts serialize the session cwd into the payload
+    (STORY-slim-20260827024e71df170f R4).
     """
     try:
         payload = json.loads(stdin_text or "{}")
     except json.JSONDecodeError:
         return "", 0
-    command = ((payload.get("tool_input") or {}).get("command")) or ""
+    if not isinstance(payload, dict):
+        return "", 0
+    raw_command = (payload.get("tool_input") or {}).get("command") or ""
+    if isinstance(raw_command, list):  # legacy codex shell tool form
+        command = " ".join(str(part) for part in raw_command)
+    else:
+        command = str(raw_command)
     if not _GIT_COMMIT_RE.search(command):
         return "", 0
     if "--no-verify" in command:
         return "", 0  # explicit human bypass — done-verify catches it at archive time
+
+    cwd = payload.get("cwd")
+    if isinstance(cwd, str) and cwd.strip():
+        candidate = Path(cwd)
+        if candidate.is_dir():
+            root = candidate
 
     result = run_gate(root)
     if result.exit_code != 0:
@@ -318,6 +335,71 @@ def install_hook(root: Path) -> str:
     return f"commit-gate hook: installed in {settings_path}"
 
 
+def install_codex_hook(root: Path) -> str:
+    """Merge the PreToolUse hook into the project's .codex/hooks.json (idempotent).
+
+    Thin registration into Codex's native hooks engine
+    (STORY-slim-20260827024e71df170f R4): the wire contract matches Claude
+    Code (tool_name "Bash", exit 2 + stderr block), so the handler reuses
+    `pactkit commit-gate --hook` unchanged. The hook needs a one-time
+    content-hash trust confirmation inside Codex before it takes effect —
+    deployment never activates it silently, and an existing config.toml is
+    never touched (hooks.json is a separate, Codex-discovered file).
+
+    User entries are preserved verbatim; pactkit refreshes only its own
+    entry, identified by the commit-gate command string.
+    """
+    if _no_git_enabled(root):
+        return "codex hook: skipped (enterprise.no_git)"
+
+    hooks_path = root / ".codex" / "hooks.json"
+    hooks_path.parent.mkdir(parents=True, exist_ok=True)
+    trust_notice = (
+        " — needs one-time trust confirmation inside Codex "
+        "(content-hash prompt) before it takes effect"
+    )
+    if hooks_path.exists():
+        try:
+            payload = json.loads(hooks_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return f"codex hook: {hooks_path} is not valid JSON — left untouched"
+        if not isinstance(payload, dict):
+            return f"codex hook: {hooks_path} has unexpected shape — left untouched"
+    else:
+        payload = {}
+
+    hooks = payload.get("hooks")
+    if not isinstance(hooks, dict):
+        hooks = {}
+        payload["hooks"] = hooks
+    pre_tool = hooks.get("PreToolUse")
+    if not isinstance(pre_tool, list):
+        pre_tool = []
+        hooks["PreToolUse"] = pre_tool
+    entry = {"matcher": "Bash", "hooks": [{"type": "command", "command": HOOK_COMMAND}]}
+
+    for i, existing in enumerate(pre_tool):
+        if not isinstance(existing, dict):
+            continue
+        cmds = [
+            h.get("command", "")
+            for h in existing.get("hooks", [])
+            if isinstance(h, dict)
+        ]
+        if any("commit-gate" in c for c in cmds):
+            pre_tool[i] = entry  # idempotent refresh of our own entry
+            hooks_path.write_text(
+                json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            return f"codex hook: already installed in {hooks_path}{trust_notice}"
+    pre_tool.append(entry)
+    hooks_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
+    )
+    return f"codex hook: installed in {hooks_path}{trust_notice}"
+
+
 def install_git_hook(root: Path) -> str:
     """Write .git/hooks/pre-commit as a thin wrapper around the CLI."""
     if _no_git_enabled(root):
@@ -350,10 +432,32 @@ def install_git_hook(root: Path) -> str:
 _PRETOOLUSE_FORMATS = frozenset({"all", "classic"})
 
 
+def _codex_hook_present(root: Path) -> bool:
+    hooks_path = root / ".codex" / "hooks.json"
+    if not hooks_path.exists():
+        return False
+    try:
+        payload = json.loads(hooks_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    entries = payload.get("hooks", {})
+    if not isinstance(entries, dict):
+        return False
+    pre_tool = entries.get("PreToolUse", [])
+    return any(
+        "commit-gate" in h.get("command", "")
+        for e in pre_tool if isinstance(e, dict)
+        for h in e.get("hooks", []) if isinstance(h, dict)
+    )
+
+
 def gate_channel(root: Path) -> str:
     """Report the currently active commit-gate channel for status output (R2)."""
     if _no_git_enabled(root):
         return "none (enterprise.no_git)"
+    channels: list[str] = []
     settings = root / ".claude" / "settings.json"
     if settings.exists():
         try:
@@ -361,12 +465,16 @@ def gate_channel(root: Path) -> str:
             entries = data.get("hooks", {}).get("PreToolUse", [])
             if any("commit-gate" in h.get("command", "")
                    for e in entries for h in e.get("hooks", []) if isinstance(h, dict)):
-                return "PreToolUse hook"
+                channels.append("PreToolUse hook")
         except json.JSONDecodeError:
             pass
+    if _codex_hook_present(root):
+        channels.append("codex PreToolUse hook")
     hook = root / ".git" / "hooks" / "pre-commit"
     if hook.exists() and "commit-gate" in hook.read_text(encoding="utf-8", errors="replace"):
-        return "git pre-commit"
+        channels.append("git pre-commit")
+    if channels:
+        return " + ".join(channels)
     return "none"
 
 
@@ -374,13 +482,20 @@ def ensure_gate_channel(root: Path, format_name: str) -> str:
     """Install the appropriate commit-gate channel for the deployed format.
 
     STORY-slim-140 R1: classic/all → PreToolUse hook (Claude Code only).
-    Anything else (codex/opencode/copilot…) → git pre-commit fallback,
-    because git-level interception is tool-agnostic. Returns the active
-    channel string for the deploy summary (R2).
+    STORY-slim-20260827024e71df170f R4: codex → thin registration into
+    Codex's native hooks engine (.codex/hooks.json); the git pre-commit
+    fallback stays until the user completes Codex's trust confirmation.
+    Anything else (opencode/copilot…) → git pre-commit fallback, because
+    git-level interception is tool-agnostic. Returns the active channel
+    string for the deploy summary (R2).
     """
     root = Path(root)
     if format_name in _PRETOOLUSE_FORMATS:
         install_hook(root)
+    elif format_name == "codex":
+        install_codex_hook(root)
+        if (root / ".git").is_dir():
+            install_git_hook(root)
     elif (root / ".git").is_dir():
         install_git_hook(root)
     channel = gate_channel(root)

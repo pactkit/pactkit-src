@@ -759,21 +759,86 @@ def check_codex_execution_capability(codex_root: Path | None = None) -> dict:
     }
 
 
-def check_codex_hook_capability(codex_root: Path | None = None) -> dict:
-    """Deprecated compatibility view for callers from pre-runner releases.
+def _codex_cli_version() -> str | None:
+    """Best-effort local Codex CLI version probe (e.g. 'codex-cli 0.149.1')."""
+    import re
+    import shutil
+    import subprocess
 
-    New code must use :func:`check_codex_execution_capability`.  The old hook
-    fields are deliberately always false because PactKit no longer owns a
-    Codex hook lifecycle.
+    binary = shutil.which("codex")
+    if binary is None:
+        return None
+    try:
+        proc = subprocess.run(
+            [binary, "--version"], capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    match = re.search(r"(\d+\.\d+\.\d+)", proc.stdout or "")
+    return match.group(1) if match else None
+
+
+# Codex gained hooks.json discovery (the Claude-style 12-event engine) in
+# 0.114.0; older binaries cannot discover the file PactKit deploys.
+CODEX_HOOKS_MIN_VERSION = (0, 114, 0)
+
+
+def check_codex_hook_capability(project_root: Path | None = None) -> dict:
+    """Report the Codex native-hooks thin registration (R4, restored).
+
+    Engine availability is probed from the local `codex` binary version;
+    deployment state from the project's ``.codex/hooks.json``.  Trust state
+    lives inside Codex (content-hash confirmation) and cannot be read
+    reliably from outside — it is reported as pending, never as confirmed.
     """
-    execution = check_codex_execution_capability(codex_root)
+    import json as _json
+
+    root = project_root or Path.cwd()
+    version = _codex_cli_version()
+    warnings: list[str] = []
+    if version is None:
+        engine = "unavailable"
+        warnings.append("codex binary not found on PATH")
+    else:
+        try:
+            parsed = tuple(int(part) for part in version.split("."))
+        except ValueError:
+            parsed = (0, 0, 0)
+        engine = "available" if parsed >= CODEX_HOOKS_MIN_VERSION else "unavailable"
+        if engine == "unavailable":
+            warnings.append(
+                f"codex {version} predates hooks.json discovery "
+                f"(requires >= 0.114.0)"
+            )
+
+    hooks_path = root / ".codex" / "hooks.json"
+    entry_present = False
+    if hooks_path.is_file():
+        hooks_json = "deployed"
+        try:
+            payload = _json.loads(hooks_path.read_text(encoding="utf-8"))
+            entries = payload.get("hooks", {}).get("PreToolUse", [])
+            entry_present = any(
+                "commit-gate" in h.get("command", "")
+                for e in entries if isinstance(e, dict)
+                for h in e.get("hooks", []) if isinstance(h, dict)
+            )
+        except (OSError, ValueError, AttributeError):
+            entry_present = False
+    else:
+        hooks_json = "absent"
+
     return {
-        "installed": False,
-        "trusted": False,
-        "observed": False,
-        "validated": False,
-        "guarantee_level": execution["guarantee_level"],
-        "warnings": execution["warnings"],
+        "engine": engine,
+        "codex_version": version,
+        "hooks_json": hooks_json,
+        "entry_present": entry_present,
+        "trust": (
+            "pending user confirmation inside Codex"
+            if entry_present else "not applicable"
+        ),
+        "guarantee_level": "portable",
+        "warnings": warnings,
     }
 
 

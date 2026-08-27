@@ -203,6 +203,8 @@ graph TD
     _clean["_clean"]
     _cleanup_legacy["_cleanup_legacy"]
     _cleanup_legacy_portable_methods["_cleanup_legacy_portable_methods"]
+    _codex_cli_version["_codex_cli_version"]
+    _codex_hook_present["_codex_hook_present"]
     _collect_findings["_collect_findings"]
     _collect_insights["_collect_insights"]
     _collect_insights__dfs["_collect_insights._dfs"]
@@ -461,6 +463,7 @@ graph TD
     get_skill_manifest["get_skill_manifest"]
     get_workflow["get_workflow"]
     hook_entry["hook_entry"]
+    install_codex_hook["install_codex_hook"]
     install_deps["install_deps"]
     install_git_hook["install_git_hook"]
     install_hook["install_hook"]
@@ -778,10 +781,14 @@ graph TD
     hook_entry --> run_gate
     hook_entry --> render
     install_hook --> _no_git_enabled
+    install_codex_hook --> _no_git_enabled
     install_git_hook --> _no_git_enabled
     gate_channel --> _no_git_enabled
+    gate_channel --> _codex_hook_present
     ensure_gate_channel --> gate_channel
     ensure_gate_channel --> install_hook
+    ensure_gate_channel --> install_codex_hook
+    ensure_gate_channel --> install_git_hook
     ensure_gate_channel --> install_git_hook
     _summarize --> _parse_ts
     _summarize --> _parse_ts
@@ -1099,6 +1106,7 @@ graph TD
     main --> check_rule_ownership
     main --> resolve_rule_context
     main --> check_codex_execution_capability
+    main --> check_codex_hook_capability
     main --> check_adapter_skew
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics
@@ -1113,6 +1121,7 @@ graph TD
     main --> check_graph_provider
     main --> check_deploy_parity
     main --> check_codex_execution_capability
+    main --> check_codex_hook_capability
     main --> check_workflow_continuation
     main --> issue_sync
     main --> map_to_tests
@@ -1235,7 +1244,7 @@ graph TD
     check_stale_graphs --> find_pactkit_yaml
     check_rule_ownership --> LessonRepository_add
     check_rule_ownership --> _project_deploy_dirs
-    check_codex_hook_capability --> check_codex_execution_capability
+    check_codex_hook_capability --> _codex_cli_version
     check_deploy_parity --> LessonRepository_add
     check_deploy_parity --> expected_components
     check_deploy_parity --> LessonRepository_add

@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-20260827024e71df170f
 title: P0 可观测性与拦截力升级：run 事件流、friction 统计、gate 完整度上报、Codex 原生 hooks 接入
 spec_path: docs/specs/STORY-slim-20260827024e71df170f.md
-status: in_progress
+status: archived
 tasks:
 - id: task-2eef2a1c10
   title: R1 事件流写入：continuation.py 锁内追加 events/*.jsonl + 归档随行
@@ -15,15 +15,17 @@ tasks:
   completed: true
 - id: task-c0f0c78797
   title: R4 Codex hooks.json 薄注册（create-if-absent，依赖 ownership 契约修复）
-  completed: false
+  completed: true
 - id: task-75e82809da
   title: R4b Codex hook schema 适配 + doctor 真实能力检测 + profiles 能力标志修正
-  completed: false
+  completed: true
 - id: task-db9a33cfeb
   title: 单测：AC1-AC3 事件流（投影一致/blocker 对/崩溃安全）
   completed: true
 - id: task-e99a493355
   title: e2e：AC7-AC9 config.toml 字节不变 + hooks 幂等 + doctor 检测
-  completed: false
+  completed: true
 created_at: '2026-08-27T08:48:58+00:00'
-updated_at: '2026-08-27T09:08:19+00:00'
+updated_at: '2026-08-27T09:56:42+00:00'
+completed_at: '2026-08-27T09:56:00+00:00'
+archived_at: '2026-08-27T09:56:42+00:00'

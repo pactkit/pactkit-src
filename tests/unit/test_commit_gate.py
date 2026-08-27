@@ -292,12 +292,15 @@ class TestGateChannelDispatch:
         assert not (repo / ".git" / "hooks" / "pre-commit").exists()
 
     def test_non_claude_gets_git_hook(self, repo):
-        """AC1: pure codex deploy auto-installs git pre-commit."""
+        """AC1 (amended, STORY-slim-20260827024e71df170f R4): codex deploy
+        installs the native hooks.json channel plus the git pre-commit
+        fallback (active until the user completes Codex's trust prompt)."""
         from pactkit.commit_gate import ensure_gate_channel
 
         (repo / ".git" / "hooks").mkdir()
         channel = ensure_gate_channel(repo, "codex")
-        assert channel == "git pre-commit"
+        assert channel == "codex PreToolUse hook + git pre-commit"
+        assert (repo / ".codex" / "hooks.json").is_file()
         assert "pactkit commit-gate" in (repo / ".git" / "hooks" / "pre-commit").read_text()
         assert not (repo / ".claude" / "settings.json").exists()
 

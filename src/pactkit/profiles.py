@@ -205,6 +205,14 @@ FORMAT_PROFILES: dict[str, FormatProfile] = {
         pactkit_yaml_path=".codex/pactkit.yaml",
         agent_format="md",
         rules_import_style="inline",
+        # R5 review (STORY-slim-20260827024e71df170f): both flags below are
+        # deliberate.  Codex has no Claude-style agent-frontmatter hooks
+        # concept (role config is [agents.<role>] TOML), so the "hooks" field
+        # stays stripped; the model-selection table is Claude-tier specific
+        # (haiku/sonnet/opus) and the codex adapter strips it, so
+        # supports_model_routing stays False.  Codex's REAL hook capability
+        # is reported by doctor.check_codex_hook_capability (R4) — never
+        # inferred from these prompt-level flags.
         excluded_agent_fields=frozenset({"permissionMode", "memory", "skills", "hooks"}),
         excluded_commands=frozenset(),
         has_custom_commands=True,
