@@ -438,4 +438,4 @@ def test_non_object_command_ownership_manifest_does_not_half_deploy(tmp_path, pa
     assert (claude / ".pactkit-version").is_file()
     assert (claude / ".pactkit-deployed.json").is_file()
     replacement = manifest.read_text(encoding="utf-8")
-    assert '"version": 1' in replacement
+    assert '"version": 2' in replacement  # v2 schema (STORY-slim-20260827fc9de5542ad7)

@@ -12,7 +12,11 @@ from typing import Iterable
 from pactkit.utils import atomic_write
 
 _MANIFEST_FILE = ".pactkit-command-manifest.json"
-_MANIFEST_VERSION = 1
+_MANIFEST_VERSION = 2
+# v1 manifests carry only the ``commands`` table; v2 adds ``references``.
+# Both remain readable so an in-place upgrade never loses command ownership
+# (STORY-slim-20260827fc9de5542ad7 R1).
+_READABLE_VERSIONS = (1, 2)
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 
 
@@ -63,12 +67,33 @@ def record_deployed_command(entries: dict[str, str], name: str, skill_file: Path
     entries[name] = hashlib.sha256(skill_file.read_bytes()).hexdigest()
 
 
-def write_command_manifest(skills_dir: Path, entries: dict[str, str]) -> None:
+def record_deployed_reference(
+    references: dict[str, str], relative_path: str, reference_file: Path,
+) -> None:
+    """Record the digest of one successfully written command reference.
+
+    The digest is read back from the file the deployer just wrote — the same
+    "record what actually landed" semantics as ``record_deployed_command``.
+    Files preserved as ``.pactkit-new`` candidates are never recorded: a
+    user-modified reference stays outside the ownership ledger so a later
+    cleanup cannot delete it (STORY-slim-20260827fc9de5542ad7 R2).
+    """
+    references[relative_path] = hashlib.sha256(reference_file.read_bytes()).hexdigest()
+
+
+def write_command_manifest(
+    skills_dir: Path, entries: dict[str, str],
+    references: dict[str, str] | None = None,
+) -> None:
     """Persist the complete ownership projection atomically."""
     atomic_write(
         skills_dir / _MANIFEST_FILE,
         json.dumps(
-            {"version": _MANIFEST_VERSION, "commands": dict(sorted(entries.items()))},
+            {
+                "version": _MANIFEST_VERSION,
+                "commands": dict(sorted(entries.items())),
+                "references": dict(sorted((references or {}).items())),
+            },
             indent=2, ensure_ascii=False,
         ) + "\n",
     )
@@ -118,9 +143,34 @@ def _read_manifest(skills_dir: Path, known_commands: set[str]) -> dict[str, str]
     if not isinstance(payload, dict):
         return {}
     entries = payload.get("commands")
-    if payload.get("version") != _MANIFEST_VERSION or not isinstance(entries, dict):
+    if payload.get("version") not in _READABLE_VERSIONS or not isinstance(entries, dict):
         return {}
     return {
         name: digest for name, digest in entries.items()
         if name in known_commands and isinstance(digest, str) and _DIGEST.fullmatch(digest)
+    }
+
+
+def read_command_references(skills_dir: Path) -> dict[str, str]:
+    """Read the v2 reference-digest table used as deletion proof.
+
+    Missing file, corrupt JSON, wrong shape, or a v1 manifest (no
+    ``references`` section) all degrade to an empty table — the caller then
+    conservatively preserves everything (STORY-slim-20260827fc9de5542ad7 R4).
+    """
+    path = skills_dir / _MANIFEST_FILE
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict) or payload.get("version") != _MANIFEST_VERSION:
+        return {}
+    references = payload.get("references")
+    if not isinstance(references, dict):
+        return {}
+    return {
+        relative: digest for relative, digest in references.items()
+        if isinstance(relative, str) and isinstance(digest, str) and _DIGEST.fullmatch(digest)
     }
