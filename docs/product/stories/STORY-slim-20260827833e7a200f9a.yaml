@@ -1,0 +1,14 @@
+schema_version: 1
+id: STORY-slim-20260827833e7a200f9a
+title: '[P2-2 backlog] 跨宿主 prompt snapshot 测试'
+spec_path: docs/specs/STORY-slim-20260827833e7a200f9a.md
+status: backlog
+tasks:
+- id: task-01ebdf0a92
+  title: deploy 到临时目录，对 Claude/OpenCode/Codex 三 profile 产物做字节级 snapshot
+  completed: false
+- id: task-a763670641
+  title: 拦截 prompt 模板静默回归（2.21/2.22 类事故）
+  completed: false
+created_at: '2026-08-27T08:49:42+00:00'
+updated_at: '2026-08-27T08:49:42+00:00'

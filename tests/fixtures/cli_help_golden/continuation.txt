@@ -1,11 +1,12 @@
-usage: pactkit continuation [-h] {checkpoint,status,verify,resume} ...
+usage: pactkit continuation [-h] {checkpoint,status,verify,resume,events} ...
 
 positional arguments:
-  {checkpoint,status,verify,resume}
+  {checkpoint,status,verify,resume,events}
     checkpoint          Write an explicit Act checkpoint
     status              Read-only continuation status
     verify              Read-only continuation verify
     resume              Read-only continuation resume
+    events              List a run's append-only event stream
 
 options:
   -h, --help            show this help message and exit

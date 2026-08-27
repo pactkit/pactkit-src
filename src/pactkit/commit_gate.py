@@ -186,10 +186,13 @@ def parse_pytest_summary(output: str) -> dict:
 
 def run_gate(root: Path) -> GateResult:
     """The shared decision pipeline. exit 1 = block, 0 = allow."""
+    from pactkit.enforcement import DEGRADED, FULL, UNAVAILABLE, record_status
+
     result = GateResult()
     try:
         if not (root / ".git").exists():
             result.lines.append("[WARN] commit-gate: not a git repository — skipped")
+            record_status(root, "commit_gate", UNAVAILABLE, "not a git repository — skipped")
             return result
 
         changed = collect_changed_files(root)
@@ -197,6 +200,7 @@ def run_gate(root: Path) -> GateResult:
         result.lines.append(f"commit-gate: {strategy.upper()} — {reason}")
 
         if strategy == "skip":
+            record_status(root, "commit_gate", FULL, f"strategy=skip ({reason})")
             return result
 
         returncode, output = run_pytest(root, test_files)
@@ -215,17 +219,23 @@ def run_gate(root: Path) -> GateResult:
             tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
             result.lines.extend(f"  {ln}" for ln in tail)
             result.exit_code = 1
+        record_status(root, "commit_gate", FULL, "")
         return result
 
     except GitCollectionError as exc:
         result.lines.append(f"[FAIL] commit-gate: COLLECTION-FAILED — {exc}")
         result.exit_code = 1
+        # Fail-closed: collection failure blocks the commit, so the gate
+        # still enforced its contract.
+        record_status(root, "commit_gate", FULL, f"collection failure blocked (fail-closed): {exc}")
         return result
     except GateUnavailable as exc:
         result.lines.append(f"[WARN] commit-gate unavailable ({exc}) — allowing commit")
+        record_status(root, "commit_gate", UNAVAILABLE, str(exc))
         return result
     except Exception as exc:  # R3 self-lock protection
         result.lines.append(f"[WARN] commit-gate internal error ({type(exc).__name__}: {exc}) — allowing commit")
+        record_status(root, "commit_gate", DEGRADED, f"internal error ({type(exc).__name__}): {exc}")
         return result
 
 

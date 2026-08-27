@@ -297,6 +297,10 @@ def main():
     for action in ("status", "verify", "resume"):
         action_parser = continuation_actions.add_parser(action, help=f"Read-only continuation {action}")
         action_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
+    events_parser = continuation_actions.add_parser(
+        "events", help="List a run's append-only event stream"
+    )
+    events_parser.add_argument("story_id", help="Story ID, e.g. STORY-slim-146")
 
     # STORY-slim-147: workflow-neutral continuation API.  The legacy
     # ``continuation`` command above remains the stable project-act facade.
@@ -481,8 +485,21 @@ def main():
     observe_parser.add_argument("--report", action="store_true", default=False, help="Human-readable report")
     observe_parser.add_argument("--json", action="store_true", default=False, help="JSON output")
 
+    # pactkit stats (STORY-slim-20260827024e71df170f R2)
+    stats_parser = subparsers.add_parser(
+        "stats", help="Aggregate run friction metrics from event streams"
+    )
+    stats_parser.add_argument(
+        "--format", default="human", choices=["human", "json"],
+        help="Output format (human table or machine-readable JSON)",
+    )
+
     # pactkit doctor (STORY-slim-015 R1-R3)
-    subparsers.add_parser("doctor", help="Diagnose project health")
+    doctor_parser = subparsers.add_parser("doctor", help="Diagnose project health")
+    doctor_parser.add_argument(
+        "--json", action="store_true", default=False,
+        help="Emit machine-readable JSON diagnostics (STORY-slim-20260827024e71df170f R3)",
+    )
 
     # pactkit audit (STORY-slim-091)
     audit_parser = subparsers.add_parser("audit", help="H1-H7 AI Readiness Assessment")
@@ -840,6 +857,22 @@ def main():
                 )
             elif args.continuation_action == "status":
                 result = store.status(args.story_id)
+            elif args.continuation_action == "events":
+                from pactkit.run_events import read_events, story_events_path
+
+                events, corrupt = read_events(story_events_path(project_root, args.story_id))
+                if not events and not corrupt:
+                    print(f"no events recorded for {args.story_id}")
+                    raise SystemExit(0)
+                for event in events:
+                    detail = json.dumps(event.get("detail"), ensure_ascii=False)
+                    print(
+                        f"{event.get('ts')} {event.get('event')} "
+                        f"step={event.get('step_id')} status={event.get('status')} {detail}"
+                    )
+                if corrupt:
+                    print(f"[WARN] {corrupt} corrupt event line(s) skipped")
+                raise SystemExit(0)
             else:
                 result = store.resume(args.story_id)
             print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -1158,6 +1191,18 @@ def main():
         print(output)
         raise SystemExit(exit_code)
 
+    elif args.command == "stats":
+        import json as json_module
+
+        from pactkit.run_stats import collect_runs, json_report, render_report
+
+        runs = collect_runs(project_root)
+        if args.format == "json":
+            print(json_module.dumps(json_report(runs), indent=2, ensure_ascii=False))
+        else:
+            print(render_report(runs))
+        raise SystemExit(0)
+
     elif args.command == "report":
         from pactkit.skills.report import generate as run_report
 
@@ -1193,8 +1238,36 @@ def main():
             check_stale_graphs,
             check_workflow_continuation,
         )
+        from pactkit.enforcement import assess as assess_enforcement
 
         root = project_root
+
+        if args.json:
+            # Machine-readable diagnostics (STORY-slim-20260827024e71df170f R3):
+            # enforcement completeness is the contract; the other structured
+            # checks ride along so automation has one doctor surface.
+            import json as json_module
+
+            from pactkit.doctor import (
+                check_codex_execution_capability,
+                check_deploy_parity,
+            )
+
+            enforcement = assess_enforcement(root)
+            payload = {
+                "enforcement": enforcement,
+                "legacy_engine_usage": check_legacy_engine_usage(),
+                "orphaned_specs": check_orphaned_specs(root),
+                "config_drift": check_config_drift(root),
+                "graph_provider": check_graph_provider(root),
+                "deploy_parity": check_deploy_parity(root),
+                "codex_execution": check_codex_execution_capability(),
+                "workflow_continuation": check_workflow_continuation(root),
+                "issues": False,
+            }
+            print(json_module.dumps(payload, indent=2, ensure_ascii=False))
+            raise SystemExit(0)
+
         has_issues = False
 
         # Frozen legacy engine usage — informs the deletion decision
@@ -1362,6 +1435,12 @@ def main():
         )
         for warning in workflow_health["warnings"]:
             print(f"  ⚠️  {warning}")
+
+        # STORY-slim-20260827024e71df170f R3: gate enforcement completeness
+        # is reported, never silently degraded.
+        from pactkit.enforcement import render_summary
+
+        print(render_summary(assess_enforcement(root)))
 
         if not has_issues:
             print("Health: OK")

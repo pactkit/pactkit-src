@@ -1,0 +1,11 @@
+schema_version: 1
+id: STORY-slim-2026082727cc4ab535e7
+title: '[P2-1 backlog] 生成式目录 + 漂移门'
+spec_path: docs/specs/STORY-slim-2026082727cc4ab535e7.md
+status: backlog
+tasks:
+- id: task-bfca30c6d4
+  title: workflow_registry + RULE_DEFINITIONS 生成 docs/reference/ 目录页，CI 校验 diff 为零
+  completed: false
+created_at: '2026-08-27T08:49:42+00:00'
+updated_at: '2026-08-27T08:49:42+00:00'

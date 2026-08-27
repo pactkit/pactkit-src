@@ -27,12 +27,16 @@ graph TD
     click src_pactkit_garden_py href "src/pactkit/garden.py"
     src_pactkit_workflow_engine_py["workflow_engine.py"]
     click src_pactkit_workflow_engine_py href "src/pactkit/workflow_engine.py"
+    src_pactkit_enforcement_py["enforcement.py"]
+    click src_pactkit_enforcement_py href "src/pactkit/enforcement.py"
     src_pactkit_protocols_py["protocols.py"]
     click src_pactkit_protocols_py href "src/pactkit/protocols.py"
     src_pactkit_host_continuation_py["host_continuation.py"]
     click src_pactkit_host_continuation_py href "src/pactkit/host_continuation.py"
     src_pactkit_commit_gate_py["commit_gate.py"]
     click src_pactkit_commit_gate_py href "src/pactkit/commit_gate.py"
+    src_pactkit_run_stats_py["run_stats.py"]
+    click src_pactkit_run_stats_py href "src/pactkit/run_stats.py"
     src_pactkit_lint_runner_py["lint_runner.py"]
     click src_pactkit_lint_runner_py href "src/pactkit/lint_runner.py"
     src_pactkit_validators_py["validators.py"]
@@ -67,6 +71,8 @@ graph TD
     click src_pactkit_delivery_evidence_py href "src/pactkit/delivery_evidence.py"
     src_pactkit_cleaners_py["cleaners.py"]
     click src_pactkit_cleaners_py href "src/pactkit/cleaners.py"
+    src_pactkit_run_events_py["run_events.py"]
+    click src_pactkit_run_events_py href "src/pactkit/run_events.py"
     src_pactkit_spec_graph_py["spec_graph.py"]
     click src_pactkit_spec_graph_py href "src/pactkit/spec_graph.py"
     src_pactkit_spec_status_py["spec_status.py"]
@@ -145,11 +151,15 @@ graph TD
     src_pactkit_garden_py --> src_pactkit_context_gen_py
     src_pactkit_garden_py --> src_pactkit_continuation_py
     src_pactkit_workflow_engine_py --> src_pactkit_legacy___init___py
+    src_pactkit_enforcement_py --> src_pactkit_utils_py
+    src_pactkit_enforcement_py --> src_pactkit_config_py
     src_pactkit_host_continuation_py --> src_pactkit_legacy___init___py
     src_pactkit_commit_gate_py --> src_pactkit_utils_py
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
+    src_pactkit_commit_gate_py --> src_pactkit_enforcement_py
     src_pactkit_commit_gate_py --> src_pactkit_config_py
+    src_pactkit_run_stats_py --> src_pactkit_run_events_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
     src_pactkit_lint_runner_py --> src_pactkit_config_py
@@ -170,6 +180,7 @@ graph TD
     src_pactkit_lazy_visualize_py --> src_pactkit_cleaners_py
     src_pactkit_lazy_visualize_py --> src_pactkit_prompts_workflows_py
     src_pactkit_continuation_py --> src_pactkit_id_generator_py
+    src_pactkit_continuation_py --> src_pactkit_run_events_py
     src_pactkit_continuation_py --> src_pactkit_utils_py
     src_pactkit_continuation_py --> src_pactkit_workflow_registry_py
     src_pactkit_continuation_py --> src_pactkit_workflow_validators_py
@@ -201,12 +212,15 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_continuation_py
     src_pactkit_cli_py --> src_pactkit_workflow_registry_py
     src_pactkit_cli_py --> src_pactkit_spec_graph_py
+    src_pactkit_cli_py --> src_pactkit_run_events_py
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
     src_pactkit_cli_py --> src_pactkit_lazy_visualize_py
     src_pactkit_cli_py --> src_pactkit_garden_py
     src_pactkit_cli_py --> src_pactkit_observe_py
+    src_pactkit_cli_py --> src_pactkit_run_stats_py
     src_pactkit_cli_py --> src_pactkit_audit_py
+    src_pactkit_cli_py --> src_pactkit_enforcement_py
     src_pactkit_cli_py --> src_pactkit_backfill_py
     src_pactkit_cli_py --> src_pactkit_issue_sync_py
     src_pactkit_cli_py --> src_pactkit_test_mapper_py
@@ -225,6 +239,7 @@ graph TD
     src_pactkit_spec_graph_py --> src_pactkit___init___py
     src_pactkit_spec_status_py --> src_pactkit_schemas_py
     src_pactkit_coverage_gate_py --> src_pactkit_utils_py
+    src_pactkit_coverage_gate_py --> src_pactkit_enforcement_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py

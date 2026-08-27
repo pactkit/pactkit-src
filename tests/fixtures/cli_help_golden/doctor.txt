@@ -1,4 +1,6 @@
-usage: pactkit doctor [-h]
+usage: pactkit doctor [-h] [--json]
 
 options:
   -h, --help  show this help message and exit
+  --json      Emit machine-readable JSON diagnostics (STORY-
+              slim-20260827024e71df170f R3)

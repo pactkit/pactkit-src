@@ -1,0 +1,14 @@
+schema_version: 1
+id: STORY-slim-202608277ec1236a7b99
+title: '[P1-2 backlog] outcome_unknown 崩溃恢复中间态'
+spec_path: docs/specs/STORY-slim-202608277ec1236a7b99.md
+status: backlog
+tasks:
+- id: task-ff2e3a5ece
+  title: checkpoint 状态机增加 outcome_unknown（evidence 级 unknown 标记）
+  completed: false
+- id: task-ded01b6504
+  title: 恢复时强制重跑验证步骤而非沿用旧结论（Ctrl-C 半途场景）
+  completed: false
+created_at: '2026-08-27T08:49:42+00:00'
+updated_at: '2026-08-27T08:49:42+00:00'

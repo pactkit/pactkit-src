@@ -1,0 +1,6 @@
+usage: pactkit stats [-h] [--format {human,json}]
+
+options:
+  -h, --help            show this help message and exit
+  --format {human,json}
+                        Output format (human table or machine-readable JSON)

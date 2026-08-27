@@ -1,0 +1,14 @@
+schema_version: 1
+id: STORY-slim-2026082730b5954cf538
+title: '[P2-4 backlog] 治理工具 MCP 化'
+spec_path: docs/specs/STORY-slim-2026082730b5954cf538.md
+status: backlog
+tasks:
+- id: task-d3e006470a
+  title: board/continuation/doctor 关键子命令包成 MCP server（[mcp_servers] 配置段生成）
+  completed: false
+- id: task-277db672a9
+  title: Codex hook handler 可走 MCP 不必 shell out
+  completed: false
+created_at: '2026-08-27T08:49:42+00:00'
+updated_at: '2026-08-27T08:49:42+00:00'

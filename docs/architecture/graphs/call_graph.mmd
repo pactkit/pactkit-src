@@ -14,6 +14,7 @@ graph TD
     CodegraphProvider_query["CodegraphProvider.query"]
     CodegraphProvider_sync["CodegraphProvider.sync"]
     ContinuationEngine__bind_lock["ContinuationEngine._bind_lock"]
+    ContinuationEngine__emit_run_events["ContinuationEngine._emit_run_events"]
     ContinuationEngine__find["ContinuationEngine._find"]
     ContinuationEngine__host_binding_path["ContinuationEngine._host_binding_path"]
     ContinuationEngine__host_reference["ContinuationEngine._host_reference"]
@@ -37,6 +38,7 @@ graph TD
     ContinuationStore__ambiguous_generic_act_result["ContinuationStore._ambiguous_generic_act_result"]
     ContinuationStore__archive_completed["ContinuationStore._archive_completed"]
     ContinuationStore__checkpoint_locked["ContinuationStore._checkpoint_locked"]
+    ContinuationStore__emit_checkpoint_events["ContinuationStore._emit_checkpoint_events"]
     ContinuationStore__fingerprints["ContinuationStore._fingerprints"]
     ContinuationStore__generic_act_resolution["ContinuationStore._generic_act_resolution"]
     ContinuationStore__paths["ContinuationStore._paths"]
@@ -279,6 +281,7 @@ graph TD
     _load_write_scope["_load_write_scope"]
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
+    _merge["_merge"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _minimal_paths["_minimal_paths"]
     _new_public_symbols["_new_public_symbols"]
@@ -299,6 +302,7 @@ graph TD
     _parse_requirements["_parse_requirements"]
     _parse_table["_parse_table"]
     _parse_touches["_parse_touches"]
+    _parse_ts["_parse_ts"]
     _parse_version["_parse_version"]
     _pass["_pass"]
     _path_ends_with_ext["_path_ends_with_ext"]
@@ -321,6 +325,7 @@ graph TD
     _receipt_dir["_receipt_dir"]
     _receipt_execution_mode["_receipt_execution_mode"]
     _receipt_shape_reason["_receipt_shape_reason"]
+    _record["_record"]
     _record_story_id["_record_story_id"]
     _release_completion["_release_completion"]
     _remove_path["_remove_path"]
@@ -348,14 +353,17 @@ graph TD
     _should_refresh_audit["_should_refresh_audit"]
     _spec_status["_spec_status"]
     _sprint_completion["_sprint_completion"]
+    _status_path["_status_path"]
     _story_fact_block["_story_fact_block"]
     _strip_code_spans["_strip_code_spans"]
     _suggest_action["_suggest_action"]
+    _summarize["_summarize"]
     _task_id["_task_id"]
     _terminal["_terminal"]
     _tests_pass["_tests_pass"]
     _timestamp["_timestamp"]
     _tool_version["_tool_version"]
+    _unavailable["_unavailable"]
     _unit["_unit"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
@@ -379,7 +387,9 @@ graph TD
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
     activate_pactkit_maintainer_overlay["activate_pactkit_maintainer_overlay"]
+    append_event["append_event"]
     append_lesson["append_lesson"]
+    assess["assess"]
     atomic_write["atomic_write"]
     audit["audit"]
     auto_merge_config_file["auto_merge_config_file"]
@@ -422,6 +432,7 @@ graph TD
     cleanup_unmodified_legacy_skills["cleanup_unmodified_legacy_skills"]
     codegraph_sync["codegraph_sync"]
     collect_changed_files["collect_changed_files"]
+    collect_runs["collect_runs"]
     compute_conflicts["compute_conflicts"]
     compute_waves["compute_waves"]
     context_output_path["context_output_path"]
@@ -456,6 +467,7 @@ graph TD
     is_environment_format["is_environment_format"]
     is_pactkit_self_development_root["is_pactkit_self_development_root"]
     issue_sync["issue_sync"]
+    json_report["json_report"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
@@ -474,18 +486,24 @@ graph TD
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
     preserve_or_write["preserve_or_write"]
+    probe_commit_gate["probe_commit_gate"]
     project_command_validator["project_command_validator"]
     project_router["project_router"]
     pytest_command["pytest_command"]
+    read_events["read_events"]
     read_legacy_usage["read_legacy_usage"]
+    read_status["read_status"]
     record_deployed_command["record_deployed_command"]
     record_legacy_usage["record_legacy_usage"]
+    record_status["record_status"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
     render["render"]
     render_check_report["render_check_report"]
     render_config_yaml["render_config_yaml"]
     render_mermaid["render_mermaid"]
+    render_report["render_report"]
+    render_summary["render_summary"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     resolve_project_root["resolve_project_root"]
     resolve_rule_context["resolve_rule_context"]
@@ -493,6 +511,7 @@ graph TD
     retire_disabled_agents["retire_disabled_agents"]
     retire_disabled_skills["retire_disabled_skills"]
     rollback_paths["rollback_paths"]
+    run_events_path["run_events_path"]
     run_garden["run_garden"]
     run_gate["run_gate"]
     run_lint["run_lint"]
@@ -506,6 +525,7 @@ graph TD
     select_execution_mode["select_execution_mode"]
     sha256_file["sha256_file"]
     should_visualize["should_visualize"]
+    story_events_path["story_events_path"]
     sync_config_copies["sync_config_copies"]
     to_json["to_json"]
     update_spec_status["update_spec_status"]
@@ -727,6 +747,16 @@ graph TD
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
     __module__ --> _generate_project_claude_md
+    record_status --> atomic_write
+    record_status --> _status_path
+    read_status --> _status_path
+    _no_git_enabled --> load_config
+    _no_git_enabled --> load_config
+    probe_commit_gate --> _no_git_enabled
+    _merge --> ContinuationStore_status
+    _merge --> ContinuationStore_status
+    assess --> _merge
+    assess --> read_status
     collect_changed_files --> _git
     collect_changed_files --> _git
     current_branch --> _git
@@ -739,15 +769,36 @@ graph TD
     run_gate --> decide_test_set
     run_gate --> run_pytest
     run_gate --> parse_pytest_summary
+    run_gate --> record_status
+    run_gate --> record_status
+    run_gate --> record_status
+    run_gate --> record_status
+    run_gate --> record_status
+    run_gate --> record_status
     hook_entry --> run_gate
     hook_entry --> render
-    _no_git_enabled --> load_config
     install_hook --> _no_git_enabled
     install_git_hook --> _no_git_enabled
     gate_channel --> _no_git_enabled
     ensure_gate_channel --> gate_channel
     ensure_gate_channel --> install_hook
     ensure_gate_channel --> install_git_hook
+    _summarize --> _parse_ts
+    _summarize --> _parse_ts
+    collect_runs --> LessonRepository_add
+    collect_runs --> LessonRepository_add
+    collect_runs --> read_events
+    collect_runs --> LessonRepository_add
+    collect_runs --> read_events
+    collect_runs --> LessonRepository_add
+    collect_runs --> _unavailable
+    collect_runs --> _unavailable
+    collect_runs --> _summarize
+    collect_runs --> _summarize
+    collect_runs --> ContinuationStore_status
+    collect_runs --> ContinuationStore_status
+    collect_runs --> ContinuationStore_status
+    collect_runs --> ContinuationStore_status
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
@@ -806,7 +857,10 @@ graph TD
     ContinuationEngine_start --> ActEvidenceValidator_validate
     ContinuationEngine_start --> ContinuationEngine__run_lock
     ContinuationEngine_start --> atomic_write
+    ContinuationEngine_start --> append_event
     ContinuationEngine_start --> ContinuationEngine_path_for
+    ContinuationEngine_start --> run_events_path
+    ContinuationEngine_start --> _sanitize_evidence
     ContinuationEngine_bind_story --> ContinuationEngine__find
     ContinuationEngine_bind_story --> ContinuationEngine__bind_lock
     ContinuationEngine_bind_story --> ContinuationEngine__run_lock
@@ -817,10 +871,18 @@ graph TD
     ContinuationEngine_checkpoint --> ContinuationEngine__find
     ContinuationEngine_checkpoint --> ContinuationEngine_definition
     ContinuationEngine_checkpoint --> atomic_write
+    ContinuationEngine_checkpoint --> ContinuationEngine__emit_run_events
     ContinuationEngine_checkpoint --> ActEvidenceValidator_validate
+    ContinuationEngine_checkpoint --> ContinuationStore_status
     ContinuationEngine_checkpoint --> _sanitize_evidence
     ContinuationEngine_checkpoint --> _sanitize
     ContinuationEngine_checkpoint --> NoopValidator_fingerprints
+    ContinuationEngine__emit_run_events --> run_events_path
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
+    ContinuationEngine__emit_run_events --> append_event
     ContinuationEngine_resume --> ContinuationEngine__find
     ContinuationEngine_resume --> NoopValidator_fingerprints
     ContinuationEngine_resume --> ContinuationEngine_definition
@@ -832,8 +894,11 @@ graph TD
     ContinuationEngine_revalidate_artifacts --> NoopValidator_fingerprints
     ContinuationEngine_revalidate_artifacts --> audit
     ContinuationEngine_revalidate_artifacts --> atomic_write
+    ContinuationEngine_revalidate_artifacts --> append_event
     ContinuationEngine_revalidate_artifacts --> ContinuationEngine_revalidate_artifacts
+    ContinuationEngine_revalidate_artifacts --> run_events_path
     ContinuationEngine_revalidate_artifacts --> ContinuationEngine_definition
+    ContinuationEngine_revalidate_artifacts --> _sanitize_evidence
     ContinuationEngine_finish_guard --> ContinuationStore__generic_act_resolution
     ContinuationEngine_finish_guard --> ContinuationEngine_read
     ContinuationEngine_finish_guard --> ContinuationEngine__find
@@ -876,6 +941,7 @@ graph TD
     ContinuationStore__checkpoint_locked --> ContinuationStore__validate_step_evidence
     ContinuationStore__checkpoint_locked --> ContinuationStore_read
     ContinuationStore__checkpoint_locked --> atomic_write
+    ContinuationStore__checkpoint_locked --> ContinuationStore__emit_checkpoint_events
     ContinuationStore__checkpoint_locked --> ContinuationStore__stale_reasons
     ContinuationStore__checkpoint_locked --> ContinuationStore__archive_completed
     ContinuationStore__checkpoint_locked --> ContinuationStore__validate_completion
@@ -885,11 +951,23 @@ graph TD
     ContinuationStore__checkpoint_locked --> ContinuationStore_path_for
     ContinuationStore__checkpoint_locked --> ContinuationStore__fingerprints
     ContinuationStore__checkpoint_locked --> ContinuationStore__stale_reasons
+    ContinuationStore__emit_checkpoint_events --> story_events_path
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> append_event
+    ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
+    ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
+    ContinuationStore__emit_checkpoint_events --> _sanitize_evidence
     ContinuationStore__validate_step_evidence --> ContinuationStore__require_valid_spec
     ContinuationStore__validate_step_evidence --> ActEvidenceValidator_validate
     ContinuationStore__validate_step_evidence --> get_workflow
     ContinuationStore__require_valid_spec --> ContinuationStore__paths
     ContinuationStore__archive_completed --> atomic_write
+    ContinuationStore__archive_completed --> append_event
+    ContinuationStore__archive_completed --> story_events_path
+    ContinuationStore__archive_completed --> _sanitize_evidence
     ContinuationStore__validate_completion --> ContinuationStore__require_valid_spec
     ContinuationStore__validate_completion --> ContinuationStore__story_fact_path
     ContinuationStore__validate_completion --> ContinuationStore__paths
@@ -963,12 +1041,14 @@ graph TD
     main --> record_legacy_usage
     main --> atomic_write
     main --> ContinuationStore_status
-    main --> ContinuationEngine_resume
     main --> validate_registry
     main --> render
+    main --> read_events
+    main --> ContinuationEngine_resume
     main --> get_workflow
     main --> detect_security_scope
     main --> BoardRenderer_check
+    main --> story_events_path
     main --> ContinuationEngine_start
     main --> ContinuationEngine_start
     main --> format_markdown_table
@@ -1000,9 +1080,13 @@ graph TD
     main --> codegraph_sync
     main --> run_observe
     main --> PlanFinalizer_finalize
+    main --> collect_runs
     main --> PlanFinalizer_finalize
     main --> main__unit_json
     main --> ContinuationEngine_resume
+    main --> render_report
+    main --> ContinuationStore_status
+    main --> json_report
     main --> check_legacy_engine_usage
     main --> check_orphaned_specs
     main --> check_config_drift
@@ -1019,10 +1103,17 @@ graph TD
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics
     main --> check_workflow_continuation
-    main --> ContinuationStore_status
-    main --> scan_and_replace_tbd
     main --> main__unit_json
     main --> ContinuationEngine_bind_story
+    main --> render_summary
+    main --> scan_and_replace_tbd
+    main --> check_legacy_engine_usage
+    main --> check_orphaned_specs
+    main --> check_config_drift
+    main --> check_graph_provider
+    main --> check_deploy_parity
+    main --> check_codex_execution_capability
+    main --> check_workflow_continuation
     main --> issue_sync
     main --> map_to_tests
     main --> run_lint
@@ -1077,8 +1168,13 @@ graph TD
     _parse_coverage_output --> _classify_coverage
     _run_pytest_cov --> _pytest_command
     check_coverage --> _parse_coverage_output
+    check_coverage --> _record
+    check_coverage --> _record
     check_coverage --> _extract_module_path
     check_coverage --> _run_pytest_cov
+    check_coverage --> _record
+    check_coverage --> _record
+    _record --> record_status
     _get_issue_tracker_provider --> find_pactkit_yaml
     issue_sync --> _parse_item_type
     issue_sync --> _get_issue_tracker_provider

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from pactkit.id_generator import ITEM_ID_PATTERN, ITEM_ID_RE
+from pactkit.run_events import append_event, run_events_path, story_events_path
 from pactkit.utils import atomic_write
 from pactkit.workflow_registry import get_workflow
 from pactkit.workflow_validators import WorkflowEvidenceError
@@ -320,6 +321,12 @@ class ContinuationEngine:
             raise ContinuationError(str(exc)) from exc
         with self._run_lock(run_id):
             atomic_write(self.path_for(run_id), json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+            append_event(
+                run_events_path(self.root, run_id), event="step_entered",
+                story_id=None, run_id=run_id, step_id=definition.steps[0],
+                status="in_progress",
+                detail=_sanitize_evidence({"workflow_id": workflow_id, "first": True}),
+            )
         return state
 
     def bind_story(self, identifier: str, story_id: str) -> dict[str, Any]:
@@ -385,6 +392,7 @@ class ContinuationEngine:
                 validator.validate(state, step_id, evidence, status)
             except WorkflowEvidenceError as exc:
                 raise ContinuationError(str(exc)) from exc
+            previous_step, previous_status = state["step_id"], state["status"]
             state.update({
                 "step_id": step_id, "status": status,
                 "evidence": _sanitize_evidence(evidence), "blocker": _sanitize(blocker),
@@ -394,7 +402,39 @@ class ContinuationEngine:
                 "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             })
             atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+            self._emit_run_events(
+                state["run_id"], story_id=state.get("story_id"),
+                previous_step=previous_step, previous_status=previous_status,
+                step_id=step_id, status=status,
+                detail={"blocker_kind": blocker_kind if status == "blocked" else None},
+            )
         return state
+
+    def _emit_run_events(
+        self, run_id: str, *, story_id: str | None,
+        previous_step: str | None, previous_status: str | None,
+        step_id: str, status: str,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        """Append the transition events for one engine checkpoint write.
+
+        Called inside the run lock right after the checkpoint projection is
+        durable (STORY-slim-20260827024e71df170f R1).
+        """
+        path = run_events_path(self.root, run_id)
+        common = {
+            "story_id": story_id, "run_id": run_id,
+            "step_id": step_id, "status": status,
+        }
+        if step_id != previous_step:
+            append_event(path, event="step_entered", detail=detail, **common)
+        if status == "blocked":
+            append_event(path, event="blocker_raised", detail=detail, **common)
+        elif previous_status == "blocked":
+            append_event(path, event="blocker_cleared", detail=detail, **common)
+        if status == "completed":
+            append_event(path, event="run_completed", detail=detail, **common)
+        append_event(path, event="checkpoint_written", detail=detail, **common)
 
     def resume(self, identifier: str) -> dict[str, Any]:
         _path, state = self._find(identifier)
@@ -473,6 +513,13 @@ class ContinuationEngine:
             state["fingerprints"] = actual
             state["updated_at"] = now
             atomic_write(path, json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+            append_event(
+                run_events_path(self.root, state["run_id"]),
+                event="evidence_invalidated", story_id=state.get("story_id"),
+                run_id=state["run_id"], step_id=state["step_id"],
+                status=state["status"],
+                detail=_sanitize_evidence({"artifacts": list(drift)}),
+            )
         return self.resume(initial["run_id"])
 
     def finish_guard(
@@ -1055,7 +1102,46 @@ class ContinuationStore:
             "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
         atomic_write(self.path_for(story_id), json.dumps(value, indent=2, ensure_ascii=False) + "\n")
+        self._emit_checkpoint_events(story_id, previous, value, fresh=fresh)
         return value
+
+    def _emit_checkpoint_events(
+        self, story_id: str, previous: dict[str, Any] | None,
+        value: dict[str, Any], *, fresh: bool,
+    ) -> None:
+        """Append transition events for one story checkpoint write.
+
+        Called inside the story lock right after the projection is durable
+        (STORY-slim-20260827024e71df170f R1).  The overwrite-style JSON
+        keeps its readers; the event log holds the history it discards.
+        """
+        path = story_events_path(self.root, story_id)
+        previous_step = previous.get("step_id") if previous else None
+        previous_status = previous.get("status") if previous else None
+        common = {
+            "story_id": story_id, "run_id": None,
+            "step_id": value["step_id"], "status": value["status"],
+        }
+        if value["step_id"] != previous_step:
+            append_event(
+                path, event="step_entered",
+                detail=_sanitize_evidence({"first": previous is None}), **common,
+            )
+        if value["status"] == "blocked":
+            append_event(
+                path, event="blocker_raised",
+                detail=_sanitize_evidence({"blocker_kind": value.get("blocker_kind")}),
+                **common,
+            )
+        elif previous_status == "blocked":
+            append_event(path, event="blocker_cleared", **common)
+        if value["status"] == "completed":
+            append_event(path, event="run_completed", **common)
+        append_event(
+            path, event="checkpoint_written",
+            detail=_sanitize_evidence({"phase": value.get("phase", ""), "fresh": fresh}),
+            **common,
+        )
 
     def _validate_step_evidence(
         self, story_id: str, step_id: str, evidence: dict[str, Any], status: str,
@@ -1114,6 +1200,12 @@ class ContinuationStore:
                     raise ContinuationError(f"cannot verify checkpoint archive: {archive.name}") from exc
                 raise ContinuationError(f"checkpoint archive collision: {archive.name}")
         atomic_write(archive, content)
+        append_event(
+            story_events_path(self.root, story_id), event="run_archived",
+            story_id=story_id, run_id=None, step_id=state.get("step_id"),
+            status=state.get("status"),
+            detail=_sanitize_evidence({"archive": archive.name}),
+        )
 
     def _validate_completion(self, step_id: str, evidence: dict[str, Any], story_id: str) -> None:
         required = {

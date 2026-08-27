@@ -96,6 +96,7 @@ def check_coverage(
     # Filter to Python source files only
     source_files = [f for f in changed_files if f.endswith(".py") and "test" not in f]
     if not source_files:
+        _record(project_root, "full", "skip: no source files to check")
         return {"files": [], "overall": "skip", "reason": "no source files to check"}
 
     modules = [_extract_module_path(f) for f in source_files]
@@ -105,6 +106,7 @@ def check_coverage(
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
         # The probe itself failed — that is a failure to verify, not a pass
         # (R4: fail closed).
+        _record(project_root, "degraded", f"coverage probe failed: {e}")
         return {"files": [], "overall": "block", "reason": f"coverage probe failed: {e}"}
 
     files = _parse_coverage_output(output)
@@ -133,6 +135,7 @@ def check_coverage(
             })
 
     if not files:
+        _record(project_root, "full", "skip: no coverage data parsed")
         return {"files": [], "overall": "skip", "reason": "no coverage data parsed"}
 
     # Overall is the worst status
@@ -144,4 +147,16 @@ def check_coverage(
     else:
         overall = "pass"
 
+    _record(project_root, "full", f"overall={overall}")
     return {"files": files, "overall": overall, "reason": "coverage checked"}
+
+
+def _record(project_root: Path, status: str, reason: str) -> None:
+    """Record enforcement completeness without letting a probe failure
+    change the gate's verdict (STORY-slim-20260827024e71df170f R3)."""
+    try:
+        from pactkit.enforcement import record_status
+
+        record_status(project_root, "coverage_gate", status, reason)
+    except Exception:  # noqa: BLE001 - status recording is best-effort
+        pass

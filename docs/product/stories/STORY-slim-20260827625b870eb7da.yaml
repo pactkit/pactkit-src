@@ -1,0 +1,14 @@
+schema_version: 1
+id: STORY-slim-20260827625b870eb7da
+title: '[P2-3 backlog] 配置分层组合（企业基线→项目→用户 overlay）'
+spec_path: docs/specs/STORY-slim-20260827625b870eb7da.md
+status: backlog
+tasks:
+- id: task-2679e2e287
+  title: pactkit.yaml 层叠 last-write-wins + pactkit config dump
+  completed: false
+- id: task-c1d42aa3f3
+  title: 参考 Codex config loader 与 dsh profile/bundle/patch 语义
+  completed: false
+created_at: '2026-08-27T08:49:42+00:00'
+updated_at: '2026-08-27T08:49:42+00:00'
