@@ -229,21 +229,33 @@ class TestDoctorCodexHookCapability:
         assert capability["engine"] == "unavailable"
         assert "0.114" in " ".join(capability["warnings"])
 
-    def test_doctor_json_includes_codex_hooks(self, tmp_path, monkeypatch):
-        import pactkit.doctor as doctor_module
-
-        monkeypatch.setattr(doctor_module, "_codex_cli_version", lambda: "0.149.1")
-        _project(tmp_path)
+    def test_doctor_json_includes_codex_hooks(self, tmp_path):
+        # The subprocess must see a codex binary on PATH — monkeypatching
+        # _codex_cli_version only affects this process, not the CLI child
+        # (CI has no codex installed, which is exactly what failed 2.24.0's
+        # first CI run).  Inject a fake one.
+        import os
         import subprocess
+
+        _project(tmp_path)
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        fake_codex = bin_dir / "codex"
+        fake_codex.write_text(
+            "#!/bin/sh\necho 'codex-cli 0.149.1'\n", encoding="utf-8",
+        )
+        fake_codex.chmod(0o755)
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
 
         proc = subprocess.run(
             ["python3", "-m", "pactkit", "-C", str(tmp_path), "doctor", "--json"],
-            capture_output=True, text=True, cwd=tmp_path, timeout=120,
+            capture_output=True, text=True, cwd=tmp_path, timeout=120, env=env,
         )
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
         assert "codex_hooks" in payload
         assert payload["codex_hooks"]["engine"] == "available"
+        assert payload["codex_hooks"]["codex_version"] == "0.149.1"
 
 
 class TestQaFollowupMergeSafety:
