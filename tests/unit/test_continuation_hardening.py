@@ -6,6 +6,7 @@ semantics, AC8 stats decision counts.
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -245,3 +246,38 @@ class TestStatsAuthorizationCounts:
         report = json_report(collect_runs(tmp_path))
         run = next(r for r in report["runs"] if r.get("story_id") == "STORY-slim-260")
         assert run["authorization_decisions"] == {"asked": 1, "granted": 0, "denied": 1}
+
+
+class TestQaFollowupFenceLiveness:
+    """Session QA P3: fence PID liveness disambiguates running vs crashed."""
+
+    def test_dead_pid_reports_never_completed(self, tmp_path):
+        import pactkit.continuation as continuation
+        from pactkit.enforcement import record_attempt
+
+        _project(tmp_path)
+        record_attempt(tmp_path, "commit_gate")
+        # Force a PID that cannot be alive
+        fence = tmp_path / ".pactkit" / "enforcement" / "commit_gate.json"
+        payload = json.loads(fence.read_text(encoding="utf-8"))
+        payload["pid"] = 999999999
+        fence.write_text(json.dumps(payload), encoding="utf-8")
+        reason = continuation.verification_outcome_unknown(tmp_path)
+        assert "outcome unknown" in reason
+        assert "never completed" in reason
+
+    def test_live_pid_reports_still_active(self, tmp_path):
+        import os
+
+        import pactkit.continuation as continuation
+        from pactkit.enforcement import record_attempt
+
+        _project(tmp_path)
+        record_attempt(tmp_path, "commit_gate")
+        fence = tmp_path / ".pactkit" / "enforcement" / "commit_gate.json"
+        payload = json.loads(fence.read_text(encoding="utf-8"))
+        payload["pid"] = os.getpid()  # this test process is definitely alive
+        fence.write_text(json.dumps(payload), encoding="utf-8")
+        reason = continuation.verification_outcome_unknown(tmp_path)
+        assert "outcome unknown" in reason
+        assert "still active" in reason

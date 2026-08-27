@@ -18,6 +18,7 @@ import json
 import os
 import re
 import subprocess
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -344,6 +345,60 @@ def install_hook(root: Path) -> str:
     return f"commit-gate hook: installed in {settings_path}"
 
 
+@contextmanager
+def _hooks_json_lock(root: Path, timeout: float = 5.0):
+    """Best-effort inter-process lock for hooks.json merges (session QA P3).
+
+    Concurrent deploys in one project could otherwise lose a user hook
+    added between read and write.  On timeout the merge proceeds unlocked
+    — it is idempotent, and deployment must never hang on a stale lock.
+    """
+    import time as _time
+
+    lock_path = root / ".codex" / ".hooks.json.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_path.open("a+b")
+    acquired = False
+    deadline = _time.monotonic() + timeout
+    try:
+        while not acquired:
+            try:
+                if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                    import msvcrt
+
+                    if handle.tell() == 0:
+                        handle.write(b"0")
+                        handle.flush()
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    acquired = True
+                else:
+                    import fcntl
+
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    acquired = True
+            except (BlockingIOError, PermissionError, OSError):
+                if _time.monotonic() >= deadline:
+                    break  # proceed unlocked — see docstring
+                _time.sleep(0.05)
+        yield
+    finally:
+        if acquired:
+            try:
+                if os.name == "nt":  # pragma: no cover - exercised on Windows CI
+                    import msvcrt
+
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+        handle.close()
+
+
 def install_codex_hook(root: Path) -> str:
     """Merge the PreToolUse hook into the project's .codex/hooks.json (idempotent).
 
@@ -356,7 +411,9 @@ def install_codex_hook(root: Path) -> str:
     never touched (hooks.json is a separate, Codex-discovered file).
 
     User entries are preserved verbatim; pactkit refreshes only its own
-    entry, identified by the commit-gate command string.
+    entry, identified by the commit-gate command string.  A file whose
+    existing structure cannot be merged (invalid JSON, non-object root,
+    ``hooks`` non-dict, ``PreToolUse`` non-list) is left byte-identical.
     """
     if _no_git_enabled(root):
         return "codex hook: skipped (enterprise.no_git)"
@@ -378,34 +435,39 @@ def install_codex_hook(root: Path) -> str:
         payload = {}
 
     hooks = payload.get("hooks")
+    if "hooks" in payload and not isinstance(hooks, dict):
+        return f"codex hook: {hooks_path} hooks has unexpected shape — left untouched"
     if not isinstance(hooks, dict):
         hooks = {}
         payload["hooks"] = hooks
     pre_tool = hooks.get("PreToolUse")
+    if "PreToolUse" in hooks and not isinstance(pre_tool, list):
+        return f"codex hook: {hooks_path} PreToolUse has unexpected shape — left untouched"
     if not isinstance(pre_tool, list):
         pre_tool = []
         hooks["PreToolUse"] = pre_tool
     entry = {"matcher": "Bash", "hooks": [{"type": "command", "command": HOOK_COMMAND}]}
 
-    for i, existing in enumerate(pre_tool):
-        if not isinstance(existing, dict):
-            continue
-        cmds = [
-            h.get("command", "")
-            for h in existing.get("hooks", [])
-            if isinstance(h, dict)
-        ]
-        if any("commit-gate" in c for c in cmds):
-            pre_tool[i] = entry  # idempotent refresh of our own entry
-            hooks_path.write_text(
-                json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            return f"codex hook: already installed in {hooks_path}{trust_notice}"
-    pre_tool.append(entry)
-    hooks_path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
-    )
+    with _hooks_json_lock(root):
+        for i, existing in enumerate(pre_tool):
+            if not isinstance(existing, dict):
+                continue
+            cmds = [
+                h.get("command", "")
+                for h in existing.get("hooks", [])
+                if isinstance(h, dict)
+            ]
+            if any("commit-gate" in c for c in cmds):
+                pre_tool[i] = entry  # idempotent refresh of our own entry
+                hooks_path.write_text(
+                    json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+                return f"codex hook: already installed in {hooks_path}{trust_notice}"
+        pre_tool.append(entry)
+        hooks_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
+        )
     return f"codex hook: installed in {hooks_path}{trust_notice}"
 
 

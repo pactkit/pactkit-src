@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -66,24 +67,44 @@ def record_attempt(root: Path, gate: str) -> dict[str, Any]:
 
     The fence is a durability barrier in the dsh sense: a crash between
     this write and the terminal ``record_status`` leaves a surviving
-    ``running`` record whose verdict cannot be trusted.  Best-effort —
-    a failed fence write degrades to the pre-fence behavior, never
-    blocks the gate itself.
+    ``running`` record whose verdict cannot be trusted.  The recorded pid
+    lets consumers distinguish "still running" from "crashed" without
+    time-window guessing.  Best-effort — a failed fence write degrades to
+    the pre-fence behavior, never blocks the gate itself.
     """
     record = {
         "gate": gate,
         "status": RUNNING,
         "reason": "",
         "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "pid": os.getpid(),
     }
     try:
         atomic_write(
             _status_path(root, gate),
             json.dumps(record, indent=2, ensure_ascii=False) + "\n",
         )
-    except OSError:
+    except Exception:  # noqa: BLE001 - the fence is best-effort, never blocks
         pass
     return record
+
+
+def pid_alive(pid: Any) -> bool:
+    """Deterministic liveness for a fence pid (no time-window guessing).
+
+    An absent or malformed pid reads as dead — the actionable default for
+    a fence nobody can attribute is "re-run the gate".  Permission errors
+    on a live check read as alive (conservative: wait, do not re-run).
+    """
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
 
 
 def read_status(root: Path, gate: str) -> dict[str, Any] | None:

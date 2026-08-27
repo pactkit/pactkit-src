@@ -244,3 +244,44 @@ class TestDoctorCodexHookCapability:
         payload = json.loads(proc.stdout)
         assert "codex_hooks" in payload
         assert payload["codex_hooks"]["engine"] == "available"
+
+
+class TestQaFollowupMergeSafety:
+    """Session QA P3: invalid user shapes must be left untouched, not rewritten."""
+
+    def test_invalid_pretooluse_shape_left_untouched(self, tmp_path):
+        from pactkit.commit_gate import install_codex_hook
+
+        _project(tmp_path)
+        hooks_path = tmp_path / ".codex" / "hooks.json"
+        hooks_path.parent.mkdir(parents=True)
+        original = json.dumps({
+            "hooks": {"PreToolUse": "not-a-list"},
+        })
+        hooks_path.write_text(original, encoding="utf-8")
+        message = install_codex_hook(tmp_path)
+        assert hooks_path.read_text(encoding="utf-8") == original
+        assert "unexpected shape" in message
+
+    def test_invalid_hooks_container_left_untouched(self, tmp_path):
+        from pactkit.commit_gate import install_codex_hook
+
+        _project(tmp_path)
+        hooks_path = tmp_path / ".codex" / "hooks.json"
+        hooks_path.parent.mkdir(parents=True)
+        original = json.dumps({"hooks": "not-a-dict"})
+        hooks_path.write_text(original, encoding="utf-8")
+        message = install_codex_hook(tmp_path)
+        assert hooks_path.read_text(encoding="utf-8") == original
+        assert "unexpected shape" in message
+
+
+class TestHooksJsonLock:
+    def test_lock_acquires_and_releases(self, tmp_path):
+        from pactkit.commit_gate import _hooks_json_lock
+
+        with _hooks_json_lock(tmp_path):
+            pass
+        # Re-acquirable after release (no stale lock hold)
+        with _hooks_json_lock(tmp_path):
+            pass

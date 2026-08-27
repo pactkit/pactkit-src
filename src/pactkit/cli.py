@@ -865,6 +865,7 @@ def main():
             elif args.continuation_action == "events":
                 from pactkit.run_events import read_events, story_events_path
 
+                store._validate_story_id(args.story_id)
                 events, corrupt = read_events(story_events_path(project_root, args.story_id))
                 if not events and not corrupt:
                     print(f"no events recorded for {args.story_id}")

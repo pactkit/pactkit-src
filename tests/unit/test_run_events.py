@@ -195,3 +195,23 @@ class TestEngineRunEvents:
             events, _corrupt = read_events(run_events_path(tmp_path, state["run_id"]))
             kinds = [e["event"] for e in events]
             assert "evidence_invalidated" in kinds
+
+
+class TestQaFollowupEngineAskedDetail:
+    """Session QA P3: engine asked detail parity with store (blocker text)."""
+
+    def test_engine_authorization_asked_carries_blocker_text(self, tmp_path):
+        from pactkit.continuation import ContinuationEngine
+        from pactkit.run_events import read_events, run_events_path
+
+        _project(tmp_path)
+        engine = ContinuationEngine(tmp_path)
+        state = engine.start("project-check", evidence={"started": True})
+        engine.checkpoint(
+            state["run_id"], step_id="security_scanned", status="blocked",
+            evidence={}, blocker="awaiting approval to touch prod config",
+            blocker_kind="authorization",
+        )
+        events, _corrupt = read_events(run_events_path(tmp_path, state["run_id"]))
+        asked = next(e for e in events if e["event"] == "authorization_asked")
+        assert "prod config" in asked["detail"]["blocker"]

@@ -41,14 +41,16 @@ def _summarize(
         duration = max(0.0, (timestamps[-1] - timestamps[0]).total_seconds())
 
     # Blocker dwell: pair blocker_raised with the next blocker_cleared;
-    # an unclosed episode runs to the last observed event.
+    # an unclosed episode runs to the last observed event.  Re-raises while
+    # an episode is already open do not restart it — the episode started at
+    # the FIRST raise (session QA follow-up).
     blocker_dwell: dict[str, float] = {}
     open_ts: datetime | None = None
     open_kind = "unknown"
     for event, ts in [(e, _parse_ts(e.get("ts"))) for e in events]:
         if ts is None:
             continue
-        if event["event"] == "blocker_raised":
+        if event["event"] == "blocker_raised" and open_ts is None:
             open_ts, open_kind = ts, "unknown"
             detail = event.get("detail")
             if isinstance(detail, dict) and detail.get("blocker_kind"):

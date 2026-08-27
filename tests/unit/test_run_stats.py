@@ -146,9 +146,68 @@ class TestStatsCli:
         proc = subprocess.run(
             [
                 "python3", "-m", "pactkit", "-C", str(tmp_path), "continuation", "events",
-                "STORY-slim-nope",
+                "STORY-slim-999",
             ],
             capture_output=True, text=True, cwd=tmp_path, timeout=60,
         )
         assert proc.returncode == 0, proc.stderr
         assert "no events" in proc.stdout.lower() or "unavailable" in proc.stdout.lower()
+
+
+class TestQaFollowups:
+    """STORY session QA follow-ups: input validation + dwell pairing."""
+
+    def test_events_cli_rejects_path_traversal_story_id(self, tmp_path):
+        _project(tmp_path)
+        proc = subprocess.run(
+            [
+                "python3", "-m", "pactkit", "-C", str(tmp_path), "continuation", "events",
+                "../../etc/passwd",
+            ],
+            capture_output=True, text=True, cwd=tmp_path, timeout=60,
+        )
+        assert proc.returncode == 1
+        assert "invalid Story ID" in (proc.stderr + proc.stdout)
+
+    def test_dwell_measures_from_first_raise_in_episode(self, tmp_path):
+        from pactkit.run_events import append_event, story_events_path
+        from pactkit.run_stats import _summarize
+
+        path = story_events_path(tmp_path, "STORY-slim-247")
+        append_event(path, event="step_entered", story_id="STORY-slim-247", run_id=None)
+        # Two consecutive raises without a clear: the episode starts at the FIRST
+        append_event(
+            path, event="blocker_raised", story_id="STORY-slim-247", run_id=None,
+            step_id="red", status="blocked", detail={"blocker_kind": "user_input"},
+        )
+        append_event(
+            path, event="blocker_raised", story_id="STORY-slim-247", run_id=None,
+            step_id="red", status="blocked", detail={"blocker_kind": "user_input"},
+        )
+        from datetime import datetime, timedelta
+
+        base = datetime.fromisoformat(_first_ts(path))
+        # Simulate spacing by rewriting with explicit timestamps
+        events = [
+            {"ts": (base + timedelta(seconds=i)).isoformat(), "story_id": "STORY-slim-247",
+             "run_id": None, "event": e, "step_id": "red", "status": "blocked",
+             "detail": {"blocker_kind": "user_input"}}
+            for i, e in enumerate(
+                ["step_entered", "blocker_raised", "blocker_raised", "blocker_cleared"]
+            )
+        ]
+        path.write_text(
+            "\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8",
+        )
+        summary = _summarize("STORY-slim-247", events, 0, kind="story",
+                             story_id="STORY-slim-247", run_id=None)
+        # Clear (t3) minus FIRST raise (t1) = 2s; the pre-fix code measured from the
+        # second raise (t2) and reported 1s
+        assert summary["blocker_dwell_seconds"]["user_input"] == 2.0
+
+
+def _first_ts(path):
+    from pactkit.run_events import read_events
+
+    events, _ = read_events(path)
+    return events[0]["ts"]

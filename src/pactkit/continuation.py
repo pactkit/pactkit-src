@@ -57,13 +57,15 @@ def verification_outcome_unknown(root: Path) -> str | None:
     """Reason string when a commit-gate attempt fence never closed (R4).
 
     An open ``running`` fence means the last verification attempt produced
-    no terminal verdict — a crash (e.g. Ctrl-C) between the attempt record
-    and the outcome record.  Its conclusions cannot be trusted, so resume
-    blocks until the gate is re-run (which closes the fence).  Read-only
-    and fail-safe: a missing or corrupt fence reads as absent.
+    no terminal verdict.  Its conclusions cannot be trusted, so resume
+    blocks until the gate is re-run (which closes the fence).  The fence's
+    pid disambiguates deterministically: a live pid means the attempt is
+    still running (wait), a dead pid means it crashed (re-run) — no
+    time-window guessing.  Read-only and fail-safe: a missing or corrupt
+    fence reads as absent.
     """
     try:
-        from pactkit.enforcement import RUNNING, read_status
+        from pactkit.enforcement import RUNNING, pid_alive, read_status
 
         record = read_status(root, "commit_gate")
     except Exception:  # noqa: BLE001 - the check must never break resume
@@ -71,10 +73,16 @@ def verification_outcome_unknown(root: Path) -> str | None:
     if not isinstance(record, dict) or record.get("status") != RUNNING:
         return None
     when = record.get("ts", "unknown time")
+    pid = record.get("pid")
+    if pid_alive(pid):
+        return (
+            f"verification outcome unknown: commit-gate attempt at {when} "
+            f"(pid {pid}) appears still active — wait for it to finish "
+            "before resuming"
+        )
     return (
-        "verification outcome unknown: commit-gate attempt at "
-        f"{when} never completed — re-run the gate "
-        "(if it is still running, wait for it to finish)"
+        f"verification outcome unknown: commit-gate attempt at {when} "
+        "never completed — re-run the gate"
     )
 
 
@@ -434,6 +442,7 @@ class ContinuationEngine:
                 step_id=step_id, status=status,
                 detail={"blocker_kind": blocker_kind if status == "blocked" else None},
                 previous_blocker_kind=previous_blocker_kind,
+                blocker_text=blocker if status == "blocked" else "",
             )
         return state
 
@@ -443,6 +452,7 @@ class ContinuationEngine:
         step_id: str, status: str,
         detail: dict[str, Any] | None = None,
         previous_blocker_kind: str | None = None,
+        blocker_text: str = "",
     ) -> None:
         """Append the transition events for one engine checkpoint write.
 
@@ -461,11 +471,16 @@ class ContinuationEngine:
             append_event(path, event="blocker_raised", detail=detail, **common)
         elif previous_status == "blocked":
             append_event(path, event="blocker_cleared", detail=detail, **common)
-        # Authorization audit layer (STORY-slim-20260827eddbe9669c87 R1)
+        # Authorization audit layer (STORY-slim-20260827eddbe9669c87 R1) —
+        # asked carries the sanitized question, matching the store path.
         if status == "blocked" and blocker_kind == "authorization":
             append_event(
                 path, event="authorization_asked",
-                detail=_sanitize_evidence({"blocker_kind": blocker_kind}), **common,
+                detail=_sanitize_evidence({
+                    "blocker_kind": blocker_kind,
+                    "blocker": _sanitize(blocker_text),
+                }),
+                **common,
             )
         elif previous_status == "blocked" and previous_blocker_kind == "authorization":
             append_event(path, event="authorization_granted", detail=detail, **common)
