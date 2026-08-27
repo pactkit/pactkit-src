@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.24.0] - 2026-08-27
+
+### Added
+- **Run event streams (append-only)** — every workflow-state mutation appends a typed event (`step_entered`, `checkpoint_written`, `evidence_invalidated`, `blocker_raised/cleared`, `run_completed`, `run_archived`) beside its checkpoint, written inside the same lock. The checkpoint JSON stays the projection; the event log holds the history the overwrite-style checkpoint cannot. Crash-tolerant: a torn trailing line is skipped and counted, never corrupts earlier lines.
+- **`pactkit stats`** — per-run friction metrics (duration, blocker dwell by kind, step rework, authorization decisions) with `--format json` for dashboards; pre-2.24 runs degrade to `events: unavailable` instead of failing. `/project-done` now records a friction snapshot per story. `pactkit continuation events <story>` inspects a run's stream.
+- **Gate enforcement completeness reporting** — every gate declares `full / degraded / unavailable` instead of degrading silently through a WARN line: commit-gate and coverage-gate record their observed status, `pactkit doctor --json` exposes an `enforcement` section (plus orphaned specs, config drift, graph provider, deploy parity, codex capabilities), and human doctor output gains per-gate summary lines. Self-lock degradation is now queryable, not silent.
+- **Codex native hooks thin registration** — `pactkit init --format codex` merges a PreToolUse→`pactkit commit-gate --hook` entry into the project's `.codex/hooks.json` (Codex's hooks engine is deliberately Claude-wire-compatible: tool_name `Bash`, exit 2 + stderr block — verified against 0.149.1; hooks.json discovery requires ≥0.114.0). User entries are preserved verbatim, unmergeable structures are left byte-identical, `config.toml` is never touched, deployment output carries the one-time trust-confirmation notice, and the git pre-commit fallback stays active until trust is confirmed. `pactkit doctor` probes the local Codex version and reports engine/deployment/trust state.
+- **Authorization audit trail** — `authorization_asked`/`authorization_granted` events fire automatically at authorization-blocker transitions (asked carries the sanitized question), and `pactkit continuation deny <story> --reason` records the state machine's first machine-expressible "no": an `authorization_denied` audit event plus a blocked-checkpoint rewrite (`denied: <reason>`), with double-deny and non-authorization denials rejected. `pactkit stats` reports per-run decision counts.
+- **outcome_unknown crash recovery** — commit-gate opens an attempt fence (with pid) *before* running; the terminal record closes it. A crash between the two leaves a machine-observable open fence: `resume` blocks with an actionable reason (live pid → "still active, wait"; dead pid → "re-run the gate") — no time-window guessing. Re-running the gate closes the fence and restores normal decisions. Projects without fences behave exactly as before.
+- **Command manifest v2 (reference digests)** — the ownership ledger for codex command skills records the sha256 of every deployed reference file (`record_deployed_reference`/`read_command_references`); stale-reference cleanup consumes these proofs, restoring the whole-directory retirement of disabled commands that core's 5311c56 ownership narrowing had inadvertently broken. v1 manifests read compatibly; corrupt manifests degrade to empty proofs.
+
+### Fixed
+- **pactkit-codex 2.23.0 ownership regression** (never published) — `skills/*/references/**` files dropped out of the deployed manifest's files table after the ownership narrowing, so stale references could never be retired; the command manifest v2 reference ledger (above) repairs deletion proofs without re-render comparisons (the codex render pipeline depends on deploy-time `enabled_commands`, making content replay structurally unusable as ownership evidence).
+- **`pactkit continuation events` path traversal** — story IDs are validated before the event-stream path is built (QA follow-up).
+- **hooks.json merge safety** — invalid user structures (`hooks` non-dict, `PreToolUse` non-list) are left byte-identical with an explicit report instead of being rewritten; merges run under a best-effort inter-process lock that proceeds unlocked on timeout (deployment never hangs).
+- **Blocker dwell undercount** — consecutive re-raises within one blocker episode no longer restart the dwell measurement; the episode is anchored at its first raise.
+
+### Changed
+- **`hook_entry` dual-host normalization** — legacy codex array-form commands are joined before matching, and the payload `cwd` overrides the CLI-resolved project root on both hosts.
+- **Golden CLI surface** — pins the new `stats` subcommand, `continuation deny`/`events` actions, and `doctor --json`.
+
 ## [2.23.0] - 2026-08-27
 
 ### Added

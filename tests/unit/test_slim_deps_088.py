@@ -80,7 +80,15 @@ class TestDependencyStructure:
     def test_codex_extra_has_adapter(self):
         opt = self._optional_deps_block()
         assert "pactkit-codex" in opt
-        assert "pactkit-codex>=2.23.0,<2.24.0" in opt
+        # The codex extra pins the adapter to this core's minor window —
+        # derive it from the live version instead of hardcoding (2.24.0
+        # bump would otherwise re-break this assertion every release).
+        match = re.search(
+            r'version = "(\d+)\.(\d+)\.\d+"', PYPROJECT.read_text(encoding="utf-8"),
+        )
+        assert match, "pyproject version not found"
+        expected = f"pactkit-codex>={match.group(1)}.{match.group(2)}.0,<{match.group(1)}.{int(match.group(2)) + 1}.0"
+        assert expected in opt
 
     def test_visualize_extra_has_tree_sitter(self):
         opt = self._optional_deps_block()
