@@ -21,7 +21,10 @@ CLI_NO_PROMPT_REF_ALLOWED = {
     "lint-context", "lint-lessons",
     # Advanced, explicit integrations.  Default project playbooks must remain
     # current-host/current-session and therefore never schedule these APIs.
-    "work-unit", "workflow",
+    # `continuation` joins workflow/work-unit: all three are the deprecated
+    # legacy surface (STORY-slim-20260826cb37edfdd4da) — prompts must never
+    # reference them or the usage-gated deletion counter never reaches zero.
+    "work-unit", "workflow", "continuation",
 }
 
 _PACTKIT_REF = re.compile(r"pactkit\s+([\w-]+)")

@@ -143,7 +143,7 @@ completion.
       ```
     - If the Story does not affect any journey: do NOT add this section (Act Phase 4 Journey Sync will auto-skip).
 5.  **Output checkpoint**: Print "Spec skeleton filled. Adding acceptance criteria."
-6.  **Checkpoint**: Record `spec_scaffolded`, then `requirements_written`; each checkpoint is accepted only from the real Spec file.
+6.  **Milestone output**: Report `spec_scaffolded`, then `requirements_written` in your progress output; each milestone claim must be verifiable against the real Spec file.
 
 ## 🎬 Phase 3.2b: Acceptance Criteria & Implementation Steps
 1.  **Edit AC** (use Edit tool): Replace `### AC1: (Scenario Name) (R1)` and its Given/When/Then placeholders with actual scenarios. The template already provides the `- **Given**` / `- **When**` / `- **Then**` structure — fill in the content. Add more AC{N} sections as needed.
@@ -224,7 +224,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 4. Continue directly to Phase 1 in this session; a new session is never required.
 
 ## 🎬 Phase 1: Precision Targeting
-0.  **Previous-session context (optional)**: You MAY inspect `pactkit continuation resume {STORY_ID}` for notes from an earlier session. Its status is never an execution gate: a blocked, completed, stale, or missing record does not prevent this session from implementing and verifying the current Story. Record a new checkpoint only as optional local handover evidence.
+0.  **Previous-session context (optional)**: You MAY read the Agent Continuation section of the local `.pactkit/context.md` (if present) for handover notes from an earlier session. It is never an execution gate: a stale, missing, or empty section does not prevent this session from implementing and verifying the current Story.
 1.  **Provider-Routed Scan**: Run `pactkit query --explore <module> --json --explain`. Record the complete provider decision in preflight evidence. Do not invoke Codegraph, visualize, SQLite or `rg` directly; `--allow-fallback` must be explicit and auditable.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Run `pactkit query --chain <symbol> --json --explain`; confirm the call site and existing callers before editing.
@@ -256,7 +256,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 1.  **Constraint**: NEVER write source code in this phase — doing so breaks TDD causality: tests must exist before the code they verify.
 2.  **Action**: Create a reproduction test case in `tests/unit/`.
     - Use the knowledge from Phase 1 to mock/stub dependencies correctly.
-3.  **Optional handover note**: After confirming RED, you may record a local continuation checkpoint. It must never be required to continue the TDD loop.
+3.  **Optional handover note**: After confirming RED, you may record a local handover note via `pactkit context --continuation` (see Phase 4 step 3). It must never be required to continue the TDD loop.
 
 ## 🎬 Phase 3: Implementation
 1.  **Write Code**: Implement logic in the appropriate source directory.
@@ -267,7 +267,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Environment Failure Bailout**: For environment errors (`ModuleNotFoundError`, `ImportError`, `ConnectionError`, `ConnectionRefusedError`, `PermissionError`, timeout):
       - **Project-internal check first**: If the missing module is project-internal (part of your codebase): NOT a bailout — do not modify source code for env issues, go back and implement it.
       - If third-party: inspect the dependency and attempt a safe resolution (for example, `pip install` only when it is the project's approved dependency-install command). If it remains unavailable, clearly report the environmental limitation and continue any work that can be verified locally.
-    - After GREEN, optionally record a local handover checkpoint.
+    - After GREEN, optionally record a local handover note (`pactkit context --continuation`).
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     <!-- PACTKIT_ACT_OP:regression_classification -->
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
@@ -275,7 +275,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - **Pre-existing test failure protocol**: Do not casually modify an unrelated failing test. Diagnose whether the Story caused it; fix it when the causal path is understood, otherwise report it as a QA gap while continuing all safe, relevant Story work.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
     <!-- PACTKIT_ACT_OP:lint -->
-    - After regression and lint pass, optionally record a local handover checkpoint.
+    - After regression and lint pass, optionally record a local handover note (`pactkit context --continuation`).
 5.  **Hardcode Self-Check (STORY-slim-105)**: Review the code you just wrote for hardcoded values:
     - URLs (`http://`, `https://`) that should be config
     - Magic numbers (non-obvious integers like `30000`, `8080`) that should be named constants
@@ -310,7 +310,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
     - For implemented items: show file:line location
     - For skipped SHOULD items: show DEFERRED with reason (must match comment in code)
     - User verifies this table — do not claim "done" without it
-5.  **Honest completion report**: Only claim completed items after the coverage table, Story tests, regression, lint, and Board tasks have been verified. A continuation checkpoint is optional local evidence and must not block a later session.
+5.  **Honest completion report**: Only claim completed items after the coverage table, Story tests, regression, lint, and Board tasks have been verified. A local handover note is optional evidence and must not block a later session.
 """,
     "project-check.md": """---
 description: "QA verification: security scan, code quality scan, Spec alignment"
