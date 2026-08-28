@@ -581,6 +581,11 @@ def main():
         "--install-git-hook", action="store_true",
         help="Install .git/hooks/pre-commit wrapper for human commits",
     )
+    gate_parser.add_argument(
+        "--push-gate", action="store_true",
+        help="Protected-branch push gate: block direct pushes to main/master "
+        "(pre-push hook entry point; exit 1 blocks)",
+    )
 
     # pactkit deps (STORY-slim-137: external dependency check/install)
     deps_parser = subparsers.add_parser("deps", help="Check or install external dependencies (node/codegraph/gh)")
@@ -1610,6 +1615,13 @@ def main():
         if args.install_git_hook:
             print(install_git_hook(project_root))
             raise SystemExit(0)
+        if args.push_gate:
+            from pactkit.commit_gate import check_push
+
+            message, exit_code = check_push(project_root, "git push")
+            if message:
+                print(message, file=sys.stderr)
+            raise SystemExit(1 if exit_code else 0)
         if args.hook:
             message, exit_code = hook_entry(sys.stdin.read(), project_root)
             if message:

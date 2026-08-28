@@ -182,6 +182,7 @@ graph TD
     _build_gitlab_ci["_build_gitlab_ci"]
     _build_rule_id_to_filename["_build_rule_id_to_filename"]
     _build_rule_id_to_key["_build_rule_id_to_key"]
+    _bypassed["_bypassed"]
     _changed_source_files["_changed_source_files"]
     _check_adapter_compat["_check_adapter_compat"]
     _check_code_smells["_check_code_smells"]
@@ -237,6 +238,7 @@ graph TD
     _discover_references["_discover_references"]
     _done_completion["_done_completion"]
     _enforce_deploy_integrity["_enforce_deploy_integrity"]
+    _enforcement_settings["_enforcement_settings"]
     _ensure_entry_point_deployers["_ensure_entry_point_deployers"]
     _extract["_extract"]
     _extract_module_path["_extract_module_path"]
@@ -263,6 +265,7 @@ graph TD
     _has_dir_with_files["_has_dir_with_files"]
     _has_production_caller["_has_production_caller"]
     _hash["_hash"]
+    _hooks_json_lock["_hooks_json_lock"]
     _hotfix_completion["_hotfix_completion"]
     _insert_after_frontmatter["_insert_after_frontmatter"]
     _inside["_inside"]
@@ -272,6 +275,7 @@ graph TD
     _is_docs_only["_is_docs_only"]
     _is_docs_or_tests_only["_is_docs_or_tests_only"]
     _is_duplicate["_is_duplicate"]
+    _is_fully_protected["_is_fully_protected"]
     _is_initialized["_is_initialized"]
     _is_json_value["_is_json_value"]
     _is_pactkit_managed_global_md["_is_pactkit_managed_global_md"]
@@ -285,8 +289,10 @@ graph TD
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _merge["_merge"]
+    _merge_pre_tooluse_entry["_merge_pre_tooluse_entry"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _minimal_paths["_minimal_paths"]
+    _module_available["_module_available"]
     _new_public_symbols["_new_public_symbols"]
     _no_external_enabled["_no_external_enabled"]
     _no_git_enabled["_no_git_enabled"]
@@ -319,6 +325,7 @@ graph TD
     _project_host_guarantees["_project_host_guarantees"]
     _propose_claude_md_candidate["_propose_claude_md_candidate"]
     _pytest_command["_pytest_command"]
+    _pytest_interpreter["_pytest_interpreter"]
     _python_files["_python_files"]
     _python_interface["_python_interface"]
     _read["_read"]
@@ -330,8 +337,11 @@ graph TD
     _receipt_shape_reason["_receipt_shape_reason"]
     _record["_record"]
     _record_story_id["_record_story_id"]
+    _refspec_target["_refspec_target"]
     _release_completion["_release_completion"]
+    _relpath["_relpath"]
     _remove_path["_remove_path"]
+    _removes_gate_entry["_removes_gate_entry"]
     _render_prompt["_render_prompt"]
     _render_skill_md["_render_skill_md"]
     _render_stack_line["_render_stack_line"]
@@ -401,6 +411,7 @@ graph TD
     check_adapter_compat["check_adapter_compat"]
     check_adapter_skew["check_adapter_skew"]
     check_archive_honesty["check_archive_honesty"]
+    check_bash_command["check_bash_command"]
     check_codex_execution_capability["check_codex_execution_capability"]
     check_codex_hook_capability["check_codex_hook_capability"]
     check_config_completeness["check_config_completeness"]
@@ -413,12 +424,14 @@ graph TD
     check_dead_imports["check_dead_imports"]
     check_deploy_parity["check_deploy_parity"]
     check_deps["check_deps"]
+    check_edit_tool["check_edit_tool"]
     check_graph_provider["check_graph_provider"]
     check_hld_module_count["check_hld_module_count"]
     check_init_markers["check_init_markers"]
     check_legacy_engine_usage["check_legacy_engine_usage"]
     check_orphaned_specs["check_orphaned_specs"]
     check_pattern_duplication["check_pattern_duplication"]
+    check_push["check_push"]
     check_requirement_evidence["check_requirement_evidence"]
     check_requirement_evidence__mentioned["check_requirement_evidence._mentioned"]
     check_rule_ownership["check_rule_ownership"]
@@ -468,6 +481,7 @@ graph TD
     install_deps["install_deps"]
     install_git_hook["install_git_hook"]
     install_hook["install_hook"]
+    install_pre_push_hook["install_pre_push_hook"]
     is_environment_format["is_environment_format"]
     is_pactkit_self_development_root["is_pactkit_self_development_root"]
     issue_sync["issue_sync"]
@@ -489,8 +503,12 @@ graph TD
     pactkit_rule_ownership["pactkit_rule_ownership"]
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
+    pid_alive["pid_alive"]
     preserve_or_write["preserve_or_write"]
     probe_commit_gate["probe_commit_gate"]
+    probe_coverage_gate["probe_coverage_gate"]
+    probe_push_gate["probe_push_gate"]
+    probe_tamper_guard["probe_tamper_guard"]
     project_command_validator["project_command_validator"]
     project_router["project_router"]
     pytest_command["pytest_command"]
@@ -511,6 +529,7 @@ graph TD
     render_summary["render_summary"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     resolve_project_root["resolve_project_root"]
+    resolve_push_target["resolve_push_target"]
     resolve_rule_context["resolve_rule_context"]
     resolve_scope["resolve_scope"]
     retire_disabled_agents["retire_disabled_agents"]
@@ -760,7 +779,14 @@ graph TD
     read_status --> _status_path
     _no_git_enabled --> load_config
     _no_git_enabled --> load_config
+    _pytest_interpreter --> pytest_command
     probe_commit_gate --> _no_git_enabled
+    probe_commit_gate --> _pytest_interpreter
+    probe_coverage_gate --> _pytest_interpreter
+    probe_coverage_gate --> _module_available
+    probe_push_gate --> _no_git_enabled
+    probe_tamper_guard --> _no_git_enabled
+    probe_tamper_guard --> _enforcement_settings
     _merge --> ContinuationStore_status
     _merge --> ContinuationStore_status
     assess --> _merge
@@ -771,8 +797,22 @@ graph TD
     _pytest_command --> pytest_command
     run_pytest --> _pytest_command
     decide_test_set --> current_branch
+    decide_test_set --> _enforcement_settings
     decide_test_set --> classify_changes
     decide_test_set --> map_to_tests
+    _refspec_target --> current_branch
+    resolve_push_target --> _refspec_target
+    resolve_push_target --> current_branch
+    resolve_push_target --> current_branch
+    resolve_push_target --> _refspec_target
+    check_push --> _enforcement_settings
+    check_push --> resolve_push_target
+    check_push --> record_status
+    check_push --> record_attempt
+    check_push --> record_status
+    check_push --> record_status
+    check_push --> record_status
+    check_push --> record_status
     run_gate --> record_attempt
     run_gate --> collect_changed_files
     run_gate --> decide_test_set
@@ -784,18 +824,31 @@ graph TD
     run_gate --> record_status
     run_gate --> record_status
     run_gate --> record_status
+    run_gate --> record_status
     hook_entry --> run_gate
+    hook_entry --> check_edit_tool
+    hook_entry --> check_push
+    hook_entry --> check_bash_command
     hook_entry --> render
+    _enforcement_settings --> load_config
     install_hook --> _no_git_enabled
+    install_hook --> _merge_pre_tooluse_entry
     install_codex_hook --> _no_git_enabled
+    install_codex_hook --> _hooks_json_lock
+    install_codex_hook --> _merge_pre_tooluse_entry
     install_git_hook --> _no_git_enabled
+    install_pre_push_hook --> _no_git_enabled
     gate_channel --> _no_git_enabled
     gate_channel --> _codex_hook_present
     ensure_gate_channel --> gate_channel
     ensure_gate_channel --> install_hook
     ensure_gate_channel --> install_codex_hook
+    ensure_gate_channel --> install_pre_push_hook
+    ensure_gate_channel --> install_codex_hook
     ensure_gate_channel --> install_git_hook
+    ensure_gate_channel --> install_pre_push_hook
     ensure_gate_channel --> install_git_hook
+    ensure_gate_channel --> install_pre_push_hook
     _summarize --> _parse_ts
     _summarize --> _parse_ts
     collect_runs --> LessonRepository_add
@@ -843,6 +896,7 @@ graph TD
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
     _print_codegraph_sync --> codegraph_sync
+    verification_outcome_unknown --> pid_alive
     verification_outcome_unknown --> read_status
     _sanitize_evidence --> _sanitize
     _sanitize_evidence --> _sanitize_evidence
@@ -900,6 +954,7 @@ graph TD
     ContinuationEngine__emit_run_events --> append_event
     ContinuationEngine__emit_run_events --> append_event
     ContinuationEngine__emit_run_events --> _sanitize_evidence
+    ContinuationEngine__emit_run_events --> _sanitize
     ContinuationEngine_resume --> ContinuationEngine__find
     ContinuationEngine_resume --> NoopValidator_fingerprints
     ContinuationEngine_resume --> ContinuationEngine_definition
@@ -1036,6 +1091,19 @@ graph TD
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
     generate_context --> _parse_last_lessons
+    _record --> record_status
+    _record --> record_status
+    check_edit_tool --> _relpath
+    check_edit_tool --> _is_fully_protected
+    check_edit_tool --> _enforcement_settings
+    check_edit_tool --> _bypassed
+    check_edit_tool --> _record
+    check_edit_tool --> _removes_gate_entry
+    check_edit_tool --> _record
+    check_bash_command --> _record
+    check_bash_command --> _enforcement_settings
+    check_bash_command --> _bypassed
+    check_bash_command --> _record
     run_observe --> _detect_sources
     run_observe --> _collect_signals
     run_observe --> classify_signals
@@ -1075,6 +1143,7 @@ graph TD
     main --> ContinuationStore_status
     main --> validate_registry
     main --> render
+    main --> _validate_story_id
     main --> read_events
     main --> get_workflow
     main --> detect_security_scope
@@ -1165,6 +1234,7 @@ graph TD
     main --> install_deps
     main --> run_gate
     main --> render_check_report
+    main --> check_push
     main --> hook_entry
     main --> render
     main --> install_git_hook
@@ -1209,7 +1279,6 @@ graph TD
     check_coverage --> _run_pytest_cov
     check_coverage --> _record
     check_coverage --> _record
-    _record --> record_status
     _get_issue_tracker_provider --> find_pactkit_yaml
     issue_sync --> _parse_item_type
     issue_sync --> _get_issue_tracker_provider

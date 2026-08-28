@@ -37,7 +37,14 @@ UNKNOWN_TEXT = "unknown"
 STATUS_LEVELS = (FULL, DEGRADED, UNAVAILABLE)
 _RANK = {FULL: 0, DEGRADED: 1, UNAVAILABLE: 2}
 
-GATES = ("commit_gate", "coverage_gate", "finish_gate")
+GATES = (
+    "commit_gate",
+    "coverage_gate",
+    "finish_gate",
+    # STORY-slim-202608289e83eeb30df4: protected-branch gates
+    "push_gate",
+    "tamper_guard",
+)
 
 
 def _status_path(root: Path, gate: str) -> Path:
@@ -174,15 +181,38 @@ def _module_available(interpreter: str, module: str) -> bool:
 
 
 def probe_commit_gate(root: Path) -> dict[str, Any]:
-    """Static capability probe for the commit gate."""
+    """Static capability probe for the commit gate.
+
+    STORY-slim-20260828d43fae4edbb6: probes the runner the detected stack
+    actually needs — python keeps the pytest-resolvability check, non-
+    python stacks check their runner's presence.
+    """
     if _no_git_enabled(root):
         return {"status": UNAVAILABLE, "reason": "skipped (enterprise.no_git)"}
     if shutil.which("git") is None:
         return {"status": UNAVAILABLE, "reason": "git binary not found"}
     if not (root / ".git").exists():
         return {"status": UNAVAILABLE, "reason": "not a git repository"}
-    if _pytest_interpreter(root) is None:
-        return {"status": UNAVAILABLE, "reason": "pytest not resolvable (no project venv pytest)"}
+    from pactkit.utils import stack_test_command
+
+    pair = stack_test_command(root)
+    if pair is None:
+        return {
+            "status": UNAVAILABLE,
+            "reason": "no runnable test command for the detected stack "
+            "(e.g. package.json without scripts.test)",
+        }
+    stack, argv = pair
+    if stack == "python":
+        if _pytest_interpreter(root) is None:
+            return {"status": UNAVAILABLE, "reason": "pytest not resolvable (no project venv pytest)"}
+        return {"status": FULL, "reason": ""}
+    runner = str(argv[0])
+    if runner.startswith("./"):
+        if not (root / runner[2:]).exists():
+            return {"status": UNAVAILABLE, "reason": f"{runner} wrapper not found"}
+    elif shutil.which(runner) is None:
+        return {"status": UNAVAILABLE, "reason": f"{runner} not on PATH"}
     return {"status": FULL, "reason": ""}
 
 
@@ -218,10 +248,38 @@ def probe_finish_gate(root: Path) -> dict[str, Any]:
     return {"status": FULL, "reason": ""}
 
 
+def probe_push_gate(root: Path) -> dict[str, Any]:
+    """Static capability probe for the protected-branch push gate.
+
+    Lighter than the commit gate: the push gate never runs pytest, so it
+    only needs the git binary and a repository.
+    """
+    if _no_git_enabled(root):
+        return {"status": UNAVAILABLE, "reason": "skipped (enterprise.no_git)"}
+    if shutil.which("git") is None:
+        return {"status": UNAVAILABLE, "reason": "git binary not found"}
+    if not (root / ".git").exists():
+        return {"status": UNAVAILABLE, "reason": "not a git repository"}
+    return {"status": FULL, "reason": ""}
+
+
+def probe_tamper_guard(root: Path) -> dict[str, Any]:
+    """Static probe: the tamper guard is on unless the repo opted out."""
+    if _no_git_enabled(root):
+        return {"status": UNAVAILABLE, "reason": "skipped (enterprise.no_git)"}
+    from pactkit.commit_gate import _enforcement_settings
+
+    if not _enforcement_settings(root).get("tamper_guard", True):
+        return {"status": UNAVAILABLE, "reason": "disabled (enforcement.tamper_guard)"}
+    return {"status": FULL, "reason": ""}
+
+
 _PROBES = {
     "commit_gate": probe_commit_gate,
     "coverage_gate": probe_coverage_gate,
     "finish_gate": probe_finish_gate,
+    "push_gate": probe_push_gate,
+    "tamper_guard": probe_tamper_guard,
 }
 
 

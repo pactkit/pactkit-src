@@ -267,6 +267,25 @@ def _validate_regression(_key: str, value) -> list[str]:
     return msgs
 
 
+def _validate_enforcement(_key: str, value) -> list[str]:
+    msgs = []
+    if not isinstance(value, dict):
+        return [f"enforcement should be a mapping, got {type(value).__name__}"]
+    branches = value.get("protected_branches")
+    if branches is not None and not (
+        isinstance(branches, list) and all(isinstance(b, str) for b in branches)
+    ):
+        msgs.append("enforcement.protected_branches should be a list of branch names")
+    for flag in ("allow_direct_push", "tamper_guard"):
+        if flag in value and not isinstance(value[flag], bool):
+            msgs.append(f"enforcement.{flag} should be a boolean (true/false)")
+    known = {"protected_branches", "allow_direct_push", "tamper_guard"}
+    for key in value:
+        if key not in known:
+            msgs.append(f"enforcement.{key} is not a recognized key")
+    return msgs
+
+
 def _validate_check(_key: str, value) -> list[str]:
     msgs = []
     if not isinstance(value, dict):
@@ -453,6 +472,17 @@ CONFIG_SCHEMA: dict[str, dict] = {
         "kind": "mapping",
         "comment": "# Regression — configure impact-based test selection strategy",
         "validator": _validate_regression,
+    },
+    "enforcement": {
+        "default": {
+            "protected_branches": ["main", "master"],
+            "allow_direct_push": False,
+            "tamper_guard": True,
+        },
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Enforcement — configure protected-branch push/commit gates and tamper guard",
+        "validator": _validate_enforcement,
     },
     "check": {
         "default": {

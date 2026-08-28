@@ -72,6 +72,14 @@
     "test_dir": "tests/e2e",
     "type": "none"
   },
+  "enforcement": {
+    "allow_direct_push": false,
+    "protected_branches": [
+      "main",
+      "master"
+    ],
+    "tamper_guard": true
+  },
   "issue_tracker": {
     "provider": "github"
   },

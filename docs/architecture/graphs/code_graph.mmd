@@ -57,6 +57,8 @@ graph TD
     click src_pactkit_continuation_py href "src/pactkit/continuation.py"
     src_pactkit_context_gen_py["context_gen.py"]
     click src_pactkit_context_gen_py href "src/pactkit/context_gen.py"
+    src_pactkit_tamper_guard_py["tamper_guard.py"]
+    click src_pactkit_tamper_guard_py href "src/pactkit/tamper_guard.py"
     src_pactkit_observe_py["observe.py"]
     click src_pactkit_observe_py href "src/pactkit/observe.py"
     src_pactkit_schemas_py["schemas.py"]
@@ -152,8 +154,10 @@ graph TD
     src_pactkit_garden_py --> src_pactkit_continuation_py
     src_pactkit_workflow_engine_py --> src_pactkit_legacy___init___py
     src_pactkit_enforcement_py --> src_pactkit_utils_py
+    src_pactkit_enforcement_py --> src_pactkit_commit_gate_py
     src_pactkit_enforcement_py --> src_pactkit_config_py
     src_pactkit_host_continuation_py --> src_pactkit_legacy___init___py
+    src_pactkit_commit_gate_py --> src_pactkit_tamper_guard_py
     src_pactkit_commit_gate_py --> src_pactkit_utils_py
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
@@ -191,6 +195,8 @@ graph TD
     src_pactkit_context_gen_py --> src_pactkit_schemas_py
     src_pactkit_context_gen_py --> src_pactkit_governance_py
     src_pactkit_context_gen_py --> src_pactkit_continuation_py
+    src_pactkit_tamper_guard_py --> src_pactkit_enforcement_py
+    src_pactkit_tamper_guard_py --> src_pactkit_commit_gate_py
     src_pactkit_cli_py --> src_pactkit___init___py
     src_pactkit_cli_py --> src_pactkit_profiles_py
     src_pactkit_cli_py --> src_pactkit_schemas_py

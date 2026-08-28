@@ -1,7 +1,9 @@
-usage: pactkit commit-gate [-h] [--hook] [--install-git-hook]
+usage: pactkit commit-gate [-h] [--hook] [--install-git-hook] [--push-gate]
 
 options:
   -h, --help          show this help message and exit
   --hook              PreToolUse hook mode: read hook JSON from stdin, exit 2
                       blocks git commit
   --install-git-hook  Install .git/hooks/pre-commit wrapper for human commits
+  --push-gate         Protected-branch push gate: block direct pushes to
+                      main/master (pre-push hook entry point; exit 1 blocks)

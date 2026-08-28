@@ -1,0 +1,30 @@
+schema_version: 1
+id: STORY-slim-202608289e83eeb30df4
+title: Protected-branch push gate + L1 hard-rule override protocol
+spec_path: docs/specs/STORY-slim-202608289e83eeb30df4.md
+status: done
+tasks:
+- id: task-ea1a074f1b
+  title: Extend hook_entry with git push matching + branch resolution + block/bypass
+  completed: true
+- id: task-0697f734bc
+  title: Add enforcement config section to config.py
+  completed: true
+- id: task-99362d5614
+  title: Install pre-push hook + tamper guard registration + ensure_gate_channel
+  completed: true
+- id: task-642a8a34e6
+  title: Extend GATES + probe_push_gate + doctor output
+  completed: true
+- id: task-0697d362c6
+  title: 'Upgrade prompts/rules.py: L1 entries + Override Protocol'
+  completed: true
+- id: task-3957ff25e0
+  title: Write unit tests for AC1-AC8
+  completed: true
+- id: task-4ae76ca85f
+  title: Set pactkit self-config allow_direct_push/tamper_guard
+  completed: true
+created_at: '2026-08-28T07:32:17+00:00'
+updated_at: '2026-08-28T09:37:23+00:00'
+completed_at: '2026-08-28T09:37:23+00:00'

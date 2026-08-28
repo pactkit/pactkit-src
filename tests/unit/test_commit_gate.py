@@ -174,12 +174,14 @@ class TestHookMode:
         _, code = hook_entry(self._payload('git -C /repo commit --amend'), repo)
         assert code == 2
 
-    def test_no_verify_bypass_allowed(self, repo, monkeypatch):
+    def test_no_verify_still_gates(self, repo, monkeypatch):
+        """STORY-slim-202608289e83eeb30df4 R3: --no-verify is no longer a free
+        bypass — the agent can type it, so the PreToolUse gate still runs."""
         mock_git(monkeypatch)
-        calls = mock_pytest(monkeypatch)
-        _, code = hook_entry(self._payload('git commit --no-verify -m "x"'), repo)
-        assert code == 0
-        assert "test_files" not in calls
+        mock_pytest(monkeypatch, returncode=1, output="1 failed in 1.0s")
+        stderr, code = hook_entry(self._payload('git commit --no-verify -m "x"'), repo)
+        assert code == 2
+        assert "blocked" in stderr
 
     def test_gate_failure_allows_with_warn(self, repo, monkeypatch):
         """AC5 self-lock protection: pytest missing must not block commits."""
@@ -203,9 +205,19 @@ class TestHookMode:
 # ---------------------------------------------------------------------------
 
 
-class TestMainBranchFullSuite:
-    @pytest.mark.parametrize("branch", ["main", "master", "develop"])
-    def test_main_branches_force_full(self, repo, monkeypatch, branch):
+class TestMainBranchStance:
+    """STORY-slim-202608289e83eeb30df4 R2: main/master block by default;
+    develop (not in the default protected set) keeps the full-suite rule."""
+
+    @pytest.mark.parametrize("branch", ["main", "master"])
+    def test_protected_branch_blocks(self, repo, monkeypatch, branch):
+        mock_git(monkeypatch, branch=branch, changed=("src/pactkit/done_verify.py",))
+        strategy, test_files, reason = decide_test_set(repo, ["src/pactkit/done_verify.py"])
+        assert strategy == "blocked"
+        assert branch in reason
+
+    @pytest.mark.parametrize("branch", ["develop"])
+    def test_develop_still_forces_full(self, repo, monkeypatch, branch):
         mock_git(monkeypatch, branch=branch, changed=("src/pactkit/done_verify.py",))
         (repo / "tests" / "unit" / "test_done_verify.py").write_text("")
         strategy, test_files, reason = decide_test_set(repo, ["src/pactkit/done_verify.py"])
@@ -224,8 +236,10 @@ class TestHookDeployment:
         msg = install_hook(repo)
         settings = json.loads((repo / ".claude" / "settings.json").read_text())
         entries = settings["hooks"]["PreToolUse"]
-        assert len(entries) == 1
-        assert entries[0]["hooks"][0]["command"] == "pactkit commit-gate --hook"
+        # STORY-slim-202608289e83eeb30df4 R5/R6: Bash feeds the commit/push
+        # pipeline, Edit|Write feeds the tamper guard.
+        assert {e["matcher"] for e in entries} == {"Bash", "Edit|Write"}
+        assert all(e["hooks"][0]["command"] == "pactkit commit-gate --hook" for e in entries)
         assert "installed" in msg
 
     def test_preserves_user_config_and_idempotent(self, repo):
@@ -238,8 +252,8 @@ class TestHookDeployment:
         settings = json.loads((repo / ".claude" / "settings.json").read_text())
         assert settings["model"] == "opus"
         pre = settings["hooks"]["PreToolUse"]
-        assert len(pre) == 2  # user's + ours, no duplication
-        assert sum("commit-gate" in h.get("command", "") for e in pre for h in e["hooks"]) == 1
+        assert len(pre) == 3  # user's + our two matchers, no duplication
+        assert sum("commit-gate" in h.get("command", "") for e in pre for h in e["hooks"]) == 2
 
     def test_invalid_json_left_untouched(self, repo):
         (repo / ".claude").mkdir(exist_ok=True)
@@ -264,6 +278,15 @@ class TestGitHook:
         assert "pactkit commit-gate" in hook.read_text()
         assert "installed" in msg
 
+    def test_missing_binary_warns_and_allows(self, repo):
+        """HOTFIX-slim-20260828ee6cde3108fb: without the PATH probe, a missing
+        pactkit binary exits 127 and git blocks every commit."""
+        (repo / ".git" / "hooks").mkdir()
+        install_git_hook(repo)
+        script = (repo / ".git" / "hooks" / "pre-commit").read_text()
+        assert "command -v pactkit" in script
+        assert "exit 0" in script  # WARN + allow, never lock out
+
     def test_chains_existing_hook(self, repo):
         hooks = repo / ".git" / "hooks"
         hooks.mkdir()
@@ -272,6 +295,7 @@ class TestGitHook:
         content = (hooks / "pre-commit").read_text()
         assert "echo existing" in content
         assert "pactkit commit-gate" in content
+        assert "command -v pactkit" in content  # probe present when chaining too
         assert (hooks / "pre-commit.pre-pactkit").exists()
         assert "chained" in msg
 
@@ -294,14 +318,16 @@ class TestGateChannelDispatch:
     def test_non_claude_gets_git_hook(self, repo):
         """AC1 (amended, STORY-slim-20260827024e71df170f R4): codex deploy
         installs the native hooks.json channel plus the git pre-commit
-        fallback (active until the user completes Codex's trust prompt)."""
+        fallback (active until the user completes Codex's trust prompt).
+        STORY-slim-202608289e83eeb30df4 R6 adds the pre-push fallback."""
         from pactkit.commit_gate import ensure_gate_channel
 
         (repo / ".git" / "hooks").mkdir()
         channel = ensure_gate_channel(repo, "codex")
-        assert channel == "codex PreToolUse hook + git pre-commit"
+        assert channel == "codex PreToolUse hook + git pre-commit + git pre-push"
         assert (repo / ".codex" / "hooks.json").is_file()
         assert "pactkit commit-gate" in (repo / ".git" / "hooks" / "pre-commit").read_text()
+        assert "push-gate" in (repo / ".git" / "hooks" / "pre-push").read_text()
         assert not (repo / ".claude" / "settings.json").exists()
 
     def test_non_claude_without_git_repo(self, repo):

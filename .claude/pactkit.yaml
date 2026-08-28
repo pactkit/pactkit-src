@@ -14,6 +14,13 @@ issue_tracker:
 release:
   github_release: true
 
+# STORY-slim-202608289e83eeb30df4: PactKit's own release flow direct-pushes
+# main, and maintainers must be able to edit hooks — stand both gates down.
+enforcement:
+  protected_branches: ["main", "master"]
+  allow_direct_push: true
+  tamper_guard: false
+
 visualize:
   graph_provider: codegraph
 
