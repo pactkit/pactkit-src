@@ -587,6 +587,24 @@ def main():
         "(pre-push hook entry point; exit 1 blocks)",
     )
 
+    # pactkit gate (STORY-slim-20260828897396a935ab: session hooks + authorize)
+    gate_parser = subparsers.add_parser(
+        "gate",
+        help="Session context hooks + external-effect authorization tokens",
+    )
+    gate_parser.add_argument(
+        "--hook", choices=["session-start", "pre-compact"],
+        help="Hook mode: read hook JSON context from stdin (SessionStart/PreCompact)",
+    )
+    gate_parser.add_argument(
+        "scope", nargs="?", default=None,
+        help="Authorize a scope (pr|release|repo|publish|spec_edit) for the TTL window",
+    )
+    gate_parser.add_argument(
+        "--ttl-minutes", type=int, default=None,
+        help="Authorization TTL in minutes (default 30)",
+    )
+
     # pactkit deps (STORY-slim-137: external dependency check/install)
     deps_parser = subparsers.add_parser("deps", help="Check or install external dependencies (node/codegraph/gh)")
     deps_sub = deps_parser.add_subparsers(dest="deps_action")
@@ -1605,6 +1623,28 @@ def main():
         else:
             print(render_check_report(statuses))
         raise SystemExit(0 if all(s.installed for s in statuses) else 1)
+
+    elif args.command == "gate":
+        import sys
+
+        if args.hook:
+            from pactkit.session_gate import pre_compact_entry, session_start_entry
+
+            if args.hook == "session-start":
+                text, code = session_start_entry(project_root)
+            else:
+                text, code = pre_compact_entry(project_root)
+            if text:
+                print(text, end="")  # stdout is injected as context by the host
+            raise SystemExit(code)
+
+        if args.scope:
+            from pactkit.auth_gate import authorize
+
+            print(authorize(project_root, args.scope, args.ttl_minutes))
+            raise SystemExit(0)
+
+        parser.error("gate: --hook or a scope (authorize) is required")
 
     elif args.command == "commit-gate":
         import sys

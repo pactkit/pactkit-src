@@ -67,10 +67,14 @@
   },
   "enforcement": {
     "allow_direct_push": false,
+    "auth_gate": true,
+    "auth_ttl_minutes": 30,
     "protected_branches": [
       "main",
       "master"
     ],
+    "secrets_gate": true,
+    "spec_guard": true,
     "tamper_guard": true
   },
   "issue_tracker": {

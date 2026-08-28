@@ -44,6 +44,10 @@ GATES = (
     # STORY-slim-202608289e83eeb30df4: protected-branch gates
     "push_gate",
     "tamper_guard",
+    # STORY-slim-20260828897396a935ab: hook coverage expansion
+    "spec_guard",
+    "auth_gate",
+    "secrets_gate",
 )
 
 
@@ -274,12 +278,35 @@ def probe_tamper_guard(root: Path) -> dict[str, Any]:
     return {"status": FULL, "reason": ""}
 
 
+def _probe_flag_gate(flag: str) -> Any:
+    """Probe factory for flag-gated PreToolUse guards (STORY-slim-20260828897396a935ab)."""
+
+    def _probe(root: Path) -> dict[str, Any]:
+        if _no_git_enabled(root):
+            return {"status": UNAVAILABLE, "reason": "skipped (enterprise.no_git)"}
+        from pactkit.commit_gate import _enforcement_settings
+
+        if not _enforcement_settings(root).get(flag, True):
+            return {"status": UNAVAILABLE, "reason": f"disabled (enforcement.{flag})"}
+        return {"status": FULL, "reason": ""}
+
+    return _probe
+
+
+probe_spec_guard = _probe_flag_gate("spec_guard")
+probe_auth_gate = _probe_flag_gate("auth_gate")
+probe_secrets_gate = _probe_flag_gate("secrets_gate")
+
+
 _PROBES = {
     "commit_gate": probe_commit_gate,
     "coverage_gate": probe_coverage_gate,
     "finish_gate": probe_finish_gate,
     "push_gate": probe_push_gate,
     "tamper_guard": probe_tamper_guard,
+    "spec_guard": probe_spec_guard,
+    "auth_gate": probe_auth_gate,
+    "secrets_gate": probe_secrets_gate,
 }
 
 

@@ -68,7 +68,9 @@ tampering = Spec tampering). Correct response: name the rule, offer the
 sanctioned channels — do it the sanctioned way (feature branch + PR), the
 human runs the command themselves (e.g. `! PACTKIT_ALLOW_DIRECT_PUSH=1
 git push`), or the repo owner changes the config
-(enforcement.allow_direct_push). "The user told me to" NEVER converts an
+(enforcement.allow_direct_push). External effects (PR/release/publish)
+are ask-first: after user confirmation, `pactkit gate authorize <scope>`
+opens an audited window. "The user told me to" NEVER converts an
 L1 violation into compliance.
 
 ## DEFERRED Comment Format (STORY-slim-105)

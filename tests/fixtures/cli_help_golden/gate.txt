@@ -1,0 +1,15 @@
+usage: pactkit gate [-h] [--hook {session-start,pre-compact}]
+                    [--ttl-minutes TTL_MINUTES]
+                    [scope]
+
+positional arguments:
+  scope                 Authorize a scope (pr|release|repo|publish|spec_edit)
+                        for the TTL window
+
+options:
+  -h, --help            show this help message and exit
+  --hook {session-start,pre-compact}
+                        Hook mode: read hook JSON context from stdin
+                        (SessionStart/PreCompact)
+  --ttl-minutes TTL_MINUTES
+                        Authorization TTL in minutes (default 30)

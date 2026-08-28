@@ -30,6 +30,10 @@ from pathlib import Path
 
 TAMPER_GATE = "tamper_guard"
 CONFIG_EDIT_BYPASS_ENV = "PACTKIT_ALLOW_CONFIG_EDIT"
+# STORY-slim-20260828897396a935ab R3: spec tampering ("Spec is Law")
+SPEC_EDIT_BYPASS_ENV = "PACTKIT_ALLOW_SPEC_EDIT"
+_SPEC_DIR = "docs/specs"
+_SPEC_FILE_RE = re.compile(r"docs/specs/([\w\-]+)\.md")
 
 # Gate registrations are identified by their command string; anything that
 # carries the commit-gate entry is enforcement-owned configuration.
@@ -62,10 +66,14 @@ def _bypassed() -> bool:
 
 
 def _record(root: Path, reason: str) -> None:
+    _record_gate(root, TAMPER_GATE, reason)
+
+
+def _record_gate(root: Path, gate: str, reason: str) -> None:
     from pactkit.enforcement import FULL, record_status
 
     try:
-        record_status(root, TAMPER_GATE, FULL, reason)
+        record_status(root, gate, FULL, reason)
     except Exception:  # noqa: BLE001 - audit is best-effort, never blocks
         pass
 
@@ -104,21 +112,78 @@ def _removes_gate_entry(tool_name: str, tool_input: dict, path: Path) -> bool:
     return had and not has
 
 
+_SPEC_BLOCK_MESSAGE = (
+    "[FAIL] spec-guard: modifying `{spec}` is blocked — Spec is Law (L1).\n"
+    "  During Act the Spec MUST NOT be amended unilaterally; route changes "
+    "through /project-plan (the RFC gate).\n"
+    "  After user authorization: `pactkit gate authorize spec_edit`, or "
+    "{env}=1 for the human channel."
+)
+
+
+def _spec_edit_allowed(root: Path, settings: dict) -> bool:
+    """spec_guard gate: is editing a receipt-bound spec permitted now?"""
+    import os
+
+    from pactkit.auth_gate import _token_valid
+
+    if not settings.get("spec_guard", True):
+        return True
+    if os.environ.get(SPEC_EDIT_BYPASS_ENV, "") == "1":
+        return True
+    if _token_valid(root, "spec_edit"):
+        return True
+    return False
+
+
+def _receipt_exists(root: Path, story_id: str) -> bool:
+    return (root / ".pactkit" / "preflight" / story_id / "current.json").is_file()
+
+
+def _check_spec_path(root: Path, rel: str, settings: dict) -> tuple[str, int]:
+    """Block edits to a spec that has an active preflight receipt.
+
+    Plan-phase spec writing is unaffected: no receipt exists until
+    spec-preflight runs (Act Phase 0.7).
+    """
+    if not rel.startswith(_SPEC_DIR + "/") or not rel.endswith(".md"):
+        return "", 0
+    story_id = rel[len(_SPEC_DIR) + 1 : -len(".md")]
+    if not _receipt_exists(root, story_id):
+        return "", 0
+    if _spec_edit_allowed(root, settings):
+        return "", 0
+    _record_gate(root, "spec_guard", f"blocked spec edit on {rel} (active preflight receipt)")
+    return (
+        _SPEC_BLOCK_MESSAGE.format(spec=rel, env=SPEC_EDIT_BYPASS_ENV),
+        2,
+    )
+
+
 def check_edit_tool(tool_name: str, tool_input: dict, root: Path,
                     settings: dict | None = None) -> tuple[str, int]:
-    """PreToolUse hook mode for Edit/Write tool calls. exit 2 = block."""
+    """PreToolUse hook mode for Edit/Write tool calls. exit 2 = block.
+
+    spec_guard (its own flag) runs first — tamper_guard being off does
+    not stand down the Spec-is-Law check.
+    """
     if settings is None:
         from pactkit.commit_gate import _enforcement_settings
 
         settings = _enforcement_settings(root)
-    if not settings.get("tamper_guard", True) or _bypassed():
-        return "", 0
 
     raw_path = str(tool_input.get("file_path") or "")
     if not raw_path:
         return "", 0
     rel = _relpath(root, Path(raw_path))
     if rel is None:
+        return "", 0
+
+    spec_msg, spec_code = _check_spec_path(root, rel, settings)
+    if spec_code:
+        return spec_msg, spec_code
+
+    if not settings.get("tamper_guard", True) or _bypassed():
         return "", 0
 
     if _is_fully_protected(rel):
@@ -136,15 +201,28 @@ def check_edit_tool(tool_name: str, tool_input: dict, root: Path,
 
 def check_bash_command(command: str, root: Path,
                        settings: dict | None = None) -> tuple[str, int]:
-    """PreToolUse hook mode for Bash commands targeting protected paths."""
+    """PreToolUse hook mode for Bash commands targeting protected paths.
+
+    spec_guard (its own flag) runs first; tamper_guard second.
+    """
     if settings is None:
         from pactkit.commit_gate import _enforcement_settings
 
         settings = _enforcement_settings(root)
-    if not settings.get("tamper_guard", True) or _bypassed():
-        return "", 0
 
     writes = bool(_BASH_WRITE_RE.search(command))
+    if writes:
+        match = _SPEC_FILE_RE.search(command)
+        if match and _receipt_exists(root, match.group(1)):
+            if not _spec_edit_allowed(root, settings):
+                _record_gate(root, "spec_guard", f"blocked bash spec edit on {match.group(0)}")
+                return (
+                    _SPEC_BLOCK_MESSAGE.format(spec=match.group(0), env=SPEC_EDIT_BYPASS_ENV),
+                    2,
+                )
+
+    if not settings.get("tamper_guard", True) or _bypassed():
+        return "", 0
     if not writes:
         return "", 0
 

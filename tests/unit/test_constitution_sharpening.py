@@ -118,7 +118,9 @@ class TestTokenReduction:
     # Raised from 730 to 735 for STORY-slim-112: cross-reference text slightly longer.
     # Raised from 735 to 880 for STORY-slim-202608289e83eeb30df4: L1 Hard-Rule
     # Override Protocol section added (override semantics for protected branches).
-    BASELINE_WORD_COUNT = 880
+    # Raised from 880 to 900 for STORY-slim-20260828897396a935ab: authorize
+    # channel (pactkit gate authorize) added to the Override Protocol.
+    BASELINE_WORD_COUNT = 900
 
     def test_core_protocol_within_limit(self):
         p = _prompts()

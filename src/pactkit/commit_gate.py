@@ -423,11 +423,14 @@ def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
     """PreToolUse hook mode. Returns (stderr_message, exit_code).
 
     Claude Code hook contract: exit 2 = block (stderr shown to the agent),
-    exit 0 = allow. Dispatch order (STORY-slim-202608289e83eeb30df4):
-      1. Edit/Write tool calls -> tamper guard (enforcement artifacts)
-      2. `git push`            -> protected-branch push gate (no pytest)
-      3. `git commit`          -> the test gate pipeline
-      4. anything else (Bash)  -> tamper guard (shell writes to artifacts)
+    exit 0 = allow. Dispatch order:
+      1. Edit/Write tool calls -> tamper guard + spec guard (enforcement
+         artifacts, Spec-is-Law)
+      2. secrets gate           -> literal credentials (L1, every Bash cmd)
+      3. `git push`             -> protected-branch push gate (no pytest)
+      4. `git commit`           -> the test gate pipeline
+      5. anything else (Bash)   -> auth gate (external effects) + tamper
+         guard (shell writes to artifacts)
     Gate-internal failures always exit 0 (R3 self-lock protection).
 
     Codex CLI uses the same wire contract (tool_name "Bash", exit 2 +
@@ -461,10 +464,22 @@ def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
     else:
         command = str(raw_command)
 
+    # L1 secrets scan runs on every Bash command, whatever it is
+    from pactkit.secrets_gate import check_command as check_secrets
+
+    secrets_msg, secrets_code = check_secrets(command, root)
+    if secrets_code:
+        return secrets_msg, secrets_code
+
     if _GIT_PUSH_RE.search(command):
         return check_push(root, command)
 
     if not _GIT_COMMIT_RE.search(command):
+        from pactkit.auth_gate import check_command as check_auth
+
+        auth_msg, auth_code = check_auth(command, root)
+        if auth_code:
+            return auth_msg, auth_code
         return check_bash_command(command, root)
 
     result = run_gate(root)
@@ -517,6 +532,13 @@ def _enforcement_settings(root: Path) -> dict:
         "protected_branches": branches,
         "allow_direct_push": bool(section.get("allow_direct_push", False)),
         "tamper_guard": bool(section.get("tamper_guard", True)),
+        # STORY-slim-20260828897396a935ab
+        "spec_guard": bool(section.get("spec_guard", True)),
+        "auth_gate": bool(section.get("auth_gate", True)),
+        "secrets_gate": bool(section.get("secrets_gate", True)),
+        "auth_ttl_minutes": section.get("auth_ttl_minutes", 30)
+        if isinstance(section.get("auth_ttl_minutes", 30), int)
+        else 30,
     }
 
 
@@ -542,6 +564,32 @@ def _merge_pre_tooluse_entry(pre_tool: list, matcher: str) -> None:
 # STORY-slim-202608289e83eeb30df4 R5/R6: the Bash matcher feeds the
 # commit/push/tamper pipeline; the Edit|Write matcher feeds the tamper guard.
 _HOOK_MATCHERS = ("Bash", "Edit|Write")
+
+# STORY-slim-20260828897396a935ab R1/R2/R6: session events.  Claude Code
+# only — SessionStart stdout is injected as context (cold-start + post-
+# compaction re-orientation), PreCompact refreshes the state file as a
+# side effect.  Not portable to Codex/OpenCode channels.
+_SESSION_HOOK_COMMANDS = {
+    "SessionStart": "pactkit gate --hook session-start",
+    "PreCompact": "pactkit gate --hook pre-compact",
+}
+
+
+def _merge_event_entry(hooks: dict, event: str, command: str) -> None:
+    """Idempotently merge one pactkit entry into a non-matcher event list."""
+    entries = hooks.get(event)
+    if not isinstance(entries, list):
+        entries = []
+        hooks[event] = entries
+    entry = {"hooks": [{"type": "command", "command": command}]}
+    for i, existing in enumerate(entries):
+        if not isinstance(existing, dict):
+            continue
+        if any(command in h.get("command", "")
+               for h in existing.get("hooks", []) if isinstance(h, dict)):
+            entries[i] = entry  # idempotent refresh of our own entry
+            return
+    entries.append(entry)
 
 
 def install_hook(root: Path) -> str:
@@ -570,6 +618,8 @@ def install_hook(root: Path) -> str:
     pre_tool = hooks.setdefault("PreToolUse", [])
     for matcher in _HOOK_MATCHERS:
         _merge_pre_tooluse_entry(pre_tool, matcher)
+    for event, command in _SESSION_HOOK_COMMANDS.items():
+        _merge_event_entry(hooks, event, command)
 
     settings_path.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return f"commit-gate hook: installed in {settings_path}"

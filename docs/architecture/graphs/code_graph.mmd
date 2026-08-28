@@ -9,6 +9,8 @@ graph TD
     click src_pactkit_spec_preflight_py href "src/pactkit/spec_preflight.py"
     src_pactkit_regression_py["regression.py"]
     click src_pactkit_regression_py href "src/pactkit/regression.py"
+    src_pactkit_session_gate_py["session_gate.py"]
+    click src_pactkit_session_gate_py href "src/pactkit/session_gate.py"
     src_pactkit_config_py["config.py"]
     click src_pactkit_config_py href "src/pactkit/config.py"
     src_pactkit_lessons_py["lessons.py"]
@@ -35,6 +37,8 @@ graph TD
     click src_pactkit_host_continuation_py href "src/pactkit/host_continuation.py"
     src_pactkit_commit_gate_py["commit_gate.py"]
     click src_pactkit_commit_gate_py href "src/pactkit/commit_gate.py"
+    src_pactkit_secrets_gate_py["secrets_gate.py"]
+    click src_pactkit_secrets_gate_py href "src/pactkit/secrets_gate.py"
     src_pactkit_run_stats_py["run_stats.py"]
     click src_pactkit_run_stats_py href "src/pactkit/run_stats.py"
     src_pactkit_lint_runner_py["lint_runner.py"]
@@ -81,6 +85,8 @@ graph TD
     click src_pactkit_spec_status_py href "src/pactkit/spec_status.py"
     src_pactkit_coverage_gate_py["coverage_gate.py"]
     click src_pactkit_coverage_gate_py href "src/pactkit/coverage_gate.py"
+    src_pactkit_auth_gate_py["auth_gate.py"]
+    click src_pactkit_auth_gate_py href "src/pactkit/auth_gate.py"
     src_pactkit_scripts_py["scripts.py"]
     click src_pactkit_scripts_py href "src/pactkit/scripts.py"
     src_pactkit_issue_sync_py["issue_sync.py"]
@@ -137,6 +143,8 @@ graph TD
     click src_pactkit_generators_command_ownership_py href "src/pactkit/generators/command_ownership.py"
     src_pactkit_deps_py --> src_pactkit_config_py
     src_pactkit_spec_preflight_py --> src_pactkit_utils_py
+    src_pactkit_session_gate_py --> src_pactkit_context_gen_py
+    src_pactkit_session_gate_py --> src_pactkit_utils_py
     src_pactkit_config_py --> src_pactkit_prompts_rules_py
     src_pactkit_config_py --> src_pactkit_profiles_py
     src_pactkit_config_py --> src_pactkit_utils_py
@@ -162,7 +170,11 @@ graph TD
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
     src_pactkit_commit_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_commit_gate_py --> src_pactkit_secrets_gate_py
+    src_pactkit_commit_gate_py --> src_pactkit_auth_gate_py
     src_pactkit_commit_gate_py --> src_pactkit_config_py
+    src_pactkit_secrets_gate_py --> src_pactkit_commit_gate_py
+    src_pactkit_secrets_gate_py --> src_pactkit_enforcement_py
     src_pactkit_run_stats_py --> src_pactkit_run_events_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
@@ -196,6 +208,7 @@ graph TD
     src_pactkit_context_gen_py --> src_pactkit_governance_py
     src_pactkit_context_gen_py --> src_pactkit_continuation_py
     src_pactkit_tamper_guard_py --> src_pactkit_enforcement_py
+    src_pactkit_tamper_guard_py --> src_pactkit_auth_gate_py
     src_pactkit_tamper_guard_py --> src_pactkit_commit_gate_py
     src_pactkit_cli_py --> src_pactkit___init___py
     src_pactkit_cli_py --> src_pactkit_profiles_py
@@ -237,16 +250,21 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_coverage_gate_py
     src_pactkit_cli_py --> src_pactkit_spec_status_py
     src_pactkit_cli_py --> src_pactkit_done_verify_py
+    src_pactkit_cli_py --> src_pactkit_session_gate_py
+    src_pactkit_cli_py --> src_pactkit_auth_gate_py
     src_pactkit_cli_py --> src_pactkit_graph_query_py
     src_pactkit_backfill_py --> src_pactkit_id_generator_py
     src_pactkit_backfill_py --> src_pactkit_schemas_py
     src_pactkit_backfill_py --> src_pactkit_governance_py
     src_pactkit_utils_py --> src_pactkit_config_py
+    src_pactkit_utils_py --> src_pactkit_cleaners_py
     src_pactkit_spec_graph_py --> src_pactkit_schemas_py
     src_pactkit_spec_graph_py --> src_pactkit___init___py
     src_pactkit_spec_status_py --> src_pactkit_schemas_py
     src_pactkit_coverage_gate_py --> src_pactkit_utils_py
     src_pactkit_coverage_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_auth_gate_py --> src_pactkit_commit_gate_py
+    src_pactkit_auth_gate_py --> src_pactkit_enforcement_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py

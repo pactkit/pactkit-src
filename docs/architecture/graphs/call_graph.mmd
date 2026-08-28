@@ -199,6 +199,7 @@ graph TD
     _check_h7["_check_h7"]
     _check_lexical_integrity["_check_lexical_integrity"]
     _check_semantic_integrity["_check_semantic_integrity"]
+    _check_spec_path["_check_spec_path"]
     _check_test_coverage["_check_test_coverage"]
     _checkpoint_continuation["_checkpoint_continuation"]
     _classify_coverage["_classify_coverage"]
@@ -289,6 +290,7 @@ graph TD
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _merge["_merge"]
+    _merge_event_entry["_merge_event_entry"]
     _merge_pre_tooluse_entry["_merge_pre_tooluse_entry"]
     _migrate_from_scafpy["_migrate_from_scafpy"]
     _minimal_paths["_minimal_paths"]
@@ -321,6 +323,8 @@ graph TD
     _pr_completion["_pr_completion"]
     _print_codegraph_sync["_print_codegraph_sync"]
     _print_mcp_recommendations["_print_mcp_recommendations"]
+    _probe_flag_gate["_probe_flag_gate"]
+    _probe_flag_gate__probe["_probe_flag_gate._probe"]
     _project_deploy_dirs["_project_deploy_dirs"]
     _project_host_guarantees["_project_host_guarantees"]
     _propose_claude_md_candidate["_propose_claude_md_candidate"]
@@ -334,9 +338,12 @@ graph TD
     _receipt_digest["_receipt_digest"]
     _receipt_dir["_receipt_dir"]
     _receipt_execution_mode["_receipt_execution_mode"]
+    _receipt_exists["_receipt_exists"]
     _receipt_shape_reason["_receipt_shape_reason"]
     _record["_record"]
+    _record_gate["_record_gate"]
     _record_story_id["_record_story_id"]
+    _refresh["_refresh"]
     _refspec_target["_refspec_target"]
     _release_completion["_release_completion"]
     _relpath["_relpath"]
@@ -364,6 +371,7 @@ graph TD
     _section["_section"]
     _sha256["_sha256"]
     _should_refresh_audit["_should_refresh_audit"]
+    _spec_edit_allowed["_spec_edit_allowed"]
     _spec_status["_spec_status"]
     _sprint_completion["_sprint_completion"]
     _status_path["_status_path"]
@@ -375,6 +383,7 @@ graph TD
     _terminal["_terminal"]
     _tests_pass["_tests_pass"]
     _timestamp["_timestamp"]
+    _token_valid["_token_valid"]
     _tool_version["_tool_version"]
     _unavailable["_unavailable"]
     _unit["_unit"]
@@ -405,6 +414,8 @@ graph TD
     assess["assess"]
     atomic_write["atomic_write"]
     audit["audit"]
+    authorization_path["authorization_path"]
+    authorize["authorize"]
     auto_merge_config_file["auto_merge_config_file"]
     build_change_risk_profile["build_change_risk_profile"]
     build_report["build_report"]
@@ -414,6 +425,7 @@ graph TD
     check_bash_command["check_bash_command"]
     check_codex_execution_capability["check_codex_execution_capability"]
     check_codex_hook_capability["check_codex_hook_capability"]
+    check_command["check_command"]
     check_config_completeness["check_config_completeness"]
     check_config_copy_drift["check_config_copy_drift"]
     check_config_drift["check_config_drift"]
@@ -498,12 +510,14 @@ graph TD
     main__unit_json["main._unit_json"]
     main__workflow_evidence["main._workflow_evidence"]
     map_to_tests["map_to_tests"]
+    match_scope["match_scope"]
     normalize_rule_id["normalize_rule_id"]
     pactkit_owned_files["pactkit_owned_files"]
     pactkit_rule_ownership["pactkit_rule_ownership"]
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
     pid_alive["pid_alive"]
+    pre_compact_entry["pre_compact_entry"]
     preserve_or_write["preserve_or_write"]
     probe_commit_gate["probe_commit_gate"]
     probe_coverage_gate["probe_coverage_gate"]
@@ -545,10 +559,13 @@ graph TD
     run_visualize_graphs["run_visualize_graphs"]
     run_visualize_single["run_visualize_single"]
     scan_and_replace_tbd["scan_and_replace_tbd"]
+    scan_command["scan_command"]
     schema_config_report["schema_config_report"]
     select_execution_mode["select_execution_mode"]
+    session_start_entry["session_start_entry"]
     sha256_file["sha256_file"]
     should_visualize["should_visualize"]
+    stack_test_command["stack_test_command"]
     story_events_path["story_events_path"]
     sync_config_copies["sync_config_copies"]
     to_json["to_json"]
@@ -589,6 +606,11 @@ graph TD
     run_spec_preflight --> _sha256
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
+    _refresh --> generate_context
+    _refresh --> atomic_write
+    _refresh --> context_output_path
+    session_start_entry --> _refresh
+    pre_compact_entry --> _refresh
     activate_pactkit_maintainer_overlay --> is_pactkit_self_development_root
     find_pactkit_yaml --> ContinuationEngine_start
     resolve_pactkit_yaml_dir --> is_environment_format
@@ -781,20 +803,26 @@ graph TD
     _no_git_enabled --> load_config
     _pytest_interpreter --> pytest_command
     probe_commit_gate --> _no_git_enabled
+    probe_commit_gate --> stack_test_command
     probe_commit_gate --> _pytest_interpreter
     probe_coverage_gate --> _pytest_interpreter
     probe_coverage_gate --> _module_available
     probe_push_gate --> _no_git_enabled
     probe_tamper_guard --> _no_git_enabled
     probe_tamper_guard --> _enforcement_settings
+    _probe_flag_gate --> _no_git_enabled
+    _probe_flag_gate --> _enforcement_settings
     _merge --> ContinuationStore_status
     _merge --> ContinuationStore_status
     assess --> _merge
     assess --> read_status
+    _probe_flag_gate__probe --> _no_git_enabled
+    _probe_flag_gate__probe --> _enforcement_settings
     collect_changed_files --> _git
     collect_changed_files --> _git
     current_branch --> _git
     _pytest_command --> pytest_command
+    run_pytest --> stack_test_command
     run_pytest --> _pytest_command
     decide_test_set --> current_branch
     decide_test_set --> _enforcement_settings
@@ -833,6 +861,7 @@ graph TD
     _enforcement_settings --> load_config
     install_hook --> _no_git_enabled
     install_hook --> _merge_pre_tooluse_entry
+    install_hook --> _merge_event_entry
     install_codex_hook --> _no_git_enabled
     install_codex_hook --> _hooks_json_lock
     install_codex_hook --> _merge_pre_tooluse_entry
@@ -849,6 +878,15 @@ graph TD
     ensure_gate_channel --> install_pre_push_hook
     ensure_gate_channel --> install_git_hook
     ensure_gate_channel --> install_pre_push_hook
+    check_command --> scan_command
+    check_command --> record_status
+    check_command --> _enforcement_settings
+    check_command --> match_scope
+    check_command --> _token_valid
+    check_command --> record_status
+    check_command --> _enforcement_settings
+    check_command --> record_status
+    check_command --> record_status
     _summarize --> _parse_ts
     _summarize --> _parse_ts
     collect_runs --> LessonRepository_add
@@ -1091,9 +1129,15 @@ graph TD
     generate_context --> _parse_active_stories
     generate_context --> _parse_recent_completions
     generate_context --> _parse_last_lessons
+    _record --> _record_gate
     _record --> record_status
-    _record --> record_status
+    _record_gate --> record_status
+    _spec_edit_allowed --> _token_valid
+    _check_spec_path --> _spec_edit_allowed
+    _check_spec_path --> _record_gate
+    _check_spec_path --> _receipt_exists
     check_edit_tool --> _relpath
+    check_edit_tool --> _check_spec_path
     check_edit_tool --> _is_fully_protected
     check_edit_tool --> _enforcement_settings
     check_edit_tool --> _bypassed
@@ -1103,7 +1147,10 @@ graph TD
     check_bash_command --> _record
     check_bash_command --> _enforcement_settings
     check_bash_command --> _bypassed
+    check_bash_command --> _receipt_exists
     check_bash_command --> _record
+    check_bash_command --> _spec_edit_allowed
+    check_bash_command --> _record_gate
     run_observe --> _detect_sources
     run_observe --> _collect_signals
     run_observe --> classify_signals
@@ -1232,8 +1279,11 @@ graph TD
     main --> check_deps
     main --> render
     main --> install_deps
-    main --> run_gate
     main --> render_check_report
+    main --> run_gate
+    main --> session_start_entry
+    main --> pre_compact_entry
+    main --> authorize
     main --> check_push
     main --> hook_entry
     main --> render
@@ -1254,6 +1304,9 @@ graph TD
     _get_done_ids --> ContinuationEngine_start
     scan_and_replace_tbd --> _get_done_ids
     pytest_command --> detect_venv
+    stack_test_command --> detect_stacks
+    stack_test_command --> pytest_command
+    stack_test_command --> pytest_command
     detect_stacks --> LessonRepository_add
     detect_stacks --> LessonRepository_add
     detect_stack --> detect_stacks
@@ -1279,6 +1332,8 @@ graph TD
     check_coverage --> _run_pytest_cov
     check_coverage --> _record
     check_coverage --> _record
+    authorize --> authorization_path
+    _token_valid --> authorization_path
     _get_issue_tracker_provider --> find_pactkit_yaml
     issue_sync --> _parse_item_type
     issue_sync --> _get_issue_tracker_provider

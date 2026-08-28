@@ -279,10 +279,24 @@ def _validate_enforcement(_key: str, value) -> list[str]:
     for flag in ("allow_direct_push", "tamper_guard"):
         if flag in value and not isinstance(value[flag], bool):
             msgs.append(f"enforcement.{flag} should be a boolean (true/false)")
-    known = {"protected_branches", "allow_direct_push", "tamper_guard"}
+    known = {
+        "protected_branches",
+        "allow_direct_push",
+        "tamper_guard",
+        "spec_guard",
+        "auth_gate",
+        "secrets_gate",
+        "auth_ttl_minutes",
+    }
     for key in value:
         if key not in known:
             msgs.append(f"enforcement.{key} is not a recognized key")
+    ttl = value.get("auth_ttl_minutes")
+    if ttl is not None and (not isinstance(ttl, int) or isinstance(ttl, bool) or ttl <= 0):
+        msgs.append(f"enforcement.auth_ttl_minutes should be a positive integer, got {ttl!r}")
+    for flag in ("spec_guard", "auth_gate", "secrets_gate"):
+        if flag in value and not isinstance(value[flag], bool):
+            msgs.append(f"enforcement.{flag} should be a boolean (true/false)")
     return msgs
 
 
@@ -478,6 +492,10 @@ CONFIG_SCHEMA: dict[str, dict] = {
             "protected_branches": ["main", "master"],
             "allow_direct_push": False,
             "tamper_guard": True,
+            "spec_guard": True,
+            "auth_gate": True,
+            "secrets_gate": True,
+            "auth_ttl_minutes": 30,
         },
         "deep_merge": True,
         "kind": "mapping",

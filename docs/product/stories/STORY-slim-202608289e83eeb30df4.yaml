@@ -2,7 +2,7 @@ schema_version: 1
 id: STORY-slim-202608289e83eeb30df4
 title: Protected-branch push gate + L1 hard-rule override protocol
 spec_path: docs/specs/STORY-slim-202608289e83eeb30df4.md
-status: done
+status: archived
 tasks:
 - id: task-ea1a074f1b
   title: Extend hook_entry with git push matching + branch resolution + block/bypass
@@ -26,5 +26,6 @@ tasks:
   title: Set pactkit self-config allow_direct_push/tamper_guard
   completed: true
 created_at: '2026-08-28T07:32:17+00:00'
-updated_at: '2026-08-28T09:37:23+00:00'
+updated_at: '2026-08-28T10:25:19+00:00'
 completed_at: '2026-08-28T09:37:23+00:00'
+archived_at: '2026-08-28T10:25:19+00:00'
