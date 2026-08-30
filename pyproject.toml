@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pactkit"
-version = "2.24.2"
+version = "2.25.0"
 description = "Spec-driven agentic DevOps toolkit for AI coding assistants"
 readme = "README.md"
 license = "MIT"
@@ -55,7 +55,7 @@ pactkit = "pactkit.cli:main"
 
 [project.optional-dependencies]
 opencode = ["pactkit-opencode>=2.9.0"]
-codex = ["pactkit-codex>=2.24.0,<2.25.0"]
+codex = ["pactkit-codex>=2.25.0,<2.26.0"]
 visualize = [
     "tree-sitter>=0.25",
     "tree-sitter-go>=0.25",

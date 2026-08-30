@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.25.0] - 2026-08-30
+
+### Added
+- **Protected-branch push gate** — `git push` to a protected branch (default `main`/`master`) is intercepted across all three channels (PreToolUse, codex hooks.json, git pre-push) and blocked with an actionable message: the sanctioned path (feature branch + PR), the human bypass (`PACTKIT_ALLOW_DIRECT_PUSH=1` via the `!` prefix), and the repo-owner config (`enforcement.allow_direct_push`). Direct commits on protected branches block by default instead of merely running the full suite; `--no-verify` is no longer a free PreToolUse bypass (the agent can type it; only the env var proves a human channel). Every block and bypass is audited under `push_gate`.
+- **Tamper guard** — agent modification of enforcement artifacts is blocked: `.git/hooks/**`, `.pactkit/enforcement/**`, `.codex/hooks.json` fully; `.claude/settings.json` only when the edit removes a gate registration. Bypass: `PACTKIT_ALLOW_CONFIG_EDIT=1` or `enforcement.tamper_guard: false`.
+- **L1 Hard-Rule Override Protocol** — core rules now state that L1 rules are never waivable in conversation: a conflicting user instruction is refused (not obeyed), and editing rules/hooks/gate config to comply is itself L1 tampering. Sanctioned channels: do it the sanctioned way, the human runs the command via `!`, or the repo owner changes the config.
+- **Stack-aware commit-gate test commands** — the gate runs the detected stack's real suite (`npm test` / `go test ./...` / `mvn|gradle test`) instead of forcing pytest onto Node/Go/Java repos; `pactkit doctor` probes report stack-specific availability. Python keeps the venv-aware pytest path verbatim (monorepos included).
+- **Session context hooks** — `pactkit gate --hook session-start` regenerates `.pactkit/context.md` and prints it (SessionStart injects stdout as context; fires post-compaction too), `--hook pre-compact` refreshes state as a side effect and never blocks compaction. Cold-start orientation is deterministic instead of prompt-hoped.
+- **Spec tampering guard** — during Act, editing a spec with an active preflight receipt is blocked ("Spec is Law", L1); Plan-phase spec writing is unaffected (no receipt exists yet). Bypass: `PACTKIT_ALLOW_SPEC_EDIT=1` or `pactkit gate authorize spec_edit`.
+- **Authorization gate** — external-effect commands (`gh pr create`, `gh release create|delete|upload`, `gh repo create|delete`, `npm`/`pnpm`/`yarn`/`cargo publish`, `twine upload`, `docker push`) block until the user authorizes: ask first, then `pactkit gate authorize <scope>` opens a short-TTL audited window; the strict human channel is `PACTKIT_AUTHORIZED=1` via `!`. Read-only variants never match. Honest threat model: prevents forgetting, not malice — all uses leave records.
+- **Secrets gate** — Bash commands containing literal credential material (AWS `AKIA…`, `ghp_`/`github_pat_`, `glpat-`, `xox?-`, `sk-…`, private keys, `password=`/`pwd=`/`passwd=` with a literal value) block by default; env-var indirection (`password=$DB_PASS`) is exempt as the sanctioned pattern. Bypass: `PACTKIT_ALLOW_SECRET=1` or `enforcement.secrets_gate: false`.
+- **`pactkit gate` command** — one entry for session hooks and `authorize <scope> [--ttl-minutes N]` (token lives in the tamper-guard-protected `.pactkit/enforcement/`).
+- **Gate telemetry** — gate blocks, authorizations, and Skill invocations feed the run-event stream (`gate_blocked` / `authorization_asked` / `authorization_granted` / `command_invoked`) so `pactkit stats` reflects real direct-PDCA usage, not only the workflow engine: per-gate block counts, per-command invocation counts, and the authorization pair at project scope. Telemetry is best-effort and never blocks a gate verdict.
+- **`enforcement` config section** — `protected_branches` (default `[main, master]`), `allow_direct_push` (false), `tamper_guard` (true), `spec_guard` (true), `auth_gate` (true), `secrets_gate` (true), `auth_ttl_minutes` (30). Missing/malformed values fall back to safe defaults.
+
+### Fixed
+- **Git hooks no longer lock out machines without pactkit** — generated pre-commit/pre-push scripts probe `command -v pactkit` and WARN + allow when the binary is missing (was: exit 127 blocking every commit for teammates/CI in non-Python teams).
+- **Audit records no longer persist credentials** — command-derived text is redacted (`[REDACTED:{pattern}]`) before any persistence (enforcement reasons, event details, stderr); `pactkit clean` scrubs legacy records once. Found in the 2026-08-30 fleet inspection: a blocked `PGPASSWORD=…` command had written the literal password into the on-disk audit record.
+
+### Changed
+- **Behavior change (intentional)**: direct commits on `main`/`master` that previously "just ran more tests" now block by default — set `enforcement.allow_direct_push: true` (PactKit's own repo does) or use the bypass env var.
+- `pactkit stats` output gains a project-scoped `Gate telemetry` section (JSON: `gate_telemetry`).
+- Constitution baseline: core protocol word budget 735→900 (L1 Override Protocol + authorize channel).
+
 ## [2.24.2] - 2026-08-27
 
 ### Fixed
