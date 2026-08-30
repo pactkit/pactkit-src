@@ -597,8 +597,9 @@ def main():
         help="Hook mode: read hook JSON context from stdin (SessionStart/PreCompact)",
     )
     gate_parser.add_argument(
-        "scope", nargs="?", default=None,
-        help="Authorize a scope (pr|release|repo|publish|spec_edit) for the TTL window",
+        "scope", nargs="*", default=None,
+        help="Authorize a scope (pr|release|repo|publish|spec_edit) for the TTL window. "
+        "Both `pactkit gate authorize <scope>` and `pactkit gate <scope>` work.",
     )
     gate_parser.add_argument(
         "--ttl-minutes", type=int, default=None,
@@ -1651,7 +1652,16 @@ def main():
         if args.scope:
             from pactkit.auth_gate import authorize
 
-            print(authorize(project_root, args.scope, args.ttl_minutes))
+            # HOTFIX-slim-20260830bbb5bc219d35: the gate messages and the
+            # L1 Override Protocol document `pactkit gate authorize <scope>`;
+            # accept the keyword form alongside the bare positional form.
+            tokens = list(args.scope)
+            if tokens and tokens[0] == "authorize":
+                tokens = tokens[1:]
+            if len(tokens) != 1:
+                parser.error("gate: authorize takes exactly one scope "
+                             "(pr|release|repo|publish|spec_edit)")
+            print(authorize(project_root, tokens[0], args.ttl_minutes))
             raise SystemExit(0)
 
         parser.error("gate: --hook or a scope (authorize) is required")

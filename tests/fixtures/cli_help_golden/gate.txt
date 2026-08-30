@@ -1,10 +1,11 @@
 usage: pactkit gate [-h] [--hook {session-start,pre-compact}]
                     [--ttl-minutes TTL_MINUTES]
-                    [scope]
+                    [scope ...]
 
 positional arguments:
   scope                 Authorize a scope (pr|release|repo|publish|spec_edit)
-                        for the TTL window
+                        for the TTL window. Both `pactkit gate authorize
+                        <scope>` and `pactkit gate <scope>` work.
 
 options:
   -h, --help            show this help message and exit

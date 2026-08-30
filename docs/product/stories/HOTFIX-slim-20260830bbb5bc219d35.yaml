@@ -1,0 +1,18 @@
+schema_version: 1
+id: HOTFIX-slim-20260830bbb5bc219d35
+title: gate CLI syntax + push-gate cross-repo root
+spec_path: docs/specs/HOTFIX-slim-20260830bbb5bc219d35.md
+status: done
+tasks:
+- id: task-28c4e1d550
+  title: Accept authorize keyword in gate CLI
+  completed: true
+- id: task-f5de85695c
+  title: Resolve cd-target repo in hook_entry
+  completed: true
+- id: task-0764566491
+  title: Focused tests + golden refresh
+  completed: true
+created_at: '2026-08-30T04:48:13+00:00'
+updated_at: '2026-08-30T04:52:32+00:00'
+completed_at: '2026-08-30T04:52:32+00:00'

@@ -431,6 +431,29 @@ def run_gate(root: Path) -> GateResult:
         return result
 
 
+# HOTFIX-slim-20260830bbb5bc219d35: a `cd <dir> && git push` targets
+# <dir>'s repository, not the session cwd — gates must evaluate the
+# TARGET repo's enforcement config.  Match `cd` at command start or after
+# a shell separator; the last cd before the git command wins.
+_CD_TARGET_RE = re.compile(r"(?:^|&&|;|\|\|)\s*cd\s+([^\s;&|]+)")
+
+
+def _command_root(command: str, session_root: Path) -> Path:
+    """Directory a shell command actually operates in (last cd target).
+
+    Relative targets resolve against the session root; a target that is
+    not a directory falls back to the session root (never misroute, never
+    crash on odd cd usage like `cd -`).
+    """
+    targets = _CD_TARGET_RE.findall(command)
+    if not targets:
+        return session_root
+    target = Path(targets[-1]).expanduser()
+    if not target.is_absolute():
+        target = session_root / target
+    return target if target.is_dir() else session_root
+
+
 def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
     """PreToolUse hook mode. Returns (stderr_message, exit_code).
 
@@ -485,6 +508,11 @@ def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
         command = " ".join(str(part) for part in raw_command)
     else:
         command = str(raw_command)
+
+    # HOTFIX-slim-20260830bbb5bc219d35: evaluate gates against the repo the
+    # command actually operates in (`cd <other-repo> && git push`), not
+    # blindly against the session cwd.
+    root = _command_root(command, root)
 
     # L1 secrets scan runs on every Bash command, whatever it is
     from pactkit.secrets_gate import check_command as check_secrets
