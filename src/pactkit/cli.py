@@ -738,8 +738,12 @@ def main():
     elif args.command == "clean":
         from pathlib import Path
 
-        from pactkit.cleaners import clean_artifacts
+        from pactkit.cleaners import clean_artifacts, scrub_enforcement_records
 
+        if not args.dry_run:
+            scrubbed = scrub_enforcement_records(project_root)
+            if scrubbed:
+                print(f"   -> Redacted credentials in {scrubbed} enforcement record(s)")
         removed = clean_artifacts(project_root, stack=args.stack, dry_run=args.dry_run)
         if removed:
             prefix = "Would remove" if args.dry_run else "Removed"
@@ -1225,13 +1229,19 @@ def main():
     elif args.command == "stats":
         import json as json_module
 
-        from pactkit.run_stats import collect_runs, json_report, render_report
+        from pactkit.run_stats import (
+            collect_gate_telemetry,
+            collect_runs,
+            json_report,
+            render_report,
+        )
 
         runs = collect_runs(project_root)
+        telemetry = collect_gate_telemetry(project_root)
         if args.format == "json":
-            print(json_module.dumps(json_report(runs), indent=2, ensure_ascii=False))
+            print(json_module.dumps(json_report(runs, telemetry), indent=2, ensure_ascii=False))
         else:
-            print(render_report(runs))
+            print(render_report(runs, telemetry))
         raise SystemExit(0)
 
     elif args.command == "report":

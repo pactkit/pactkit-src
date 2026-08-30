@@ -72,6 +72,9 @@ def authorize(root: Path, scope: str, ttl_minutes: int | None = None) -> str:
     path = authorization_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    from pactkit.run_events import record_gate_event
+
+    record_gate_event(root, "authorization_granted", {"scope": scope, "ttl_minutes": minutes})
     return f"auth-gate: scope '{scope}' authorized for {minutes} minute(s)"
 
 
@@ -128,8 +131,14 @@ def check_command(command: str, root: Path, settings: dict | None = None) -> tup
         record_status(root, "auth_gate", FULL, f"{scope}: authorized (TTL token)")
         return "", 0
 
-    record_status(root, "auth_gate", FULL, f"blocked {scope}: '{command[:80]}' — awaiting user authorization")
+    from pactkit.run_events import record_gate_event
+    from pactkit.secrets_gate import redact_command
+
+    reason = f"blocked {scope}: '{redact_command(command)[:120]}' — awaiting user authorization"
+    record_status(root, "auth_gate", FULL, reason)
+    record_gate_event(root, "gate_blocked", {"gate": "auth_gate", "reason": reason})
+    record_gate_event(root, "authorization_asked", {"scope": scope})
     return (
-        _BLOCK_MESSAGE.format(command=command[:80], scope=scope, ttl=ttl),
+        _BLOCK_MESSAGE.format(command=redact_command(command)[:80], scope=scope, ttl=ttl),
         2,
     )

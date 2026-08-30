@@ -336,6 +336,10 @@ def check_push(root: Path, command: str) -> tuple[str, int]:
     record_status(
         root, "push_gate", FULL, f"blocked direct push to protected branch '{target}'"
     )
+    from pactkit.run_events import record_gate_event
+
+    reason = f"blocked direct push to protected branch '{target}'"
+    record_gate_event(root, "gate_blocked", {"gate": "push_gate", "reason": reason})
     lines = [
         f"[FAIL] push-gate: direct push to protected branch '{target}' is blocked "
         "(L1: protected-branch direct push — the constraint survives a conflicting instruction).",
@@ -381,6 +385,9 @@ def run_gate(root: Path) -> GateResult:
             )
             result.exit_code = 1
             record_status(root, "commit_gate", FULL, reason)
+            from pactkit.run_events import record_gate_event
+
+            record_gate_event(root, "gate_blocked", {"gate": "commit_gate", "reason": reason})
             return result
 
         returncode, output = run_pytest(root, test_files)
@@ -399,6 +406,11 @@ def run_gate(root: Path) -> GateResult:
             tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
             result.lines.extend(f"  {ln}" for ln in tail)
             result.exit_code = 1
+            from pactkit.run_events import record_gate_event
+
+            record_gate_event(root, "gate_blocked", {
+                "gate": "commit_gate", "reason": "tests RED — commit blocked",
+            })
         record_status(root, "commit_gate", FULL, "")
         return result
 
@@ -457,6 +469,16 @@ def hook_entry(stdin_text: str, root: Path) -> tuple[str, int]:
     tool_name = str(payload.get("tool_name") or "")
     if tool_name in ("Edit", "Write"):
         return check_edit_tool(tool_name, tool_input, root)
+
+    if tool_name == "Skill":
+        # STORY-slim-20260830c65491123af1 R4: usage telemetry for the direct
+        # PDCA command path — the workflow engine never sees these.  Never
+        # blocks; never falls through to the Bash checks.
+        name = str(tool_input.get("command") or tool_input.get("skill") or "")
+        from pactkit.run_events import record_gate_event
+
+        record_gate_event(root, "command_invoked", {"command": name})
+        return "", 0
 
     raw_command = tool_input.get("command") or ""
     if isinstance(raw_command, list):  # legacy codex shell tool form
@@ -616,7 +638,8 @@ def install_hook(root: Path) -> str:
 
     hooks = settings.setdefault("hooks", {})
     pre_tool = hooks.setdefault("PreToolUse", [])
-    for matcher in _HOOK_MATCHERS:
+    # Skill matcher (Claude Code formats only) feeds command_invoked telemetry
+    for matcher in (*_HOOK_MATCHERS, "Skill"):
         _merge_pre_tooluse_entry(pre_tool, matcher)
     for event, command in _SESSION_HOOK_COMMANDS.items():
         _merge_event_entry(hooks, event, command)

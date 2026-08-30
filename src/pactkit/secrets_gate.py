@@ -44,6 +44,20 @@ def scan_command(command: str) -> list[str]:
     return [name for name, pattern in _SECRET_PATTERNS if pattern.search(command)]
 
 
+def redact_command(command: str) -> str:
+    """Replace every matched credential span with [REDACTED:{name}].
+
+    STORY-slim-20260830c65491123af1 R1: any text derived from a command
+    string that is about to be PERSISTED (enforcement reasons, run-event
+    details) must pass through here first — a leak-prevention gate must
+    never manufacture a persisted leak.
+    """
+    redacted = command
+    for name, pattern in _SECRET_PATTERNS:
+        redacted = pattern.sub(f"[REDACTED:{name}]", redacted)
+    return redacted
+
+
 def check_command(command: str, root, settings: dict | None = None) -> tuple[str, int]:
     """PreToolUse hook mode. Returns (message, exit_code); 2 = block."""
     from pactkit.commit_gate import _enforcement_settings
@@ -61,6 +75,9 @@ def check_command(command: str, root, settings: dict | None = None) -> tuple[str
         return "", 0  # explicit local-script bypass; not worth an audit record
 
     from pactkit.enforcement import FULL, record_status
+    from pactkit.run_events import record_gate_event
 
-    record_status(root, "secrets_gate", FULL, f"blocked: {', '.join(matched)} in '{command[:80]}'")
+    reason = f"blocked: {', '.join(matched)} in '{redact_command(command)[:120]}'"
+    record_status(root, "secrets_gate", FULL, reason)
+    record_gate_event(root, "gate_blocked", {"gate": "secrets_gate", "reason": reason})
     return _BLOCK_MESSAGE.format(names=", ".join(matched)), 2

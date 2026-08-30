@@ -187,13 +187,54 @@ def collect_runs(root: Path) -> list[dict[str, Any]]:
     return runs
 
 
-def json_report(runs: list[dict[str, Any]]) -> dict[str, Any]:
+def collect_gate_telemetry(root: Path) -> dict[str, Any]:
+    """Gate telemetry aggregate (STORY-slim-20260830c65491123af1).
+
+    Reads the project-level gate event stream: per-gate block counts
+    (friction/noise), per-command invocation counts (real usage of the
+    direct PDCA path), and gate-emitted authorization decisions.  This is
+    the project-scoped bucket — story attribution lives inside the events
+    but is not aggregated away from the project view.
+    """
+    from pactkit.run_events import gate_events_path, read_events
+
+    telemetry: dict[str, Any] = {
+        "authorization_decisions": {"asked": 0, "granted": 0, "denied": 0},
+        "gate_blocks": {},
+        "command_invocations": {},
+    }
+    path = gate_events_path(root)
+    if not path.is_file():
+        return telemetry
+    events, _corrupt = read_events(path)
+    for event in events:
+        kind = event["event"]
+        detail = event.get("detail") if isinstance(event.get("detail"), dict) else {}
+        if kind == "authorization_asked":
+            telemetry["authorization_decisions"]["asked"] += 1
+        elif kind == "authorization_granted":
+            telemetry["authorization_decisions"]["granted"] += 1
+        elif kind == "authorization_denied":
+            telemetry["authorization_decisions"]["denied"] += 1
+        elif kind == "gate_blocked":
+            gate = str(detail.get("gate") or "?")
+            telemetry["gate_blocks"][gate] = telemetry["gate_blocks"].get(gate, 0) + 1
+        elif kind == "command_invoked":
+            command = str(detail.get("command") or "?")
+            telemetry["command_invocations"][command] = (
+                telemetry["command_invocations"].get(command, 0) + 1
+            )
+    return telemetry
+
+
+def json_report(runs: list[dict[str, Any]],
+                gate_telemetry: dict[str, Any] | None = None) -> dict[str, Any]:
     available = [r for r in runs if r["events"] == "available"]
     total_dwell: dict[str, float] = {}
     for run in available:
         for kind, seconds in run["blocker_dwell_seconds"].items():
             total_dwell[kind] = round(total_dwell.get(kind, 0.0) + seconds, 3)
-    return {
+    report = {
         "runs": runs,
         "summary": {
             "run_count": len(runs),
@@ -203,11 +244,15 @@ def json_report(runs: list[dict[str, Any]]) -> dict[str, Any]:
             "total_step_rework": sum(r["step_rework"] for r in available),
         },
     }
+    if gate_telemetry is not None:
+        report["gate_telemetry"] = gate_telemetry
+    return report
 
 
-def render_report(runs: list[dict[str, Any]]) -> str:
+def render_report(runs: list[dict[str, Any]],
+                  gate_telemetry: dict[str, Any] | None = None) -> str:
     """Human-readable friction table."""
-    if not runs:
+    if not runs and not gate_telemetry:
         return "No runs found."
     lines = ["Run friction metrics:", ""]
     for run in runs:
@@ -228,4 +273,21 @@ def render_report(runs: list[dict[str, Any]]) -> str:
     corrupt = sum(r["corrupt_lines"] for r in runs)
     if corrupt:
         lines.append(f"  [WARN] {corrupt} corrupt event line(s) skipped")
+    if gate_telemetry:
+        lines += ["", "Gate telemetry (project-scoped):"]
+        auth = gate_telemetry.get("authorization_decisions", {})
+        lines.append(
+            f"  authorization: asked={auth.get('asked', 0)} "
+            f"granted={auth.get('granted', 0)} denied={auth.get('denied', 0)}"
+        )
+        blocks = gate_telemetry.get("gate_blocks", {})
+        if blocks:
+            lines.append("  gate blocks: " + ", ".join(
+                f"{gate}={count}" for gate, count in sorted(blocks.items())
+            ))
+        commands = gate_telemetry.get("command_invocations", {})
+        if commands:
+            lines.append("  commands: " + ", ".join(
+                f"{command}={count}" for command, count in sorted(commands.items())
+            ))
     return "\n".join(lines)

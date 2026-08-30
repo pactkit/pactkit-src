@@ -409,6 +409,7 @@ graph TD
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
     activate_pactkit_maintainer_overlay["activate_pactkit_maintainer_overlay"]
+    active_story_id["active_story_id"]
     append_event["append_event"]
     append_lesson["append_lesson"]
     assess["assess"]
@@ -460,6 +461,7 @@ graph TD
     cleanup_unmodified_legacy_skills["cleanup_unmodified_legacy_skills"]
     codegraph_sync["codegraph_sync"]
     collect_changed_files["collect_changed_files"]
+    collect_gate_telemetry["collect_gate_telemetry"]
     collect_runs["collect_runs"]
     compute_conflicts["compute_conflicts"]
     compute_waves["compute_waves"]
@@ -479,6 +481,7 @@ graph TD
     find_pactkit_yaml["find_pactkit_yaml"]
     format_markdown_table["format_markdown_table"]
     gate_channel["gate_channel"]
+    gate_events_path["gate_events_path"]
     generate_context["generate_context"]
     generate_default_yaml["generate_default_yaml"]
     generate_item_id["generate_item_id"]
@@ -531,8 +534,10 @@ graph TD
     read_status["read_status"]
     record_attempt["record_attempt"]
     record_deployed_command["record_deployed_command"]
+    record_gate_event["record_gate_event"]
     record_legacy_usage["record_legacy_usage"]
     record_status["record_status"]
+    redact_command["redact_command"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
     render["render"]
@@ -561,6 +566,7 @@ graph TD
     scan_and_replace_tbd["scan_and_replace_tbd"]
     scan_command["scan_command"]
     schema_config_report["schema_config_report"]
+    scrub_enforcement_records["scrub_enforcement_records"]
     select_execution_mode["select_execution_mode"]
     session_start_entry["session_start_entry"]
     sha256_file["sha256_file"]
@@ -836,6 +842,7 @@ graph TD
     check_push --> _enforcement_settings
     check_push --> resolve_push_target
     check_push --> record_status
+    check_push --> record_gate_event
     check_push --> record_attempt
     check_push --> record_status
     check_push --> record_status
@@ -850,11 +857,14 @@ graph TD
     run_gate --> record_status
     run_gate --> record_status
     run_gate --> record_status
+    run_gate --> record_gate_event
+    run_gate --> record_gate_event
     run_gate --> record_status
     run_gate --> record_status
     run_gate --> record_status
     hook_entry --> run_gate
     hook_entry --> check_edit_tool
+    hook_entry --> record_gate_event
     hook_entry --> check_push
     hook_entry --> check_bash_command
     hook_entry --> render
@@ -880,13 +890,19 @@ graph TD
     ensure_gate_channel --> install_pre_push_hook
     check_command --> scan_command
     check_command --> record_status
+    check_command --> record_gate_event
     check_command --> _enforcement_settings
+    check_command --> redact_command
     check_command --> match_scope
     check_command --> _token_valid
     check_command --> record_status
+    check_command --> record_gate_event
+    check_command --> record_gate_event
     check_command --> _enforcement_settings
     check_command --> record_status
     check_command --> record_status
+    check_command --> redact_command
+    check_command --> redact_command
     _summarize --> _parse_ts
     _summarize --> _parse_ts
     collect_runs --> LessonRepository_add
@@ -903,6 +919,8 @@ graph TD
     collect_runs --> ContinuationStore_status
     collect_runs --> ContinuationStore_status
     collect_runs --> ContinuationStore_status
+    collect_gate_telemetry --> gate_events_path
+    collect_gate_telemetry --> read_events
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
@@ -1131,6 +1149,7 @@ graph TD
     generate_context --> _parse_last_lessons
     _record --> _record_gate
     _record --> record_status
+    _record_gate --> record_gate_event
     _record_gate --> record_status
     _spec_edit_allowed --> _token_valid
     _check_spec_path --> _spec_edit_allowed
@@ -1174,6 +1193,7 @@ graph TD
     main --> load_config
     main --> generate_item_id
     main --> clean_artifacts
+    main --> scrub_enforcement_records
     main --> classify_changes
     main --> generate_context
     main --> context_output_path
@@ -1230,6 +1250,7 @@ graph TD
     main --> run_observe
     main --> PlanFinalizer_finalize
     main --> collect_runs
+    main --> collect_gate_telemetry
     main --> PlanFinalizer_finalize
     main --> main__unit_json
     main --> ContinuationEngine_resume
@@ -1313,6 +1334,10 @@ graph TD
     clean_artifacts --> detect_stack
     clean_artifacts --> _inside_protected
     clean_artifacts --> _inside_protected
+    scrub_enforcement_records --> redact_command
+    record_gate_event --> append_event
+    record_gate_event --> gate_events_path
+    record_gate_event --> active_story_id
     parse_story --> _parse_field_table
     parse_story --> _parse_touches
     parse_story --> ContinuationStore_status
@@ -1333,6 +1358,7 @@ graph TD
     check_coverage --> _record
     check_coverage --> _record
     authorize --> authorization_path
+    authorize --> record_gate_event
     _token_valid --> authorization_path
     _get_issue_tracker_provider --> find_pactkit_yaml
     issue_sync --> _parse_item_type

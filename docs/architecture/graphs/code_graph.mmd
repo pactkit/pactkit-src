@@ -170,11 +170,13 @@ graph TD
     src_pactkit_commit_gate_py --> src_pactkit_regression_py
     src_pactkit_commit_gate_py --> src_pactkit_test_mapper_py
     src_pactkit_commit_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_commit_gate_py --> src_pactkit_run_events_py
     src_pactkit_commit_gate_py --> src_pactkit_secrets_gate_py
     src_pactkit_commit_gate_py --> src_pactkit_auth_gate_py
     src_pactkit_commit_gate_py --> src_pactkit_config_py
     src_pactkit_secrets_gate_py --> src_pactkit_commit_gate_py
     src_pactkit_secrets_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_secrets_gate_py --> src_pactkit_run_events_py
     src_pactkit_run_stats_py --> src_pactkit_run_events_py
     src_pactkit_lint_runner_py --> src_pactkit_cleaners_py
     src_pactkit_lint_runner_py --> src_pactkit_prompts_workflows_py
@@ -208,6 +210,7 @@ graph TD
     src_pactkit_context_gen_py --> src_pactkit_governance_py
     src_pactkit_context_gen_py --> src_pactkit_continuation_py
     src_pactkit_tamper_guard_py --> src_pactkit_enforcement_py
+    src_pactkit_tamper_guard_py --> src_pactkit_run_events_py
     src_pactkit_tamper_guard_py --> src_pactkit_auth_gate_py
     src_pactkit_tamper_guard_py --> src_pactkit_commit_gate_py
     src_pactkit_cli_py --> src_pactkit___init___py
@@ -258,13 +261,16 @@ graph TD
     src_pactkit_backfill_py --> src_pactkit_governance_py
     src_pactkit_utils_py --> src_pactkit_config_py
     src_pactkit_utils_py --> src_pactkit_cleaners_py
+    src_pactkit_cleaners_py --> src_pactkit_secrets_gate_py
     src_pactkit_spec_graph_py --> src_pactkit_schemas_py
     src_pactkit_spec_graph_py --> src_pactkit___init___py
     src_pactkit_spec_status_py --> src_pactkit_schemas_py
     src_pactkit_coverage_gate_py --> src_pactkit_utils_py
     src_pactkit_coverage_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_auth_gate_py --> src_pactkit_run_events_py
     src_pactkit_auth_gate_py --> src_pactkit_commit_gate_py
     src_pactkit_auth_gate_py --> src_pactkit_enforcement_py
+    src_pactkit_auth_gate_py --> src_pactkit_secrets_gate_py
     src_pactkit_issue_sync_py --> src_pactkit_config_py
     src_pactkit_test_mapper_py --> src_pactkit_cleaners_py
     src_pactkit_test_mapper_py --> src_pactkit_prompts_workflows_py

@@ -71,11 +71,13 @@ def _record(root: Path, reason: str) -> None:
 
 def _record_gate(root: Path, gate: str, reason: str) -> None:
     from pactkit.enforcement import FULL, record_status
+    from pactkit.run_events import record_gate_event
 
     try:
         record_status(root, gate, FULL, reason)
     except Exception:  # noqa: BLE001 - audit is best-effort, never blocks
         pass
+    record_gate_event(root, "gate_blocked", {"gate": gate, "reason": reason})
 
 
 def _relpath(root: Path, file_path: Path) -> str | None:

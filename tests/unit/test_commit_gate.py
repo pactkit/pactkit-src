@@ -236,9 +236,9 @@ class TestHookDeployment:
         msg = install_hook(repo)
         settings = json.loads((repo / ".claude" / "settings.json").read_text())
         entries = settings["hooks"]["PreToolUse"]
-        # STORY-slim-202608289e83eeb30df4 R5/R6: Bash feeds the commit/push
-        # pipeline, Edit|Write feeds the tamper guard.
-        assert {e["matcher"] for e in entries} == {"Bash", "Edit|Write"}
+        # Bash feeds the commit/push pipeline, Edit|Write the tamper guard,
+        # Skill the command_invoked telemetry (STORY-slim-20260830c65491123af1 R4).
+        assert {e["matcher"] for e in entries} == {"Bash", "Edit|Write", "Skill"}
         assert all(e["hooks"][0]["command"] == "pactkit commit-gate --hook" for e in entries)
         assert "installed" in msg
 
@@ -252,8 +252,8 @@ class TestHookDeployment:
         settings = json.loads((repo / ".claude" / "settings.json").read_text())
         assert settings["model"] == "opus"
         pre = settings["hooks"]["PreToolUse"]
-        assert len(pre) == 3  # user's + our two matchers, no duplication
-        assert sum("commit-gate" in h.get("command", "") for e in pre for h in e["hooks"]) == 2
+        assert len(pre) == 4  # user's + our three matchers, no duplication
+        assert sum("commit-gate" in h.get("command", "") for e in pre for h in e["hooks"]) == 3
 
     def test_invalid_json_left_untouched(self, repo):
         (repo / ".claude").mkdir(exist_ok=True)

@@ -128,3 +128,38 @@ def clean_artifacts(
                         match.unlink()
 
     return removed
+
+
+def scrub_enforcement_records(project_root: Path) -> int:
+    """One-time credential redaction in persisted enforcement records.
+
+    STORY-slim-20260830c65491123af1 R1/AC5: records written before the
+    redaction fix may contain literal credentials in their ``reason``
+    fields.  Rewrite each record with the command-derived text passed
+    through ``secrets_gate.redact_command``; untouched records stay
+    byte-identical, corrupt files are left alone.  Returns the number of
+    records rewritten.
+    """
+    import json
+
+    from pactkit.secrets_gate import redact_command
+
+    directory = project_root / ".pactkit" / "enforcement"
+    if not directory.is_dir():
+        return 0
+    rewritten = 0
+    for path in sorted(directory.glob("*.json")):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(record, dict) or "reason" not in record:
+            continue
+        original = record["reason"]
+        redacted = redact_command(str(original))
+        if redacted == original:
+            continue
+        record["reason"] = redacted
+        path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        rewritten += 1
+    return rewritten

@@ -28,6 +28,11 @@ EVENT_TYPES = (
     "authorization_asked",
     "authorization_granted",
     "authorization_denied",
+    # Gate telemetry (STORY-slim-20260830c65491123af1): every gate block
+    # (friction/noise measurement) and every Skill invocation (real usage
+    # of the direct PDCA command path, which the workflow engine never sees).
+    "gate_blocked",
+    "command_invoked",
 )
 
 
@@ -98,3 +103,62 @@ def read_events(path: Path) -> tuple[list[dict[str, Any]], int]:
         else:
             corrupt += 1
     return events, corrupt
+
+
+# ---------------------------------------------------------------------------
+# Gate telemetry (STORY-slim-20260830c65491123af1)
+# ---------------------------------------------------------------------------
+
+
+def gate_events_path(root: Path) -> Path:
+    """Project-level gate telemetry stream (blocks, authorizations, commands).
+
+    Deliberately separate from the per-story continuation streams: gate
+    events are project-scoped with best-effort story attribution carried
+    in the ``story_id`` field, and the workflow engine never owns this
+    file.
+    """
+    return root / ".pactkit" / "events" / "gates.jsonl"
+
+
+def active_story_id(root: Path) -> str | None:
+    """Best-effort attribution: the most recently prefledged story.
+
+    The newest ``current.json`` under ``.pactkit/preflight/`` is the
+    closest machine-observable proxy for "the story this session is
+    working on" — zero prompt dependency.
+    """
+    preflight = root / ".pactkit" / "preflight"
+    if not preflight.is_dir():
+        return None
+    best: tuple[float, str] | None = None
+    try:
+        for story_dir in preflight.iterdir():
+            marker = story_dir / "current.json"
+            if marker.is_file():
+                mtime = marker.stat().st_mtime
+                if best is None or mtime > best[0]:
+                    best = (mtime, story_dir.name)
+    except OSError:
+        return None
+    return best[1] if best else None
+
+
+def record_gate_event(root: Path, event: str, detail: Any,
+                      story_id: str | None = None) -> None:
+    """Best-effort gate telemetry append — NEVER blocks a gate verdict.
+
+    Telemetry failure is silent by design: the gate's enforcement verdict
+    and its enforcement status record are the contract; the event stream
+    is the measurement.
+    """
+    try:
+        append_event(
+            gate_events_path(root),
+            event=event,
+            story_id=story_id if story_id is not None else active_story_id(root),
+            run_id=None,
+            detail=detail,
+        )
+    except Exception:  # noqa: BLE001 - measurement must never break enforcement
+        pass
