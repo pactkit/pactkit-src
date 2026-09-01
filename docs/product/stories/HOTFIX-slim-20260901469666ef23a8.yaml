@@ -2,7 +2,7 @@ schema_version: 1
 id: HOTFIX-slim-20260901469666ef23a8
 title: commit-gate misfires on docs/meta-only commits
 spec_path: docs/specs/HOTFIX-slim-20260901469666ef23a8.md
-status: done
+status: archived
 tasks:
 - id: task-b98663e6af
   title: 'Fix three defects: doc-only patterns miss repo meta files (.gitignore/.claude/.codex);
@@ -11,5 +11,6 @@ tasks:
     From harness-backend 2026-09-01 friction.'
   completed: true
 created_at: '2026-09-01T08:29:59+00:00'
-updated_at: '2026-09-01T08:50:16+00:00'
+updated_at: '2026-09-01T09:06:16+00:00'
 completed_at: '2026-09-01T08:50:16+00:00'
+archived_at: '2026-09-01T09:06:16+00:00'

@@ -212,6 +212,7 @@ graph TD
     _collect_insights["_collect_insights"]
     _collect_insights__dfs["_collect_insights._dfs"]
     _collect_signals["_collect_signals"]
+    _command_root["_command_root"]
     _compute_hotspots["_compute_hotspots"]
     _compute_layer_level["_compute_layer_level"]
     _compute_score["_compute_score"]
@@ -862,6 +863,7 @@ graph TD
     run_gate --> record_status
     run_gate --> record_status
     run_gate --> record_status
+    hook_entry --> _command_root
     hook_entry --> run_gate
     hook_entry --> check_edit_tool
     hook_entry --> record_gate_event

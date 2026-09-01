@@ -5,7 +5,7 @@
 | ID | HOTFIX-slim-20260830bbb5bc219d35 |
 | Status | Done |
 | Priority | P1 |
-| Release | 2.25.1 (pending) |
+| Release | 2.25.1 |
 
 ## Background
 
