@@ -142,6 +142,15 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
     selection is a Python-only capability).  An unresolvable stack raises
     GateUnavailable so run_gate degrades to WARN + allow instead of
     running a wrong-suite command.
+
+    HOTFIX-slim-20260901469666ef23a8: the full-suite target falls back
+    from ``tests/unit/`` to ``tests/`` when only the latter exists, so a
+    flat-layout suite still runs instead of erroring with exit 4; a repo
+    with no tests directory keeps the convention target.  "No module
+    named pytest" (e.g. the pipx fallback interpreter without pytest)
+    raises GateUnavailable — an unusable toolchain is an environment
+    failure (R3 WARN + allow), not a RED verdict, matching the
+    missing-binary FileNotFoundError path.
     """
     from pactkit.utils import stack_test_command
 
@@ -153,8 +162,10 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
         cmd = [*_pytest_command(root), "-rs", "-q"]
         if test_files:
             cmd.extend(test_files)
+        elif (root / "tests").is_dir() and not (root / "tests" / "unit").is_dir():
+            cmd.append("tests/")  # flat layout: run the suite that exists
         else:
-            cmd.append("tests/unit/")
+            cmd.append("tests/unit/")  # convention target
     else:
         cmd = list(base_cmd)  # full suite; test-file selection ignored
     env = os.environ.copy()
@@ -165,7 +176,16 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
             cmd, cwd=root, capture_output=True, text=True,
             timeout=PYTEST_TIMEOUT_SECONDS, env=env,
         )
-        return proc.returncode, proc.stdout + proc.stderr
+        output = proc.stdout + proc.stderr
+        # Only pytest's own absence counts: a failing test may legitimately
+        # print "No module named <something>" without the toolchain being broken.
+        if proc.returncode != 0 and re.search(
+            r"no module named ['\"]?pytest\b", output.lower()
+        ):
+            raise GateUnavailable(
+                f"pytest not importable via {cmd[0]} — create the project venv"
+            )
+        return proc.returncode, output
     except FileNotFoundError:
         raise GateUnavailable("pytest not found")
     except subprocess.TimeoutExpired:
@@ -402,14 +422,34 @@ def run_gate(root: Path) -> GateResult:
             result.lines.extend(f"  {line}" for line in summary["skip_reasons"][:20])
 
         if returncode != 0:
-            result.lines.append("[FAIL] tests are RED — commit blocked (R5: fix is yours, not the gate's)")
-            tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
-            result.lines.extend(f"  {ln}" for ln in tail)
+            collected = (
+                summary["passed"] + summary["failed"]
+                + summary["skipped"] + summary["errors"]
+            )
+            if collected == 0:
+                # HOTFIX-slim-20260901469666ef23a8: exit 4/5 means nothing
+                # ran — say so instead of implying failures. Still RED: a
+                # change that reaches the gate needs a suite to verify it
+                # (docs/meta-only changes skip via classification instead).
+                result.lines.append(
+                    "[FAIL] no tests collected — treated as RED (code changes "
+                    "require tests; docs/meta-only changes skip via classification)"
+                )
+                tail = [ln for ln in output.splitlines() if ln.startswith(("ERROR",))][:10]
+                result.lines.extend(f"  {ln}" for ln in tail)
+            else:
+                result.lines.append("[FAIL] tests are RED — commit blocked (R5: fix is yours, not the gate's)")
+                tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
+                result.lines.extend(f"  {ln}" for ln in tail)
             result.exit_code = 1
             from pactkit.run_events import record_gate_event
 
             record_gate_event(root, "gate_blocked", {
-                "gate": "commit_gate", "reason": "tests RED — commit blocked",
+                "gate": "commit_gate",
+                "reason": (
+                    "no tests collected — treated as RED"
+                    if collected == 0 else "tests RED — commit blocked"
+                ),
             })
         record_status(root, "commit_gate", FULL, "")
         return result

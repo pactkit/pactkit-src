@@ -7,11 +7,17 @@ from __future__ import annotations
 import fnmatch
 
 # Files that match these patterns are considered "doc-only" — safe to skip tests.
+# HOTFIX-slim-20260901469666ef23a8: repo/agent metadata (.gitignore,
+# .claude/**, .codex/**) carries no runtime code — a design-baseline or
+# governance commit containing them must not lose the doc-only skip.
 _DOC_ONLY_PATTERNS: tuple[str, ...] = (
     "docs/**",
     "*.md",
     "README*",
     "*.txt",
+    ".gitignore",
+    ".claude/**",
+    ".codex/**",
 )
 # tests/** is deliberately NOT doc-only: a commit that modifies tests must
 # run them (STORY-slim-20260826ce35b77ce005 R5).
