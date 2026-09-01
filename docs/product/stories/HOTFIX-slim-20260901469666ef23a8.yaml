@@ -2,13 +2,14 @@ schema_version: 1
 id: HOTFIX-slim-20260901469666ef23a8
 title: commit-gate misfires on docs/meta-only commits
 spec_path: docs/specs/HOTFIX-slim-20260901469666ef23a8.md
-status: backlog
+status: done
 tasks:
 - id: task-b98663e6af
   title: 'Fix three defects: doc-only patterns miss repo meta files (.gitignore/.claude/.codex);
     full-suite target hard-codes tests/unit/ with no tests/ fallback and counts exit
     4/5 as RED; missing pytest module (pipx fallback) reads as RED instead of GateUnavailable.
     From harness-backend 2026-09-01 friction.'
-  completed: false
+  completed: true
 created_at: '2026-09-01T08:29:59+00:00'
-updated_at: '2026-09-01T08:29:59+00:00'
+updated_at: '2026-09-01T08:50:16+00:00'
+completed_at: '2026-09-01T08:50:16+00:00'
