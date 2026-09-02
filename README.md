@@ -61,6 +61,22 @@ T   Truth    Data is the Truth     Factual basis for all judgment — no memory,
 - **Full PDCA Lifecycle** — Plan -> Act -> Check -> Done, with quality gates at every stage
 - **Safe by Design** — TDD-first, safe regression, pre-existing test protection
 - **Multi-Tool Support** — Works with Claude Code, OpenCode, and Codex CLI
+- **AI-Native SDLC, Operationalized** — The artifact chain, gates, and audit trail that Anthropic's engineering practice describes — running across all 3 hosts
+
+## AI-Native SDLC Alignment
+
+Anthropic's engineering team has published their practice for an AI-native software development lifecycle: six stages, each producing a committed artifact, humans at the gates, and the commit chain as the audit trail. PactKit operationalizes that model today — across all 3 supported hosts:
+
+| AI-Native SDLC | Practice | PactKit mechanism |
+|----------------|----------|-------------------|
+| Plan — `intent.md` | Ideas become committed artifacts with provenance | `/project-clarify` -> `/project-plan` (Spec + Story, timestamped in git history) |
+| Design — `spec.md` | Requirements + design in one pass; policies applied at generation time | Spec generation reads rule modules; `spec_guard` keeps the Spec law during Act |
+| Build — `plan.md` | No code before an accepted plan; guardrails as code, not prompt discipline | Spec lint + consistency check gate `/project-act`; enforcement gates enforce what prompts can only state |
+| Test — `diff + tests` | Sessions self-verify; steering config is regression-tested | TDD loop + regression gates; `commit-gate` blocks RED suites with skip != pass transparency |
+| Deploy — `PR + findings` | Multi-pass review; hooks as allow/ask/block gates | `auth_gate` authorization pairs, `push_gate`, `tamper_guard` — every block and bypass audited |
+| Maintain | Incidents feed the next cycle | Gate telemetry + friction stats (`pactkit stats`) decide what to tune next |
+
+Beyond the published practice: the same governance runs on Claude Code, OpenCode, and Codex CLI; interrupted sessions leave machine-observable `outcome_unknown` fences that block resume until the gate re-runs; and every gate decision lands in `.pactkit/enforcement/` as an audit record.
 
 ## Installation
 
