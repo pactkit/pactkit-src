@@ -1,6 +1,7 @@
 # Python
 *.pyc
 __pycache__/
+.coverage
 *.py[cod]
 *$py.class
 .pytest_cache/
