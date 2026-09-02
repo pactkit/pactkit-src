@@ -35,7 +35,7 @@ def mock_pytest(monkeypatch, returncode=0, output="10 passed in 1.0s"):
 
     def _run(root, test_files):
         calls["test_files"] = test_files
-        return returncode, output
+        return returncode, output, None
 
     monkeypatch.setattr(commit_gate, "run_pytest", _run)
     return calls
@@ -122,14 +122,15 @@ class TestFullSuiteTargetFallback:
         assert captured["cmd"][-1] == "tests/unit/"
 
     def test_no_tests_collected_reports_honestly(self, repo, monkeypatch):
-        """Exit 5 with zero collected blocks, but says 'no tests collected' —
-        not 'tests are RED'."""
+        """Exit 5 with zero collected blocks, but says 'no tests ran' —
+        not 'tests are RED' (wording sharpened by
+        STORY-slim-202609025bc9246b6a54: exit code, not guesswork)."""
         mock_git(monkeypatch, changed=("src/pkg/mod.py",))
         mock_pytest(monkeypatch, returncode=5, output="no tests ran in 0.01s")
         result = run_gate(repo)
         assert result.exit_code == 1
         text = result.render()
-        assert "no tests collected" in text
+        assert "no tests ran" in text
         assert "tests are RED" not in text
 
 
@@ -155,6 +156,6 @@ class TestMissingPytestModule:
             "1 failed, 0 passed in 0.01s"
         )
         fake_subprocess(monkeypatch, returncode=1, stdout=output)
-        returncode, combined = run_pytest(repo, None)
+        returncode, combined, _counts = run_pytest(repo, None)
         assert returncode == 1
         assert "No module named 'requests'" in combined

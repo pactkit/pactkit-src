@@ -46,7 +46,10 @@ class TestPythonResolution:
         stack, _ = stack_test_command(tmp_path)
         assert stack == "python"
 
-    def test_run_pytest_python_flags_unchanged(self, tmp_path, monkeypatch):
+    def test_run_pytest_python_invocation_shape(self, tmp_path, monkeypatch):
+        """Gate flags + junit count channel + target last (STORY-slim-
+        202609025bc9246b6a54 added --junitxml/-o; -rsfE keeps skip reasons
+        and adds FAILED/ERROR short-summary lines the tail filter needs)."""
         _write(tmp_path, "pyproject.toml")
         observed = {}
 
@@ -56,7 +59,13 @@ class TestPythonResolution:
 
         monkeypatch.setattr(commit_gate.subprocess, "run", fake_run)
         run_pytest(tmp_path, None)
-        assert observed["cmd"][-3:] == ["-rs", "-q", "tests/unit/"]
+        cmd = observed["cmd"]
+        assert cmd[-1] == "tests/unit/"
+        assert "-rsfE" in cmd
+        assert "-q" in cmd
+        assert "--junitxml" in cmd
+        assert cmd[cmd.index("--junitxml") + 1].endswith(".xml")
+        assert "junit_family=xunit2" in cmd
 
 
 # ===========================================================================
@@ -122,7 +131,7 @@ class TestGateRunsStackSuite:
 
         def _run(root, test_files):
             observed["test_files"] = test_files
-            return returncode, output
+            return returncode, output, None
 
         monkeypatch.setattr(commit_gate, "run_pytest", _run)
         return observed

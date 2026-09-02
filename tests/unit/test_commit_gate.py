@@ -35,7 +35,7 @@ def mock_pytest(monkeypatch, returncode=0, output="10 passed in 1.0s"):
 
     def _run(root, test_files):
         calls["test_files"] = test_files
-        return returncode, output
+        return returncode, output, None
 
     monkeypatch.setattr(commit_gate, "run_pytest", _run)
     return calls
@@ -54,7 +54,7 @@ def test_run_pytest_does_not_leak_parent_git_repository_environment(repo, monkey
     monkeypatch.setenv("PACTKIT_KEEP_ME", "yes")
     monkeypatch.setattr(commit_gate.subprocess, "run", fake_run)
 
-    assert run_pytest(repo, None) == (0, "1 passed")
+    assert run_pytest(repo, None) == (0, "1 passed", None)
     assert "GIT_INDEX_FILE" not in observed
     assert "GIT_DIR" not in observed
     assert "GIT_WORK_TREE" not in observed

@@ -7,8 +7,13 @@ Three interception channels share one decision pipeline:
   - git pre-push hook: `pactkit commit-gate --push-gate` (exit 1 = block)
 
 The pipeline: collect changed files -> regression classification -> minimal
-test set via test-map -> run pytest -rs -> report passed/failed/skipped
-separately (skip != pass transparency, R2).
+test set via test-map -> run pytest -rsfE with a junitxml count channel ->
+report passed/failed/skipped separately (skip != pass transparency, R2).
+
+STORY-slim-202609025bc9246b6a54: counts are parsed from junitxml, not the
+terminal summary line — a repo's addopts (e.g. a second "-q" stacking to
+"-qq") suppresses that line in pytest 9 while junitxml still carries exact
+numbers.
 
 Self-lock protection (R3): any failure of the gate itself (no pytest, parse
 errors, timeouts) exits 0 with a loud WARN — a gate that blocks the commit
@@ -26,6 +31,8 @@ import json
 import os
 import re
 import subprocess
+import tempfile
+import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -133,8 +140,21 @@ def _pytest_command(root: Path) -> list[str]:
     return pytest_command(root)
 
 
-def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
-    """Run the project's test suite; returns (returncode, combined output).
+def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str, dict | None]:
+    """Run the project's test suite; returns (returncode, output, counts).
+
+    STORY-slim-202609025bc9246b6a54: counts come from a junitxml side channel
+    (``--junitxml`` + pinned ``junit_family=xunit2``).  The terminal summary
+    line is not a contract — a repo's ``addopts`` can suppress it (live
+    incident 2026-09-02: ``addopts="-q"`` stacking with the gate's own
+    ``-q`` into ``-qq``, where pytest 9 prints no final summary), while
+    junitxml still carries exact numbers.  Repo addopts are otherwise fully
+    honored — required run parameters such as ``--asyncio-mode=auto`` keep
+    applying, so addopts are never cleared.  A repo that disables the
+    junitxml plugin (``-p no:junitxml``) rejects the flag with exit 4; the
+    gate retries once without its own junit flags (usage errors return
+    instantly, so no second suite run) and counts fall back to terminal
+    parsing — a gate's own flag must never lock commits (R3).
 
     STORY-slim-20260828d43fae4edbb6: dispatches through
     ``utils.stack_test_command`` — python keeps the pytest invocation
@@ -158,16 +178,26 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
     if pair is None:
         raise GateUnavailable("no runnable test command for the detected stack")
     stack, base_cmd = pair
+    junit_path: str | None = None
     if stack == "python":
-        cmd = [*_pytest_command(root), "-rs", "-q"]
+        # -rsfE: skip reasons (R2 transparency) AND FAILED/ERROR short-summary
+        # lines, which the zero-counts tail filter prints — a plain -rs hides
+        # failures from the short summary at every verbosity.
+        head = [*_pytest_command(root), "-rsfE", "-q"]
         if test_files:
-            cmd.extend(test_files)
+            targets = list(test_files)
         elif (root / "tests").is_dir() and not (root / "tests" / "unit").is_dir():
-            cmd.append("tests/")  # flat layout: run the suite that exists
+            targets = ["tests/"]  # flat layout: run the suite that exists
         else:
-            cmd.append("tests/unit/")  # convention target
+            targets = ["tests/unit/"]  # convention target
+        plain_cmd = [*head, *targets]  # retry shape: no junit flags
+        fd, junit_path = tempfile.mkstemp(prefix="pactkit-gate-", suffix=".xml")
+        os.close(fd)
+        # Junit flags sit before the targets so the target stays cmd[-1]
+        # (the historical contract asserted by the target-fallback tests).
+        cmd = [*head, "--junitxml", junit_path, "-o", "junit_family=xunit2", *targets]
     else:
-        cmd = list(base_cmd)  # full suite; test-file selection ignored
+        plain_cmd = cmd = list(base_cmd)  # full suite; test-file selection ignored
     env = os.environ.copy()
     for key in GIT_REPOSITORY_ENV_VARS:
         env.pop(key, None)
@@ -177,6 +207,21 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
             timeout=PYTEST_TIMEOUT_SECONDS, env=env,
         )
         output = proc.stdout + proc.stderr
+        if (
+            junit_path is not None
+            and proc.returncode == 4
+            and "unrecognized arguments" in output
+            and "--junitxml" in output
+        ):
+            # The repo disabled the junitxml plugin; our flag, our retry.
+            proc = subprocess.run(
+                plain_cmd, cwd=root, capture_output=True, text=True,
+                timeout=PYTEST_TIMEOUT_SECONDS, env=env,
+            )
+            output = proc.stdout + proc.stderr
+            counts: dict | None = None
+        else:
+            counts = parse_junit_counts(junit_path) if junit_path else None
         # Only pytest's own absence counts: a failing test may legitimately
         # print "No module named <something>" without the toolchain being broken.
         if proc.returncode != 0 and re.search(
@@ -185,11 +230,17 @@ def run_pytest(root: Path, test_files: list[str] | None) -> tuple[int, str]:
             raise GateUnavailable(
                 f"pytest not importable via {cmd[0]} — create the project venv"
             )
-        return proc.returncode, output
+        return proc.returncode, output, counts
     except FileNotFoundError:
         raise GateUnavailable("pytest not found")
     except subprocess.TimeoutExpired:
         raise GateUnavailable(f"pytest exceeded {PYTEST_TIMEOUT_SECONDS}s")
+    finally:
+        if junit_path:
+            try:
+                os.unlink(junit_path)
+            except OSError:
+                pass
 
 
 class GateUnavailable(Exception):
@@ -252,6 +303,38 @@ def parse_pytest_summary(output: str) -> dict:
             counts[key] += int(num)
     counts["skip_reasons"] = _SKIPPED_RE.findall(output)
     return counts
+
+
+def parse_junit_counts(path: str) -> dict | None:
+    """Exact pass/fail counts from a pytest junitxml file; None when unusable.
+
+    STORY-slim-202609025bc9246b6a54: the authoritative count channel — the
+    file exists iff this gate created it, and a missing/garbage file simply
+    degrades to terminal parsing (never crashes the gate).  xfailed tests
+    land in ``skipped`` here while the terminal regex counted them nowhere;
+    counts may shift slightly between channels, verdicts do not (the exit
+    code rules).  Content is never logged — test output can carry secrets.
+    """
+    try:
+        root = ET.parse(path).getroot()
+    except (ET.ParseError, OSError, ValueError):
+        return None
+    suite = root if root.tag == "testsuite" else root.find(".//testsuite")
+    if suite is None:
+        return None
+    try:
+        tests = int(suite.get("tests") or 0)
+        failures = int(suite.get("failures") or 0)
+        errors = int(suite.get("errors") or 0)
+        skipped = int(suite.get("skipped") or 0)
+    except (TypeError, ValueError):
+        return None
+    return {
+        "passed": max(tests - failures - errors - skipped, 0),
+        "failed": failures,
+        "skipped": skipped,
+        "errors": errors,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -410,8 +493,12 @@ def run_gate(root: Path) -> GateResult:
             record_gate_event(root, "gate_blocked", {"gate": "commit_gate", "reason": reason})
             return result
 
-        returncode, output = run_pytest(root, test_files)
+        returncode, output, junit_counts = run_pytest(root, test_files)
         summary = parse_pytest_summary(output)
+        if junit_counts is not None:
+            # junitxml is authoritative for counts; the terminal parse keeps
+            # providing skip_reasons (STORY-slim-202609025bc9246b6a54).
+            summary.update(junit_counts)
         result.lines.append(
             f"tests: {summary['passed']} passed, {summary['failed']} failed, "
             f"{summary['skipped']} skipped, {summary['errors']} errors"
@@ -426,30 +513,45 @@ def run_gate(root: Path) -> GateResult:
                 summary["passed"] + summary["failed"]
                 + summary["skipped"] + summary["errors"]
             )
+            # FAILED/ERROR short-summary lines survive -qq (probe-verified);
+            # the old ERROR-only filter threw away failure names.
+            tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
             if collected == 0:
-                # HOTFIX-slim-20260901469666ef23a8: exit 4/5 means nothing
-                # ran — say so instead of implying failures. Still RED: a
+                # STORY-slim-202609025bc9246b6a54: the exit code says WHY the
+                # counts are zero — no guessing, no "no tests collected" claim
+                # about a run that may have executed 331 tests. Still RED: a
                 # change that reaches the gate needs a suite to verify it
                 # (docs/meta-only changes skip via classification instead).
-                result.lines.append(
-                    "[FAIL] no tests collected — treated as RED (code changes "
-                    "require tests; docs/meta-only changes skip via classification)"
-                )
-                tail = [ln for ln in output.splitlines() if ln.startswith(("ERROR",))][:10]
-                result.lines.extend(f"  {ln}" for ln in tail)
+                if returncode == 5:
+                    reason = "no tests ran — treated as RED (exit 5)"
+                    result.lines.append(
+                        "[FAIL] no tests ran (pytest exit 5) — treated as RED "
+                        "(code changes require tests; docs/meta-only changes "
+                        "skip via classification)"
+                    )
+                elif returncode == 4:
+                    reason = "pytest usage/collection error (exit 4)"
+                    result.lines.append(
+                        "[FAIL] pytest usage/collection error (exit 4) — commit blocked"
+                    )
+                else:
+                    reason = f"counts unparseable (exit {returncode})"
+                    result.lines.append(
+                        f"[FAIL] pytest exited {returncode} but counts unparseable — "
+                        "the output summary line is missing (repo addopts can "
+                        "suppress it, e.g. addopts=\"-q\" stacking to -qq); run "
+                        "the suite manually to see real failures"
+                    )
             else:
+                reason = "tests RED — commit blocked"
                 result.lines.append("[FAIL] tests are RED — commit blocked (R5: fix is yours, not the gate's)")
-                tail = [ln for ln in output.splitlines() if ln.startswith(("FAILED", "ERROR"))][:10]
-                result.lines.extend(f"  {ln}" for ln in tail)
+            result.lines.extend(f"  {ln}" for ln in tail)
             result.exit_code = 1
             from pactkit.run_events import record_gate_event
 
             record_gate_event(root, "gate_blocked", {
                 "gate": "commit_gate",
-                "reason": (
-                    "no tests collected — treated as RED"
-                    if collected == 0 else "tests RED — commit blocked"
-                ),
+                "reason": reason,
             })
         record_status(root, "commit_gate", FULL, "")
         return result

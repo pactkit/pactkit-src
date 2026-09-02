@@ -518,6 +518,7 @@ graph TD
     normalize_rule_id["normalize_rule_id"]
     pactkit_owned_files["pactkit_owned_files"]
     pactkit_rule_ownership["pactkit_rule_ownership"]
+    parse_junit_counts["parse_junit_counts"]
     parse_pytest_summary["parse_pytest_summary"]
     parse_story["parse_story"]
     pid_alive["pid_alive"]
@@ -831,6 +832,7 @@ graph TD
     _pytest_command --> pytest_command
     run_pytest --> stack_test_command
     run_pytest --> _pytest_command
+    run_pytest --> parse_junit_counts
     decide_test_set --> current_branch
     decide_test_set --> _enforcement_settings
     decide_test_set --> classify_changes

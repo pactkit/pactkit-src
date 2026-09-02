@@ -1,0 +1,25 @@
+schema_version: 1
+id: STORY-slim-202609025bc9246b6a54
+title: commit-gate 计数解析鲁棒性:中和 repo addopts 干扰 + 真实失败文案
+spec_path: docs/specs/STORY-slim-202609025bc9246b6a54.md
+status: archived
+tasks:
+- id: task-941986cb31
+  title: R1 计数可得性——gate 的 pytest 调用不受 repo addopts 干扰(2026-09-02 harness-backend 事故:addopts=-q
+    与 gate -q 叠加成 -qq,pytest 9 在 -qq 下不打印 summary 行→解析永远全 0);候选 -o addopts= 清空 / --junitxml
+    机器可读计数,需权衡 addopts 中必要运行参数(如 --asyncio-mode=auto)不可被清空
+  completed: true
+- id: task-9ec4d9781d
+  title: R2 文案真实化——rc≠0 且计数全 0 时按 exit code 报因:5=没跑、4=usage/collection、其余=跑了但 summary
+    不可解析(附 addopts 干扰提示),不再一律报 no tests collected
+  completed: true
+- id: task-b654f21aa3
+  title: R3 回归测试——fixture repo 带 pyproject addopts=-q 复现事故场景,断言修复后计数解析正确、文案与事实一致
+  completed: true
+- id: task-f95e26ae4b
+  title: R4 全量套件绿 + CHANGELOG/README 更新
+  completed: true
+created_at: '2026-09-02T09:29:38+00:00'
+updated_at: '2026-09-02T10:03:21+00:00'
+completed_at: '2026-09-02T09:54:10+00:00'
+archived_at: '2026-09-02T10:03:21+00:00'

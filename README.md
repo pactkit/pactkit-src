@@ -267,7 +267,7 @@ PactKit ships 45 deterministic CLI subcommands — operations that were previous
 | `pactkit lint-lessons` | Validate lessons.md structure |
 | `pactkit lint-testcase` | Validate test case structure |
 | `pactkit done-verify` | Archive honesty gate: requirement→test evidence chain, checkbox↔case consistency, status machine (blocks `/project-done` on FAIL) |
-| `pactkit commit-gate` | Pre-commit test gate with skip≠pass transparency; stack-aware (pytest/npm test/go test/mvn/gradle); PreToolUse hook + git pre-commit/pre-push channels, auto-installed per format |
+| `pactkit commit-gate` | Pre-commit test gate with skip≠pass transparency; stack-aware (pytest/npm test/go test/mvn/gradle); counts via junitxml — immune to repo `addopts` verbosity tricks — with exit-code-truthful failure messages; PreToolUse hook + git pre-commit/pre-push channels, auto-installed per format |
 | `pactkit gate` | Session context hooks (`--hook session-start/pre-compact`) + external-effect authorization (`pactkit gate <scope> [--ttl-minutes N]`) |
 | `pactkit deps` | External dependency check (`deps check`) and guided install (`deps install`) for node/codegraph/gh |
 | `pactkit schema config` | List every pactkit.yaml key with default, effective value, and source |

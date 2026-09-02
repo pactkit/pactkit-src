@@ -57,7 +57,7 @@ def mock_pytest(monkeypatch, returncode=0, output="10 passed in 1.0s"):
 
     def _run(root, test_files):
         calls["test_files"] = test_files
-        return returncode, output
+        return returncode, output, None
 
     monkeypatch.setattr(commit_gate, "run_pytest", _run)
     return calls
