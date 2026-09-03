@@ -1236,12 +1236,15 @@ def main():
         if args.lazy:
             should_run, reason = should_visualize(project_root, stack=args.stack)
             if not should_run:
-                if args.sync:
-                    synced, msg = codegraph_sync(project_root)
-                    if synced:
-                        print(f"🔄 {msg}")
-                    elif "skipped" not in msg:
-                        print(f"codegraph: {msg}")
+                # HOTFIX 2026-09-03: sync unconditionally — the old code only
+                # synced with an explicit --sync flag, so `pactkit visualize
+                # --lazy` (what Act Phase 4 runs) never touched the codegraph
+                # db and it went silently stale after every source change.
+                synced, msg = codegraph_sync(project_root)
+                if synced:
+                    print(f"🔄 {msg}")
+                elif "skipped" not in msg:
+                    print(f"codegraph: {msg}")
                 print(reason)
                 raise SystemExit(0)
             print(f"Visualize needed: {reason}")
@@ -1254,6 +1257,12 @@ def main():
             )
         else:
             run_visualize_graphs(project_root, focus=args.focus)
+        # HOTFIX 2026-09-03: graphs regenerated — sync the codegraph index too
+        # (run_visualize_graphs never did; the Act Phase 4 doc promise
+        # "codegraph sync is handled automatically" was never wired here).
+        synced, msg = codegraph_sync(project_root)
+        if synced:
+            print(f"🔄 {msg}")
 
     elif args.command == "sync":
         from pathlib import Path

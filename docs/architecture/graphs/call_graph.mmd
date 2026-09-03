@@ -216,6 +216,7 @@ graph TD
     _compute_hotspots["_compute_hotspots"]
     _compute_layer_level["_compute_layer_level"]
     _compute_score["_compute_score"]
+    _concern_in_specs["_concern_in_specs"]
     _convert_command_frontmatter_opencode["_convert_command_frontmatter_opencode"]
     _counter_path["_counter_path"]
     _create_issue["_create_issue"]
@@ -247,6 +248,7 @@ graph TD
     _extract_sprint_contract["_extract_sprint_contract"]
     _finalize_request_digest["_finalize_request_digest"]
     _find_existing_spec["_find_existing_spec"]
+    _finding["_finding"]
     _fingerprint["_fingerprint"]
     _flatten_pip_audit_vulns["_flatten_pip_audit_vulns"]
     _fmt_scalar["_fmt_scalar"]
@@ -281,6 +283,7 @@ graph TD
     _is_initialized["_is_initialized"]
     _is_json_value["_is_json_value"]
     _is_pactkit_managed_global_md["_is_pactkit_managed_global_md"]
+    _is_reference_path["_is_reference_path"]
     _is_specific["_is_specific"]
     _is_user_modified_claude_md["_is_user_modified_claude_md"]
     _is_version_file["_is_version_file"]
@@ -288,6 +291,7 @@ graph TD
     _load_entry_point_deployers["_load_entry_point_deployers"]
     _load_touches["_load_touches"]
     _load_write_scope["_load_write_scope"]
+    _loaded_since["_loaded_since"]
     _major_minor["_major_minor"]
     _max_nesting_depth["_max_nesting_depth"]
     _merge["_merge"]
@@ -361,6 +365,7 @@ graph TD
     _rewrite_yaml["_rewrite_yaml"]
     _rotate_if_needed["_rotate_if_needed"]
     _run_deploy_command["_run_deploy_command"]
+    _run_guide_show["_run_guide_show"]
     _run_layer["_run_layer"]
     _run_pytest_cov["_run_pytest_cov"]
     _safe_repo_path["_safe_repo_path"]
@@ -375,6 +380,7 @@ graph TD
     _should_refresh_audit["_should_refresh_audit"]
     _spec_edit_allowed["_spec_edit_allowed"]
     _spec_status["_spec_status"]
+    _specs_root["_specs_root"]
     _sprint_completion["_sprint_completion"]
     _status_path["_status_path"]
     _story_fact_block["_story_fact_block"]
@@ -382,6 +388,7 @@ graph TD
     _suggest_action["_suggest_action"]
     _summarize["_summarize"]
     _task_id["_task_id"]
+    _telemetry_age_days["_telemetry_age_days"]
     _terminal["_terminal"]
     _tests_pass["_tests_pass"]
     _timestamp["_timestamp"]
@@ -389,6 +396,8 @@ graph TD
     _tool_version["_tool_version"]
     _unavailable["_unavailable"]
     _unit["_unit"]
+    _update_command_manifest["_update_command_manifest"]
+    _update_deploy_manifest["_update_deploy_manifest"]
     _update_stack_if_stale["_update_stack_if_stale"]
     _upsert_claude_md_managed_block["_upsert_claude_md_managed_block"]
     _upsert_venv_managed_block["_upsert_venv_managed_block"]
@@ -410,11 +419,14 @@ graph TD
     _validate_workflow_state["_validate_workflow_state"]
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
+    accept_candidates["accept_candidates"]
     activate_pactkit_maintainer_overlay["activate_pactkit_maintainer_overlay"]
     active_story_id["active_story_id"]
     append_event["append_event"]
     append_lesson["append_lesson"]
+    append_rule_event["append_rule_event"]
     assess["assess"]
+    assess_spec_texts["assess_spec_texts"]
     atomic_write["atomic_write"]
     audit["audit"]
     authorization_path["authorization_path"]
@@ -437,6 +449,7 @@ graph TD
     check_core_metadata_divergence["check_core_metadata_divergence"]
     check_coverage["check_coverage"]
     check_dead_imports["check_dead_imports"]
+    check_dead_rules["check_dead_rules"]
     check_deploy_parity["check_deploy_parity"]
     check_deps["check_deps"]
     check_edit_tool["check_edit_tool"]
@@ -449,6 +462,7 @@ graph TD
     check_push["check_push"]
     check_requirement_evidence["check_requirement_evidence"]
     check_requirement_evidence__mentioned["check_requirement_evidence._mentioned"]
+    check_rule_health["check_rule_health"]
     check_rule_ownership["check_rule_ownership"]
     check_stale_docs["check_stale_docs"]
     check_stale_graphs["check_stale_graphs"]
@@ -470,12 +484,17 @@ graph TD
     context_output_path["context_output_path"]
     current_branch["current_branch"]
     decide_test_set["decide_test_set"]
+    default_deploy_roots["default_deploy_roots"]
+    default_roots["default_roots"]
     deploy["deploy"]
+    detect_graph_provider["detect_graph_provider"]
     detect_security_scope["detect_security_scope"]
     detect_security_scope__any_content_matches["detect_security_scope._any_content_matches"]
     detect_stack["detect_stack"]
     detect_stacks["detect_stacks"]
     detect_venv["detect_venv"]
+    diagnose_guide["diagnose_guide"]
+    diagnose_w012["diagnose_w012"]
     ensure_gate_channel["ensure_gate_channel"]
     evaluate_agent_final["evaluate_agent_final"]
     existing_config_copies["existing_config_copies"]
@@ -535,9 +554,11 @@ graph TD
     pytest_command["pytest_command"]
     read_events["read_events"]
     read_legacy_usage["read_legacy_usage"]
+    read_rule_events["read_rule_events"]
     read_status["read_status"]
     record_attempt["record_attempt"]
     record_deployed_command["record_deployed_command"]
+    record_deployed_file["record_deployed_file"]
     record_gate_event["record_gate_event"]
     record_legacy_usage["record_legacy_usage"]
     record_status["record_status"]
@@ -550,6 +571,7 @@ graph TD
     render_mermaid["render_mermaid"]
     render_report["render_report"]
     render_summary["render_summary"]
+    resolve_graph_provider["resolve_graph_provider"]
     resolve_pactkit_yaml_dir["resolve_pactkit_yaml_dir"]
     resolve_project_root["resolve_project_root"]
     resolve_push_target["resolve_push_target"]
@@ -558,6 +580,9 @@ graph TD
     retire_disabled_agents["retire_disabled_agents"]
     retire_disabled_skills["retire_disabled_skills"]
     rollback_paths["rollback_paths"]
+    rule_telemetry_summary["rule_telemetry_summary"]
+    rules_events_path["rules_events_path"]
+    run_diagnosis["run_diagnosis"]
     run_events_path["run_events_path"]
     run_garden["run_garden"]
     run_gate["run_gate"]
@@ -787,6 +812,22 @@ graph TD
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_matches_any
     detect_security_scope --> _path_ends_with_ext
+    _concern_in_specs --> _specs_root
+    diagnose_guide --> default_deploy_roots
+    diagnose_guide --> _finding
+    diagnose_guide --> _finding
+    diagnose_guide --> _concern_in_specs
+    diagnose_guide --> _finding
+    diagnose_guide --> _loaded_since
+    diagnose_guide --> _finding
+    diagnose_w012 --> _finding
+    diagnose_w012 --> _finding
+    assess_spec_texts --> _specs_root
+    run_diagnosis --> assess_spec_texts
+    run_diagnosis --> diagnose_w012
+    run_diagnosis --> diagnose_guide
+    run_diagnosis --> _telemetry_age_days
+    run_diagnosis --> _telemetry_age_days
     check_dead_imports --> _resolve_scope
     check_dead_imports --> _python_files
     check_dead_imports --> ContinuationEngine_start
@@ -803,6 +844,8 @@ graph TD
     run_garden --> check_dead_imports
     run_garden --> check_stale_docs
     run_garden --> check_pattern_duplication
+    check_dead_rules --> read_rule_events
+    check_dead_rules --> diagnose_guide
     __module__ --> _generate_project_claude_md
     record_status --> atomic_write
     record_status --> _status_path
@@ -927,10 +970,16 @@ graph TD
     collect_runs --> ContinuationStore_status
     collect_gate_telemetry --> gate_events_path
     collect_gate_telemetry --> read_events
+    rule_telemetry_summary --> read_rule_events
     run_lint --> detect_stack
     run_lint --> find_pactkit_yaml
     run_lint --> _add_fix_flag
     run_lint --> load_config
+    _update_command_manifest --> atomic_write
+    _update_deploy_manifest --> atomic_write
+    accept_candidates --> _is_reference_path
+    accept_candidates --> _update_command_manifest
+    accept_candidates --> _update_deploy_manifest
     build_change_risk_profile --> _is_docs_only
     resolve_project_root --> _is_initialized
     resolve_project_root --> _is_initialized
@@ -946,6 +995,7 @@ graph TD
     pactkit_owned_files --> sha256_file
     pactkit_owned_files --> sha256_file
     pactkit_owned_files --> sha256_file
+    pactkit_owned_files --> sha256_file
     pactkit_owned_files --> normalize_rule_id
     pactkit_rule_ownership --> normalize_rule_id
     pactkit_rule_ownership --> sha256_file
@@ -954,6 +1004,8 @@ graph TD
     write_deploy_manifest --> expected_components
     write_deploy_manifest --> pactkit_rule_ownership
     write_deploy_manifest --> pactkit_owned_files
+    record_deployed_file --> load_previous_manifest
+    record_deployed_file --> atomic_write
     should_visualize --> detect_stack
     run_visualize_single --> _print_codegraph_sync
     run_visualize_graphs --> _print_codegraph_sync
@@ -1247,30 +1299,37 @@ graph TD
     main --> WorkflowEngine_expire
     main --> ContinuationEngine_revalidate_artifacts
     main --> ContinuationEngine_resume
+    main --> WorkflowEngine_submit
+    main --> WorkflowEngine_record_turn_terminal
+    main --> _run_guide_show
+    main --> default_roots
+    main --> accept_candidates
+    main --> codegraph_sync
+    main --> PlanFinalizer_finalize
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
     main --> codegraph_sync
-    main --> WorkflowEngine_submit
-    main --> WorkflowEngine_record_turn_terminal
-    main --> run_garden
     main --> PlanFinalizer_finalize
+    main --> default_deploy_roots
     main --> codegraph_sync
-    main --> run_observe
-    main --> PlanFinalizer_finalize
-    main --> collect_runs
-    main --> collect_gate_telemetry
+    main --> run_garden
     main --> main__unit_json
     main --> ContinuationEngine_resume
+    main --> run_observe
     main --> ContinuationStore_status
-    main --> render_report
+    main --> collect_runs
+    main --> collect_gate_telemetry
+    main --> rule_telemetry_summary
     main --> main__unit_json
     main --> ContinuationEngine_bind_story
+    main --> render_report
     main --> json_report
     main --> check_legacy_engine_usage
     main --> check_orphaned_specs
     main --> check_config_drift
     main --> check_graph_provider
+    main --> check_rule_health
     main --> check_stale_graphs
     main --> check_hld_module_count
     main --> check_config_copy_drift
@@ -1294,6 +1353,7 @@ graph TD
     main --> check_codex_execution_capability
     main --> check_codex_hook_capability
     main --> check_workflow_continuation
+    main --> check_rule_health
     main --> issue_sync
     main --> map_to_tests
     main --> run_lint
@@ -1321,6 +1381,7 @@ graph TD
     main --> detect_stacks
     main --> update_yaml_stack
     main --> load_config
+    main --> resolve_graph_provider
     main --> BuiltinGraphProvider_query
     main --> project_router
     main --> GraphQueryResult_to_dict
@@ -1330,6 +1391,7 @@ graph TD
     main --> render_mermaid
     main --> to_json
     _check_adapter_compat --> check_adapter_compat
+    _run_guide_show --> append_rule_event
     _get_done_ids --> ContinuationEngine_start
     scan_and_replace_tbd --> _get_done_ids
     pytest_command --> detect_venv
@@ -1356,6 +1418,8 @@ graph TD
     render --> compute_conflicts
     to_json --> compute_waves
     to_json --> compute_conflicts
+    append_rule_event --> rules_events_path
+    read_rule_events --> rules_events_path
     _parse_coverage_output --> _classify_coverage
     _run_pytest_cov --> _pytest_command
     check_coverage --> _parse_coverage_output
@@ -1422,8 +1486,13 @@ graph TD
     check_config_drift --> check_config_drift__exists_in_any
     check_config_drift --> check_config_drift__dir_or_file_in_any
     check_graph_provider --> find_pactkit_yaml
+    check_graph_provider --> resolve_graph_provider
     check_graph_provider --> BuiltinGraphProvider_health
     check_graph_provider --> load_config
+    check_rule_health --> find_pactkit_yaml
+    check_rule_health --> run_diagnosis
+    check_rule_health --> load_config
+    check_rule_health --> read_rule_events
     check_stale_graphs --> load_config
     check_stale_graphs --> find_pactkit_yaml
     check_rule_ownership --> LessonRepository_add
@@ -1440,6 +1509,7 @@ graph TD
     check_adapter_skew --> _major_minor
     check_adapter_compat --> _major_minor
     check_adapter_compat --> _major_minor
+    resolve_graph_provider --> detect_graph_provider
     GraphProviderError___init__ --> BoardRenderer___init__
     CodegraphProvider_health --> CodegraphProvider__run
     CodegraphProvider_health --> CodegraphProvider__run
