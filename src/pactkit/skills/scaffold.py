@@ -217,6 +217,84 @@ def create_spec(i, t, *, run_id=None, standalone=True, project_root=None):
     return f"✅ Spec Created (managed={str(managed).lower()})"
 
 
+# --- ADR (STORY-slim-2026090333d6b72f7645) ---
+_ADR_SLUG_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _adr_slug(title: str) -> str:
+    slug = _ADR_SLUG_RE.sub("-", title.strip().lower()).strip("-")
+    return slug[:48].rstrip("-") or "decision"
+
+
+_ADR_TEMPLATE = """\
+# {id}: {title}
+
+| Field | Value |
+|-------|-------|
+| ID | {id} |
+| Status | proposed |
+| Date | {date} |
+| Supersedes | {supersedes} |
+| Superseded-by | None |
+
+## Context
+
+(Forces at play — the problem, constraints, and what makes this decision necessary)
+
+## Options Considered
+
+- **Option A**: (description — tradeoffs)
+- **Option B**: (description — tradeoffs)
+
+## Decision
+
+(What we decided and why this option won)
+
+## Consequences
+
+- (Positive outcomes)
+- (Negative outcomes / accepted risks)
+- (Follow-up actions)
+"""
+
+
+def create_adr(number, title, *, supersedes=None, project_root=None):
+    """Create an ADR; ``supersedes`` is the target ADR's ID (file stem).
+
+    Supersession is back-written into the target via incremental merge —
+    never a full replace (write-safety: the target may contain content this
+    writer did not generate).
+    """
+    root = Path(project_root or Path.cwd())
+    adr_id = f"ADR-{int(number):04d}-{_adr_slug(title)}"
+    adr_dir = root / "docs" / "architecture" / "governance" / "adr"
+    p = adr_dir / f"{adr_id}.md"
+    if p.exists():
+        return f"❌ ADR already exists: {p}"
+    c = (
+        _ADR_TEMPLATE
+        .replace("{id}", adr_id)
+        .replace("{title}", title)
+        .replace("{date}", datetime.date.today().isoformat())
+        .replace("{supersedes}", supersedes or "None")
+    )
+    adr_dir.mkdir(parents=True, exist_ok=True)
+    p.write_text(c, encoding="utf-8")
+    if supersedes:
+        target = adr_dir / f"{supersedes}.md"
+        if target.exists():
+            text = target.read_text(encoding="utf-8")
+            marker = "| Superseded-by | None |"
+            if marker in text:
+                target.write_text(
+                    text.replace(marker, f"| Superseded-by | {adr_id} |"),
+                    encoding="utf-8",
+                )
+            # else: target already has a Superseded-by value — leave it
+            # untouched and let lint-adr report the inconsistency.
+    return f"✅ ADR Created: {p}"
+
+
 # --- SKILL ---
 _SKILL_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
@@ -472,6 +550,10 @@ if __name__ == "__main__":
     p_skill.add_argument("skill_name")
     p_skill.add_argument("description")
     sub.add_parser("create_board")
+    p_adr = sub.add_parser("create_adr")
+    p_adr.add_argument("number", type=int, help="ADR sequence number, e.g. 1 -> ADR-0001")
+    p_adr.add_argument("title")
+    p_adr.add_argument("--supersedes", default=None, help="Target ADR id (file stem) this one overturns")
 
     a = parser.parse_args()
     if a.cmd == "create_test_file":
@@ -482,6 +564,8 @@ if __name__ == "__main__":
         print(git_start(a.story_id))
     elif a.cmd == "create_spec":
         print(create_spec(a.story_id, a.title, run_id=a.run_id, standalone=a.standalone))
+    elif a.cmd == "create_adr":
+        print(create_adr(a.number, a.title, supersedes=a.supersedes, project_root=None))
     elif a.cmd == "create_prd":
         print(create_prd(a.product_name))
     elif a.cmd == "create_skill":

@@ -12,6 +12,9 @@ import re
 from pathlib import Path
 
 from pactkit.schemas import (
+    ADR_REQUIRED_METADATA_FIELDS,
+    ADR_REQUIRED_SECTIONS,
+    ADR_STATUSES,
     CONTEXT_HEADER,
     CONTEXT_SECTIONS,
     LESSONS_MAX_ROWS,
@@ -141,5 +144,67 @@ def lint_testcase(path: Path) -> list[str]:
     for keyword in TEST_CASE_KEYWORDS:
         if keyword not in content:
             errors.append(f"Missing keyword: '{keyword}'")
+
+    return errors
+
+
+def lint_adr(path: Path) -> list[str]:
+    """Validate an ADR file structure (STORY-slim-2026090333d6b72f7645).
+
+    Checks:
+    - File exists.
+    - All ADR_REQUIRED_METADATA_FIELDS rows are present.
+    - Status is one of ADR_STATUSES.
+    - All ADR_REQUIRED_SECTIONS are present.
+    - Supersession consistency: a declared Supersedes target must exist and
+      carry a back-referencing Superseded-by; a superseded ADR must say by whom.
+
+    Returns:
+        List of error messages; empty list means the file is valid.
+    """
+    errors: list[str] = []
+
+    try:
+        content = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return [f"File not found: {path}"]
+    except OSError as exc:
+        return [f"Cannot read file {path}: {exc}"]
+
+    for field in ADR_REQUIRED_METADATA_FIELDS:
+        if f"| {field} " not in content:
+            errors.append(f"Missing metadata field: '{field}'")
+
+    status_match = re.search(r"\|\s*Status\s*\|\s*(\S+)\s*\|", content)
+    if not status_match:
+        errors.append("Missing Status value in metadata table")
+    elif status_match.group(1) not in ADR_STATUSES:
+        errors.append(
+            f"Invalid Status '{status_match.group(1)}' — expected one of {', '.join(ADR_STATUSES)}"
+        )
+
+    for section in ADR_REQUIRED_SECTIONS:
+        if section not in content:
+            errors.append(f"Missing section: '{section}'")
+
+    own_id = path.stem
+    supersedes_match = re.search(r"\|\s*Supersedes\s*\|\s*([^|\s][^|]*?)\s*\|", content)
+    supersedes = supersedes_match.group(1).strip() if supersedes_match else "None"
+    if supersedes != "None":
+        target = path.parent / f"{supersedes}.md"
+        if not target.exists():
+            errors.append(f"Supersedes target not found: {supersedes}")
+        else:
+            target_text = target.read_text(encoding="utf-8")
+            if f"| Superseded-by | {own_id} |" not in target_text:
+                errors.append(
+                    f"Supersedes target '{supersedes}' lacks back-reference "
+                    f"'| Superseded-by | {own_id} |' — re-run create_adr or fix manually"
+                )
+
+    superseded_by_match = re.search(r"\|\s*Superseded-by\s*\|\s*(\S+)\s*\|", content)
+    if status_match and status_match.group(1) == "superseded":
+        if not superseded_by_match or superseded_by_match.group(1) == "None":
+            errors.append("Status is 'superseded' but Superseded-by is not set")
 
     return errors

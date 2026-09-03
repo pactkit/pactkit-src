@@ -119,7 +119,7 @@ def test_guides_are_native_seven_section_documents():
     import inspect
     from pactkit.prompts import guides
 
-    assert len(guides.GUIDE_DEFINITIONS) == 22
+    assert len(guides.GUIDE_DEFINITIONS) == 23
     required = (
         "## Trigger", "## Questions", "## Safe Invariants",
         "## Defaults", "## Alternatives", "## Evidence",

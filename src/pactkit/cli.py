@@ -461,6 +461,10 @@ def main():
     lint_tc_parser = subparsers.add_parser("lint-testcase", help="Validate test case file structure")
     lint_tc_parser.add_argument("path", help="Path to test case file")
 
+    # pactkit lint-adr (STORY-slim-2026090333d6b72f7645)
+    lint_adr_parser = subparsers.add_parser("lint-adr", help="Validate ADR file structure")
+    lint_adr_parser.add_argument("path", help="Path to ADR file")
+
     # pactkit visualize --lazy --mode (STORY-slim-014 R7, HOTFIX-slim-023)
     viz_parser = subparsers.add_parser("visualize", help="Visualize code dependency graph")
     viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
@@ -1164,6 +1168,19 @@ def main():
         from pactkit.validators import lint_testcase
 
         errors = lint_testcase(Path(args.path))
+        if errors:
+            for e in errors:
+                print(f"  ✗ {e}")
+            raise SystemExit(1)
+        else:
+            print(f"{args.path}\n  Result: PASS")
+
+    elif args.command == "lint-adr":
+        from pathlib import Path
+
+        from pactkit.validators import lint_adr
+
+        errors = lint_adr(Path(args.path))
         if errors:
             for e in errors:
                 print(f"  ✗ {e}")

@@ -264,7 +264,7 @@ def test_manifest_v2_records_normalized_pdca_semantics(tmp_path):
     assert payload["phase_contracts"]["project-act"]["failure_semantics"] == (
         "incomplete_continue"
     )
-    assert len(payload["guides"]) == 22
+    assert len(payload["guides"]) == 23
     assert payload["sprint_capsules"]["single_active_phase"] is True
 
 

@@ -58,6 +58,11 @@ SPEC_GIVEN_WHEN_THEN = ("Given", "When", "Then")
 # W003: RFC 2119 keywords for requirement strength
 SPEC_RFC_KEYWORDS = ("MUST", "SHOULD", "MAY", "SHALL", "REQUIRED", "RECOMMENDED", "OPTIONAL")
 
+# STORY-slim-2026090333d6b72f7645: ADR document type (SWEBOK Architecture KA).
+ADR_REQUIRED_METADATA_FIELDS = ("ID", "Status", "Date", "Supersedes", "Superseded-by")
+ADR_REQUIRED_SECTIONS = ("## Context", "## Options Considered", "## Decision", "## Consequences")
+ADR_STATUSES = ("proposed", "accepted", "superseded")
+
 # Compiled RFC2119 pattern (for use in spec_linter)
 import re as _re  # noqa: E402
 
@@ -256,5 +261,13 @@ SCHEMA_REGISTRY = {
         "description": "Test cases (docs/test_cases/{ID}_case.md)",
         "title_format": TEST_CASE_TITLE_FORMAT,
         "keywords": TEST_CASE_KEYWORDS,
+    },
+    # STORY-slim-2026090333d6b72f7645: ADR replaces unstructured Key-Decisions
+    # prose — decisions need options, tradeoffs, and a supersession chain.
+    "adr": {
+        "description": "Architecture Decision Record (docs/architecture/governance/adr/)",
+        "required_metadata": ADR_REQUIRED_METADATA_FIELDS,
+        "required_sections": ADR_REQUIRED_SECTIONS,
+        "statuses": ADR_STATUSES,
     },
 }

@@ -113,12 +113,13 @@ completion.
     - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
     - Unmatched concerns → do not add (avoid noise).
     - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
-4.  **Domain Material Declaration** — if the requirement touches domain logic (business rules, data models, semantic layers, domain terminology):
-    - The Spec MUST declare the governing domain material (data dictionaries, semantic layers, requirement docs) in its `## Implementation Inputs` table (path + purpose), so Act Phase 0.7 spec-preflight loads it deterministically before the first source write.
-    - Pure infrastructure/tooling changes MUST state the skip reason in the Spec.
-    - **Output checkpoint**: `"Domain material declared: {list} | skipped: {reason}"`
+4.  **Domain Material Declaration** — if the requirement touches domain logic (business rules, data models, semantic layers, domain terms):
+    - The Spec MUST declare the governing domain material (data dictionaries, semantic layers, docs) in its `## Implementation Inputs` table (path + purpose), so Act Phase 0.7 spec-preflight loads it before the first source write.
+    - Infrastructure/tooling changes MUST state the skip reason.
+    - **Output checkpoint**: `"Domain material: {list} | skip: {reason}"`
 5.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
+6.  **Durable decisions become ADRs (Conditional)**: a durable architectural choice (data store, protocol, boundary, dependency) established or overturned here MUST also become an ADR: `{SCAFFOLD_CMD} create_adr {N} "{title}"` — fill the four sections, Status accepted, then `pactkit lint-adr`; overturning an old one passes `--supersedes {old id}`.
 
 ## 🎬 Phase 3.1: Story ID Generation
 1.  Run `pactkit generate-id` to allocate a decentralized time-prefixed Story ID; it preserves the `developer` prefix from pactkit.yaml.
@@ -265,6 +266,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 🎬 Phase 3: Implementation
 1.  **Write Code**: Implement logic in the appropriate source directory.
     - **Context7 (Conditional)**: IF implementing with an unfamiliar library API, use Context7 MCP to fetch up-to-date documentation before writing code.
+    - **Verify before writing (MUST)**: for external/third-party API calls, verify the signature via Context7 / official docs / existing project usage — never from training memory alone (mark unverified, check before relying).
 2.  **TDD Loop (Safe Iteration)**: Run ONLY the tests created in Phase 2. Loop until GREEN.
     - Do NOT include pre-existing tests in this loop.
     - Reassess the approach after several unsuccessful iterations, but keep investigating and repairing in the current session while progress is possible.
@@ -396,6 +398,8 @@ For each finding, assign a severity (P0-P3). Flag issues that may cause silent f
 
 **Defect-class sweep (MUST)**: for each defect found, search for the same pattern in related modules (grep or `pactkit query --callers`) and report same-class sites in the Phase 5 verdict — a pass verdict requires the class checked, not just the instance fixed.
 
+**Fabrication signals (P0)**: lint undefined-symbol results (F821) and type-checker errors mean an API was written from unverified memory — a fabricated-API defect, not a style issue.
+
 ## Phase 3: Spec Verification & Test Case Definition (The Law)
 1.  **Verify Spec Structure**: Run `pactkit spec-lint docs/specs/{STORY_ID}.md` (or `python3 -m pactkit spec-lint docs/specs/{STORY_ID}.md` if `pactkit` is not on `$PATH`) to validate Spec structure (E006 checks for `## Acceptance Criteria`).
     * *If ERRORs*: WARN the user — "Spec structure issues found. Run `/project-plan` to fix."
@@ -500,6 +504,11 @@ For each finding, assign a severity (P0-P3). Flag issues that may cause silent f
 ## QA Verdict: STORY-{ID}
 
 **Result**: PASS / FAIL
+
+### Validation
+| Key Spec scenario | Real end-user path? | Notes |
+|-------------------|---------------------|-------|
+| {scenario} | Yes / No / N-A | (a privileged shortcut is a FAIL) |
 
 ### Scan Summary
 | Category | P0 | P1 | P2 | P3 |

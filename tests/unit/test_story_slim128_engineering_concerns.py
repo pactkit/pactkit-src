@@ -113,12 +113,13 @@ class TestGuidesFiles:
         "operational-readiness.md",
         "dependency-supply-chain.md",
         "ui-state-accessibility.md",
+        "write-safety.md",
     }
 
-    def test_guides_files_has_22_entries(self):
+    def test_guides_files_has_23_entries(self):
         guides = _guides()
-        assert len(guides.GUIDES_FILES) == 22, (
-            f"GUIDES_FILES should have 22 entries, got {len(guides.GUIDES_FILES)}: "
+        assert len(guides.GUIDES_FILES) == 23, (
+            f"GUIDES_FILES should have 23 entries, got {len(guides.GUIDES_FILES)}: "
             f"{list(guides.GUIDES_FILES.keys())}"
         )
 
@@ -154,9 +155,9 @@ class TestGuidesFiles:
             count = _deploy_guides(claude_root)
             guides_dir = claude_root / "skills" / "_rules" / "guides"
             assert guides_dir.exists()
-            assert count == 22
+            assert count == 23
             files = list(guides_dir.glob("*.md"))
-            assert len(files) == 22
+            assert len(files) == 23
 
     def test_deploy_guides_file_content_matches_source(self):
         from pactkit.generators.deployer import _deploy_guides

@@ -268,6 +268,38 @@ GUIDE_DEFINITIONS = {
         ("Keyboard, focus, label, contrast, state, and responsive tests.",),
         ("No user interface, rendered state, or interaction behavior changes.",),
     ),
+    # STORY-slim-2026090333d6b72f7645: restored (condensed) from the
+    # architecture-principles layer deleted in the 2.24 capsule rewrite —
+    # the direct countermeasure for BUG-010 / BUG-slim-089 / the
+    # 2026-08-13 codex config wipe.
+    "write-safety.md": _guide(
+        "Write Safety — Merge over Replace",
+        "Writing to a file that already exists and may contain content the writer did not"
+        " generate (configs, user tool files, managed sections).",
+        (
+            "Who owns each section of this file — the writer, the user, or another tool?",
+            "Litmus test: does this file contain content I did not generate?",
+        ),
+        (
+            "MUST NOT fully replace a file with mixed ownership — full replacement silently"
+            " destroys content the writer did not generate.",
+            "One authoritative location per truth; every duplicate drifts (no dual-write)",
+        ),
+        (
+            "Generator owns 100% of the file → full replace is safe; mixed ownership →"
+            " incremental merge (Edit/patch/append, or only the writer-owned section);"
+            " unsure → merge",
+        ),
+        (
+            "Write a candidate (.new) and let the human accept — the deployer's"
+            " ownership-manifest pattern",
+        ),
+        (
+            "A merge-or-replace decision recorded for each pre-existing file written, and"
+            " zero full replaces on mixed-ownership files",
+        ),
+        ("Files created fresh by this change — no prior content to destroy.",),
+    ),
 }
 
 GUIDES_FILES = {

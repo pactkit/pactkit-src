@@ -765,6 +765,7 @@ If matched, the Spec MUST include a decision for that concern:
 | UI/界面/前端/组件/样式/交互/页面/导航/button/form/component | ui-state-accessibility | Loading/empty/error/disabled states? Keyboard & a11y? |
 | 部署/deploy/rollout/上线/健康检查/health/容量/capacity/回滚/rollback/灰度/canary | operational-readiness | Health signals? Rollback criteria? Capacity bounds? |
 | 新增依赖/添加依赖/pip install/npm install/pnpm add/yarn add/lockfile/升级依赖/supply chain | dependency-supply-chain | Why needed? Provenance/license? Pinned reproducibly? |
+| 覆盖/overwrite/全量替换/full replace/写入既有文件/清空/wipe/修改配置/写入配置文件/merge over | write-safety | Merge-or-replace decision? Single truth source? |
 
 Unmatched concerns → do not appear in Spec (avoid noise).
 
@@ -796,6 +797,7 @@ After reading Spec's Technical Design, load ONLY the matched guides:
 | ui-state-accessibility | {GUIDES_PATH}/ui-state-accessibility.md |
 | operational-readiness | {GUIDES_PATH}/operational-readiness.md |
 | dependency-supply-chain | {GUIDES_PATH}/dependency-supply-chain.md |
+| write-safety | {GUIDES_PATH}/write-safety.md |
 
 MUST load only 1-3 relevant guides. NEVER load the entire guides/ directory.
 """,
@@ -1164,6 +1166,17 @@ the needed behavior with its public interface and document the chosen gap.
 4. MUST NOT bypass an existing project wrapper to use the framework directly;
    state the reason when declining an available native capability.
 5. Skip when the change is pure business logic or documentation/config only.
+
+## Knowledge Provenance
+Claims about external APIs, version behavior, config keys, and protocol
+formats MUST come from a verified source, in priority order: the project's
+own code (read it) > Context7 MCP or official docs > training memory.
+Training memory is the LAST resort: mark the claim "unverified" in output
+and verify before relying on it. A fabricated-from-memory API or signature
+is a defect, not a style issue. Design decisions (patterns, formats,
+conventions) SHOULD name their reference — an existing project file, a
+doc, or a well-known standard; invented-here with no reference is a
+review flag.
 """,
     "engineering-index": RULES_MODULES["engineering"],
     "sectional-heuristics": """# Sectional Editing Heuristics
@@ -1301,6 +1314,10 @@ PHASE_CONTRACTS = {
             "test environment provenance is confirmed (running code == code under test)",
             # STORY-slim-2026090301691dea72e8: whack-a-mole fixing pattern.
             "a defect finding sweeps its class — same-pattern sites are checked before a pass verdict",
+            # STORY-slim-2026090333d6b72f7645: ISO 12207 validation vs verification —
+            # admin-tested business permissions passed while the real scenario broke.
+            "user-path validation is distinguished from Spec-conformance verification —"
+            " key scenarios run through the real end-user path, not a privileged one",
         ),
         (
             "security, quality, test adequacy, freshness, and Spec alignment assessed",

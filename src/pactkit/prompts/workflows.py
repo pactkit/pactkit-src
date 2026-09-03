@@ -605,6 +605,12 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 ## 📊 Phase 3.6: Codegraph Sync
 1.  Run `pactkit sync` to update the codegraph index (auto-skips if codegraph is not configured).
 
+## 🔥 Phase 3.7: Postmortem Check (Conditional)
+> A hotfix that ends at "tests pass" leaves the defect class armed for the next session.
+1.  **Trigger (ANY)**: user-visible impact; same defect pattern in related modules (`grep`); data-loss risk.
+2.  **If triggered**: write `docs/architecture/governance/postmortems/{ITEM_ID}.md` — Timeline, Root cause (mechanism, not symptom), Blast radius, Why defenses missed it, Recurrence-prevention action items — each MUST become a Board story (`{BOARD_CMD} add_story`), never a bare note. Blameless: mechanisms, not people.
+3.  **Else**: log `"Postmortem: SKIP — no user-visible impact / no recurrence / no data risk"`.
+
 ## 🚫 What This Command Does NOT Do
 - Does not require writing tests before code (no TDD)
 - Does not run `visualize` to update architecture graphs

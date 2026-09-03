@@ -309,6 +309,7 @@ graph TD
     _parse_coverage_output["_parse_coverage_output"]
     _parse_field_table["_parse_field_table"]
     _parse_item_type["_parse_item_type"]
+    _parse_last_adrs["_parse_last_adrs"]
     _parse_last_lessons["_parse_last_lessons"]
     _parse_recent_completions["_parse_recent_completions"]
     _parse_requirements["_parse_requirements"]
@@ -502,6 +503,7 @@ graph TD
     is_pactkit_self_development_root["is_pactkit_self_development_root"]
     issue_sync["issue_sync"]
     json_report["json_report"]
+    lint_adr["lint_adr"]
     lint_context["lint_context"]
     lint_lessons["lint_lessons"]
     lint_testcase["lint_testcase"]
@@ -1145,6 +1147,7 @@ graph TD
     _generate_continuation --> _sanitize_text
     generate_context --> _get_git_branches
     generate_context --> LessonRepository_recent
+    generate_context --> _parse_last_adrs
     generate_context --> _generate_continuation
     generate_context --> render
     generate_context --> _parse_board
@@ -1237,29 +1240,32 @@ graph TD
     main --> lint_testcase
     main --> ContinuationEngine_read
     main --> WorkflowEngine_reject
+    main --> lint_adr
     main --> main__workflow_evidence
     main --> ContinuationEngine_finish_guard
     main --> WorkflowEngine_retry
     main --> WorkflowEngine_expire
+    main --> ContinuationEngine_revalidate_artifacts
+    main --> ContinuationEngine_resume
     main --> should_visualize
     main --> run_visualize_single
     main --> run_visualize_graphs
     main --> codegraph_sync
-    main --> ContinuationEngine_revalidate_artifacts
-    main --> ContinuationEngine_resume
-    main --> run_garden
     main --> WorkflowEngine_submit
     main --> WorkflowEngine_record_turn_terminal
+    main --> run_garden
+    main --> PlanFinalizer_finalize
     main --> codegraph_sync
     main --> run_observe
     main --> PlanFinalizer_finalize
     main --> collect_runs
     main --> collect_gate_telemetry
-    main --> PlanFinalizer_finalize
     main --> main__unit_json
     main --> ContinuationEngine_resume
-    main --> render_report
     main --> ContinuationStore_status
+    main --> render_report
+    main --> main__unit_json
+    main --> ContinuationEngine_bind_story
     main --> json_report
     main --> check_legacy_engine_usage
     main --> check_orphaned_specs
@@ -1278,8 +1284,6 @@ graph TD
     main --> check_core_metadata_divergence
     main --> ContinuationStore_diagnostics
     main --> check_workflow_continuation
-    main --> main__unit_json
-    main --> ContinuationEngine_bind_story
     main --> render_summary
     main --> scan_and_replace_tbd
     main --> check_legacy_engine_usage

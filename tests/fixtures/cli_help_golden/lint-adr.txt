@@ -1,0 +1,1 @@
+usage: pactkit lint-adr [-h] path positional arguments: path Path to ADR file options: -h, --help show this help message and exit

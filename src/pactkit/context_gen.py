@@ -118,6 +118,34 @@ def _get_git_branches(project_root: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
+# ADR helpers (STORY-slim-2026090333d6b72f7645) — Key Decisions aggregation
+# ---------------------------------------------------------------------------
+
+
+def _parse_last_adrs(project_root: Path, n: int = 5) -> list[str]:
+    """Aggregate the last *n* non-superseded ADRs into Key Decisions rows."""
+    adr_dir = project_root / "docs" / "architecture" / "governance" / "adr"
+    if not adr_dir.is_dir():
+        return []
+    rows: list[str] = []
+    for adr_path in sorted(adr_dir.glob("ADR-*.md")):
+        try:
+            text = adr_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        status_match = re.search(r"\|\s*Status\s*\|\s*(\S+)\s*\|", text)
+        status = status_match.group(1) if status_match else ""
+        if status == "superseded":
+            continue
+        title_match = re.search(r"^#\s+(ADR-\d+[^:]*):\s+(.+)$", text, re.MULTILINE)
+        label = title_match.group(1) if title_match else adr_path.stem
+        title = title_match.group(2).strip() if title_match else adr_path.stem
+        suffix = f" ({status})" if status else ""
+        rows.append(f"- {label}: {title}{suffix}")
+    return rows[-n:]
+
+
+# ---------------------------------------------------------------------------
 # Lessons helpers
 # ---------------------------------------------------------------------------
 
@@ -349,6 +377,9 @@ def generate_context(
         lessons_path = project_root / "docs" / "architecture" / "governance" / "lessons.md"
         lessons = _parse_last_lessons(lessons_path)
 
+    # ---- ADRs (STORY-slim-2026090333d6b72f7645) ----
+    adrs = _parse_last_adrs(project_root)
+
     # ---- Compose output ----
     lines: list[str] = [
         CONTEXT_HEADER,
@@ -377,6 +408,8 @@ def generate_context(
     lines.append("")
 
     lines.append(CONTEXT_SECTIONS[4])  # ## Key Decisions
+    if adrs:
+        lines.extend(adrs)
     if lessons:
         lines.extend(lessons)
     else:

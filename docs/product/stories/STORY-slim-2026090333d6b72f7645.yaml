@@ -1,0 +1,31 @@
+schema_version: 1
+id: STORY-slim-2026090333d6b72f7645
+title: SDLC 标准对齐 T1:ADR 制度+Validation 语义+Postmortem 制度+write-safety 恢复
+spec_path: docs/specs/STORY-slim-2026090333d6b72f7645.md
+status: archived
+tasks:
+- id: task-f7ea85aaa6
+  title: ADR schema+scaffold+lint-adr+context 聚合
+  completed: true
+- id: task-3a51e27537
+  title: Check Validation 语义(contract+Phase 5)
+  completed: true
+- id: task-d39c789f3d
+  title: Hotfix Phase 3.7 Postmortem 制度
+  completed: true
+- id: task-bf8e68024f
+  title: write-safety guide+index 路由
+  completed: true
+- id: task-de92f3377f
+  title: R1-R5 断言测试(TDD RED 先行)
+  completed: true
+- id: task-c039f1694e
+  title: R6 Knowledge Provenance 三时点(Act 时补充授权)
+  completed: true
+- id: task-f3e27b4aea
+  title: preflight inline-range 修复(死代码复活+表格支持)
+  completed: true
+created_at: '2026-09-03T03:46:33+00:00'
+updated_at: '2026-09-03T07:43:36+00:00'
+completed_at: '2026-09-03T04:17:56+00:00'
+archived_at: '2026-09-03T07:43:36+00:00'

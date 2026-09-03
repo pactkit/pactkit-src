@@ -17,7 +17,7 @@ MAX_TOTAL_BYTES = 131_072
 _INPUT_HEADING = re.compile(r"^##\s+Implementation Inputs\s*$", re.I | re.M)
 _NEXT_H2 = re.compile(r"^##\s+", re.M)
 _BACKTICK_REFERENCE = re.compile(r"`([^`\n]+)`")
-_INLINE_RANGE = re.compile(r"^(?P<path>.+?):L?(?P<start>\d+)-(?P<end>\d+)$", re.I)
+_INLINE_RANGE = re.compile(r"^(?P<path>.+?):L?(?P<start>\d+)-L?(?P<end>\d+)$", re.I)
 _CONSTRAINT = re.compile(r"^.*(?:\b(?:MUST(?: NOT)?|SHALL|REQUIRED|NEVER)\b|禁止|必须|不得|对齐).*$", re.I | re.M)
 _CSS_TOKEN = re.compile(r"(?P<name>--[A-Za-z0-9_-]+)\s*:\s*(?P<value>[^;{}]+)")
 _CODE_SUFFIXES = frozenset({".py", ".js", ".jsx", ".ts", ".tsx"})
@@ -78,6 +78,16 @@ def _parse_table(raw: str) -> list[dict[str, str]]:
 
 def _discover_references(root: Path, spec_path: Path, raw: str) -> list[dict[str, str]]:
     declared = _parse_table(raw)
+    # STORY-slim-2026090333d6b72f7645: table rows support inline ranges
+    # (`src/mod.py:L2-L4`) exactly like backtick references — the range must
+    # be split out before the existence check, not treated as part of the path.
+    for entry in declared:
+        range_match = _INLINE_RANGE.fullmatch(entry["path"])
+        if range_match:
+            entry["path"] = range_match.group("path")
+            entry.setdefault(
+                "range", f"{range_match.group('start')}-{range_match.group('end')}"
+            )
     known = {item["path"] for item in declared}
     for raw_value in _BACKTICK_REFERENCE.findall(raw):
         value = raw_value.split("#", 1)[0].strip()
