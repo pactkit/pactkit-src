@@ -1293,8 +1293,19 @@ PHASE_CONTRACTS = {
         "check", "explicit verification or review request",
         ("implementation diff", "Spec and test evidence"),
         ("evidence-backed verdict",),
-        ("review is read-only unless the user also requests repair",),
-        ("security, quality, test adequacy, freshness, and Spec alignment assessed",),
+        (
+            "review is read-only unless the user also requests repair",
+            # STORY-slim-2026090301691dea72e8: verification-setup falsifications
+            # (admin-tested business permissions, stale-process test runs).
+            "verification setup matches the Spec's actor and environment",
+            "test environment provenance is confirmed (running code == code under test)",
+            # STORY-slim-2026090301691dea72e8: whack-a-mole fixing pattern.
+            "a defect finding sweeps its class — same-pattern sites are checked before a pass verdict",
+        ),
+        (
+            "security, quality, test adequacy, freshness, and Spec alignment assessed",
+            "test environment provenance is confirmed",
+        ),
         ("project-act", "project-done"),
     ),
     "project-done": _phase_contract(
@@ -1302,7 +1313,10 @@ PHASE_CONTRACTS = {
         ("fresh verification evidence", "project governance state"),
         ("consistent project records", "optional commit"),
         ("reuse fresh evidence and disclose every remaining gap",),
-        ("required verification is adequate and current", "status projections agree"), (),
+        # STORY-slim-2026090301691dea72e8: "adequate" includes actor and
+        # environment dimensions (admin-tested business permissions passed
+        # while the real scenario was broken).
+        ("required verification is adequate for the Spec's actor and environment, and current", "status projections agree"), (),
         ("commit", "archive"),
     ),
     "project-release": _phase_contract(

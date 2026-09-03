@@ -1,0 +1,25 @@
+schema_version: 1
+id: STORY-slim-2026090301691dea72e8
+title: 规则遵循率实证修复:Capability lint 门+域材料声明+验证语义补强
+spec_path: docs/specs/STORY-slim-2026090301691dea72e8.md
+status: archived
+tasks:
+- id: task-a896613758
+  title: spec-lint W012 Capability Assessment 门
+  completed: true
+- id: task-036d967247
+  title: Plan 阶段域材料声明步骤
+  completed: true
+- id: task-87acad759d
+  title: Check 契约 setup 对齐+环境同源语义
+  completed: true
+- id: task-75c68cc57e
+  title: Defect-class sweep 步骤
+  completed: true
+- id: task-21863e5714
+  title: Adapter parity 验证
+  completed: true
+created_at: '2026-09-03T02:55:37+00:00'
+updated_at: '2026-09-03T03:14:50+00:00'
+completed_at: '2026-09-03T03:08:16+00:00'
+archived_at: '2026-09-03T03:14:50+00:00'

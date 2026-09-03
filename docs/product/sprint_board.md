@@ -369,3 +369,12 @@
 - [x] R2 文案真实化——rc≠0 且计数全 0 时按 exit code 报因:5=没跑、4=usage/collection、其余=跑了但 summary 不可解析(附 addopts 干扰提示),不再一律报 no tests collected
 - [x] R3 回归测试——fixture repo 带 pyproject addopts=-q 复现事故场景,断言修复后计数解析正确、文案与事实一致
 - [x] R4 全量套件绿 + CHANGELOG/README 更新
+
+### [STORY-slim-2026090301691dea72e8] 规则遵循率实证修复:Capability lint 门+域材料声明+验证语义补强
+> Spec: docs/specs/STORY-slim-2026090301691dea72e8.md
+
+- [x] spec-lint W012 Capability Assessment 门
+- [x] Plan 阶段域材料声明步骤
+- [x] Check 契约 setup 对齐+环境同源语义
+- [x] Defect-class sweep 步骤
+- [x] Adapter parity 验证

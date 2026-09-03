@@ -392,6 +392,40 @@ def _check_lateral_scan(text: str, result: LintResult) -> None:
         )
 
 
+# Dependency-file and framework signals that make a capability assessment
+# meaningful (STORY-slim-2026090301691dea72e8: assessment was produced 1 time
+# in 56 /project-plan runs — the trigger judgment needs a code-level nudge).
+_FRAMEWORK_SIGNAL = re.compile(
+    r"pyproject\.toml|package\.json|go\.mod|pom\.xml|build\.gradle|"
+    r"requirements\.txt|cargo\.toml|framework",
+    re.IGNORECASE,
+)
+
+
+def _check_capability_assessment(text: str, result: LintResult) -> None:
+    """W012 — Technical Design with framework/dependency signals should
+    include a Capability Assessment subsection.
+
+    Non-blocking by design: Capability Assessment is an L3 (SHOULD)
+    semantic, so an E-level rule would lock Act Phase 0.5 on incidental
+    keyword matches. The warning surfaces in Act Phase 0.5 output as a
+    pre-implementation reminder.
+    """
+    tech_design = _section_text(text, "Technical Design")
+    if tech_design is None:
+        return
+    if not _FRAMEWORK_SIGNAL.search(tech_design):
+        return
+    if "### Capability Assessment" not in tech_design:
+        result.warnings.append(
+            LintIssue(
+                "W012",
+                "## Technical Design mentions frameworks/dependencies but missing "
+                "'### Capability Assessment' subsection (Need | Source | Decision)",
+            )
+        )
+
+
 _ITEM_ID_RE = re.compile(ITEM_ID_PATTERN)
 
 
@@ -486,6 +520,7 @@ def validate_spec(spec_path: str) -> LintResult:
     _check_req_ac_coverage(text, result)  # STORY-slim-024: W007
     _check_security_scope(text, result)  # STORY-slim-025: E009
     _check_lateral_scan(text, result)  # STORY-slim-106: W010
+    _check_capability_assessment(text, result)  # STORY-slim-2026090301691dea72e8: W012
     _check_dependency_surface(text, result, spec_path=spec_path)  # STORY-slim-143: E010/W011
     return result
 

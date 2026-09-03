@@ -113,7 +113,11 @@ completion.
     - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
     - Unmatched concerns → do not add (avoid noise).
     - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
-4.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
+4.  **Domain Material Declaration** — if the requirement touches domain logic (business rules, data models, semantic layers, domain terminology):
+    - The Spec MUST declare the governing domain material (data dictionaries, semantic layers, requirement docs) in its `## Implementation Inputs` table (path + purpose), so Act Phase 0.7 spec-preflight loads it deterministically before the first source write.
+    - Pure infrastructure/tooling changes MUST state the skip reason in the Spec.
+    - **Output checkpoint**: `"Domain material declared: {list} | skipped: {reason}"`
+5.  **Update HLD**: Modify `docs/architecture/graphs/system_design.mmd`.
     - *Rule*: Keep the `code_graph.mmd` as is (it updates automatically).
 
 ## 🎬 Phase 3.1: Story ID Generation
@@ -390,6 +394,8 @@ Apply a code quality checklist to all code related to the Story:
 
 For each finding, assign a severity (P0-P3). Flag issues that may cause silent failures.
 
+**Defect-class sweep (MUST)**: for each defect found, search for the same pattern in related modules (grep or `pactkit query --callers`) and report same-class sites in the Phase 5 verdict — a pass verdict requires the class checked, not just the instance fixed.
+
 ## Phase 3: Spec Verification & Test Case Definition (The Law)
 1.  **Verify Spec Structure**: Run `pactkit spec-lint docs/specs/{STORY_ID}.md` (or `python3 -m pactkit spec-lint docs/specs/{STORY_ID}.md` if `pactkit` is not on `$PATH`) to validate Spec structure (E006 checks for `## Acceptance Criteria`).
     * *If ERRORs*: WARN the user — "Spec structure issues found. Run `/project-plan` to fix."
@@ -411,11 +417,14 @@ For each finding, assign a severity (P0-P3). Flag issues that may cause silent f
     - **Missing assertions** (P1): Test functions that execute code but contain no `assert` statement — they pass silently without verifying anything.
     - **Over-mocking** (P2): Test mocks or stubs every dependency so that no real logic is exercised; the test only verifies the mock wiring, not actual behavior.
     - **Happy-path only** (P2): All test methods only cover the success case with no error inputs, boundary conditions, or edge cases tested.
+    - **Setup-actor mismatch** (P1): Tests exercise a privileged or administrative path when the Spec's scenario describes an end-user path (e.g., admin account testing business-user permissions) — the test passes while the real scenario is broken.
 3.  **Report**: For each finding, assign the severity above and include it in the Phase 5 verdict.
 4.  **Gate**: If any P1 test quality issue is found, flag it as a required fix (same as a code quality P1).
 
 ## Phase 4: E2E Execution (Config-Driven)
 > Read `pactkit.yaml` field `e2e.type` to select strategy. Default: `none` (skip).
+
+**Environment provenance (MUST)**: before running E2E, confirm the runtime under test is executing the code under test — restart or verify dev servers/workers after any source or config change. Stale processes or old config invalidate every E2E result; report them as a provenance failure, not a test failure.
 
 | e2e.type | Test Path | Tools | Cleanup |
 |----------|-----------|-------|---------|
