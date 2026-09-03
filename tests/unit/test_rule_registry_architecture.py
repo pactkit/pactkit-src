@@ -380,3 +380,43 @@ def test_untracked_same_named_guide_is_not_overwritten(tmp_path):
 
     assert destination.read_text(encoding="utf-8") == original
     assert destination.with_suffix(".md.pactkit-new").is_file()
+
+
+class TestCapsuleComplianceCriteria:
+    """Capsule-only rules must carry verifiable completion criteria.
+
+    A capsule whose legacy_ids claim absorption of an older rule must contain
+    that rule's decision semantics. Regression: shared-execution claimed
+    legacy 02-hierarchy-of-truth but carried none of its content, and
+    capability-design collapsed the legacy solution protocol's assessment
+    matrix and output format into a single uncheckable sentence.
+    """
+
+    def test_shared_execution_defines_hierarchy_of_truth(self):
+        from pactkit.prompts.rules import SHARED_RULES
+
+        capsule = SHARED_RULES["shared-execution"]
+        text = capsule.lower()
+        assert "tier 1" in text
+        assert "tier 2" in text
+        assert "tier 3" in text
+        # Conflict resolution is actionable, not just naming the tiers.
+        assert "takes precedence" in text or "higher tier wins" in text
+        # The Spec-is-wrong path is stated.
+        assert "fix the spec first" in text
+
+    def test_capability_design_names_procedure_artifact_and_skip(self):
+        from pactkit.prompts.rules import SHARED_RULES
+
+        capsule = SHARED_RULES["capability-design"]
+        text = capsule.lower()
+        # Procedure: dependency scan with per-capability source decision.
+        assert "dependency" in text
+        assert "framework native" in text
+        assert "project wrapper" in text
+        # Verifiable output artifact with a shape and a destination.
+        assert "need" in text and "source" in text and "decision" in text
+        assert "technical design" in text
+        # Skip condition and the no-bypass constraint survive from legacy.
+        assert "skip" in text
+        assert "bypass" in text

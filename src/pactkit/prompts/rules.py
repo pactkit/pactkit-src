@@ -1111,6 +1111,14 @@ next action. Do not manufacture a handoff, background run, or separate session.
 """,
     "shared-execution": """# Shared Execution
 
+## Hierarchy of Truth
+Code is not the law. Tier 1: Specs (`docs/specs/*.md`) and Test Cases;
+Tier 2: Tests; Tier 3: Implementation. On conflict, the higher tier
+takes precedence — modify the lower tier, never the reverse. When the
+Spec itself is wrong, fix the Spec first, then sync tests and code; never
+patch code around a known-bad Spec.
+
+## Execution
 Use the current session. Failure classification is: current regression,
 pre-existing failure, obsolete contract/test, or environment failure. Only a
 hard risk blocks its exact action; otherwise record evidence and continue.
@@ -1136,6 +1144,20 @@ create a pull request, tag, publish, or release without current authorization.
 
 Before reimplementing an available framework or project capability, compare
 the needed behavior with its public interface and document the chosen gap.
+
+1. Read the project dependency file (`pyproject.toml`, `package.json`,
+   `go.mod`, `pom.xml`/`build.gradle`) and list frameworks relevant to the
+   requirement.
+2. For each needed capability, decide the source: framework native, existing
+   project wrapper, or new implementation.
+3. Record the assessment — Plan writes it into the Spec's Technical Design,
+   Act outputs a brief version before implementation:
+   | Need | Source | Decision |
+   |------|--------|----------|
+   | {capability} | {framework module / project wrapper / new} | Reuse / Enable / New |
+4. MUST NOT bypass an existing project wrapper to use the framework directly;
+   state the reason when declining an available native capability.
+5. Skip when the change is pure business logic or documentation/config only.
 """,
     "engineering-index": RULES_MODULES["engineering"],
     "sectional-heuristics": """# Sectional Editing Heuristics
