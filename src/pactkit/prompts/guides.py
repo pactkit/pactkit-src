@@ -20,6 +20,10 @@ class GuideDefinition:
     alternatives: tuple[str, ...]
     evidence: tuple[str, ...]
     non_applicable: tuple[str, ...]
+    # STORY-slim-20260903b5ce6be5f7e0 / ADR-0002: optional operational
+    # reference block — verbatim markdown (tables allowed), rendered between
+    # Defaults and Alternatives. Empty for un-enriched guides.
+    practice: str = ""
 
     @property
     def hard_safety(self) -> tuple[str, ...]:
@@ -32,12 +36,20 @@ class GuideDefinition:
             ("Questions", self.questions),
             ("Safe Invariants", self.safe_invariants),
             ("Defaults", self.defaults),
+        )
+        blocks = [f"# {self.title} — Engineering Guide"]
+        for heading, values in sections:
+            blocks.append(
+                f"## {heading}\n" + "\n".join(f"- {value}" for value in values)
+            )
+        if self.practice:
+            blocks.append(f"## Practice\n{self.practice.strip()}")
+        tail = (
             ("Alternatives", self.alternatives),
             ("Evidence", self.evidence),
             ("Non-applicable", self.non_applicable),
         )
-        blocks = [f"# {self.title} — Engineering Guide"]
-        for heading, values in sections:
+        for heading, values in tail:
             blocks.append(
                 f"## {heading}\n" + "\n".join(f"- {value}" for value in values)
             )
@@ -53,6 +65,8 @@ def _guide(
     alternatives: tuple[str, ...],
     evidence: tuple[str, ...],
     non_applicable: tuple[str, ...],
+    *,
+    practice: str = "",
 ) -> GuideDefinition:
     return GuideDefinition(
         title=title,
@@ -63,6 +77,7 @@ def _guide(
         alternatives=alternatives,
         evidence=evidence,
         non_applicable=non_applicable,
+        practice=practice,
     )
 
 
@@ -102,6 +117,32 @@ GUIDE_DEFINITIONS = {
         ("Metrics or traces may answer the operational question better than logs.",),
         ("Captured failure signals and sensitive-field redaction evidence.",),
         ("Pure library logic already observable through its caller.",),
+        practice="""
+### Log level criteria — decide before writing the call
+| Level | Use for | NEVER for |
+|-------|---------|-----------|
+| ERROR | Failures needing human intervention (data loss, dependency down) | Transient errors that auto-retry |
+| WARN  | Auto-recovered but worth a trace (retry succeeded, fallback engaged) | Normal-path branches |
+| INFO  | State transitions (service start/stop, job begin/end, config loaded) | Per-item output inside loops |
+| DEBUG | Local diagnostic detail, off by default | Anything production-on |
+
+### Structured field conventions
+- Every log line carries a correlation field (request_id / trace_id / run_id — whichever the
+  project already uses) so one user action can be followed across processes and tasks.
+- Events start with `event=<verb_past>` (`event=deploy_started`, `event=retry_exhausted`);
+  field names are snake_case; data goes into fields, not into the message string.
+
+### Volume red lines
+- No per-item INFO-or-above inside loops — batch operations log one summary line
+  ("processed 800 files, 3 failed"), not 800 lines.
+- Sensitive-field redaction (password/token/authorization/cookie/api-key) happens once at the
+  logging entry point, not self-checked at every call site — a missed call site is a leak.
+
+### Anti-patterns (each with its consequence)
+- log-and-rethrow — logged, re-raised, logged again upstream: one error, 3 records, polluted counts.
+- Log level as flow control (`grep ERROR` decides success) — breaks the day a level is corrected.
+- Logging full request/response bodies — PII and credentials enter logs; aggregation becomes a breach surface.
+""",
     ),
     "module-design.md": _guide(
         "Module Design", "Responsibilities, boundaries, or public interfaces are added or moved.",
@@ -111,6 +152,32 @@ GUIDE_DEFINITIONS = {
         ("Local duplication can be clearer than premature abstraction.",),
         ("Caller map, public-interface tests, and ownership rationale.",),
         ("A contained change inside an established boundary.",),
+        practice="""
+### Splitting criteria — when a module must be split
+- Single-sentence responsibility test: if you cannot state the module's job in one sentence
+  without "and", it is doing two jobs — split it.
+- Public interface surface: a module callers must import 10+ names from to do one task is a
+  boundary in name only; the real boundary is elsewhere.
+- Line reference: 500 lines = evaluate for splitting; 1000 = split before the next feature.
+  Reference lines, not hard walls — cohesion beats size.
+- File ownership: if two halves of a file change in disjoint stories, they want to be two files.
+
+### Layering rules
+- Dependency direction is one-way: domain/core imports nothing from infrastructure;
+  infrastructure imports from domain. A domain module importing an infra module is a
+  layering violation even if it "works".
+- Circular imports are always a layering violation — fix the structure (extract the shared
+  concept downward), never the symptom (deferred import inside a function).
+
+### Extract vs premature abstraction
+- Extract when 2+ real callers need the same behavior AND agree on the shape; duplication
+  observed once is cheaper than a wrong abstraction.
+- Do NOT extract same-looking code with different change-velocity — they must stay separate.
+
+### Naming
+- Name modules by responsibility (user_access, not user_utils); the word "utils" means the
+  boundary was not found yet.
+""",
     ),
     "database.md": _guide(
         "Database", "Persistent database reads, writes, schema, or transactions change.",
@@ -192,6 +259,32 @@ GUIDE_DEFINITIONS = {
         ("Resume, compensate, quarantine, or manual recovery may fit better than retry.",),
         ("Interrupted-run, duplicate-attempt, terminal-error, and recovery tests.",),
         ("Atomic deterministic work with no recoverable intermediate state.",),
+        practice="""
+### Error taxonomy — classify before handling
+| Class | Definition | Handling |
+|-------|-----------|----------|
+| Transient | May succeed on retry (network blip, throttle, lock timeout) | Bounded retry with backoff |
+| Permanent | Fails identically forever (404, invalid input, quota out) | Fail fast — retry burns quota |
+| Programming | Bug in our code (TypeError, broken invariant) | Fix the code, not the symptom |
+
+Decision: succeeds 1 min later? → transient. No input helps? → permanent. Impossible for correct code? → programming.
+
+### User-facing vs log-facing — same error, two faces
+- User-facing: what happened in their terms + what to do next ("Upload failed — file exceeds
+  10MB, compress it"). Never a stack trace or internal class name.
+- Log record: full diagnostic detail (exception type, correlation id, input fingerprint).
+- One message for both fails both — users cannot act on stack traces, operators cannot diagnose vagueness.
+
+### Retry boundaries
+- Bounded backoff, parameterized (named constants/config, never inline literals); jitter under contention.
+- Every retried operation MUST be idempotent or carry an idempotency key — a double-charging
+  retry turns a transient failure into permanent data corruption.
+- Retry at ONE layer only (the external boundary); nested retries multiply (3×3 = 27).
+
+### Error type hierarchy
+- Subclass by RECOVERY STRATEGY (RetryableError / TerminalError), not by origin (HttpError /
+  DbError) — callers branch on "what to do", not "where from".
+""",
     ),
     "data-consistency.md": _guide(
         "Data Consistency", "One logical change spans records, stores, services, or concurrent writers.",

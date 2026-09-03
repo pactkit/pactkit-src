@@ -1,0 +1,25 @@
+schema_version: 1
+id: STORY-slim-20260903b5ce6be5f7e0
+title: Guide 实践层:Practice 段机制+三 guide 富化
+spec_path: docs/specs/STORY-slim-20260903b5ce6be5f7e0.md
+status: archived
+tasks:
+- id: task-f1dc66b969
+  title: Practice 段机制(字段+render+_guide)
+  completed: true
+- id: task-31cd0dae31
+  title: observability 日志管理 Practice
+  completed: true
+- id: task-1d5c28da7a
+  title: module-design 拆分判据 Practice
+  completed: true
+- id: task-57e2a62a83
+  title: error-recovery 错误分类学 Practice
+  completed: true
+- id: task-b89bad8bbf
+  title: 结构测试扩展+部署验证
+  completed: true
+created_at: '2026-09-03T08:01:55+00:00'
+updated_at: '2026-09-03T08:30:17+00:00'
+completed_at: '2026-09-03T08:15:57+00:00'
+archived_at: '2026-09-03T08:30:17+00:00'

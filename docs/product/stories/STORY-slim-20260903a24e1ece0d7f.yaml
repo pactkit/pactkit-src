@@ -1,0 +1,17 @@
+schema_version: 1
+id: STORY-slim-20260903a24e1ece0d7f
+title: Deployer 根因修复:codex 嵌套副本登记进 manifest+.pactkit-new 接受机制
+spec_path: docs/specs/STORY-slim-20260903a24e1ece0d7f.md
+status: backlog
+tasks:
+- id: task-89c11f8018
+  title: 嵌套副本写入 deploy manifest files 映射
+  completed: false
+- id: task-e91b8ff3e9
+  title: pactkit update --accept-candidates 过渡机制
+  completed: false
+- id: task-f049c88266
+  title: 8 处复发位点回归测试
+  completed: false
+created_at: '2026-09-03T08:26:35+00:00'
+updated_at: '2026-09-03T08:26:35+00:00'
