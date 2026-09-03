@@ -1,0 +1,1 @@
+usage: pactkit accept-candidates [-h] [--root ROOT] options: -h, --help show this help message and exit --root ROOT Deploy root to scan (default: all known deploy roots)

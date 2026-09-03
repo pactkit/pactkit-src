@@ -465,6 +465,16 @@ def main():
     lint_adr_parser = subparsers.add_parser("lint-adr", help="Validate ADR file structure")
     lint_adr_parser.add_argument("path", help="Path to ADR file")
 
+    # pactkit accept-candidates (STORY-slim-20260903a24e1ece0d7f)
+    accept_parser = subparsers.add_parser(
+        "accept-candidates",
+        help="Accept .pactkit-new deployment candidates and record ownership digests",
+    )
+    accept_parser.add_argument(
+        "--root", default=None,
+        help="Deploy root to scan (default: all known deploy roots)",
+    )
+
     # pactkit visualize --lazy --mode (STORY-slim-014 R7, HOTFIX-slim-023)
     viz_parser = subparsers.add_parser("visualize", help="Visualize code dependency graph")
     viz_parser.add_argument("--lazy", action="store_true", help="Skip if no source changes")
@@ -1187,6 +1197,20 @@ def main():
             raise SystemExit(1)
         else:
             print(f"{args.path}\n  Result: PASS")
+
+    elif args.command == "accept-candidates":
+        from pathlib import Path as _P
+
+        from pactkit.accept_candidates import accept_candidates, default_roots
+
+        roots = [_P(args.root)] if args.root else default_roots()
+        total = 0
+        for root in roots:
+            n = accept_candidates(root)
+            if n:
+                print(f"{root}: accepted {n} candidate(s)")
+            total += n
+        print(f"Accepted {total} candidate(s)")
 
     elif args.command == "visualize":
         from pathlib import Path
