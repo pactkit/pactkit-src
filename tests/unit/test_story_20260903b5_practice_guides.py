@@ -38,11 +38,12 @@ class TestPracticeMechanism:
         assert "## Practice" not in guide.render()
 
     def test_existing_guides_unchanged_without_practice(self):
-        # 22 guides have no practice; three enriched ones do
-        with_practice = [name for name, g in GUIDE_DEFINITIONS.items() if g.practice]
-        assert set(with_practice) == {
-            "observability.md", "module-design.md", "error-recovery.md",
-        }, f"unexpected practice set: {with_practice}"
+        # Batch-1 scoped practice to three guides; batch-2 (STORY-slim-202609037a7d4be200e7)
+        # rolled Practice out to all 23 per ADR-0002. This test now guards the invariant:
+        # every guide carries practice, and the batch-1 three remain enriched.
+        with_practice = {name for name, g in GUIDE_DEFINITIONS.items() if g.practice}
+        assert len(with_practice) == len(GUIDE_DEFINITIONS)
+        assert {"observability.md", "module-design.md", "error-recovery.md"} <= with_practice
 
 
 # ---------------------------------------------------------------------------

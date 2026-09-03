@@ -29,6 +29,12 @@ deployer 的 ownership 安全机制依赖 manifest hash 证明文件归属；cod
 - doctor 的 "Rule conflict" 警告确实每次都报了（防线工作）——但输出只提示"review candidate"，无一等接受机制，人工处理依赖维护者记得上午的事
 - 首次发现时根因已诊断（"候选接受机制是 backlog 候选"）但未按 defect-class sweep 原则立 story——只修了实例没修类
 
+## 复发记录
+
+- 第 1 次: 2026-09-03 上午, 5 处 capsule/index(手动替换)
+- 第 2 次: 2026-09-03 下午, 8 处 capsule + 3 guide(手动替换, 本复盘建立)
+- 第 3 次: 2026-09-03 晚, 20 处 guide Practice(按本复盘协议处置)——每 pactkit update 必复发已确认为系统性, 根因 story 未完成前手动替换是标准操作
+
 ## Recurrence-prevention action items
 
 1. [Board story] deployer 将 codex 嵌入副本写入 deploy manifest（.pactkit-deployed.json files 映射），使 ownership 可证明、更新直通——根因修复
