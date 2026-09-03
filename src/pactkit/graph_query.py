@@ -385,6 +385,23 @@ class GraphProviderRouter:
         return GraphQueryResult(results, decision, "valid_empty" if not results else "ok")
 
 
+def detect_graph_provider(root: Path) -> str | None:
+    """Auto-detect the default provider when config leaves graph_provider unset.
+
+    User rule (2026-09-03): codegraph installed on the machine = default
+    enabled. Explicit yaml config always wins; this only fills the unset
+    case. Requires the binary AND an existing index — an installed-but-
+    unindexed project stays on builtin until `codegraph index` runs.
+    """
+    import shutil
+
+    if shutil.which("codegraph") is None:
+        return None
+    if (root / ".codegraph" / "codegraph.db").exists():
+        return "codegraph"
+    return None
+
+
 def project_router(root: Path, *, db_path: Path | None = None) -> GraphProviderRouter:
     return GraphProviderRouter({
         "codegraph": CodegraphProvider(root, db_path=db_path),

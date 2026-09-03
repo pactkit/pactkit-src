@@ -454,6 +454,11 @@ def check_graph_provider(project_root: Path) -> dict:
     config_path = find_pactkit_yaml(project_root)
     config = load_config(config_path) if config_path else {}
     configured = config.get("visualize", {}).get("graph_provider")
+    if not configured:
+        # Auto-detect default (user rule 2026-09-03: installed = enabled)
+        from pactkit.graph_query import detect_graph_provider
+
+        configured = detect_graph_provider(project_root)
     if configured != "codegraph":
         return {
             "configured": configured, "selected": "builtin_graph",

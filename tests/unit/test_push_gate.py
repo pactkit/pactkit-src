@@ -509,3 +509,38 @@ class TestBlockMessageConfigHint:
         assert "protected branch" in rendered
         assert "allow_direct_push" in rendered
         assert "single-maintainer" in rendered
+
+
+# ===========================================================================
+# Codegraph auto-detect default (user rule: installed on machine = enabled)
+# ===========================================================================
+
+
+class TestCodegraphAutoDetect:
+    """graph_provider unset + codegraph installed + index present -> codegraph.
+
+    User rule (2026-09-03): a machine-installed codegraph MUST be the default
+    provider; per-project yaml config must not be a prerequisite.
+    """
+
+    def test_autodetect_picks_codegraph_when_installed_and_indexed(self, tmp_path, monkeypatch):
+        from pactkit.graph_query import detect_graph_provider
+
+        (tmp_path / ".codegraph").mkdir()
+        (tmp_path / ".codegraph" / "codegraph.db").write_bytes(b"x")
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/codegraph" if name == "codegraph" else None)
+        assert detect_graph_provider(tmp_path) == "codegraph"
+
+    def test_autodetect_falls_back_when_no_index(self, tmp_path, monkeypatch):
+        from pactkit.graph_query import detect_graph_provider
+
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/codegraph" if name == "codegraph" else None)
+        assert detect_graph_provider(tmp_path) is None
+
+    def test_autodetect_falls_back_when_not_installed(self, tmp_path, monkeypatch):
+        from pactkit.graph_query import detect_graph_provider
+
+        (tmp_path / ".codegraph" / "codegraph.db").parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".codegraph" / "codegraph.db").write_bytes(b"x")
+        monkeypatch.setattr("shutil.which", lambda name: None)
+        assert detect_graph_provider(tmp_path) is None

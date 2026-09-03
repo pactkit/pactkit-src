@@ -28,7 +28,7 @@ completion.
     - If **New Feature**: Focus on `system_design.mmd` (Architecture).
     - If **Modification**: Focus on pactkit-trace skill (Logic Flow).
 3.  **Greenfield Detection**: Check if the request is a greenfield product ideation:
-    - **Signals**: Keywords like "from scratch", "new app", "startup", "MVP", "product idea", "创业", "从零开始"; multi-story scope ("multiple features", "full system", "complete app"); empty sprint board; no existing source code files.
+    - **Signals**: Keywords ("from scratch", "MVP", "创业", "从零开始"); multi-story scope; empty sprint board; no source files.
     - **If greenfield signals are detected**: Suggest to the user: "This looks like a greenfield product design. Consider using `/project-design` instead, which generates a full PRD and decomposes into multiple stories."
     - Ask the user to confirm the redirect. Do NOT auto-redirect.
     - **If user declines**: Proceed with `/project-plan` normally.
@@ -43,11 +43,11 @@ completion.
 ## 🧠 Phase 0.7: Clarify Gate (Auto-detect Ambiguity)
 > **PURPOSE**: Surface and resolve requirement ambiguity before the Spec is written. Better to clarify now than rewrite a Spec.
 1.  **Detect Ambiguity**: Analyze the user's input (`$ARGUMENTS`) against these signals:
-    - [High] No quantitative metrics ("高并发" without QPS, "fast" without benchmark)
+    - [High] No quantitative metrics ("高并发" without QPS)
     - [High] No boundary conditions ("user management" without specifying which operations)
     - [Medium] No technical constraints (no auth method, no framework specified)
     - [Low] Single sentence input (< 15 words) — likely under-specified but not blocking
-    - [Medium] Vague quantifiers ("some", "many", "a few", "大量", "一些", "简单")
+    - [Medium] Vague quantifiers ("some", "大量", "简单")
     - [Medium] No target user specified
 2.  **Trigger Logic**:
     - 2 High + ≥ 1 Medium signals → **Auto-trigger** Clarify
@@ -81,7 +81,7 @@ completion.
       - **Scope**: specific directory (e.g., `src/pactkit/generators/`)
       - **Limit**: read at most 8-10 files
       - **Output**: what to return (entry file, call chain, key data transformations)
-      - Example: `Agent(subagent_type="Explore", prompt="Find the deploy() entry point in src/pactkit/generators/deployer.py. Trace the call chain to file writes. Read at most 8 files. Return: entry function, call chain list, key data transformations.")`
+      - Example: `Agent(subagent_type="Explore", prompt="Find deploy() in src/pactkit/generators/deployer.py, trace to file writes, ≤8 files, return entry + chain + transforms.")`
 3.  **Topology-Aware Trace (Conditional)** — if `detect_topology(root)` includes `api_call` or `agent`:
     - For **api_call**: Run `api_convention_summary(root)` and include path prefixes, fetch function names, and total call count in the Archaeologist Report. This prevents API path convention bugs in downstream implementation.
     - For **agent**: Note orchestration edges from AgentParser (LangGraph/YAML/MCP) in the report so downstream changes respect agent flow.
@@ -113,6 +113,7 @@ completion.
     - For each matched concern, the Spec's Technical Design MUST include a decision (e.g., concurrency model, timeout strategy, caching policy).
     - Unmatched concerns → do not add (avoid noise).
     - **Output checkpoint**: `"Engineering concerns identified: {list}. Decisions will be included in Technical Design."`
+    - **Best-Practice Research (MUST for non-trivial design)**: consult current industry practice — Context7 (framework patterns) or web search — and cite references in Technical Design; memory-only designs are flagged "unreferenced".
 4.  **Domain Material Declaration** — if the requirement touches domain logic (business rules, data models, semantic layers, domain terms):
     - The Spec MUST declare the governing domain material (data dictionaries, semantic layers, docs) in its `## Implementation Inputs` table (path + purpose), so Act Phase 0.7 spec-preflight loads it before the first source write.
     - Infrastructure/tooling changes MUST state the skip reason.

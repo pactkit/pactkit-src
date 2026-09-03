@@ -1754,6 +1754,11 @@ def main():
 
         config = load_config()
         graph_provider = config.get("visualize", {}).get("graph_provider")
+        if not graph_provider:
+            # User rule: codegraph installed + indexed = default provider
+            from pactkit.graph_query import detect_graph_provider
+
+            graph_provider = detect_graph_provider(project_root)
         try:
             selected = next(
                 (
