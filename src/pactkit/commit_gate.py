@@ -276,7 +276,8 @@ def decide_test_set(root: Path, changed: list[str]) -> tuple[str, list[str] | No
         return "blocked", None, (
             f"direct commit on protected branch '{branch}' is blocked — use a "
             f"feature branch + pull request (human bypass: {PUSH_BYPASS_ENV}=1; "
-            "config: enforcement.allow_direct_push)"
+            "single-maintainer repo working directly on main: set "
+            "enforcement.allow_direct_push: true in pactkit.yaml)"
         )
     if branch in MAIN_BRANCHES:
         return "full", None, f"direct commit on {branch} — full unit suite"
@@ -449,7 +450,8 @@ def check_push(root: Path, command: str) -> tuple[str, int]:
         "  Sanctioned path: push a feature branch and open a pull request.",
         f"  Human bypass: run the push yourself with {PUSH_BYPASS_ENV}=1 "
         "(e.g. `! PACTKIT_ALLOW_DIRECT_PUSH=1 git push`).",
-        "  Config change (repo owner): enforcement.allow_direct_push in pactkit.yaml.",
+        "  Config change (repo owner): enforcement.allow_direct_push in pactkit.yaml — "
+        "suited to single-maintainer repos that work directly on main.",
     ]
     return "\n".join(lines), 2
 

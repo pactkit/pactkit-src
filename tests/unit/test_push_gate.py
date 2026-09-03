@@ -477,3 +477,35 @@ class TestResolvePushTarget:
     def test_unresolvable_returns_empty(self, repo, monkeypatch):
         mock_git(monkeypatch, branch="")
         assert resolve_push_target("git push", repo) == ""
+
+
+# ===========================================================================
+# Block messages advertise the config channel for single maintainers
+# ===========================================================================
+
+
+class TestBlockMessageConfigHint:
+    """Blocked messages must tell single maintainers their sanctioned channel.
+
+    The terse 'config: enforcement.allow_direct_push' mention was easy to
+    miss: in a 2026-09-03 blocked session the user relayed only the
+    feature-branch and env-bypass channels, dropping the config one. The
+    message must state WHO the config channel is for.
+    """
+
+    def test_push_block_message_names_single_maintainer_channel(self, repo, monkeypatch):
+        mock_git(monkeypatch, branch="main")
+        mock_pytest(monkeypatch)
+        stderr, code = hook_entry(_payload("git push origin main"), repo)
+        assert code == 2
+        assert "allow_direct_push" in stderr
+        assert "single-maintainer" in stderr
+
+    def test_commit_block_message_names_single_maintainer_channel(self, repo, monkeypatch):
+        mock_git(monkeypatch, branch="main")
+        result = run_gate(repo)
+        assert result.exit_code == 1
+        rendered = result.render()
+        assert "protected branch" in rendered
+        assert "allow_direct_push" in rendered
+        assert "single-maintainer" in rendered
