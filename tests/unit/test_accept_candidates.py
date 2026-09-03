@@ -111,3 +111,67 @@ def test_cli_registers_accept_candidates(sub):
         capture_output=True, text=True, timeout=30,
     )
     assert proc.returncode == 0, proc.stderr
+
+
+class TestRecordDeployedFile:
+    """HOTFIX-slim-20260903d464746b1909: public helper for post-transform digests."""
+
+    def test_records_disk_digest_into_files_map(self, tmp_path):
+        from pactkit.deploy_manifest import record_deployed_file
+
+        target = tmp_path / "skills" / "x" / "SKILL.md"
+        target.parent.mkdir(parents=True)
+        target.write_text("TRANSFORMED\n", encoding="utf-8")
+        record_deployed_file(tmp_path, "skills/x/SKILL.md")
+        import json
+        payload = json.loads((tmp_path / ".pactkit-deployed.json").read_text())
+        import hashlib
+        assert payload["files"]["skills/x/SKILL.md"] == hashlib.sha256(b"TRANSFORMED\n").hexdigest()
+
+    def test_preserves_existing_entries(self, tmp_path):
+        from pactkit.deploy_manifest import record_deployed_file
+        import json
+
+        dep = tmp_path / ".pactkit-deployed.json"
+        dep.write_text(json.dumps({"files": {"other.md": "a" * 64}}), encoding="utf-8")
+        target = tmp_path / "cmd.md"
+        target.write_text("X\n", encoding="utf-8")
+        record_deployed_file(tmp_path, "cmd.md")
+        payload = json.loads(dep.read_text())
+        assert payload["files"]["other.md"] == "a" * 64
+        assert "cmd.md" in payload["files"]
+
+
+class TestOpencodeCommandsOwnership:
+    """HOTFIX-slim-20260903d464746b1909 root cause: pactkit_owned_files had
+    no opencode branch — write_deploy_manifest rebuilt the files map without
+    commands/*.md every deploy, wiping any recorded digests (alternating
+    treadmill: record → wipe → candidate → accept → byte-identical → …)."""
+
+    def test_opencode_commands_enumerated_in_files_map(self, tmp_path):
+        from pactkit.deploy_manifest import pactkit_owned_files
+
+        cmd = tmp_path / "commands" / "project-act.md"
+        cmd.parent.mkdir(parents=True)
+        cmd.write_text("TRANSFORMED CONTENT\n", encoding="utf-8")
+        components = {
+            "skills": [], "portable_methods": [], "commands": ["project-act"],
+            "agents": [],
+        }
+        owned = pactkit_owned_files(tmp_path, components, "opencode")
+        assert "commands/project-act.md" in owned
+
+    def test_opencode_command_with_candidate_not_reclaimed(self, tmp_path):
+        """A sibling .pactkit-new means unresolved conflict — no reclaim."""
+        from pactkit.deploy_manifest import pactkit_owned_files
+
+        cmd = tmp_path / "commands" / "project-act.md"
+        cmd.parent.mkdir(parents=True)
+        cmd.write_text("USER PRESERVED\n", encoding="utf-8")
+        cmd.with_suffix(cmd.suffix + ".pactkit-new").write_text("NEW\n", encoding="utf-8")
+        components = {
+            "skills": [], "portable_methods": [], "commands": ["project-act"],
+            "agents": [],
+        }
+        owned = pactkit_owned_files(tmp_path, components, "opencode")
+        assert "commands/project-act.md" not in owned

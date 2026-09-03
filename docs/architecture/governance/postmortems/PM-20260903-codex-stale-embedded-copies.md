@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Date | 2026-09-03 |
-| Status | open |
+| Status | resolved |
 | Items | STORY-slim-2026090301691dea72e8（首次发现）、STORY-slim-20260903b5ce6be5f7e0（复发） |
 
 ## Timeline
@@ -34,6 +34,14 @@ deployer 的 ownership 安全机制依赖 manifest hash 证明文件归属；cod
 - 第 1 次: 2026-09-03 上午, 5 处 capsule/index(手动替换)
 - 第 2 次: 2026-09-03 下午, 8 处 capsule + 3 guide(手动替换, 本复盘建立)
 - 第 3 次: 2026-09-03 晚, 20 处 guide Practice(按本复盘协议处置)——每 pactkit update 必复发已确认为系统性, 根因 story 未完成前手动替换是标准操作
+
+## Resolution (2026-09-03 晚)
+
+根因修复落地（STORY-slim-20260903a24e1ece0d7f，pactkit 2211e12 + pactkit-codex 5ba9ef2）：
+- R1: 部署检查合并 references 账本（ownership_proofs = deploy manifest + command manifest 合并视图，与清理路径同型）
+- R2: `pactkit accept-candidates` 一等接受命令（mv + 双账本回写）
+- 终态验证：接受 12 个历史候选后再跑 update，零 preserve、零新候选——跑步机闭环
+- 遗留：opencode 12 个命令候选已由用户授权收掉（2026-09-03）
 
 ## Recurrence-prevention action items
 

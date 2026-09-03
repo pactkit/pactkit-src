@@ -285,6 +285,18 @@ def pactkit_owned_files(
             if prompt.is_file():
                 owned[prompt.relative_to(root).as_posix()] = sha256_file(prompt)
 
+    # OpenCode deploys commands as flat commands/{name}.md (invoked via
+    # /command-name) and post-processes them in place (CLI-to-script rewrite).
+    # Without this branch, write_deploy_manifest rebuilt the files map without
+    # command digests on every deploy, wiping adapter-recorded ownership and
+    # re-producing .pactkit-new candidates (HOTFIX-slim-20260903d464746b1909).
+    if format_name == "opencode":
+        for name in components["commands"]:
+            command = root / "commands" / f"{name}.md"
+            candidate = command.with_suffix(command.suffix + ".pactkit-new")
+            if command.is_file() and not candidate.exists():
+                owned[command.relative_to(root).as_posix()] = sha256_file(command)
+
     # Agents — flat .md files.
     for name in components["agents"]:
         agent = root / "agents" / f"{name}.md"
@@ -557,3 +569,26 @@ def write_deploy_manifest(deploy_root: Path, format_name: str, config: dict | No
     path = deploy_root / MANIFEST_NAME
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
+
+
+def record_deployed_file(deploy_root: Path, relative: str) -> None:
+    """Record the on-disk digest of one deployed file into the manifest.
+
+    HOTFIX-slim-20260903d464746b1909: adapters that post-process deployed
+    content in place (e.g. opencode's CLI-to-script rewrite) must record the
+    FINAL (transformed) digest, or the next deploy cannot prove ownership and
+    re-produces .pactkit-new candidates. Records what actually landed —
+    same semantics as command_ownership.record_deployed_reference.
+    """
+    import hashlib as _hashlib
+
+    root = Path(deploy_root)
+    payload = load_previous_manifest(root)
+    if not isinstance(payload, dict):
+        payload = {}
+    files = payload.get("files")
+    if not isinstance(files, dict):
+        files = {}
+    files[relative] = _hashlib.sha256((root / relative).read_bytes()).hexdigest()
+    payload["files"] = dict(sorted(files.items()))
+    atomic_write(root / MANIFEST_NAME, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
