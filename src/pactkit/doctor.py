@@ -468,6 +468,31 @@ def check_graph_provider(project_root: Path) -> dict:
     return {"configured": configured, "selected": "codegraph", **health}
 
 
+def check_rule_health(project_root: Path) -> dict:
+    """Four-class rule diagnosis (STORY-slim-20260903a4ef6915ed62 / ADR-0003).
+
+    Reads telemetry events + config + specs, emits findings that tell the
+    user WHAT to adjust and whether it is config / bug / usage / rule-design.
+    """
+    from pactkit.config import find_pactkit_yaml, load_config
+    from pactkit.rule_diagnostics import run_diagnosis
+    from pactkit.rule_events import read_rule_events
+
+    root = Path(project_root)
+    config_path = find_pactkit_yaml(root)
+    config = load_config(config_path) if config_path else {}
+    telemetry = config.get("telemetry", {}) if isinstance(config, dict) else {}
+    findings = run_diagnosis(
+        root, config, read_rule_events(root),
+        window_days=int(telemetry.get("guide_window_days", 30)),
+        w012_rate_threshold=float(telemetry.get("w012_rate_threshold", 0.5)),
+    )
+    warnings = [
+        f"[{f['class']}] {f['action']}" for f in findings
+    ]
+    return {"findings": findings, "warnings": warnings}
+
+
 def check_stale_graphs(
     project_root: Path,
     threshold_days: int = 7,

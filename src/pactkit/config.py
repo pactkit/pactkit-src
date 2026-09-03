@@ -549,6 +549,16 @@ CONFIG_SCHEMA: dict[str, dict] = {
         "kind": "mapping",
         "comment": "# Visualize — graph_provider: auto | codegraph | builtin_graph; auto detects codegraph",
     },
+    "telemetry": {
+        "default": {
+            "guide_window_days": 30,
+            "w012_rate_threshold": 0.5,
+            "assessment_floor": 0.3,
+        },
+        "deep_merge": True,
+        "kind": "mapping",
+        "comment": "# Rule telemetry — diagnosis thresholds (ADR-0003; data stays local)",
+    },
     "command_models": {
         "default": {
             "project-act": "sonnet",

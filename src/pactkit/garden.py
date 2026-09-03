@@ -406,3 +406,28 @@ def run_garden(
         lines.append(f"  [{f['type']}] {loc} — {f['message']}")
     lines.append(f"\nGarden: {total} finding(s)")
     return "\n".join(lines), 1
+
+
+def check_dead_rules(project_root: Path, config: dict | None = None) -> dict:
+    """Dead-rule patrol (STORY-slim-20260903a4ef6915ed62 R5).
+
+    Guides with no concern scenes in this project are prune/merge candidates
+    (rule_design class). Config-excluded guides are doctor's ①-class job —
+    no double reporting here.
+    """
+    from pactkit.rule_diagnostics import diagnose_guide
+    from pactkit.rule_events import read_rule_events
+
+    root = Path(project_root)
+    config = config or {}
+    from pactkit.prompts.guides import GUIDE_DEFINITIONS
+
+    events = read_rule_events(root)
+    findings = []
+    for name in GUIDE_DEFINITIONS:
+        guide = name.removesuffix(".md")
+        finding = diagnose_guide(guide, root, config, events)
+        if finding and finding["class"] == "rule_design":
+            finding = {**finding, "guide": guide}
+            findings.append(finding)
+    return {"findings": findings, "count": len(findings)}

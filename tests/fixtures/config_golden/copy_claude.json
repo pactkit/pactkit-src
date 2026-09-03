@@ -143,6 +143,11 @@
     "project-sprint"
   ],
   "stack": "python",
+  "telemetry": {
+    "assessment_floor": 0.3,
+    "guide_window_days": 30,
+    "w012_rate_threshold": 0.5
+  },
   "venv": {
     "auto_detect": true
   },

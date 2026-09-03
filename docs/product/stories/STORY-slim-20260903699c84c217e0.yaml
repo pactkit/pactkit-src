@@ -2,13 +2,15 @@ schema_version: 1
 id: STORY-slim-20260903699c84c217e0
 title: 部署账本生命周期集成测试(record→rebuild→prove 三段闭环)
 spec_path: docs/specs/STORY-slim-20260903699c84c217e0.md
-status: backlog
+status: archived
 tasks:
 - id: task-2bf873494c
   title: 四 adapter 格式各一段闭环测试
-  completed: false
+  completed: true
 - id: task-edc6f736b5
   title: 连跑 3 轮 update 零候选断言
-  completed: false
+  completed: true
 created_at: '2026-09-03T10:05:12+00:00'
-updated_at: '2026-09-03T10:05:12+00:00'
+updated_at: '2026-09-03T11:00:46+00:00'
+completed_at: '2026-09-03T10:40:07+00:00'
+archived_at: '2026-09-03T11:00:46+00:00'

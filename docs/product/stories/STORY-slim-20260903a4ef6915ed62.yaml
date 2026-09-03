@@ -1,0 +1,37 @@
+schema_version: 1
+id: STORY-slim-20260903a4ef6915ed62
+title: 规则遵循遥测:W012 触发率+guide 读取率+Capability Assessment 出现率
+spec_path: docs/specs/STORY-slim-20260903a4ef6915ed62.md
+status: archived
+tasks:
+- id: task-dd2249b220
+  title: gate/run_events 埋点(W012 警告计数)
+  completed: true
+- id: task-54ffb06ddc
+  title: guide Read 事件计数
+  completed: true
+- id: task-9bf3885f42
+  title: Spec 含 Capability Assessment 比率
+  completed: true
+- id: task-f8d696bee9
+  title: 遥测报表进 stats
+  completed: true
+- id: task-398b9b65f0
+  title: 诊断分类引擎:四类归因(参数/bug/使用/规则设计)+每类具体动作文案
+  completed: true
+- id: task-5e366baaa6
+  title: doctor 消费端:遥测发现→分类→修复建议(done 流程自动触达)
+  completed: true
+- id: task-99c65d55fb
+  title: garden 巡检扩展:死规则检测(零触发 guide 裁撤建议)
+  completed: true
+- id: task-68da788749
+  title: 分类矩阵设计文档(信号判据表)进 spec
+  completed: true
+- id: task-e1a2552758
+  title: Spec 已建(spec-lint 0E/0W,含四信号判据矩阵)
+  completed: true
+created_at: '2026-09-03T10:26:26+00:00'
+updated_at: '2026-09-03T11:00:46+00:00'
+completed_at: '2026-09-03T10:57:45+00:00'
+archived_at: '2026-09-03T11:00:46+00:00'

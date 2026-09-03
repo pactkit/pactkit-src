@@ -1,0 +1,1 @@
+usage: pactkit guide [-h] {show} ... positional arguments: {show} show Print a deployed engineering guide options: -h, --help show this help message and exit

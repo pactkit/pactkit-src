@@ -424,6 +424,15 @@ def _check_capability_assessment(text: str, result: LintResult) -> None:
                 "'### Capability Assessment' subsection (Need | Source | Decision)",
             )
         )
+        # Telemetry (STORY-slim-20260903a4ef6915ed62): best-effort, never blocks.
+        try:
+            from pathlib import Path as _P
+
+            from pactkit.rule_events import append_rule_event
+
+            append_rule_event(_P.cwd(), "rule_warning", {"rule": "W012"})
+        except Exception:
+            pass
 
 
 _ITEM_ID_RE = re.compile(ITEM_ID_PATTERN)

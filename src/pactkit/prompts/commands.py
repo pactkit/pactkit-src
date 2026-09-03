@@ -250,9 +250,8 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 > **PURPOSE**: Load only the NFR guides relevant to this Story — keeps context minimal while ensuring engineering rigor.
 1.  **Read Spec Technical Design**: Check if the Spec contains engineering concern decisions (from Plan Phase 2).
 2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/engineering/index.md` for the keyword→guide mapping table.
-3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
+3.  **Load guides**: For each identified concern, run `pactkit guide show <guide-name>`:
     - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
-    - NEVER load the entire guides/ directory.
     - If Spec has no engineering concerns section, skip this phase silently.
 4.  **Apply decisions**: Use the loaded guides as risk-driven decision support. Their hard-safety notes are non-negotiable; defaults may be changed with project evidence.
 5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`

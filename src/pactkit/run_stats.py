@@ -228,7 +228,8 @@ def collect_gate_telemetry(root: Path) -> dict[str, Any]:
 
 
 def json_report(runs: list[dict[str, Any]],
-                gate_telemetry: dict[str, Any] | None = None) -> dict[str, Any]:
+                gate_telemetry: dict[str, Any] | None = None,
+                rule_telemetry: dict[str, Any] | None = None) -> dict[str, Any]:
     available = [r for r in runs if r["events"] == "available"]
     total_dwell: dict[str, float] = {}
     for run in available:
@@ -236,6 +237,7 @@ def json_report(runs: list[dict[str, Any]],
             total_dwell[kind] = round(total_dwell.get(kind, 0.0) + seconds, 3)
     report = {
         "runs": runs,
+        "rules": rule_telemetry or {},
         "summary": {
             "run_count": len(runs),
             "with_events": len(available),
@@ -291,3 +293,21 @@ def render_report(runs: list[dict[str, Any]],
                 f"{command}={count}" for command, count in sorted(commands.items())
             ))
     return "\n".join(lines)
+
+
+def rule_telemetry_summary(project_root) -> dict:
+    """R7 (STORY-slim-20260903a4ef6915ed62): raw rule-event view for stats."""
+    from collections import Counter
+
+    from pactkit.rule_events import read_rule_events
+
+    events = read_rule_events(project_root)
+    by_event = Counter(e.get("event", "?") for e in events)
+    by_guide = Counter(e.get("guide") for e in events if e.get("guide"))
+    by_rule = Counter(e.get("rule") for e in events if e.get("rule"))
+    return {
+        "total": len(events),
+        "by_event": dict(by_event),
+        "by_guide": dict(by_guide),
+        "by_rule": dict(by_rule),
+    }

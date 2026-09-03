@@ -465,6 +465,12 @@ def main():
     lint_adr_parser = subparsers.add_parser("lint-adr", help="Validate ADR file structure")
     lint_adr_parser.add_argument("path", help="Path to ADR file")
 
+    # pactkit guide show (STORY-slim-20260903a4ef6915ed62 telemetry choke point)
+    guide_parser = subparsers.add_parser("guide", help="Guide operations")
+    guide_sub = guide_parser.add_subparsers(dest="guide_cmd")
+    show_p = guide_sub.add_parser("show", help="Print a deployed engineering guide")
+    show_p.add_argument("name", help="Guide name (e.g. caching)")
+
     # pactkit accept-candidates (STORY-slim-20260903a24e1ece0d7f)
     accept_parser = subparsers.add_parser(
         "accept-candidates",
@@ -1198,6 +1204,16 @@ def main():
         else:
             print(f"{args.path}\n  Result: PASS")
 
+    elif args.command == "guide":
+        if args.guide_cmd == "show":
+            from pactkit.rule_diagnostics import default_deploy_roots
+
+            raise SystemExit(_run_guide_show(
+                args.name,
+                deploy_roots=default_deploy_roots(project_root),
+                project_root=project_root,
+            ))
+
     elif args.command == "accept-candidates":
         from pathlib import Path as _P
 
@@ -1280,8 +1296,11 @@ def main():
 
         runs = collect_runs(project_root)
         telemetry = collect_gate_telemetry(project_root)
+        from pactkit.run_stats import rule_telemetry_summary
+
+        rules = rule_telemetry_summary(project_root)
         if args.format == "json":
-            print(json_module.dumps(json_report(runs, telemetry), indent=2, ensure_ascii=False))
+            print(json_module.dumps(json_report(runs, telemetry, rules), indent=2, ensure_ascii=False))
         else:
             print(render_report(runs, telemetry))
         raise SystemExit(0)
@@ -1317,6 +1336,7 @@ def main():
             check_hld_module_count,
             check_legacy_engine_usage,
             check_orphaned_specs,
+            check_rule_health,
             check_rule_ownership,
             check_stale_graphs,
             check_workflow_continuation,
@@ -1348,6 +1368,7 @@ def main():
                 "codex_execution": check_codex_execution_capability(),
                 "codex_hooks": check_codex_hook_capability(root),
                 "workflow_continuation": check_workflow_continuation(root),
+                "rule_health": check_rule_health(root),
                 "issues": False,
             }
             print(json_module.dumps(payload, indent=2, ensure_ascii=False))
@@ -1384,6 +1405,9 @@ def main():
             has_issues = True
 
         graph = check_graph_provider(root)
+        rule_health = check_rule_health(root)
+        for warning_line in rule_health.get("warnings", []):
+            print("  Rule health: " + warning_line)
         print(
             "  Graph: "
             f"configured={graph.get('configured') or 'default'} "
@@ -1841,3 +1865,37 @@ def _check_adapter_compat(format_name: str, allow_skew: bool = False) -> list[st
 
 if __name__ == "__main__":
     main()
+
+
+def _run_guide_show(name: str, *, deploy_roots, project_root) -> int:
+    """STORY-slim-20260903a4ef6915ed62: guide choke point — print + record.
+
+    Resolves the guide across deploy roots (classic/opencode layouts, codex
+    embedded references), prints it, and records a guide_loaded telemetry
+    event. Name is whitelisted to registered guides — no path resolution.
+    """
+    import re as _re
+    import sys as _sys
+
+    from pactkit.prompts.guides import GUIDE_DEFINITIONS
+    from pactkit.rule_events import append_rule_event
+
+    registered = {n.removesuffix(".md"): n for n in GUIDE_DEFINITIONS}
+    if name not in registered or _re.search(r"[/\\]", name):
+        names = ", ".join(sorted(registered))
+        print(f"Unknown guide: {name!r}\nAvailable: {names}", file=_sys.stderr)
+        return 1
+    filename = registered[name]
+    for base in deploy_roots:
+        for candidate in (
+            base / "skills" / "_rules" / "guides" / filename,
+            base / "skills" / "project-act" / "references" / "guides" / filename,
+        ):
+            if candidate.is_file():
+                print(candidate.read_text(encoding="utf-8"), end="")
+                append_rule_event(project_root, "guide_loaded", {"guide": name})
+                return 0
+    names = ", ".join(sorted(registered))
+    print(f"Guide '{name}' is registered but not deployed — run `pactkit update`.\n"
+          f"Registered: {names}", file=_sys.stderr)
+    return 1

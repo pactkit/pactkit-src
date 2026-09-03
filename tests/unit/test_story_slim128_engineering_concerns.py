@@ -202,7 +202,7 @@ class TestActCommandEnhancement:
     def test_act_references_guides_directory(self):
         commands = _commands()
         act_content = commands.COMMANDS_CONTENT["project-act.md"]
-        assert "GUIDES_PATH" in act_content or "guides/" in act_content
+        assert "GUIDES_PATH" in act_content or "guides/" in act_content or "guide show" in act_content
 
     def test_act_mentions_only_load_relevant(self):
         commands = _commands()
