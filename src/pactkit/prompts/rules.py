@@ -762,6 +762,9 @@ If matched, the Spec MUST include a decision for that concern:
 | N+1/unbounded/分页/pagina/index/索引/热路径/hot path | performance-antipatterns | Pagination? Batch fetch? Index? Cache? |
 | shutdown/优雅关闭/SIGTERM/drain/信号处理 | graceful-shutdown | Signal handler? Drain timeout? Cleanup order? |
 | 测试策略/test strategy/mock/stub/boundary/隔离/isolation | testing-strategy | Mock vs real? Boundary tests? Test isolation? |
+| UI/界面/前端/组件/样式/交互/页面/导航/button/form/component | ui-state-accessibility | Loading/empty/error/disabled states? Keyboard & a11y? |
+| 部署/deploy/rollout/上线/健康检查/health/容量/capacity/回滚/rollback/灰度/canary | operational-readiness | Health signals? Rollback criteria? Capacity bounds? |
+| 新增依赖/添加依赖/pip install/npm install/pnpm add/yarn add/lockfile/升级依赖/supply chain | dependency-supply-chain | Why needed? Provenance/license? Pinned reproducibly? |
 
 Unmatched concerns → do not appear in Spec (avoid noise).
 
@@ -790,8 +793,11 @@ After reading Spec's Technical Design, load ONLY the matched guides:
 | performance-antipatterns | {GUIDES_PATH}/performance-antipatterns.md |
 | graceful-shutdown | {GUIDES_PATH}/graceful-shutdown.md |
 | testing-strategy | {GUIDES_PATH}/testing-strategy.md |
+| ui-state-accessibility | {GUIDES_PATH}/ui-state-accessibility.md |
+| operational-readiness | {GUIDES_PATH}/operational-readiness.md |
+| dependency-supply-chain | {GUIDES_PATH}/dependency-supply-chain.md |
 
-MUST load only 1-3 relevant guides. NEVER load all 19.
+MUST load only 1-3 relevant guides. NEVER load the entire guides/ directory.
 """,
 }
 

@@ -207,3 +207,52 @@ class TestActCommandEnhancement:
         commands = _commands()
         act_content = commands.COMMANDS_CONTENT["project-act.md"]
         assert "1-3" in act_content or "only" in act_content.lower()
+
+
+# ---------------------------------------------------------------------------
+# Guide routability invariant — regression for the orphaned-guide bug.
+#
+# ui-state-accessibility / operational-readiness / dependency-supply-chain
+# were registered in GUIDE_DEFINITIONS and deployed to _rules/guides/, but
+# the engineering index routing table never referenced them, so no keyword
+# could ever trigger their load. UI corrections were ~15% of all user
+# corrections in session transcripts while the UI guide sat unreachable.
+# ---------------------------------------------------------------------------
+import re as _re
+
+
+class TestEveryDeployedGuideIsRoutable:
+    def test_every_guide_is_routed_by_the_index(self):
+        rules = _rules()
+        guides = _guides()
+        index = rules.RULES_MODULES["engineering"]
+        missing = [name for name in guides.GUIDES_FILES if name not in index]
+        assert not missing, (
+            f"Guides deployed but not routable via engineering index: {missing}"
+        )
+
+    def test_index_keyword_table_covers_every_routed_concern(self):
+        """Each routed guide's concern stem must also appear in the Plan
+        keyword table — a guide reachable only from the Act table can never
+        be planned for."""
+        rules = _rules()
+        guides = _guides()
+        index = rules.RULES_MODULES["engineering"]
+        plan_table = index.split("## Act Phase")[0]
+        missing = [
+            name for name in guides.GUIDES_FILES
+            if name[:-3] not in plan_table
+        ]
+        assert not missing, (
+            f"Guides routed in Act table but missing a Plan keyword row: {missing}"
+        )
+
+    def test_no_hardcoded_guide_counts_anywhere(self):
+        """'NEVER load all 19/13' drifts every time a guide is added —
+        assert no numeric guide counts survive in rules or commands."""
+        rules = _rules()
+        commands = _commands()
+        pattern = _re.compile(r"all \d+ guides|load all \d+")
+        assert not pattern.search(rules.RULES_MODULES["engineering"])
+        for name, content in commands.COMMANDS_CONTENT.items():
+            assert not pattern.search(content), f"stale guide count in {name}"

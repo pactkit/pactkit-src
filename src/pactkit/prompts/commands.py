@@ -246,7 +246,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 2.  **Identify concerns**: Extract the concern keywords mentioned (e.g., database, api-integration, resilience). Reference `{SKILLS_ROOT}/_rules/engineering/index.md` for the keyword→guide mapping table.
 3.  **Load guides**: For each identified concern, read the corresponding guide file from `{GUIDES_PATH}/`:
     - MUST load only 1-3 relevant guides (those matching the Spec's concerns).
-    - NEVER load all 13 guides.
+    - NEVER load the entire guides/ directory.
     - If Spec has no engineering concerns section, skip this phase silently.
 4.  **Apply decisions**: Use the loaded guides as risk-driven decision support. Their hard-safety notes are non-negotiable; defaults may be changed with project evidence.
 5.  **Output checkpoint**: `"Engineering guides loaded: {list}. Applying as implementation constraints."`
