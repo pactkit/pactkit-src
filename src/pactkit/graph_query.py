@@ -385,6 +385,17 @@ class GraphProviderRouter:
         return GraphQueryResult(results, decision, "valid_empty" if not results else "ok")
 
 
+def resolve_graph_provider(configured: str | None, root: Path) -> str | None:
+    """Resolve the effective provider: explicit config wins, auto/None detects.
+
+    "auto" (the config template default) and unset both mean: use codegraph
+    when the binary is installed and the project index exists.
+    """
+    if configured in ("codegraph", "builtin_graph", "text_search"):
+        return configured
+    return detect_graph_provider(root)
+
+
 def detect_graph_provider(root: Path) -> str | None:
     """Auto-detect the default provider when config leaves graph_provider unset.
 

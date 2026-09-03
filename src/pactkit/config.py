@@ -537,6 +537,7 @@ CONFIG_SCHEMA: dict[str, dict] = {
     },
     "visualize": {
         "default": {
+            "graph_provider": "auto",
             "scan_excludes": [
                 "venv", "_venv", ".venv", ".env", "env",
                 "__pycache__", ".git", ".claude",
@@ -546,7 +547,7 @@ CONFIG_SCHEMA: dict[str, dict] = {
         },
         "deep_merge": True,
         "kind": "mapping",
-        "comment": "# Visualize — configure directory scan exclusions and graph provider",
+        "comment": "# Visualize — graph_provider: auto | codegraph | builtin_graph; auto detects codegraph",
     },
     "command_models": {
         "default": {

@@ -66,11 +66,14 @@ class TestConfigRemoval:
         cfg = get_default_config()
         assert "sqlite_output" not in cfg["visualize"]
 
-    def test_graph_provider_not_in_default(self):
-        """graph_provider is not written by default (absence = grep-mmd mode)."""
+    def test_graph_provider_default_is_auto(self):
+        """graph_provider defaults to "auto" (user rule 2026-09-03: codegraph
+        installed on the machine = default enabled; auto resolves via
+        detect_graph_provider at query/doctor time). Supersedes the slim-121
+        contract of absence = grep-mmd mode."""
         from pactkit.config import get_default_config
         cfg = get_default_config()
-        assert "graph_provider" not in cfg["visualize"]
+        assert cfg["visualize"]["graph_provider"] == "auto"
 
 
 # ---------------------------------------------------------------------------
@@ -108,13 +111,15 @@ class TestGraphProviderConfig:
         assert cfg["visualize"]["graph_provider"] == "codegraph"
 
     def test_load_config_absent_graph_provider(self, tmp_path):
-        """load_config returns no graph_provider when absent."""
+        """File without graph_provider merges to the "auto" default, which
+        resolve_graph_provider maps to machine detection (user rule
+        2026-09-03). Explicit values still round-trip unchanged."""
         from pactkit.config import load_config
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir()
         (claude_dir / "pactkit.yaml").write_text("visualize:\n  scan_excludes: []\n")
         cfg = load_config(claude_dir / "pactkit.yaml")
-        assert "graph_provider" not in cfg["visualize"]
+        assert cfg["visualize"]["graph_provider"] == "auto"
 
 
 # ---------------------------------------------------------------------------

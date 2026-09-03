@@ -140,6 +140,7 @@
     "auto_detect": true
   },
   "visualize": {
+    "graph_provider": "auto",
     "scan_excludes": [
       "venv",
       "_venv",

@@ -544,3 +544,27 @@ class TestCodegraphAutoDetect:
         (tmp_path / ".codegraph" / "codegraph.db").write_bytes(b"x")
         monkeypatch.setattr("shutil.which", lambda name: None)
         assert detect_graph_provider(tmp_path) is None
+
+    def test_config_template_includes_graph_provider_auto(self):
+        """Init-generated pactkit.yaml must carry the graph_provider key.
+
+        Regression (2026-09-03, user report): pacthorn's project-init yaml
+        had no graph_provider — every new project needed a manual edit to
+        use codegraph. The template now ships graph_provider: auto.
+        """
+        from pactkit.config import get_default_config
+
+        visualize = get_default_config().get("visualize", {})
+        assert visualize.get("graph_provider") == "auto"
+
+    def test_auto_resolves_through_detect(self, tmp_path, monkeypatch):
+
+        (tmp_path / ".codegraph").mkdir()
+        (tmp_path / ".codegraph" / "codegraph.db").write_bytes(b"x")
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/codegraph" if name == "codegraph" else None)
+        # "auto" 与未配置同义:走探测
+        from pactkit.graph_query import resolve_graph_provider
+
+        assert resolve_graph_provider("auto", tmp_path) == "codegraph"
+        assert resolve_graph_provider(None, tmp_path) == "codegraph"
+        assert resolve_graph_provider("builtin_graph", tmp_path) == "builtin_graph"

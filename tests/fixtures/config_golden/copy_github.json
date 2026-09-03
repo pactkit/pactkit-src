@@ -141,6 +141,7 @@
   },
   "version": "0.0.1",
   "visualize": {
+    "graph_provider": "auto",
     "scan_excludes": [
       "venv",
       "_venv",
