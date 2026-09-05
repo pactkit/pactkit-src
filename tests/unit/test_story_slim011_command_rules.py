@@ -13,18 +13,20 @@ from pactkit.prompts.rules import (
 
 
 SPEC_TABLE = {
-    "project-init": ["runtime", "phase-plan", "shared-execution"],
+    # STORY-slim-20260905efced66ebc9c R6: init/clarify/design load their own
+    # capsules; debug gains a phase capsule it previously lacked.
+    "project-init": ["runtime", "phase-init", "shared-execution"],
     "project-plan": ["runtime", "phase-plan", "shared-execution"],
-    "project-clarify": ["runtime", "phase-plan"],
+    "project-clarify": ["runtime", "phase-clarify"],
     "project-act": ["runtime", "phase-act", "shared-execution", "spec-preflight"],
     "project-check": ["runtime", "phase-check", "shared-execution"],
     "project-done": ["runtime", "phase-done", "shared-execution", "git-workflow"],
     "project-release": ["runtime", "phase-release", "git-workflow"],
     "project-pr": ["runtime", "phase-pr", "git-workflow"],
     "project-hotfix": ["runtime", "phase-hotfix", "shared-execution"],
-    "project-design": ["runtime", "phase-plan"],
+    "project-design": ["runtime", "phase-design"],
     "project-sprint": ["runtime", "sprint-orchestrator", "shared-execution"],
-    "project-debug": ["runtime", "shared-execution"],
+    "project-debug": ["runtime", "phase-debug", "shared-execution"],
 }
 
 for _rules in SPEC_TABLE.values():

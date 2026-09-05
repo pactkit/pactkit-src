@@ -233,6 +233,13 @@ def main():
     # pactkit regression (STORY-slim-014 R1)
     regression_parser = subparsers.add_parser("regression", help="Classify changes for regression testing")
     regression_parser.add_argument("files", nargs="*", help="Changed file paths (default: git diff)")
+    # Verification fingerprints (STORY-slim-20260905efced66ebc9c R5)
+    regression_parser.add_argument("--record", action="store_true", default=False,
+                                   help="Record a verification fingerprint after a green regression run")
+    regression_parser.add_argument("--check-record", action="store_true", default=False,
+                                   help="Compare current state against the recorded verification fingerprint")
+    regression_parser.add_argument("--story", default=None,
+                                   help="Story ID for the verification record (default: active story)")
 
     # pactkit context (STORY-slim-014 R1, STORY-slim-071 continuation)
     ctx_parser = subparsers.add_parser("context", help="Generate local .pactkit/context.md")
@@ -779,26 +786,43 @@ def main():
 
         from pactkit.regression import classify_changes
 
-        files = args.files
-        if not files:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD"],
-                capture_output=True,
-                text=True,
-            )
-            files = [f for f in result.stdout.strip().split("\n") if f]
-        strategy, reason = classify_changes(files)
-        print(f"{strategy.upper()} — {reason}")
-        # Workflow impact — informational only (STORY-slim-038)
-        try:
-            from pactkit.skills.visualize import regression_workflow_impact
+        if args.record or args.check_record:
+            # Verification fingerprints (STORY-slim-20260905efced66ebc9c R5)
+            from pactkit.regression import check_verification, record_verification
+            from pactkit.run_events import active_story_id
 
-            wf_lines = regression_workflow_impact(str(project_root), files)
-            for line in wf_lines:
-                print(line)
-        except Exception:
-            pass  # Graceful degradation (R4)
-        raise SystemExit(0 if strategy == "skip" else 0)
+            story = args.story or active_story_id(project_root)
+            if not story:
+                print("No active story — pass --story {STORY_ID}")
+            else:
+                try:
+                    if args.record:
+                        print(record_verification(project_root, story))
+                    else:
+                        print(check_verification(project_root, story))
+                except ValueError as exc:
+                    print(f"Invalid --story: {exc}")
+        else:
+            files = args.files
+            if not files:
+                result = subprocess.run(
+                    ["git", "diff", "--name-only", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                )
+                files = [f for f in result.stdout.strip().split("\n") if f]
+            strategy, reason = classify_changes(files)
+            print(f"{strategy.upper()} — {reason}")
+            # Workflow impact — informational only (STORY-slim-038)
+            try:
+                from pactkit.skills.visualize import regression_workflow_impact
+
+                wf_lines = regression_workflow_impact(str(project_root), files)
+                for line in wf_lines:
+                    print(line)
+            except Exception:
+                pass  # Graceful degradation (R4)
+            raise SystemExit(0 if strategy == "skip" else 0)
 
     elif args.command == "context":
         from pathlib import Path

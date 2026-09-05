@@ -21,22 +21,24 @@ def _commands():
 # ===========================================================================
 
 class TestRegressionGateCascade:
-    """After Step 1.5 removal, Step 1.3 fall-through goes to Step 1.6."""
+    """Step 1.3 fall-through goes to Step 1.7 (STORY-slim-20260905efced66ebc9c
+    removed Step 1.6, a duplicate of 1.3's FULL routing, as prompt-budget
+    compensation)."""
 
     def _done(self) -> str:
         return _commands().COMMANDS_CONTENT['project-done.md']
 
-    def test_step_1_3_falls_through_to_step_1_6(self):
-        """Step 1.3 Doc-Only fall-through must reference Step 1.6, not Step 1.5."""
+    def test_step_1_3_falls_through_to_step_1_7(self):
+        """Step 1.3 IMPACT fall-through must reference Step 1.7."""
         done = self._done()
-        # Find the "any source files changed" line in Step 1.3
-        assert 'Step 1.6' in done, \
-            "Step 1.3 fall-through must reference Step 1.6 (Release Gate)"
+        assert 'Step 1.7' in done, \
+            "Step 1.3 fall-through must reference Step 1.7 (Impact-Based Analysis)"
 
-    def test_step_1_6_still_exists(self):
-        """Step 1.6 Release Gate must still exist."""
+    def test_release_gate_duplicate_removed(self):
+        """Step 1.6 must be gone; its FULL routing lives in Step 1.3."""
         done = self._done()
-        assert 'Step 1.6' in done and 'Release Gate' in done
+        assert 'Step 1.6' not in done
+        assert 'proceed directly to Step 3' in done
 
     def test_step_1_7_still_exists(self):
         """Step 1.7 Impact-Based Analysis must still exist."""

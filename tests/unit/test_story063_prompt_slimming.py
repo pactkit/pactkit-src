@@ -221,7 +221,11 @@ class TestAC6DevRefGhostResolved:
 # verifiable state protocol, so they are intentionally retained in prompts.
 # STORY-slim-147/149: +2400 for Plan workflow recovery and provider-router
 # evidence gates across canonical command prompts.
-BASELINE_TOTAL_CHARS = 106341
+# STORY-slim-20260905efced66ebc9c: +270 for the R5 verification-fingerprint
+# guidance (user-approved with the story). Net-neutral otherwise — the same
+# change removed the Done Step 1.6/2.3 duplicates and pushed the command
+# references the CLI output already carries out of the playbook.
+BASELINE_TOTAL_CHARS = 106611
 
 
 class TestAC7PromptSizeReduced:

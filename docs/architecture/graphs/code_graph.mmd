@@ -149,6 +149,8 @@ graph TD
     click src_pactkit_generators_command_ownership_py href "src/pactkit/generators/command_ownership.py"
     src_pactkit_deps_py --> src_pactkit_config_py
     src_pactkit_spec_preflight_py --> src_pactkit_utils_py
+    src_pactkit_regression_py --> src_pactkit_id_generator_py
+    src_pactkit_regression_py --> src_pactkit_utils_py
     src_pactkit_session_gate_py --> src_pactkit_context_gen_py
     src_pactkit_session_gate_py --> src_pactkit_utils_py
     src_pactkit_config_py --> src_pactkit_prompts_rules_py
@@ -244,6 +246,7 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_id_generator_py
     src_pactkit_cli_py --> src_pactkit_cleaners_py
     src_pactkit_cli_py --> src_pactkit_regression_py
+    src_pactkit_cli_py --> src_pactkit_run_events_py
     src_pactkit_cli_py --> src_pactkit_context_gen_py
     src_pactkit_cli_py --> src_pactkit_utils_py
     src_pactkit_cli_py --> src_pactkit_governance_py
@@ -251,7 +254,6 @@ graph TD
     src_pactkit_cli_py --> src_pactkit_continuation_py
     src_pactkit_cli_py --> src_pactkit_workflow_registry_py
     src_pactkit_cli_py --> src_pactkit_spec_graph_py
-    src_pactkit_cli_py --> src_pactkit_run_events_py
     src_pactkit_cli_py --> src_pactkit_sec_scope_py
     src_pactkit_cli_py --> src_pactkit_validators_py
     src_pactkit_cli_py --> src_pactkit_rule_diagnostics_py

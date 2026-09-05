@@ -231,7 +231,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 
 ## 🎬 Phase 1: Precision Targeting
 0.  **Previous-session context (optional)**: You MAY read the Agent Continuation section of the local `.pactkit/context.md` (if present) for handover notes from an earlier session. It is never an execution gate: a stale, missing, or empty section does not prevent this session from implementing and verifying the current Story.
-1.  **Provider-Routed Scan**: Run `pactkit query --explore <module> --json --explain`. Record the complete provider decision in preflight evidence. Do not invoke Codegraph, visualize, SQLite or `rg` directly; `--allow-fallback` must be explicit and auditable.
+1.  **Provider-Routed Scan**: Run `pactkit query --explore <module> --json --explain`. Record the provider decision in preflight evidence. If the router is unavailable or fails, fall back to standard tools (rg/Grep/Read), record the degradation reason, and continue — `--allow-fallback` emits the audit record automatically.
 2.  **Trace Verification** — use pactkit-trace skill:
     - Run `pactkit query --chain <symbol> --json --explain`; confirm the call site and existing callers before editing.
 3.  **Interface Summary (Code Enforce)** — for non-target modules discovered by trace:
@@ -277,8 +277,9 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep]
 3.  **Regression Check (Read-Only Gate)**: After the TDD loop is GREEN, run the project's test suite as a broader regression check.
     <!-- PACTKIT_ACT_OP:regression_classification -->
     - Run `pactkit regression` (uses `git diff` + `LANG_PROFILES` to classify: SKIP/FULL/IMPACT). Doc-only changes are auto-skipped.
-    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. Query importers through `pactkit query --callers <file> --json --explain`; if any changed file has 3+ importers, run full suite. Fallback is allowed only through router policy.
+    - If IMPACT: run `pactkit test-map <changed-files>` for incremental test selection. Query importers through `pactkit query --callers <file> --json --explain`; if any changed file has 3+ importers, run full suite. If the router is unavailable, select tests with standard tools and record the degradation reason.
     - **Pre-existing test failure protocol**: Do not casually modify an unrelated failing test. Diagnose whether the Story caused it; fix it when the causal path is understood, otherwise report it as a QA gap while continuing all safe, relevant Story work.
+    - **Verification Record**: When the regression run is green, run `pactkit regression --record --story {STORY_ID}` (stamps code state for Done's reuse check); if unavailable or non-git, log and continue.
 4.  **Lint Gate**: Run `pactkit lint` to check code style. If lint errors are found, fix them before proceeding. If `pactkit lint` is unavailable, run the stack's lint command directly.
     <!-- PACTKIT_ACT_OP:lint -->
     - After regression and lint pass, optionally record a local handover note (`pactkit context --continuation`).
@@ -570,36 +571,31 @@ allowed-tools: [Read, Write, Edit, Bash, Glob]
 > **CRITICAL**: Do NOT skip this step. This is the safety net before commit.
 
 ### Step 0: Source Change Pre-Check
-- If context records a verified `/project-act` and no source/test changed since it, log `"Regression: SKIP — Act already verified, no intervening changes"` and continue at Phase 3.
-- Otherwise classify changed files with `git diff --name-only HEAD~1`; doc/config/graph-only changes log `"Regression: SKIP — no source/test changes since Act"` and continue at Smart Lint Gate.
+- Run `pactkit regression --check-record --story {STORY_ID}` and route on the verdict:
+  - `VERIFIED-CURRENT` → log `"Regression: SKIP — fingerprint matches"`; continue at Phase 3.
+  - `STALE — {files}` → classify the listed files (doc/config/graph-only → log `"Regression: SKIP — no source/test changes"`, continue at Smart Lint Gate); otherwise continue at Step 1.3.
+  - `NO-RECORD`/unavailable → classify uncommitted changes; continue at Step 1.3.
 
 ### Step 1: Impact Analysis
 - Check graph availability through `pactkit query --impact <target> --json --explain`; do not select providers manually.
 
 ### Step 1.3: Classification Shortcut
-Run `pactkit regression` (or `pactkit regression <files>`) to classify changes (doc-only → SKIP):
-- **SKIP** → proceed to Step 2.7 (no regression needed).
+Run `pactkit regression` to classify changes (doc-only → SKIP):
+- **SKIP** → proceed to Step 2.5 (no regression needed).
 - **FULL** → skip impact analysis, proceed directly to Step 3 (full regression).
-- **IMPACT** → continue to Step 1.6.
-
-### Step 1.6: Release Gate — Version Bump Override
-If `pactkit regression` returns FULL (version/dependency change detected), proceed directly to Step 3.
-Otherwise continue to Step 1.7.
+- **IMPACT** → continue to Step 1.7.
 
 ### Step 1.7: Impact-Based Analysis (STORY-053)
-With `regression.strategy=impact`, extract changed `def` names from `git diff HEAD~1 --unified=0`; run `{VISUALIZE_CMD} impact --entry <func_name>`, deduplicate mapped tests, and run them when below `regression.max_impact_tests` (default 50). Log `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`; missing functions, failures, or threshold overflow fall through to Decision Tree.
+With `regression.strategy=impact`, extract changed `def` names from the Step 0 baseline diff (`git diff <recorded-commit> --unified=0` with a record, else `git diff HEAD --unified=0`); run `{VISUALIZE_CMD} impact --entry <func_name>`, deduplicate mapped tests, and run them when below `regression.max_impact_tests` (default 50). Log `"Regression: IMPACT-BASED — {N} test files based on call graph analysis"`; missing functions, failures, or threshold overflow fall through to Decision Tree.
 
 ### Step 2: Decision Tree (Safe-by-Default)
-Run full regression by default. Incremental requires a fresh `code_graph.mmd`, ≤3 source files, mappings from `LANG_PROFILES[stack].test_map_pattern`, no test-infra changes, and no file with 3+ importers; missing graph or fast suite (<500 tests) means full.
+Run full regression by default. Incremental requires a fresh `code_graph.mmd`, ≤3 source files, mappings from `LANG_PROFILES[stack].test_map_pattern`, no test-infra changes, and no file with 3+ importers; missing graph or fast suite (<500 tests) means full. Log the chosen path as `"Regression: {TYPE} — {reason}"` (SKIP, STORY-ONLY, FULL, IMPACT-BASED, or INCREMENTAL).
 
-### Step 2.3: Decision Logging (MUST)
-After evaluating the decision tree, log the decision with format: `"Regression: {TYPE} — {reason}"` (e.g., SKIP, STORY-ONLY, FULL, IMPACT-BASED, INCREMENTAL).
-
-### Step 2.5: Coverage Verification (Conditional)
+### Step 2.3: Coverage Verification (Conditional)
 Run `pactkit coverage-gate <changed-files>` to verify coverage on changed source files.
-- ≥80% PASS; 50–79% WARN with file/coverage; <50% BLOCK for confirmation. If unavailable, run equivalent `pytest --cov`; report results.
+- ≥80% PASS; 50–79% WARN with file/coverage; <50% report as an acceptance gap and continue; the user decides whether repair gates acceptance. If unavailable, run equivalent `pytest --cov`; report results.
 
-### Step 2.7: Smart Lint Gate (STORY-030)
+### Step 2.5: Smart Lint Gate (STORY-030)
 If Act already verified lint with no later source/test change, log `"Lint: SKIP — Act already passed lint, no new changes"`. Otherwise run `pactkit lint` (or `LANG_PROFILES[stack].lint_command`); honor `auto_fix` and `lint_blocking`, and report non-blocking warnings. No configured command means skip.
 
 ### Step 3: Gate
@@ -612,13 +608,12 @@ If Act already verified lint with no later source/test change, log `"Lint: SKIP 
 ## 🎬 Phase 3: Hygiene Check & Fix
 1.  **Verify**: Are tasks for this Story marked `[x]`?
 2.  **Auto-Fix**:
-    - If tests are GREEN but tasks are `[ ]`, **Ask the user**: "Tests passed but tasks are unchecked. Mark as done?"
-    - If user agrees, run `pactkit board complete-task {STORY_ID} "<exact task>"` for each task.
+    - If tests are GREEN but tasks are `[ ]`, verify each task's evidence (test results, coverage table, Spec AC mapping), then run `pactkit board complete-task {STORY_ID} "<exact task>"` for each verified task and report the verification basis in the summary. Ask the user only when a task's evidence cannot be located.
 3.  **Lessons Auto-append (MUST)**: Run `pactkit lesson-append --story {STORY_ID} --text "lesson text" [--context "file.py:func"]`.
     - The command checks specificity (references concrete file/function?) and dedup (different from last 5 entries?).
     - If both pass: appends row using format `{LESSONS_ROW_FORMAT}` where date=YYYY-MM-DD, context={STORY_ID}
     - If either fails: skip with log from command output.
-    - If `pactkit lesson-append` is unavailable, stop and request a Core upgrade; never write a shared Lesson projection manually.
+    - If `pactkit lesson-append` is unavailable, report the gap (lesson not recorded; Core upgrade needed) and continue the Done flow. Never write a shared Lesson projection manually.
 4.  **Invariants Refresh (MUST)**: Run `pactkit invariants-refresh --test-count {N}` where {N} is the actual count from the most recent test run.
     - The command updates `docs/architecture/governance/rules.md` invariant "All {N}+ tests must pass".
     - If `pactkit invariants-refresh` is unavailable, fall back to manual: read rules.md, find the pattern, replace the number.

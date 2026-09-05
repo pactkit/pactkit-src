@@ -342,14 +342,15 @@ class TestConfigAutoGeneration:
 class TestDeploymentSummary:
     def test_summary_printed_full(self, tmp_path, capsys):
         # 13 embedded skills + 12 commands.
-        # Scenario registry: 1 Runtime Kernel + 16 command/shared modules.
+        # Scenario registry: 1 Runtime Kernel + 20 command/shared modules.
+        # STORY-slim-20260905efced66ebc9c R6: +4 phase capsules (init/clarify/design/debug).
         _run_deploy(tmp_path, config=get_default_config())
         output = capsys.readouterr().out
         assert "9/9 Agents" in output
         assert "25/25 Skills" in output
         assert "13 embedded" in output
         assert "12 commands" in output
-        assert "17/17 Rules" in output
+        assert "21/21 Rules" in output
 
     def test_summary_printed_partial(self, tmp_path, capsys):
         # STORY-slim-133: 25 total (13 embedded + 12 commands)
@@ -368,7 +369,7 @@ class TestDeploymentSummary:
         cfg["rules"].append("pactkit-maintainer")
 
         _run_deploy(tmp_path, config=cfg)
-        assert "18/18 Rules" in capsys.readouterr().out
+        assert "22/22 Rules" in capsys.readouterr().out
 
 
 # ===========================================================================

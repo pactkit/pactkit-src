@@ -1,0 +1,29 @@
+schema_version: 1
+id: STORY-slim-20260905efced66ebc9c
+title: 剧本-契约冲突修复:阻塞边界/工具回退/验证指纹/准确阶段胶囊 R1-R6
+spec_path: docs/specs/STORY-slim-20260905efced66ebc9c.md
+status: archived
+tasks:
+- id: task-6397015b04
+  title: R1-R4 剧本文本改写:coverage 门禁降级/工具回退/lesson-append 缺口报告/任务勾选免强制询问 (commands.py)
+  completed: true
+- id: task-0deec18219
+  title: R5 指纹机制:regression --record/--check-record + .pactkit/verification/<story>.json
+    (regression.py+cli.py)
+  completed: true
+- id: task-f33f5af47c
+  title: R5 剧本接入:Act 回归绿后 --record,Done 以指纹替代 HEAD~1 基线 (commands.py+test_story037)
+  completed: true
+- id: task-1a14dcef40
+  title: R6 注册 phase-init/clarify/design/debug 胶囊并修正 COMMAND_RULES_MAP (rules.py)
+  completed: true
+- id: task-7bd97107bb
+  title: 测试:新建 test_contract_conflict_fixes.py + SPEC_TABLE 镜像同步 (slim011)
+  completed: true
+- id: task-729129afcb
+  title: 全量回归 + 部署 smoke:classic init/design 技能含新胶囊 @import
+  completed: true
+created_at: '2026-09-05T22:27:39+00:00'
+updated_at: '2026-09-05T22:58:34+00:00'
+completed_at: '2026-09-05T22:53:39+00:00'
+archived_at: '2026-09-05T22:58:34+00:00'

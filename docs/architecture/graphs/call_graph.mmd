@@ -238,6 +238,7 @@ graph TD
     _detect_ghe["_detect_ghe"]
     _detect_platform["_detect_platform"]
     _detect_sources["_detect_sources"]
+    _dirty_state["_dirty_state"]
     _discover_references["_discover_references"]
     _done_completion["_done_completion"]
     _enforce_deploy_integrity["_enforce_deploy_integrity"]
@@ -417,6 +418,7 @@ graph TD
     _validate_work_unit_snapshot["_validate_work_unit_snapshot"]
     _validate_workflow_start["_validate_workflow_start"]
     _validate_workflow_state["_validate_workflow_state"]
+    _validated_story_id["_validated_story_id"]
     _worktree_fingerprint["_worktree_fingerprint"]
     _write_audit_json["_write_audit_json"]
     accept_candidates["accept_candidates"]
@@ -467,6 +469,7 @@ graph TD
     check_stale_docs["check_stale_docs"]
     check_stale_graphs["check_stale_graphs"]
     check_status_consistency["check_status_consistency"]
+    check_verification["check_verification"]
     check_version_mismatch["check_version_mismatch"]
     check_wiring["check_wiring"]
     check_workflow_continuation["check_workflow_continuation"]
@@ -562,6 +565,7 @@ graph TD
     record_gate_event["record_gate_event"]
     record_legacy_usage["record_legacy_usage"]
     record_status["record_status"]
+    record_verification["record_verification"]
     redact_command["redact_command"]
     refresh_test_count["refresh_test_count"]
     register_deployer["register_deployer"]
@@ -610,6 +614,7 @@ graph TD
     validate_registry["validate_registry"]
     validate_skill_recovery_contracts["validate_skill_recovery_contracts"]
     verification_outcome_unknown["verification_outcome_unknown"]
+    verification_path["verification_path"]
     verify_story["verify_story"]
     write_command_manifest["write_command_manifest"]
     write_deploy_manifest["write_deploy_manifest"]
@@ -641,6 +646,21 @@ graph TD
     run_spec_preflight --> _sha256
     classify_changes --> _is_doc_only
     classify_changes --> _is_version_file
+    _dirty_state --> _git
+    _dirty_state --> _is_doc_only
+    record_verification --> _validated_story_id
+    record_verification --> _git
+    record_verification --> _dirty_state
+    record_verification --> verification_path
+    record_verification --> atomic_write
+    record_verification --> _fingerprint
+    check_verification --> _validated_story_id
+    check_verification --> verification_path
+    check_verification --> _git
+    check_verification --> _dirty_state
+    check_verification --> _fingerprint
+    check_verification --> _git
+    check_verification --> _is_doc_only
     _refresh --> generate_context
     _refresh --> atomic_write
     _refresh --> context_output_path
@@ -1255,11 +1275,14 @@ graph TD
     main --> scrub_enforcement_records
     main --> classify_changes
     main --> generate_context
+    main --> active_story_id
     main --> context_output_path
     main --> atomic_write
     main --> LessonRepository_add
     main --> GovernanceMigrator_migrate
     main --> record_legacy_usage
+    main --> record_verification
+    main --> check_verification
     main --> StoryRepository_complete_task
     main --> record_legacy_usage
     main --> StoryRepository_move

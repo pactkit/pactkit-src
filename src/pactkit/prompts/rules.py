@@ -1392,6 +1392,12 @@ PHASE_RULE_CONTENTS = {
     "phase-pr": PHASE_CONTRACTS["project-pr"].render(),
     "phase-release": PHASE_CONTRACTS["project-release"].render(),
     "phase-hotfix": PHASE_CONTRACTS["project-hotfix"].render(),
+    # STORY-slim-20260905efced66ebc9c R6: init/clarify/design/debug previously
+    # loaded the plan contract (or none) although their own contracts existed.
+    "phase-init": PHASE_CONTRACTS["project-init"].render(),
+    "phase-clarify": PHASE_CONTRACTS["project-clarify"].render(),
+    "phase-design": PHASE_CONTRACTS["project-design"].render(),
+    "phase-debug": PHASE_CONTRACTS["project-debug"].render(),
 }
 
 
@@ -1433,9 +1439,27 @@ RULE_DEFINITIONS = {
         override="the user's latest explicit workflow choice controls activation",
         clauses=tuple(RULE_CLAUSES),
     ),
-"phase-plan": _definition("phase-plan", "phases/plan-contract.md", PHASE_RULE_CONTENTS["phase-plan"], scope=("project-plan", "project-design", "project-clarify"), load_policy="phase", legacy_ids=("plan",),
-        trigger="while /project-plan or /project-design or /project-clarify executes in the current session",
+"phase-plan": _definition("phase-plan", "phases/plan-contract.md", PHASE_RULE_CONTENTS["phase-plan"], scope=("project-plan",), load_policy="phase", legacy_ids=("plan",),
+        trigger="while /project-plan executes in the current session",
         evidence=("the phase capsule is @import-ed by the active project-plan skill",),
+    ),
+    # STORY-slim-20260905efced66ebc9c R6: these commands previously loaded the
+    # plan contract (init/clarify/design) or no capsule at all (debug).
+"phase-init": _definition("phase-init", "phases/init-contract.md", PHASE_RULE_CONTENTS["phase-init"], scope=("project-init",), load_policy="phase",
+        trigger="while /project-init executes in the current session",
+        evidence=("the phase capsule is @import-ed by the active project-init skill",),
+    ),
+"phase-clarify": _definition("phase-clarify", "phases/clarify-contract.md", PHASE_RULE_CONTENTS["phase-clarify"], scope=("project-clarify",), load_policy="phase",
+        trigger="while /project-clarify executes in the current session",
+        evidence=("the phase capsule is @import-ed by the active project-clarify skill",),
+    ),
+"phase-design": _definition("phase-design", "phases/design-contract.md", PHASE_RULE_CONTENTS["phase-design"], scope=("project-design",), load_policy="phase",
+        trigger="while /project-design executes in the current session",
+        evidence=("the phase capsule is @import-ed by the active project-design skill",),
+    ),
+"phase-debug": _definition("phase-debug", "phases/debug-contract.md", PHASE_RULE_CONTENTS["phase-debug"], scope=("project-debug",), load_policy="phase",
+        trigger="while /project-debug executes in the current session",
+        evidence=("the phase capsule is @import-ed by the active project-debug skill",),
     ),
 "phase-act": _definition("phase-act", "phases/act-contract.md", PHASE_RULE_CONTENTS["phase-act"], scope=("project-act",), load_policy="phase", legacy_ids=("act",),
         trigger="while /project-act executes in the current session",
@@ -1538,18 +1562,18 @@ RULES_ONDEMAND_DIR = "_rules"
 RULES_INSTRUCTIONS_CORE = ["rules/pactkit-runtime.md"]
 
 COMMAND_RULES_MAP = {
-    "project-init": ["runtime", "pdca-lifecycle", "phase-plan", "shared-execution"],
+    "project-init": ["runtime", "pdca-lifecycle", "phase-init", "shared-execution"],
     "project-plan": ["runtime", "pdca-lifecycle", "phase-plan", "shared-execution"],
-    "project-clarify": ["runtime", "pdca-lifecycle", "phase-plan"],
+    "project-clarify": ["runtime", "pdca-lifecycle", "phase-clarify"],
     "project-act": ["runtime", "pdca-lifecycle", "phase-act", "shared-execution", "spec-preflight"],
     "project-check": ["runtime", "pdca-lifecycle", "phase-check", "shared-execution"],
     "project-done": ["runtime", "pdca-lifecycle", "phase-done", "shared-execution", "git-workflow"],
     "project-release": ["runtime", "pdca-lifecycle", "phase-release", "git-workflow"],
     "project-pr": ["runtime", "pdca-lifecycle", "phase-pr", "git-workflow"],
     "project-hotfix": ["runtime", "pdca-lifecycle", "phase-hotfix", "shared-execution"],
-    "project-design": ["runtime", "pdca-lifecycle", "phase-plan"],
+    "project-design": ["runtime", "pdca-lifecycle", "phase-design"],
     "project-sprint": ["runtime", "pdca-lifecycle", "sprint-orchestrator", "shared-execution"],
-    "project-debug": ["runtime", "pdca-lifecycle", "shared-execution"],
+    "project-debug": ["runtime", "pdca-lifecycle", "phase-debug", "shared-execution"],
 }
 
 # Candidate rules are available to a command but are not activated until the

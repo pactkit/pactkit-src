@@ -25,17 +25,20 @@ class TestDoneDocOnlyShortcut:
             'Done prompt missing doc-only shortcut language'
 
     def test_doc_only_before_release_gate(self):
-        """Doc-Only Shortcut (Step 1.3) must appear before Release Gate (Step 1.6)."""
+        """Doc-Only Shortcut (Step 1.3) must appear before the FULL→Step 3
+        routing. (STORY-slim-20260905efced66ebc9c: Step 1.6 Release Gate was
+        deduplicated into Step 1.3's FULL branch as prompt-budget
+        compensation.)"""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
         doc_only_idx = done.lower().find('doc-only')
         if doc_only_idx < 0:
             doc_only_idx = done.lower().find('doc only')
-        release_gate_idx = done.find('Release Gate')
+        full_routing_idx = done.find('proceed directly to Step 3')
         assert doc_only_idx > 0, 'Doc-Only shortcut not found'
-        assert release_gate_idx > 0, 'Release Gate not found'
-        assert doc_only_idx < release_gate_idx, \
-            'Doc-Only shortcut must appear before Release Gate'
+        assert full_routing_idx > 0, 'FULL routing not found'
+        assert doc_only_idx < full_routing_idx, \
+            'Doc-Only shortcut must appear before FULL routing'
 
     def test_done_references_source_dirs(self):
         """Done prompt should reference source_dirs or LANG_PROFILES for source detection."""
@@ -133,10 +136,12 @@ class TestBackwardCompatibility:
         assert 'full regression' in lower or 'full suite' in lower
 
     def test_done_still_has_release_gate(self):
-        """Release Gate (Step 1.6) must still exist (STORY-057 removed Step 1.5)."""
+        """The release/version-bump routing must survive (STORY-057 removed
+        Step 1.5; STORY-slim-20260905efced66ebc9c deduplicated Step 1.6 into
+        Step 1.3's FULL branch)."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        assert 'Release Gate' in done
+        assert 'proceed directly to Step 3' in done
 
     def test_done_still_has_decision_tree(self):
         """Decision Tree must still exist."""
@@ -182,22 +187,23 @@ class TestDecisionLogging:
     """R4: Decision Logging SHOULD support SKIP and STORY-ONLY formats."""
 
     def test_done_decision_logging_has_skip_format(self):
-        """Step 2.3 should document the SKIP format."""
+        """The decision-log format instruction should document SKIP.
+        (STORY-slim-20260905efced66ebc9c merged the Step 2.3 logging section
+        into the Step 2 Decision Tree sentence.)"""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        # Find Decision Logging section
-        logging_idx = done.find('Decision Logging')
-        assert logging_idx > 0, 'Decision Logging section not found'
+        logging_idx = done.find('Regression: {TYPE} — {reason}')
+        assert logging_idx > 0, 'Decision-log format instruction not found'
         after_logging = done[logging_idx:]
         assert 'SKIP' in after_logging, \
-            'Decision Logging section missing SKIP format'
+            'Decision-log instruction missing SKIP format'
 
     def test_done_decision_logging_has_story_only_format(self):
-        """Step 2.3 should document the STORY-ONLY format."""
+        """The decision-log format instruction should document STORY-ONLY."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        logging_idx = done.find('Decision Logging')
-        assert logging_idx > 0, 'Decision Logging section not found'
+        logging_idx = done.find('Regression: {TYPE} — {reason}')
+        assert logging_idx > 0, 'Decision-log format instruction not found'
         after_logging = done[logging_idx:]
         assert 'STORY-ONLY' in after_logging, \
-            'Decision Logging section missing STORY-ONLY format'
+            'Decision-log instruction missing STORY-ONLY format'

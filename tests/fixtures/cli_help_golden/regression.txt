@@ -1,7 +1,13 @@
-usage: pactkit regression [-h] [files ...]
+usage: pactkit regression [-h] [--record] [--check-record] [--story STORY]
+                          [files ...]
 
 positional arguments:
-  files       Changed file paths (default: git diff)
+  files           Changed file paths (default: git diff)
 
 options:
-  -h, --help  show this help message and exit
+  -h, --help      show this help message and exit
+  --record        Record a verification fingerprint after a green regression
+                  run
+  --check-record  Compare current state against the recorded verification
+                  fingerprint
+  --story STORY   Story ID for the verification record (default: active story)

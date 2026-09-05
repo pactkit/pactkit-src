@@ -125,6 +125,13 @@
 
 - [x] Fix three defects: doc-only patterns miss repo meta files (.gitignore/.claude/.codex); full-suite target hard-codes tests/unit/ with no tests/ fallback and counts exit 4/5 as RED; missing pytest module (pipx fallback) reads as RED instead of GateUnavailable. From harness-backend 2026-09-01 friction.
 
+### [HOTFIX-slim-20260903d464746b1909] opencode 部署 digest 失记修复
+> Spec: docs/specs/HOTFIX-slim-20260903d464746b1909.md
+
+- [x] core record_deployed_file helper
+- [x] 适配器后处理后记账
+- [x] E2E 零候选验证
+
 ### [STORY-slim-145] Codex 部署命令语义完整性与 Adapter 兼容门禁
 > Spec: docs/specs/STORY-slim-145.md
 
@@ -378,3 +385,72 @@
 - [x] Check 契约 setup 对齐+环境同源语义
 - [x] Defect-class sweep 步骤
 - [x] Adapter parity 验证
+
+### [STORY-slim-2026090333d6b72f7645] SDLC 标准对齐 T1:ADR 制度+Validation 语义+Postmortem 制度+write-safety 恢复
+> Spec: docs/specs/STORY-slim-2026090333d6b72f7645.md
+
+- [x] ADR schema+scaffold+lint-adr+context 聚合
+- [x] Check Validation 语义(contract+Phase 5)
+- [x] Hotfix Phase 3.7 Postmortem 制度
+- [x] write-safety guide+index 路由
+- [x] R1-R5 断言测试(TDD RED 先行)
+- [x] R6 Knowledge Provenance 三时点(Act 时补充授权)
+- [x] preflight inline-range 修复(死代码复活+表格支持)
+
+### [STORY-slim-20260903699c84c217e0] 部署账本生命周期集成测试(record→rebuild→prove 三段闭环)
+> Spec: docs/specs/STORY-slim-20260903699c84c217e0.md
+
+- [x] 四 adapter 格式各一段闭环测试
+- [x] 连跑 3 轮 update 零候选断言
+
+### [STORY-slim-202609037a7d4be200e7] Guide 实践层第二批:剩余 20 个 guide 全量富化
+> Spec: docs/specs/STORY-slim-202609037a7d4be200e7.md
+
+- [x] 锚点断言测试先行(RED)
+- [x] API 域 3 guide practice
+- [x] 数据域 3 guide practice
+- [x] 并发域 6 guide practice
+- [x] 质量域 3 guide practice
+- [x] 运维域 5 guide practice
+- [x] 压缩进 50 行预算+全量测试
+- [x] 部署+三 adapter 抽查
+
+### [STORY-slim-20260903a24e1ece0d7f] Deployer 根因修复:codex 嵌套副本登记进 manifest+.pactkit-new 接受机制
+> Spec: docs/specs/STORY-slim-20260903a24e1ece0d7f.md
+
+- [x] 嵌套副本写入 deploy manifest files 映射
+- [x] pactkit update --accept-candidates 过渡机制
+- [x] 8 处复发位点回归测试
+- [x] R1 实现:部署检查合并 references 账本(pactkit-codex 跨仓)
+
+### [STORY-slim-20260903a4ef6915ed62] 规则遵循遥测:W012 触发率+guide 读取率+Capability Assessment 出现率
+> Spec: docs/specs/STORY-slim-20260903a4ef6915ed62.md
+
+- [x] gate/run_events 埋点(W012 警告计数)
+- [x] guide Read 事件计数
+- [x] Spec 含 Capability Assessment 比率
+- [x] 遥测报表进 stats
+- [x] 诊断分类引擎:四类归因(参数/bug/使用/规则设计)+每类具体动作文案
+- [x] doctor 消费端:遥测发现→分类→修复建议(done 流程自动触达)
+- [x] garden 巡检扩展:死规则检测(零触发 guide 裁撤建议)
+- [x] 分类矩阵设计文档(信号判据表)进 spec
+- [x] Spec 已建(spec-lint 0E/0W,含四信号判据矩阵)
+
+### [STORY-slim-20260903b5ce6be5f7e0] Guide 实践层:Practice 段机制+三 guide 富化
+> Spec: docs/specs/STORY-slim-20260903b5ce6be5f7e0.md
+
+- [x] Practice 段机制(字段+render+_guide)
+- [x] observability 日志管理 Practice
+- [x] module-design 拆分判据 Practice
+- [x] error-recovery 错误分类学 Practice
+- [x] 结构测试扩展+部署验证
+
+### [STORY-slim-20260905efced66ebc9c] 剧本-契约冲突修复:阻塞边界/工具回退/验证指纹/准确阶段胶囊 R1-R6
+> Spec: docs/specs/STORY-slim-20260905efced66ebc9c.md
+
+- [x] R1-R4 剧本文本改写:coverage 门禁降级/工具回退/lesson-append 缺口报告/任务勾选免强制询问 (commands.py)
+- [x] R5 指纹机制:regression --record/--check-record + .pactkit/verification/<story>.json (regression.py+cli.py)
+- [x] R5 剧本接入:Act 回归绿后 --record,Done 以指纹替代 HEAD~1 基线 (commands.py+test_story037)
+- [x] R6 注册 phase-init/clarify/design/debug 胶囊并修正 COMMAND_RULES_MAP (rules.py)
+- [x] 测试:新建 test_contract_conflict_fixes.py + SPEC_TABLE 镜像同步 (slim011)
+- [x] 全量回归 + 部署 smoke:classic init/design 技能含新胶囊 @import

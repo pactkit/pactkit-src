@@ -40,8 +40,10 @@ class TestAC1VerifiableCondition1:
         """Condition 1 must contain a concrete verification command."""
         p = _prompts()
         done = p.COMMANDS_CONTENT['project-done.md']
-        # Should reference checking recent commit or staged changes
-        assert 'HEAD~1' in done or 'HEAD' in done
+        # STORY-slim-20260905efced66ebc9c: the baseline is Act's recorded
+        # verification fingerprint, with a git-diff fallback when absent.
+        assert 'regression --check-record' in done
+        assert 'git diff' in done
 
 
 # ==============================================================================
